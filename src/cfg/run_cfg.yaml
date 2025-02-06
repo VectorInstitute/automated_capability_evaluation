@@ -1,5 +1,5 @@
 model:
-  name: gpt-40-mini
+  name: gpt-4o-mini
 
 gen_cfg:
   temperature: 0.7
@@ -7,3 +7,7 @@ gen_cfg:
 
 prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.
+
+defaults:
+  - _self_
+  - tasks: math
