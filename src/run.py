@@ -1,9 +1,8 @@
-import hydra
+import hydra  # noqa: D100
 from omegaconf import DictConfig
 
 from model import Model
 from task import Task
-
 from utils.prompts import TASK_GENERATION_SYSTEM_PROMPT, TASK_GENERATION_USER_PROMPT
 
 
@@ -33,7 +32,9 @@ def main(cfg: DictConfig):
     )
 
     # Model input
-    sample_input = TASK_GENERATION_USER_PROMPT.format(prev_tasks="\n".join([str(math_task), str(gsm8k_task)]), domain=domain)
+    sample_input = TASK_GENERATION_USER_PROMPT.format(
+        prev_tasks="\n".join([str(math_task), str(gsm8k_task)]), domain=domain
+    )
 
     # Generate output using the model with specified generation arguments
     gen_cfg = cfg.gen_cfg

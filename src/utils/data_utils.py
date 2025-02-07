@@ -1,4 +1,4 @@
-from datasets import load_dataset
+from datasets import load_dataset  # noqa: D100
 
 
 def load_data(dataset_name: str, split: str, subset: str = None, **kwargs):
@@ -9,7 +9,8 @@ def load_data(dataset_name: str, split: str, subset: str = None, **kwargs):
         dataset_name (str): The name of the dataset to load.
         split (str): The split of the dataset to load (default is 'train').
 
-    Returns:
+    Returns
+    -------
         Dataset: The loaded dataset.
     """
     # TODO: Add ability to load datasets from sources other than huggingface

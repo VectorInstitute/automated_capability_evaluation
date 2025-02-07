@@ -1,9 +1,8 @@
-import os
+import os  # noqa: D100
 
-from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from ratelimit import limits, sleep_and_retry
 from openai import OpenAI
+from ratelimit import limits, sleep_and_retry
 
 
 RATE_LIMIT = {
@@ -47,10 +46,14 @@ class Model:
         messages = self._get_input_messages(prompt)
         generation_config = dict(generation_config)
         if "o1" in self.model_name:
-            generation_config.update({"max_completion_tokens": generation_config["max_tokens"]})
+            generation_config.update(
+                {"max_completion_tokens": generation_config["max_tokens"]}
+            )
             del generation_config["max_tokens"]
-            generation_config.update({"temperature": 1}) # Only 1 is supported for o1
-            response = self.llm.chat.completions.create(model=self.model_name, messages=messages, **generation_config)
+            generation_config.update({"temperature": 1})  # Only 1 is supported for o1
+            response = self.llm.chat.completions.create(
+                model=self.model_name, messages=messages, **generation_config
+            )
             generated_text = response.choices[0].message.content
             input_tokens = response.usage.prompt_tokens
             output_tokens = response.usage.completion_tokens
@@ -58,12 +61,11 @@ class Model:
             response = self.llm.invoke(messages, **generation_config)
             generated_text = response.content
             input_tokens = response.response_metadata["token_usage"]["prompt_tokens"]
-            output_tokens = response.response_metadata["token_usage"]["completion_tokens"]
+            output_tokens = response.response_metadata["token_usage"][
+                "completion_tokens"
+            ]
 
-        metadata = {
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens
-        }
+        metadata = {"input_tokens": input_tokens, "output_tokens": output_tokens}
         return generated_text, metadata
 
     def get_model_name(self):
