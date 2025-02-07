@@ -1,3 +1,5 @@
+import json
+
 from datasets import Dataset
 from utils import load_data
 from abc import ABC
@@ -14,14 +16,14 @@ class Task(ABC):
         self._load_dataset()
 
     def _load_dataset(self):
-        self._data = load_data(self._cfg.data_args.source, split=self._cfg.data_args.split)
+        self._data = load_data(dataset_name=self._cfg.data_args.source, **self._cfg.data_args)
         self._create_repr_samples(self._data, num_samples=self._cfg.data_args.num_repr_samples)
 
     def _create_repr_samples(self, data: Dataset, num_samples: int = 5, seed: int = 42):
         # create representative samples by randomly sampling from the data
         self._repr_samples = data.shuffle(seed=seed).take(num_samples)
 
-    def to_dict(self):
+    def _to_dict(self):
         return {
             "name": self.name,
             "description": self.description,
@@ -29,16 +31,13 @@ class Task(ABC):
             "samples": self._repr_samples,
         }
 
-    def to_str(self):
-        task_dict = self.to_dict()
-        task_dict["samples"] = "\n".join([f"S{idx+1}:\n{self._format_sample(sample)}" for idx, sample in enumerate(task_dict["samples"])])
-        return TASK_STR_REPR.format(**task_dict)
+    def to_json_str(self):
+        task_dict = self._to_dict()
+        task_dict["samples"] = {(idx+1): sample for idx, sample in enumerate(task_dict["samples"])}
+        return json.dumps(task_dict)
 
     def __str__(self):
-        return self.to_str()
-
-    def _format_sample(self):
-        raise NotImplementedError
+        return self.to_json_str()
 
     # TODO: Get feedback on the following methods
     def to_metr_format(self):
@@ -48,22 +47,3 @@ class Task(ABC):
     def evaluate_using_inspect(self, model):
         # evaluate the task using inspect-evals
         raise NotImplementedError
-
-
-class MathTask(Task):
-    def __init__(self, cfg: dict):
-        super().__init__(cfg)
-
-        self._str_repr = """Type: {type}\nLevel: {level}\nProblem: {problem}\nSolution: {solution}"""
-
-    def _format_sample(self, sample: dict):
-        return self._str_repr.format(**sample)
-
-
-TASK_STR_REPR = """
-Name: {name}
-Description: {description}
-Domain: {domain}
-Samples:
-{samples}
-"""
