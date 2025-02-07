@@ -1,7 +1,7 @@
 from datasets import load_dataset
 
 
-def load_data(dataset_name: str, split: str):
+def load_data(dataset_name: str, split: str, subset: str = None, **kwargs):
     """
     Load a dataset from the Hugging Face Hub.
 
@@ -13,4 +13,4 @@ def load_data(dataset_name: str, split: str):
         Dataset: The loaded dataset.
     """
     # TODO: Add ability to load datasets from sources other than huggingface
-    return load_dataset(dataset_name, split=split, streaming=True)
+    return load_dataset(path=dataset_name, split=split, name=subset, streaming=True)
