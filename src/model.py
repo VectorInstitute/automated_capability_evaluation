@@ -3,6 +3,7 @@ import os
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from ratelimit import limits, sleep_and_retry
+from openai import OpenAI
 
 
 RATE_LIMIT = {
@@ -24,7 +25,11 @@ class Model:
         :param kwargs: Additional keyword arguments.
         """  # noqa: W505
         self.model_name = model_name
-        self.llm = ChatOpenAI(model_name=model_name)
+        if "o1" in model_name:
+            # DEBUG: ChatOpenAI() does not support o1 yet?
+            self.llm = OpenAI()
+        else:
+            self.llm = ChatOpenAI(model_name=model_name)
 
         self._sys_msg = kwargs.get("sys_msg", "")
 
@@ -39,14 +44,22 @@ class Model:
         :param prompt: The input prompt for the model.
         :return: A tuple containing the generated text and metadata.
         """
-        messages = [
-            SystemMessage(self._sys_msg),
-            HumanMessage(prompt),
-        ]
-        response = self.llm.invoke(messages, **generation_config)
-        generated_text = response.content
-        input_tokens = response.response_metadata["token_usage"]["prompt_tokens"]
-        output_tokens = response.response_metadata["token_usage"]["completion_tokens"]
+        messages = self._get_input_messages(prompt)
+        generation_config = dict(generation_config)
+        if "o1" in self.model_name:
+            generation_config.update({"max_completion_tokens": generation_config["max_tokens"]})
+            del generation_config["max_tokens"]
+            generation_config.update({"temperature": 1}) # Only 1 is supported for o1
+            response = self.llm.chat.completions.create(model=self.model_name, messages=messages, **generation_config)
+            generated_text = response.choices[0].message.content
+            input_tokens = response.usage.prompt_tokens
+            output_tokens = response.usage.completion_tokens
+        else:
+            response = self.llm.invoke(messages, **generation_config)
+            generated_text = response.content
+            input_tokens = response.response_metadata["token_usage"]["prompt_tokens"]
+            output_tokens = response.response_metadata["token_usage"]["completion_tokens"]
+
         metadata = {
             "input_tokens": input_tokens,
             "output_tokens": output_tokens
@@ -60,3 +73,13 @@ class Model:
         :return: The name of the model.
         """
         return self.model_name
+
+    def _get_input_messages(self, prompt):
+        messages = []
+        if "o1" in self.model_name:
+            # DEBUG: o1 doesn't need system messages?
+            messages.append({"role": "user", "content": f"{self._sys_msg}\n\n{prompt}"})
+        else:
+            messages.append(("system", self._sys_msg))
+            messages.append(("user", prompt))
+        return messages
