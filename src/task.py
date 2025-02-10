@@ -43,7 +43,8 @@ class Task:
         )
 
     def _create_repr_samples(self, data: Dataset, num_samples: int = 5, seed: int = 42):
-        # create representative samples by randomly sampling from the data
+        # create representative samples used for including in the task definition
+        # randomly sample from the data
         self._repr_samples = data.shuffle(seed=seed).take(num_samples)
 
     def _to_dict(self):
