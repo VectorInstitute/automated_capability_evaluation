@@ -1,7 +1,20 @@
-from datasets import load_dataset  # noqa: D100
+"""
+The data_utils module for the automatic_benchmark_generation project.
+
+It contains utility functions for loading datasets.
+"""
+
+from typing import Any, Dict
+
+from datasets import (
+    Dataset,
+    load_dataset,  # noqa: D100
+)
 
 
-def load_data(dataset_name: str, split: str, subset: str = None, **kwargs):
+def load_data(
+    dataset_name: str, split: str, subset: str = "", **kwargs: Dict[str, Any]
+) -> Dataset:
     """
     Load a dataset from the Hugging Face Hub.
 

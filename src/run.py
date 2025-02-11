@@ -7,7 +7,7 @@ from utils.prompts import TASK_GENERATION_SYSTEM_PROMPT, TASK_GENERATION_USER_PR
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
-def main(cfg: DictConfig):
+def main(cfg: DictConfig) -> None:
     """
     Run the model with the specified configuration.
 
