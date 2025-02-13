@@ -11,11 +11,17 @@ The tests cover the following functionalities:
 The tests verify that the Model class behaves as expected and that the attributes
 and methods return the correct values.
 """
+import os
+
 from langchain_openai import ChatOpenAI
 from openai import OpenAI
 
 from src.model import Model
 
+
+# Use dummy OpenAI API key for tests not making API calls.
+DUMMY_OPENAI_API_KEY = "dummy_key"
+os.environ["OPENAI_API_KEY"] = DUMMY_OPENAI_API_KEY
 
 sys_msg = "a"
 prompt = "b"
@@ -120,6 +126,11 @@ def test_model_class_generate_openai():
     - The metadata is a dictionary.
     - The output tokens are either 0 or 1.
     """
+    # Use actual test OpenAI API key for this test.
+    os.environ["OPENAI_API_KEY"] = os.environ.get(
+        "TEST_OPENAI_API_KEY", DUMMY_OPENAI_API_KEY
+    )
+
     model_name = "o1-mini"
     model = Model(model_name=model_name, sys_msg=sys_msg)
     model.model_name = "gpt-4o-mini"  # Update to got-4o-mini to save costs
@@ -144,6 +155,11 @@ def test_model_class_generate_chatopenai():
     - The metadata is a dictionary.
     - The output tokens are either 0 or 1.
     """
+    # Use actual OpenAI API key for this test.
+    os.environ["OPENAI_API_KEY"] = os.environ.get(
+        "TEST_OPENAI_API_KEY", DUMMY_OPENAI_API_KEY
+    )
+
     model_name = "gpt-4o-mini"
     model = Model(model_name=model_name, sys_msg=sys_msg)
     generation_config = {"temperature": 0.5, "max_tokens": 1}
