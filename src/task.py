@@ -4,7 +4,7 @@ from typing import Any, Dict, Union
 from datasets import Dataset
 
 from src.model import Model
-from src.utils import load_data
+from src.utils.data_utils import load_data
 
 
 class Task:
