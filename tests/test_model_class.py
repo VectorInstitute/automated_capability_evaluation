@@ -14,7 +14,7 @@ and methods return the correct values.
 import os
 
 from langchain_openai import ChatOpenAI
-from openai import OpenAI
+from openai import AuthenticationError, OpenAI
 
 from src.model import Model
 
@@ -23,8 +23,43 @@ from src.model import Model
 DUMMY_OPENAI_API_KEY = "dummy_key"
 os.environ["OPENAI_API_KEY"] = DUMMY_OPENAI_API_KEY
 
+# API key error code vars
+EC_401 = "Error code: 401"
+EC_401_SKIP_MSG = (
+    "Skip this test for code check because this test depends on actual API call."
+)
+
 sys_msg = "a"
 prompt = "b"
+
+
+def skip_test(function):
+    """
+    Wrap a test function to handle AuthenticationError exceptions.
+
+    If an AuthenticationError with error code EC_401 is raised
+    (Incorrect API key provided), it prints a skip message and
+    does not re-raise the exception. For other AuthenticationError exceptions,
+    it re-raises the exception.
+    Args:
+        function (callable): The test function to be wrapped.
+
+    Returns
+    -------
+        callable: The wrapped function.
+    """
+
+    def wrapper():
+        try:
+            return function()
+        except AuthenticationError as e:
+            if EC_401 in e:
+                print(EC_401_SKIP_MSG)
+            else:
+                raise e
+            return True
+
+    return wrapper
 
 
 def test_model_class_init_openai():
@@ -115,6 +150,7 @@ def test_model_class_get_input_messages_chatopenai():
     assert input_messages[1][1] == prompt
 
 
+@skip_test
 def test_model_class_generate_openai():
     """
     Test the generate method of the Model class with an OpenAI model.
@@ -144,6 +180,7 @@ def test_model_class_generate_openai():
     assert metadata["output_tokens"] in [0, 1]
 
 
+@skip_test
 def test_model_class_generate_chatopenai():
     """
     Test the generate method of the Model class with a ChatOpenAI model.
