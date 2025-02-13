@@ -3,8 +3,8 @@ from typing import Any, Dict, Union
 
 from datasets import Dataset
 
-from model import Model
-from utils import load_data
+from src.model import Model
+from src.utils import load_data
 
 
 class Task:
