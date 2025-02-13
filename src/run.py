@@ -1,7 +1,6 @@
 import hydra  # noqa: D100
-from omegaconf import DictConfig
-
 from model import Model
+from omegaconf import DictConfig
 from task import Task
 from utils.prompts import TASK_GENERATION_SYSTEM_PROMPT, TASK_GENERATION_USER_PROMPT
 
