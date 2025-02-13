@@ -26,13 +26,13 @@ class Model:
         """  # noqa: W505
         self.model_name: str = model_name
         self.llm: OpenAI | ChatOpenAI = self._set_llm(
-            model_name
+            self.model_name
         )  # DEBUG: ChatOpenAI() does not support o1 yet?
 
         self._sys_msg: str = str(kwargs.get("sys_msg", ""))
 
     def _set_llm(self, model_name: str) -> OpenAI | ChatOpenAI:
-        return OpenAI() if "o1" in model_name else ChatOpenAI(model=model_name)
+        return OpenAI() if "o1" in model_name else ChatOpenAI(model=self.model_name)
 
     @sleep_and_retry  # type: ignore
     @limits(**RATE_LIMIT)  # type: ignore
@@ -91,7 +91,7 @@ class Model:
     def _get_input_messages(
         self, prompt: str
     ) -> List[Dict[str, str] | Tuple[str, str]]:
-        if "o1" in self.model_name:
+        if isinstance(self.llm, OpenAI):
             # DEBUG: o1 doesn't need system messages?
             return [{"role": "user", "content": f"{self._sys_msg}\n\n{prompt}"}]
         return [
