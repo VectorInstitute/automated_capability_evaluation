@@ -57,7 +57,9 @@ class Model:
                     {"temperature": 1}
                 )  # Only 1 is supported for o1
                 openai_response = self.llm.chat.completions.create(
-                    model=self.model_name, messages=messages, **generation_config
+                    model=self.model_name,
+                    messages=messages,  # type: ignore # TODO: Fix this unresolved mypy issue
+                    **generation_config,
                 )
                 generated_text = str(openai_response.choices[0].message.content)
                 input_tokens = (
