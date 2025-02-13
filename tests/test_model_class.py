@@ -53,7 +53,7 @@ def skip_test(function):
         try:
             return function()
         except AuthenticationError as e:
-            if EC_401 in e:
+            if EC_401 in str(e):
                 print(EC_401_SKIP_MSG)
             else:
                 raise e
