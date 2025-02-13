@@ -56,21 +56,25 @@ class Model:
                 generation_config.update(
                     {"temperature": 1}
                 )  # Only 1 is supported for o1
-                response = self.llm.chat.completions.create(
+                openai_response = self.llm.chat.completions.create(
                     model=self.model_name, messages=messages, **generation_config
                 )
-                generated_text = response.choices[0].message.content
-                input_tokens = response.usage.prompt_tokens if response.usage else 0
+                generated_text = str(openai_response.choices[0].message.content)
+                input_tokens = (
+                    openai_response.usage.prompt_tokens if openai_response.usage else 0
+                )
                 output_tokens = (
-                    response.usage.completion_tokens if response.usage else 0
+                    openai_response.usage.completion_tokens
+                    if openai_response.usage
+                    else 0
                 )
             elif isinstance(self.llm, ChatOpenAI):
-                response = self.llm.invoke(messages, **generation_config)
-                generated_text = response.content
-                input_tokens = response.response_metadata["token_usage"][
+                chatopenai_response = self.llm.invoke(messages, **generation_config)
+                generated_text = str(chatopenai_response.content)
+                input_tokens = chatopenai_response.response_metadata["token_usage"][
                     "prompt_tokens"
                 ]
-                output_tokens = response.response_metadata["token_usage"][
+                output_tokens = chatopenai_response.response_metadata["token_usage"][
                     "completion_tokens"
                 ]
         except Exception as e:
