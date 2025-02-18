@@ -11,6 +11,7 @@ The tests cover the following functionalities:
 The tests verify that the Model class behaves as expected and that the attributes
 and methods return the correct values.
 """
+
 import os
 
 from langchain_openai import ChatOpenAI

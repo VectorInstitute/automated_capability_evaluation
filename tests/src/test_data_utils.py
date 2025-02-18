@@ -8,6 +8,7 @@ Functions:
     test_load_data(): Tests the load_data function to ensure it loads the correct number
     of data samples.
 """
+
 from src.utils import load_data
 
 

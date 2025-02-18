@@ -144,7 +144,7 @@ markers = [
 
 [tool.coverage]
     [tool.coverage.run]
-    source=["aieng_template"]
+    source=["src"]
     omit=["tests/*", "*__init__.py"]
 
 [build-system]

@@ -21,6 +21,7 @@ test_create_task()
 test_task_to_json_str()
     Test the serialization of a Task object to a JSON string and verify its content.
 """
+
 import json
 
 from src.task import Task
