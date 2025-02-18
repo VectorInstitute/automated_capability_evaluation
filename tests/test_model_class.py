@@ -14,7 +14,7 @@ and methods return the correct values.
 import os
 
 from langchain_openai import ChatOpenAI
-from openai import AuthenticationError, OpenAI
+from openai import AuthenticationError
 
 from src.model import Model
 
@@ -62,24 +62,6 @@ def skip_test(function):
     return wrapper
 
 
-def test_model_class_init_openai():
-    """
-    Test the initialization of the Model class with an OpenAI model.
-
-    This test verifies that the Model class is initialized correctly
-    with an OpenAI model.
-    It checks the following:
-    - The model name matches the expected name.
-    - The LLM attribute is an instance of the OpenAI class.
-    - The system message attribute matches the expected message.
-    """
-    model_name = "o1-mini"
-    model = Model(model_name=model_name, sys_msg=sys_msg)
-    assert isinstance(model.llm, OpenAI)
-    assert model.model_name == model_name
-    assert model._sys_msg == sys_msg
-
-
 def test_model_class_init_chatopenai():
     """
     Test the initialization of the Model class with a ChatOpenAI model.
@@ -110,25 +92,6 @@ def test_model_class_get_model_name():
     assert model.get_model_name() == model_name
 
 
-def test_model_class_get_input_messages_openai():
-    """
-    Test the _get_input_messages method of the Model class with an OpenAI model.
-
-    This test verifies that the _get_input_messages method of the Model class
-    works correctly with an OpenAI model.
-    It checks the following:
-    - The input messages are a list of dictionaries.
-    - The input messages contain the system message and prompt.
-    """
-    model_name = "o1-mini"
-    model = Model(model_name=model_name, sys_msg=sys_msg)
-    input_messages = model._get_input_messages(prompt=prompt)
-    assert isinstance(input_messages, list)
-    assert all(isinstance(message, dict) for message in input_messages)
-    assert input_messages[0]["role"] == "user"
-    assert input_messages[0]["content"] == f"{sys_msg}\n\n{prompt}"
-
-
 def test_model_class_get_input_messages_chatopenai():
     """
     Test the _get_input_messages method of the Model class with a ChatOpenAI model.
@@ -151,37 +114,7 @@ def test_model_class_get_input_messages_chatopenai():
 
 
 @skip_test
-def test_model_class_generate_openai():
-    """
-    Test the generate method of the Model class with an OpenAI model.
-
-    This test verifies that the generate method of the Model class works
-    correctly with an OpenAI model.
-    It checks the following:
-    - The generated text is not None and of type string.
-    - The metadata is a dictionary.
-    - The output tokens are either 0 or 1.
-    """
-    # Use actual test OpenAI API key for this test.
-    os.environ["OPENAI_API_KEY"] = os.environ.get(
-        "TEST_OPENAI_API_KEY", DUMMY_OPENAI_API_KEY
-    )
-
-    model_name = "o1-mini"
-    model = Model(model_name=model_name, sys_msg=sys_msg)
-    model.model_name = "gpt-4o-mini"  # Update to got-4o-mini to save costs
-    generation_config = {"temperature": 0.5, "max_tokens": 1}
-    output, metadata = model.generate(
-        prompt=prompt, generation_config=generation_config
-    )
-    assert output is not None
-    assert isinstance(output, str)
-    assert isinstance(metadata, dict)
-    assert metadata["output_tokens"] in [0, 1]
-
-
-@skip_test
-def test_model_class_generate_chatopenai():
+def test_model_class_generate_chatopenai_non_o1():
     """
     Test the generate method of the Model class with a ChatOpenAI model.
 
@@ -198,6 +131,35 @@ def test_model_class_generate_chatopenai():
     )
 
     model_name = "gpt-4o-mini"
+    model = Model(model_name=model_name, sys_msg=sys_msg)
+    generation_config = {"temperature": 0.5, "max_tokens": 1}
+    output, metadata = model.generate(
+        prompt=prompt, generation_config=generation_config
+    )
+    assert output is not None
+    assert isinstance(output, str)
+    assert isinstance(metadata, dict)
+    assert metadata["output_tokens"] in [0, 1]
+
+
+@skip_test
+def test_model_class_generate_chatopenai_o1():
+    """
+    Test the generate method of the Model class with a ChatOpenAI model.
+
+    This test verifies that the generate method of the Model class works
+    correctly with a ChatOpenAI model.
+    It checks the following:
+    - The generated text is not None and of type string.
+    - The metadata is a dictionary.
+    - The output tokens are either 0 or 1.
+    """
+    # Use actual OpenAI API key for this test.
+    os.environ["OPENAI_API_KEY"] = os.environ.get(
+        "TEST_OPENAI_API_KEY", DUMMY_OPENAI_API_KEY
+    )
+
+    model_name = "o1-mini"
     model = Model(model_name=model_name, sys_msg=sys_msg)
     generation_config = {"temperature": 0.5, "max_tokens": 1}
     output, metadata = model.generate(
