@@ -20,7 +20,16 @@ python3 -m poetry install --with test
 
 ### Run pipeline with default config
 
-Note: Please set the following env vars before running the command: OPENAI_API_KEY, RATE_LIMIT_CALLS, RATE_LIMIT_PERIOD.
+Note: Please set the following env vars before running the command.
+- OPENAI_API_KEY
+- Rate limit vars (default values given):
+    - RATE_LIMIT_CALLS=5
+    - RATE_LIMIT_PERIOD=60
+- LangSmith tracing vars:
+    - LANGSMITH_TRACING=true
+    - LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
+    - LANGSMITH_API_KEY=<langsmith_api_key>
+    - LANGSMITH_PROJECT="automated_capability_evaluation"
 
 ```bash
 python3 src/run.py
