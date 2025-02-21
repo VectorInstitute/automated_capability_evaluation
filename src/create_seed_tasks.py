@@ -22,6 +22,7 @@ def populate_seed_task_dir(
     task_instructions: str,
     task_score_func: str,
     source_dataset: str,
+    task_subject: str | None = None,
 ) -> None:
     """
     Populate a directory with seed task files.
@@ -59,6 +60,8 @@ def populate_seed_task_dir(
         "task_instructions": task_instructions,
         "task_data": task_data,
     }
+    if task_subject:
+        task_json.update({"task_subject": task_subject})
     with open(os.path.join(task_dir, "task.json"), "w") as f:
         json.dump(task_json, f, indent=4)
 
@@ -228,6 +231,7 @@ def main(cfg: DictConfig) -> None:
                     task_description=task_desc,
                     task_domain=dataset.domain,
                     task_family=dataset.family,
+                    task_subject=subject,
                     task_data=math_samples["samples"],
                     task_repr_samples=task_repr_samples,
                     task_instructions=task_instructions,
