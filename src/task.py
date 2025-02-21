@@ -31,6 +31,8 @@ class Task:
         self.name = cfg["name"]
         self.description = cfg["description"]
         self.domain = cfg["domain"]
+        self.family = cfg["family"]
+        self.instructions = cfg["instructions"]
 
         self._cfg = cfg
 

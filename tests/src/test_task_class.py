@@ -32,6 +32,7 @@ task_cfg = {
     "name": "mathematics",
     "description": "Solve mathematical problems.",
     "domain": "math",
+    "family": "competition",
     "data_args": {
         "source": "qwedsacf/competition_math",
         "split": "train",
@@ -39,6 +40,7 @@ task_cfg = {
         "streaming": False,
         "num_repr_samples": 3,
     },
+    "instructions": "Solve the following mathematical problems.",
     "test_args": {
         "size": 12500,
     },
@@ -63,6 +65,8 @@ def test_create_task():
     assert task.name == task_cfg["name"]
     assert task.description == task_cfg["description"]
     assert task.domain == task_cfg["domain"]
+    assert task.family == task_cfg["family"]
+    assert task.instructions == task_cfg["instructions"]
     assert len(task._data) == task_cfg["test_args"]["size"]
     assert len(task._repr_samples) == task_cfg["data_args"]["num_repr_samples"]
 

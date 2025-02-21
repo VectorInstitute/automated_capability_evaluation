@@ -2,8 +2,11 @@ gsm8k:
   name: gsm8k
   description: The GSM8K (Grade School Math 8K) task consists of 8.5K high quality linguistically diverse grade school math word problems. The dataset was created to support the task of question answering on basic mathematical problems that require multi-step reasoning.
   domain: math
+  family: grade_school
   data_args:
     source: openai/gsm8k
     split: test
     subset: main
     num_repr_samples: 3
+  instructions: >-
+    f"""Solve the following math problem step by step. The last line of your response should be of the form "ANSWER: $ANSWER" (without quotes) where $ANSWER is the answer to the problem.\n\nProblem: {problem}\n\nRemember to put your answer on its own line at the end in the form "ANSWER:$ANSWER" (without quotes) where $ANSWER is the answer to the problem, and you do not need to use a \\boxed command."""

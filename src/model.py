@@ -14,7 +14,7 @@ RATE_LIMIT = {
 class Model:
     """A class to represent a LLM with rate limiting and generation configuration."""  # noqa: W505
 
-    def __init__(self, model_name: str, **kwargs: Dict[str, Any]) -> None:
+    def __init__(self, model_name: str, **kwargs: Any) -> None:
         """
         Initialize the LLM with a name, rate limit, generation configuration, and additional keyword arguments.
 
