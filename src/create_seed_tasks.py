@@ -21,6 +21,7 @@ def populate_seed_task_dir(
     task_repr_samples: List[Dict[str, str]],
     task_instructions: str,
     task_score_func: str,
+    source_dataset: str,
 ) -> None:
     """
     Populate a directory with seed task files.
@@ -38,6 +39,7 @@ def populate_seed_task_dir(
         containing representative samples for the task.
         task_instructions (str): Instructions for the task.
         task_score_func (str): The scoring function for the task.
+        source_dataset (str): The name of the source dataset.
 
     Returns
     -------
@@ -51,6 +53,7 @@ def populate_seed_task_dir(
     task_json = {
         "task_name": task_name,
         "task_description": task_description,
+        "source_dataset": source_dataset,
         "task_domain": task_domain,
         "task_family": task_family,
         "task_instructions": task_instructions,
@@ -177,7 +180,8 @@ def main(cfg: DictConfig) -> None:
     """
     random.seed(42)
 
-    seed_task_dir = "./seed_tasks"
+    domain = "math"
+    seed_task_dir = f"./seed_tasks/{domain}"
 
     for dataset_cfg in cfg.tasks.task_cfgs.values():
         dataset = Task(dataset_cfg)
@@ -228,6 +232,7 @@ def main(cfg: DictConfig) -> None:
                     task_repr_samples=task_repr_samples,
                     task_instructions=task_instructions,
                     task_score_func=mathematics_score_func.strip("\n"),
+                    source_dataset=dataset.name,
                 )
                 print(
                     f"Created task {task_name} with {len(math_samples['samples'])} samples."
@@ -261,6 +266,7 @@ def main(cfg: DictConfig) -> None:
                 task_repr_samples=task_repr_samples,
                 task_instructions=task_instructions,
                 task_score_func=gsm8k_score_func.strip("\n"),
+                source_dataset=dataset.name,
             )
             print(f"Created task {task_name} with {len(gsm_samples)} samples.")
 
