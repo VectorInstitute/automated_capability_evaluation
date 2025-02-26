@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 import hydra  # noqa: D100
 from omegaconf import DictConfig
 
-from task import Task
+from task import TaskSeedDataset
 from utils.templates import TASK_CLASS_TEMPLATE
 
 
@@ -73,7 +73,7 @@ def populate_seed_task_dir(
         task_data_samples_dict=json.dumps(task_data_samples_dict, indent=4),
         task_instructions=task_instructions,
         task_score_func=task_score_func,
-    )
+    ).lstrip("\n")
     with open(os.path.join(task_dir, "task.py"), "w") as f:
         f.write(task_class_str)
 
@@ -154,11 +154,11 @@ def last_boxed_only_string(string: str) -> str | None:
     return None if right_brace_idx is None else string[idx : right_brace_idx + 1]
 
 
+tab_w_spaces = "    "
 # Score function is based on https://github.com/UKGovernmentBEIS/inspect_evals/blob/main/src/inspect_evals/mathematics/utils.py#L57
-mathematics_score_func = """def score(t: dict, submission: str) -> float | None:\n\t\tans_pattern_line = r"(?i)ANSWER\\s*:\\s*([^\\n]+)"\n\t\tmatch = re.search(ans_pattern_line, submission)\n\t\tif match:\n\t\t\tanswer = match.group(1)\n\t\t\tcorrect = is_equiv(answer, t['answer'])\n\t\telse:\n\t\t\tcorrect = False\n\t\treturn 1.0 if correct else 0.0"""
-
+mathematics_score_func = f"""def score(t: dict, submission: str) -> float | None:\n{tab_w_spaces}{tab_w_spaces}ans_pattern_line = r"(?i)ANSWER\\s*:\\s*([^\\n]+)"\n{tab_w_spaces}{tab_w_spaces}match = re.search(ans_pattern_line, submission)\n{tab_w_spaces}{tab_w_spaces}if match:\n{tab_w_spaces}{tab_w_spaces}{tab_w_spaces}answer = match.group(1)\n{tab_w_spaces}{tab_w_spaces}{tab_w_spaces}correct = is_equiv(answer, t['answer'])\n{tab_w_spaces}{tab_w_spaces}else:\n{tab_w_spaces}{tab_w_spaces}{tab_w_spaces}correct = False\n{tab_w_spaces}{tab_w_spaces}return 1.0 if correct else 0.0"""
 # Score function is based on https://github.com/UKGovernmentBEIS/inspect_evals/blob/main/src/inspect_evals/mathematics/utils.py#L57
-gsm8k_score_func = """def score(t: dict, submission: str) -> float | None:\n\t\treturn 1.0 if submission==t['answer'] else 0.0"""
+gsm8k_score_func = f"""def score(t: dict, submission: str) -> float | None:\n{tab_w_spaces}{tab_w_spaces}return 1.0 if submission==t['answer'] else 0.0"""
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
@@ -187,7 +187,7 @@ def main(cfg: DictConfig) -> None:
     seed_task_dir = f"./seed_tasks/{domain}"
 
     for dataset_cfg in cfg.tasks.task_cfgs.values():
-        dataset = Task(dataset_cfg)
+        dataset = TaskSeedDataset(dataset_cfg)
         if dataset.name == "mathematics":
             tasks: Dict[str, Dict[str, Any]] = defaultdict()
             for sample in dataset._data:
@@ -235,7 +235,9 @@ def main(cfg: DictConfig) -> None:
                     task_data=math_samples["samples"],
                     task_repr_samples=task_repr_samples,
                     task_instructions=task_instructions,
-                    task_score_func=mathematics_score_func.strip("\n"),
+                    task_score_func=gsm8k_score_func.strip(
+                        "\n"
+                    ),  # TODO: Change this to mathematics_score_func after figuring out how to implement complex score functions
                     source_dataset=dataset.name,
                 )
                 print(
