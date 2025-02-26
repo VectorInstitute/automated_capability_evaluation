@@ -56,6 +56,11 @@ task_cfg = {
     "family": "competition",
     "instructions": """f\"\"\"Solve the following algebra math problem step by step. The last line of your response should be of the form \"ANSWER: $ANSWER\" (without quotes) where $ANSWER is the answer to the problem.\\n\\nProblem: {t[\"problem\"]}\\n\\nRemember to put your answer on its own line at the end in the form \"ANSWER:$ANSWER\" (without quotes) where $ANSWER is the answer to the problem, and you do not need to use a \\\\boxed command.\"\"\"""",
     "path": "seed_tasks/math/math_competition_algebra",
+    "scores_path": "seed_tasks_scores",
+    "scores": {
+        "c4ai-command-r-plus": 0.34288121314237574,
+        "gpt-4o": 0.8289806234203876,
+    },
 }
 test_dir = os.path.dirname(os.path.abspath(__file__))
 task = Task(os.path.join(test_dir, task_cfg["path"]))
@@ -130,3 +135,24 @@ def test_task_to_json_str():
     assert "domain" in task_repr_json
     assert "family" in task_repr_json
     assert "class" in task_repr_json
+
+
+def test_task_load_scores():
+    """
+    Test the `load_scores` method of the `task` object.
+
+    This test verifies that the `load_scores` method correctly loads the scores
+    from the specified directory and returns them as a dictionary. It checks the
+    following:
+    - The returned object is a dictionary.
+    - The length of the returned dictionary matches the expected number of scores.
+    - Each model in the expected scores is present in the returned dictionary.
+    - The scores for each model match the expected scores.
+    """
+    scores_dir = os.path.join(test_dir, task_cfg["scores_path"])
+    scores_dict = task.load_scores(scores_dir)
+    assert isinstance(scores_dict, dict)
+    assert len(scores_dict) == len(task_cfg["scores"])
+    for model, score in task_cfg["scores"].items():
+        assert model in scores_dict
+        assert scores_dict[model] == score

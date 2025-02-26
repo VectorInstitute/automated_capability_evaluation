@@ -2,10 +2,12 @@ import importlib  # noqa: D100
 import json
 import os
 import sys
+from collections import defaultdict
 from typing import Any, Dict
 
 from src.model import Model
 from src.utils.data_utils import load_data
+from src.utils.task_utils import read_score_inspect_json
 
 
 class TaskSeedDataset:
@@ -121,6 +123,28 @@ class Task:
 
         with open(module_path, "r") as f:
             self.task_repr_class_str = f.read()
+
+    def load_scores(self, scores_dir: str) -> Dict[str, float]:
+        """
+        Load scores from JSON files in the specified directory.
+
+        Args
+        ----
+            scores_dir (str): The directory containing the score files.
+
+        Returns
+        -------
+            Dict[str, float]: A dictionary where the keys are model names and
+            the values are the scores.
+        """
+        scores_dict = defaultdict(float)
+        for model in os.listdir(scores_dir):
+            scores_file = os.path.join(
+                scores_dir, model, self.domain, f"{self.name}.json"
+            )
+            if os.path.isfile(scores_file):
+                scores_dict[model] = read_score_inspect_json(scores_file)
+        return scores_dict
 
     def _to_dict(self) -> Dict[str, Any]:
         return {
