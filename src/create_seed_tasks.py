@@ -156,9 +156,9 @@ def last_boxed_only_string(string: str) -> str | None:
 
 tab_w_spaces = "    "
 # Score function is based on https://github.com/UKGovernmentBEIS/inspect_evals/blob/main/src/inspect_evals/mathematics/utils.py#L57
-mathematics_score_func = f"""def score(t: dict, submission: str) -> float | None:\n{tab_w_spaces}{tab_w_spaces}ans_pattern_line = r"(?i)ANSWER\\s*:\\s*([^\\n]+)"\n{tab_w_spaces}{tab_w_spaces}match = re.search(ans_pattern_line, submission)\n{tab_w_spaces}{tab_w_spaces}if match:\n{tab_w_spaces}{tab_w_spaces}{tab_w_spaces}answer = match.group(1)\n{tab_w_spaces}{tab_w_spaces}{tab_w_spaces}correct = is_equiv(answer, t['answer'])\n{tab_w_spaces}{tab_w_spaces}else:\n{tab_w_spaces}{tab_w_spaces}{tab_w_spaces}correct = False\n{tab_w_spaces}{tab_w_spaces}return 1.0 if correct else 0.0"""
+mathematics_score_func = f"""def score(t: dict, submission: str) -> float | None:\n{tab_w_spaces}{tab_w_spaces}ans_pattern_line = r"(?i)ANSWER\\s*:\\s*([^\\n]+)"\n{tab_w_spaces}{tab_w_spaces}match = re.search(ans_pattern_line, submission)\n{tab_w_spaces}{tab_w_spaces}if match:\n{tab_w_spaces}{tab_w_spaces}{tab_w_spaces}answer = match.group(1)\n{tab_w_spaces}{tab_w_spaces}{tab_w_spaces}correct = is_equiv(answer, t["answer"])\n{tab_w_spaces}{tab_w_spaces}else:\n{tab_w_spaces}{tab_w_spaces}{tab_w_spaces}correct = False\n{tab_w_spaces}{tab_w_spaces}return 1.0 if correct else 0.0"""
 # Score function is based on https://github.com/UKGovernmentBEIS/inspect_evals/blob/main/src/inspect_evals/mathematics/utils.py#L57
-gsm8k_score_func = f"""def score(t: dict, submission: str) -> float | None:\n{tab_w_spaces}{tab_w_spaces}return 1.0 if submission==t['answer'] else 0.0"""
+gsm8k_score_func = f"""def score(t: dict, submission: str) -> float | None:\n{tab_w_spaces}{tab_w_spaces}return 1.0 if submission==t["answer"] else 0.0"""
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
