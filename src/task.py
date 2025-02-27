@@ -122,7 +122,11 @@ class Task:
         self.task_repr_class = task_class
 
         with open(module_path, "r") as f:
-            self.task_repr_class_str = f.read()
+            task_repr_class_str = f.read()
+        newline = "\n"
+        self.task_repr_class_str = (
+            f"```python{newline}{task_repr_class_str.strip(newline)}{newline}```"
+        )
 
     def load_scores(self, scores_dir: str) -> Dict[str, float]:
         """

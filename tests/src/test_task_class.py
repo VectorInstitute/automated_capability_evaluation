@@ -113,6 +113,8 @@ def test_create_task():
     assert task.family == task_cfg["family"]
     assert task.instructions == task_cfg["instructions"]
     assert isinstance(task.task_repr_class_str, str)
+    assert task.task_repr_class_str.startswith("```python\n")
+    assert task.task_repr_class_str.endswith("\n```")
 
 
 def test_task_to_json_str():
