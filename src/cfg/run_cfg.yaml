@@ -1,12 +1,18 @@
-model:
+generator_model:
   name: gpt-4o-mini
+  gen_cfg:
+    temperature: 0.7
+    max_tokens: 64
 
-gen_cfg:
-  temperature: 0.7
-  max_tokens: 64
+candidate_model:
+  name: Meta-Llama-3.1-70B-Instruct
 
 prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.
+
+tasks_cfg:
+  domain: math
+  num_seed_tasks: 3
 
 defaults:
   - _self_

@@ -1,13 +1,19 @@
 import importlib  # noqa: D100
 import json
 import os
+import random
 import sys
 from collections import defaultdict
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from src.model import Model
 from src.utils.data_utils import load_data
 from src.utils.task_utils import read_score_inspect_json
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SEED_TASKS_SCORE_DIR = os.path.join(BASE_DIR, "seed_tasks_results")
+NON_SEED_TASKS_SCORE_DIR = os.path.join(BASE_DIR, "tasks_results")
 
 
 class TaskSeedDataset:
@@ -96,6 +102,10 @@ class Task:
         self._load_task_json()
         self._load_task_repr_class()
 
+        self.score_dir = (
+            SEED_TASKS_SCORE_DIR if self.is_seed else NON_SEED_TASKS_SCORE_DIR
+        )
+
     def _load_task_json(self) -> None:
         with open(os.path.join(self.source_dir, "task.json"), "r") as f:
             _cfg = json.load(f)
@@ -128,19 +138,20 @@ class Task:
             f"```python{newline}{task_repr_class_str.strip(newline)}{newline}```"
         )
 
-    def load_scores(self, scores_dir: str) -> Dict[str, float]:
+    def load_scores(self, scores_dir: str | None = None) -> Dict[str, float]:
         """
         Load scores from JSON files in the specified directory.
 
         Args
         ----
-            scores_dir (str): The directory containing the score files.
+            scores_dir (str | None): The directory containing the score files.
 
         Returns
         -------
             Dict[str, float]: A dictionary where the keys are model names and
             the values are the scores.
         """
+        scores_dir = scores_dir if scores_dir else self.score_dir
         scores_dict = defaultdict(float)
         for model in os.listdir(scores_dir):
             scores_file = os.path.join(
@@ -219,3 +230,71 @@ def import_from_path(module_name: str, file_path: str) -> Any:
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def select_seed_tasks(
+    seed_task_dir: str,
+    num_seed_tasks: int = -1,
+    include_tasks: List[str] | None = None,
+    random_seed: int = 42,
+) -> List[Task]:
+    """
+    Select `num_seed_tasks` seed tasks from the specified directory.
+
+    Args
+    ----
+        seed_task_dir (str): The directory containing the seed tasks.
+        num_seed_tasks (int): The number of seed tasks to select.
+        include_tasks (List[str] | None): A list of task names to include.
+        random_seed (int): The seed for the random number generator.
+
+    Returns
+    -------
+        List[Task]: A list of task objects.
+    """
+    random.seed(random_seed)
+
+    selected_seed_tasks = []
+    all_seed_task_paths = os.listdir(seed_task_dir)
+
+    # Select all tasks if num_seed_tasks is -1
+    if num_seed_tasks == -1:
+        num_seed_tasks = len(all_seed_task_paths)
+        include_tasks = None
+
+    # Force include some tasks
+    if include_tasks is not None:
+        assert num_seed_tasks >= len(include_tasks), (
+            "Number of seed tasks is less than the number of tasks to include."
+        )
+        for task_name in include_tasks:
+            task = Task(os.path.join(seed_task_dir, task_name))
+            selected_seed_tasks.append(task)
+            all_seed_task_paths.remove(task_name)
+        num_seed_tasks -= len(include_tasks)
+
+    # TODO: Enhance the selection criterion
+    for task_path in random.sample(all_seed_task_paths, num_seed_tasks):
+        task = Task(os.path.join(seed_task_dir, task_path))
+        selected_seed_tasks.append(task)
+
+    return selected_seed_tasks
+
+
+def get_task_repr_with_score(task: Task, model_name: str) -> str:
+    """
+    Get the task representation with score for the specified model.
+
+    Args
+    ----
+        task (Task): The task to get the representation for.
+        model_name (str): The name of the model to use for scoring the task.
+
+    Returns
+    -------
+        str: A JSON string containing the task representation and score.
+    """
+    model_score = task.load_scores()[model_name]
+    task_dict = task._to_dict()
+    task_dict["score"] = model_score
+    return json.dumps(task_dict, indent=4)
