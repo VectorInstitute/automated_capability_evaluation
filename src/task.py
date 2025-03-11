@@ -1,8 +1,10 @@
 import json  # noqa: D100
+from typing import Any, Dict, Union
 
 from datasets import Dataset
 
-from utils import load_data
+from src.model import Model
+from src.utils.data_utils import load_data
 
 
 class Task:
@@ -25,29 +27,31 @@ class Task:
         Representative samples from the dataset.
     """
 
-    def __init__(self, cfg: dict):
-        self.name = cfg.name
-        self.description = cfg.description
-        self.domain = cfg.domain
+    def __init__(self, cfg: Dict[str, Any]) -> None:
+        self.name = cfg["name"]
+        self.description = cfg["description"]
+        self.domain = cfg["domain"]
 
         self._cfg = cfg
 
         self._load_dataset()
 
-    def _load_dataset(self):
+    def _load_dataset(self) -> None:
         self._data = load_data(
-            dataset_name=self._cfg.data_args.source, **self._cfg.data_args
+            dataset_name=self._cfg["data_args"]["source"], **self._cfg["data_args"]
         )
         self._create_repr_samples(
-            self._data, num_samples=self._cfg.data_args.num_repr_samples
+            self._data, num_samples=self._cfg["data_args"]["num_repr_samples"]
         )
 
-    def _create_repr_samples(self, data: Dataset, num_samples: int = 5, seed: int = 42):
+    def _create_repr_samples(
+        self, data: Dataset, num_samples: int = 5, seed: int = 42
+    ) -> None:
         # create representative samples used for including in the task definition
         # randomly sample from the data
         self._repr_samples = data.shuffle(seed=seed).take(num_samples)
 
-    def _to_dict(self):
+    def _to_dict(self) -> Dict[str, Union[str, Dataset]]:
         return {
             "name": self.name,
             "description": self.description,
@@ -55,7 +59,7 @@ class Task:
             "samples": self._repr_samples,
         }
 
-    def to_json_str(self):
+    def to_json_str(self) -> str:
         """
         Convert the task to a JSON string.
 
@@ -70,7 +74,7 @@ class Task:
         }
         return json.dumps(task_dict)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Return a JSON string representation of the task.
 
@@ -82,10 +86,10 @@ class Task:
         return self.to_json_str()
 
     # TODO: Get feedback on the following methods
-    def to_metr_format(self):  # noqa: D102
+    def to_metr_format(self) -> None:  # noqa: D102
         # convert the task to METR format
         raise NotImplementedError
 
-    def evaluate_using_inspect(self, model):  # noqa: D102
+    def evaluate_using_inspect(self, model: Model) -> None:  # noqa: D102
         # evaluate the task using inspect-evals
         raise NotImplementedError

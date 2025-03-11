@@ -1,18 +1,33 @@
-[tool.poetry]
-name = "aieng-template"
-version = "1.0.0"
-description = "A template for AI Engineering projects at the Vector Institute"
-authors = ["Vector AI Engineering <ai_engineering@vectorinstitute.ai>"]
+[project]
+name = "automated_capability_evaluation"
+description = "A repository for research project on generating LLM evaluation benchmarks using LLMs"
 license = "Apache-2.0"
-repository = "https://github.com/VectorInstitute/aieng-template"
-documentation = "https://vectorinstitute.github.io/aieng-template/"
-packages = [
-    { include = "aieng_template" },
-]
 readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    {name = "Omkar Dige", email = "omkar.dige@vectorinstitute.ai"},
+    {name = "Arash Afkanpour", email = "arash.afkanpour@vectorinstitute.ai"},
+]
+dynamic = ["version"]
+dependencies = [
+    "datasets>=3.2.0",
+    "hydra-core>=1.3.2",
+    "langchain_openai>=0.3.6",
+    "langchain>=0.3.19",
+    "omegaconf>=2.3.0",
+    "openai>=1.61.1",
+    "ratelimit>=2.2.1",
+]
+
+[project.urls]
+repository = "https://github.com/VectorInstitute/automated_capability_evaluation"
+
+[tool.poetry]
+package-mode = false
+version = "0.1"
 
 [tool.poetry.dependencies]
-python = ">=3.9, <3.13"
+python = ">=3.10, <3.13"
 
 [tool.poetry.group.test]
 optional = true
@@ -22,7 +37,7 @@ pytest = "^7.1.1"
 pre-commit = "^4.0.0"
 pytest-cov = "^3.0.0"
 codecov = "^2.1.13"
-mypy = "^1.7.0"
+mypy = "^1.15.0"
 ruff = "^0.2.0"
 nbqa = { version = "^1.7.0", extras = ["toolchain"] }
 pip-audit = "^2.7.1"
@@ -129,9 +144,9 @@ markers = [
 
 [tool.coverage]
     [tool.coverage.run]
-    source=["aieng_template"]
+    source=["src"]
     omit=["tests/*", "*__init__.py"]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0.1"]
 build-backend = "poetry.core.masonry.api"
