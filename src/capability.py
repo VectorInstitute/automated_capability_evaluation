@@ -28,8 +28,6 @@ class CapabilitySeedDataset:
         The description of the capability seed dataset.
     domain : str
         The domain of the capability seed dataset.
-    family : str
-        The family of the capability seed dataset.
     instructions : str
         The instructions for evaluating tasks in the dataset.
     _cfg : dict
@@ -47,7 +45,6 @@ class CapabilitySeedDataset:
         self.name = cfg["name"]
         self.description = cfg["description"]
         self.domain = cfg["domain"]
-        self.family = cfg["family"]
         self.instructions = cfg["instructions"]
 
         self._cfg = cfg
@@ -74,8 +71,6 @@ class Capability:
         A description of the capability.
     domain : str
         The domain of the capability.
-    family : str
-        The family of the capability.
     instructions : str
         Instructions for the capability.
     is_seed : bool
@@ -114,7 +109,6 @@ class Capability:
         self.name = _cfg["capability_name"]
         self.description = _cfg["capability_description"]
         self.domain = _cfg["capability_domain"]
-        self.family = _cfg["capability_family"]
         self.instructions = _cfg["capability_instructions"]
         # TODO: Store data is stored in json or elsewhere?
         self._data = _cfg["capability_data"]
@@ -168,7 +162,6 @@ class Capability:
             "name": self.name,
             "description": self.description,
             "domain": self.domain,
-            "family": self.family,
             "class": self.capability_repr_class_str,
         }
 

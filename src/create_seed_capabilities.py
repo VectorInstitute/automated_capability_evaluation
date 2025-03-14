@@ -16,7 +16,6 @@ def populate_seed_capability_dir(
     capability_name: str,
     capability_description: str,
     capability_domain: str,
-    capability_family: str,
     capability_data: List[Dict[str, str]],
     capability_repr_tasks: List[Dict[str, str]],
     capability_instructions: str,
@@ -35,7 +34,6 @@ def populate_seed_capability_dir(
         capability_name (str): The name of the capability.
         capability_description (str): A description of the capability.
         capability_domain (str): The domain to which the capability belongs.
-        capability_family (str): The family to which the capability belongs.
         capability_data (List[Dict]): A list of dictionaries containing capability data.
         capability_repr_tasks (List[Dict]): A list of dictionaries
         containing representative tasks for the capability.
@@ -57,7 +55,6 @@ def populate_seed_capability_dir(
         "capability_description": capability_description,
         "source_dataset": source_dataset,
         "capability_domain": capability_domain,
-        "capability_family": capability_family,
         "capability_instructions": capability_instructions,
         "capability_data": capability_data,
     }
@@ -197,7 +194,7 @@ def main(cfg: DictConfig) -> None:
             for task in dataset._data:
                 subject = task["type"].lower()
                 capability_name = (
-                    f"{dataset.domain}_{dataset.family}_{'_'.join(subject.split(' '))}"
+                    f"{dataset.domain}_{dataset.name}_{'_'.join(subject.split(' '))}"
                 )
                 if capability_name not in capabilities:
                     capabilities[capability_name] = defaultdict()
@@ -234,7 +231,6 @@ def main(cfg: DictConfig) -> None:
                     capability_name=capability_name,
                     capability_description=capability_desc,
                     capability_domain=dataset.domain,
-                    capability_family=dataset.family,
                     capability_subject=subject,
                     capability_data=math_tasks["tasks"],
                     capability_repr_tasks=capability_repr_tasks,
@@ -248,7 +244,7 @@ def main(cfg: DictConfig) -> None:
                     f"Created capability {capability_name} with {len(math_tasks['tasks'])} tasks."
                 )
         elif dataset.name == "gsm8k":
-            capability_name = f"{dataset.domain}_{dataset.family}"
+            capability_name = f"{dataset.domain}_{dataset.name}"
             gsm_tasks = []
             for task in dataset._data:
                 task["solution"] = task["answer"]
@@ -273,7 +269,6 @@ def main(cfg: DictConfig) -> None:
                 capability_name=capability_name,
                 capability_description=dataset.description,
                 capability_domain=dataset.domain,
-                capability_family=dataset.family,
                 capability_data=gsm_tasks,
                 capability_repr_tasks=capability_repr_tasks,
                 capability_instructions=capability_instructions,

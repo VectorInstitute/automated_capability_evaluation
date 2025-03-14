@@ -33,7 +33,6 @@ In <JSON>, provide a JSON response of the new capability with the following fiel
 - "name": A concise, descriptive label (lowercase, no spaces, e.g., "math_competition_algebra").
 - "description": A clear explanation of what the capability entails (e.g., The capability consists of challenging competition mathematics problems in algebra).
 - "domain": The domain to which the capability belongs to (e.g., math, physics, etc.).
-- "family": The sub-category of the capability within the domain (e.g., algebra, calculus, etc.).
 - "class": The fully implemented Python code for the Capability class. This should be easily human-readable.
 
 All values in the JSON should be strings. Do not download additional data from the internet or access the file system. Previous capabilities will be provided in the same JSON format as above with an additional field "score" that contains the score of the candidate model on the capability. Do not include the "score" field in your response.

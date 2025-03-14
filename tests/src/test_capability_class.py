@@ -38,7 +38,6 @@ capability_seed_dataset_cfg = {
     "name": "mathematics",
     "description": "Solve mathematical problems.",
     "domain": "math",
-    "family": "competition",
     "data_args": {
         "source": "qwedsacf/competition_math",
         "split": "train",
@@ -58,7 +57,6 @@ capability_cfg = {
     "name": "math_competition_algebra",
     "description": "The math_competition_algebra capability consists of 2931 challenging competition mathematics problems in algebra. Each problem has a full step-by-step solution which can be used to teach models to generate answer derivations and explanations. It has 5 levels.\n",
     "domain": "math",
-    "family": "competition",
     "instructions": """f\"\"\"Solve the following algebra math problem step by step. The last line of your response should be of the form \"ANSWER: $ANSWER\" (without quotes) where $ANSWER is the answer to the problem.\\n\\nProblem: {t[\"problem\"]}\\n\\nRemember to put your answer on its own line at the end in the form \"ANSWER:$ANSWER\" (without quotes) where $ANSWER is the answer to the problem, and you do not need to use a \\\\boxed command.\"\"\"""",
     "path": "seed_capabilities/math/math_competition_algebra",
     "scores_path": "seed_capabilities_scores",
@@ -83,8 +81,6 @@ def test_create_capability_seed_dataset():
     from the configuration.
     - The capability seed dataset's domain matches the expected domain
     from the configuration.
-    - The capability seed dataset's family matches the expected family
-    from the configuration.
     - The capability seed dataset's instructions match the expected instructions
     from the configuration.
     - The size of the capability seed dataset's data matches the expected size
@@ -97,7 +93,6 @@ def test_create_capability_seed_dataset():
         == capability_seed_dataset_cfg["description"]
     )
     assert capability_seed_dataset.domain == capability_seed_dataset_cfg["domain"]
-    assert capability_seed_dataset.family == capability_seed_dataset_cfg["family"]
     assert (
         capability_seed_dataset.instructions
         == capability_seed_dataset_cfg["instructions"]
@@ -120,7 +115,6 @@ def test_create_capability():
     - The capability's description matches the expected description
     from the configuration.
     - The capability's domain matches the expected domain from the configuration.
-    - The capability's family matches the expected family from the configuration.
     - The capability's instructions match the expected instructions
     from the configuration.
     - The capability's representation class string is of type string.
@@ -130,7 +124,6 @@ def test_create_capability():
     assert capability.name == capability_cfg["name"]
     assert capability.description == capability_cfg["description"]
     assert capability.domain == capability_cfg["domain"]
-    assert capability.family == capability_cfg["family"]
     assert capability.instructions == capability_cfg["instructions"]
     assert isinstance(capability.capability_repr_class_str, str)
     assert capability.capability_repr_class_str.startswith("```python\n")
@@ -145,7 +138,7 @@ def test_capability_to_json_str():
     serializes the capability into a JSON string. It checks the following:
     - The result of `to_json_str` is a string.
     - The JSON string contains the keys "name", "description", "domain",
-      "family" and "class".
+      and "class".
     """
     # Check if the capability object can be serialized to JSON string
     capability_repr_json_str = capability.to_json_str()
@@ -155,7 +148,6 @@ def test_capability_to_json_str():
     assert "name" in capability_repr_json
     assert "description" in capability_repr_json
     assert "domain" in capability_repr_json
-    assert "family" in capability_repr_json
     assert "class" in capability_repr_json
 
 
