@@ -3,9 +3,12 @@ import os  # noqa: D100
 import hydra
 from omegaconf import DictConfig
 
+from capability import get_capability_repr_with_score, select_seed_capabilities
 from model import Model
-from task import get_task_repr_with_score, select_seed_tasks
-from utils.prompts import TASK_GENERATION_SYSTEM_PROMPT, TASK_GENERATION_USER_PROMPT
+from utils.prompts import (
+    CAPABILITY_GENERATION_SYSTEM_PROMPT,
+    CAPABILITY_GENERATION_USER_PROMPT,
+)
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
@@ -16,18 +19,20 @@ def main(cfg: DictConfig) -> None:
     Args:
         cfg (DictConfig): Configuration for the model.
     """
-    # Select seed tasks
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    domain = cfg.tasks_cfg.domain
-    seed_task_dir = os.path.join(base_dir, "seed_tasks", domain)
+    # Select seed capabilities
+    base_dir = cfg.capabilities_cfg.capabilities_dir
+    domain = cfg.capabilities_cfg.domain
+    seed_capability_dir = os.path.join(base_dir, "seed_capabilities", domain)
 
-    include_tasks = ["math_grade_school"]
-    seed_tasks = select_seed_tasks(
-        seed_task_dir, cfg.tasks_cfg.num_seed_tasks, include_tasks=include_tasks
+    include_capabilities = ["math_grade_school"]
+    seed_capabilities = select_seed_capabilities(
+        seed_capability_dir,
+        cfg.capabilities_cfg.num_seed_capabilities,
+        include_capabilities=include_capabilities,
     )
 
     # Set system message
-    sys_msg = TASK_GENERATION_SYSTEM_PROMPT
+    sys_msg = CAPABILITY_GENERATION_SYSTEM_PROMPT
 
     # Create an instance of the Model class with the specified model name
     model = Model(
@@ -35,15 +40,16 @@ def main(cfg: DictConfig) -> None:
         sys_msg=sys_msg,
     )
 
-    # Obtain task scores for candidate model and get task representations
+    # Obtain capability scores for candidate model and get capability representations
     candidate_model = cfg.candidate_model.name
-    seed_tasks_repr = [
-        get_task_repr_with_score(task, candidate_model) for task in seed_tasks
+    seed_capabilities_repr = [
+        get_capability_repr_with_score(capability, candidate_model)
+        for capability in seed_capabilities
     ]
 
     # Model input
-    sample_input = TASK_GENERATION_USER_PROMPT.format(
-        prev_tasks="\n".join(seed_tasks_repr), domain=domain
+    sample_input = CAPABILITY_GENERATION_USER_PROMPT.format(
+        prev_capabilities="\n".join(seed_capabilities_repr), domain=domain
     )
 
     # Generate output using the model with specified generation arguments

@@ -1,6 +1,6 @@
-class Task:  # noqa: D100, D101
+class Capability:
     @staticmethod
-    def repr_samples() -> dict[str, dict]:  # noqa: D102
+    def repr_samples() -> dict[str, dict]:
         return {
             "1": {
                 "problem": "Let $a$ and $b$ be real numbers. The function $h(x)=ax+b$ satisfies $h(1)=5$ and $h(-1)=1$.  What is $h(6)$?",
@@ -17,9 +17,9 @@ class Task:  # noqa: D100, D101
         }
 
     @staticmethod
-    def get_instructions(t: dict) -> str:  # noqa: D102
+    def get_instructions(t: dict) -> str:
         return f"""Solve the following algebra math problem step by step. The last line of your response should be of the form "ANSWER: $ANSWER" (without quotes) where $ANSWER is the answer to the problem.\n\nProblem: {t["problem"]}\n\nRemember to put your answer on its own line at the end in the form "ANSWER:$ANSWER" (without quotes) where $ANSWER is the answer to the problem, and you do not need to use a \\boxed command."""
 
     @staticmethod
-    def score(t: dict, submission: str) -> float | None:  # noqa: D102
+    def score(t: dict, submission: str) -> float | None:
         return 1.0 if submission == t["answer"] else 0.0

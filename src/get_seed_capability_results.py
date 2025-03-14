@@ -7,11 +7,11 @@ import numpy as np
 from omegaconf import DictConfig
 
 
-def extract_math_task_logs(
-    log_file: str, task_name: str, subject: str, out_dir: str
+def extract_math_capability_logs(
+    log_file: str, capability_name: str, subject: str, out_dir: str
 ) -> None:
     """
-    Extract and processes math task logs from a given log file.
+    Extract and processes math capability logs from a given log file.
 
     Filter the logs based on the specified subject,
     update the log structure, and
@@ -19,8 +19,9 @@ def extract_math_task_logs(
 
     Args:
         log_file (str): Path to the input log file
-        containing the task logs in JSON format.
-        task_name (str): Name of the task to be used in the output file and log updates.
+        containing the capability logs in JSON format.
+        capability_name (str): Name of the capability to be used
+            in the output file and log updates.
         subject (str): Subject to filter the log samples by.
         out_dir (str): Directory where the processed log file will be saved.
 
@@ -28,16 +29,16 @@ def extract_math_task_logs(
     -------
         None
     """
-    out_file_name = f"{out_dir}/{task_name}.json"
+    out_file_name = f"{out_dir}/{capability_name}.json"
     if os.path.exists(out_file_name):
         return
 
     with open(log_file, "r") as f:
         logs = json.load(f)
 
-    master_task = logs["eval"]["task"]
-    logs["eval"].update({"task": f"inspect_evals/{task_name}"})
-    logs["eval"].update({"master_task": master_task})
+    master_capability = logs["eval"]["task"]
+    logs["eval"].update({"task": f"inspect_evals/{capability_name}"})
+    logs["eval"].update({"master_task": master_capability})
 
     logs_dataset = logs["eval"].pop("dataset")
     logs_results = logs.pop("results")
@@ -95,39 +96,46 @@ def extract_math_task_logs(
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
 def main(cfg: DictConfig) -> None:
     """
-    Obtain seed task results.
+    Obtain seed capability results.
 
     This function performs the following steps:
-    1. Defines directories for seed tasks, seed task results, and seed datasets logs.
-    2. Iterates over each task directory in the seed tasks directory.
-    3. Reads the task configuration from the "task.json" file.
-    4. Determines the dataset name and task details
-    from the task configuration.
+    1. Defines directories for seed capabilities, seed capability results,
+        and seed datasets logs.
+    2. Iterates over each capability directory in the seed capabilities directory.
+    3. Reads the capability configuration from the "capability.json" file.
+    4. Determines the dataset name and capability details
+    from the capability configuration.
     5. Iterates over results for all candidate models
     in the seed datasets log directory.
     6. For each log file that matches the dataset name,
     processes the log file based on the dataset type:
-        - For "math" dataset, extracts math task logs.
+        - For "math" dataset, extracts math capability logs.
         - For "gsm8k" dataset, copies the log file to the output directory.
     """
-    domain = cfg.tasks_cfg.domain
-    seed_task_dir = os.path.join(cfg.tasks_cfg.tasks_dir, "seed_tasks", domain)
-    seed_task_result_dir = os.path.join(cfg.tasks_cfg.tasks_dir, "seed_tasks_results")
+    domain = cfg.capabilities_cfg.domain
+    seed_capability_dir = os.path.join(
+        cfg.capabilities_cfg.capabilities_dir, "seed_capabilities", domain
+    )
+    seed_capability_result_dir = os.path.join(
+        cfg.capabilities_cfg.capabilities_dir, "seed_capabilities_results"
+    )
     seed_datasets_log_dir = os.path.join(
-        cfg.tasks_cfg.tasks_dir, "seed_datasets_inspect_logs"
+        cfg.capabilities_cfg.capabilities_dir, "seed_datasets_inspect_logs"
     )
 
-    for task_dir in os.listdir(seed_task_dir):
-        with open(os.path.join(seed_task_dir, task_dir, "task.json"), "r") as f:
-            task_json = json.load(f)
+    for capability_dir in os.listdir(seed_capability_dir):
+        with open(
+            os.path.join(seed_capability_dir, capability_dir, "capability.json"), "r"
+        ) as f:
+            capability_json = json.load(f)
         dataset_name = (
             "math"
-            if task_json["source_dataset"] == "mathematics"
-            else task_json["source_dataset"]
+            if capability_json["source_dataset"] == "mathematics"
+            else capability_json["source_dataset"]
         )
-        task_name = task_json["task_name"]
+        capability_name = capability_json["capability_name"]
         if dataset_name == "math":
-            subject = task_json["task_subject"]
+            subject = capability_json["capability_subject"]
 
         # Iterate over results for all candidate models
         for candidate_model_dir in os.listdir(seed_datasets_log_dir):
@@ -138,15 +146,15 @@ def main(cfg: DictConfig) -> None:
                 if dataset_name not in log_file:
                     continue
 
-                out_dir = os.path.join(seed_task_result_dir, candidate_model_dir)
+                out_dir = os.path.join(seed_capability_result_dir, candidate_model_dir)
                 out_dir = os.path.join(out_dir, domain)
                 os.makedirs(out_dir, exist_ok=True)
 
-                # For math dataset, extract math task logs
+                # For math dataset, extract math capability logs
                 if "math" in log_file:
-                    extract_math_task_logs(
+                    extract_math_capability_logs(
                         log_file=os.path.join(candidate_model_log_path, log_file),
-                        task_name=task_name,
+                        capability_name=capability_name,
                         subject=subject,
                         out_dir=out_dir,
                     )
@@ -158,11 +166,13 @@ def main(cfg: DictConfig) -> None:
                         src=os.path.join(candidate_model_log_path, log_file),
                         dst=os.path.join(
                             out_dir,
-                            f"{task_name}.json",
+                            f"{capability_name}.json",
                         ),
                     )
 
-                print(f"Extracted {candidate_model_dir} result for {task_name} task.")
+                print(
+                    f"Extracted {candidate_model_dir} result for {capability_name} capability."
+                )
 
 
 if __name__ == "__main__":
