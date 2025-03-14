@@ -2,7 +2,9 @@ import json  # noqa: D100
 import os
 import shutil
 
+import hydra  # noqa: D100
 import numpy as np
+from omegaconf import DictConfig
 
 
 def extract_math_task_logs(
@@ -90,7 +92,8 @@ def extract_math_task_logs(
         json.dump(logs, f, indent=4)
 
 
-def main() -> None:
+@hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
+def main(cfg: DictConfig) -> None:
     """
     Obtain seed task results.
 
@@ -107,10 +110,12 @@ def main() -> None:
         - For "math" dataset, extracts math task logs.
         - For "gsm8k" dataset, copies the log file to the output directory.
     """
-    domain = "math"
-    seed_task_dir = f"./seed_tasks/{domain}"
-    seed_task_result_dir = "./seed_tasks_results"
-    seed_datasets_log_dir = "./seed_datasets_inspect_logs"
+    domain = cfg.tasks_cfg.domain
+    seed_task_dir = os.path.join(cfg.tasks_cfg.tasks_dir, "seed_tasks", domain)
+    seed_task_result_dir = os.path.join(cfg.tasks_cfg.tasks_dir, "seed_tasks_results")
+    seed_datasets_log_dir = os.path.join(
+        cfg.tasks_cfg.tasks_dir, "seed_datasets_inspect_logs"
+    )
 
     for task_dir in os.listdir(seed_task_dir):
         with open(os.path.join(seed_task_dir, task_dir, "task.json"), "r") as f:

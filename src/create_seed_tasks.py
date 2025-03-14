@@ -183,8 +183,8 @@ def main(cfg: DictConfig) -> None:
     """
     random.seed(42)
 
-    domain = "math"
-    seed_task_dir = f"./seed_tasks/{domain}"
+    domain = cfg.tasks_cfg.domain
+    seed_task_dir = os.path.join(cfg.tasks_cfg.tasks_dir, "seed_tasks", domain)
 
     for dataset_cfg in cfg.tasks.task_cfgs.values():
         dataset = TaskSeedDataset(dataset_cfg)
