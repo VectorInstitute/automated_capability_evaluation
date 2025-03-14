@@ -24,7 +24,7 @@ def main(cfg: DictConfig) -> None:
     domain = cfg.capabilities_cfg.domain
     seed_capability_dir = os.path.join(base_dir, "seed_capabilities", domain)
 
-    include_capabilities = ["math_grade_school"]
+    include_capabilities = ["math_gsm8k"]
     seed_capabilities = select_seed_capabilities(
         seed_capability_dir,
         cfg.capabilities_cfg.num_seed_capabilities,

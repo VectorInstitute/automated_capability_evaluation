@@ -11,7 +11,7 @@ from src.utils.capability_utils import read_score_inspect_json
 from src.utils.data_utils import load_data
 
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = "/fs01/projects/aieng/public/ace_artifacts"
 SEED_CAPABILITIES_SCORE_DIR = os.path.join(BASE_DIR, "seed_capabilities_results")
 NON_SEED_CAPABILITIES_SCORE_DIR = os.path.join(BASE_DIR, "capabilities_results")
 
