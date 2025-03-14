@@ -1,6 +1,6 @@
 class Capability:
     @staticmethod
-    def repr_samples() -> dict[str, dict]:
+    def repr_tasks() -> dict[str, dict]:
         return {
             "1": {
                 "problem": "Let $a$ and $b$ be real numbers. The function $h(x)=ax+b$ satisfies $h(1)=5$ and $h(-1)=1$.  What is $h(6)$?",

@@ -5,9 +5,9 @@ Each capability should be designed according to the METR Standard, which require
 ```python
 class Capability:
     @staticmethod
-    def repr_samples() -> dict[str, dict]:
-        # Returns a mapping from samples ids to arbitrary data that is specific to each capability.
-        # Each capability should contain 3 distinct samples in the dictionary, labelled "1", "2" and "3".
+    def repr_tasks() -> dict[str, dict]:
+        # Returns a mapping from task ids to arbitrary data that is specific to each capability.
+        # Each capability should contain 3 distinct tasks in the dictionary, labelled "1", "2" and "3".
         # ... implementation ...
 
     @staticmethod

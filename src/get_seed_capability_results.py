@@ -22,7 +22,7 @@ def extract_math_capability_logs(
         containing the capability logs in JSON format.
         capability_name (str): Name of the capability to be used
             in the output file and log updates.
-        subject (str): Subject to filter the log samples by.
+        subject (str): Subject to filter the log tasks by.
         out_dir (str): Directory where the processed log file will be saved.
 
     Returns
@@ -42,50 +42,48 @@ def extract_math_capability_logs(
 
     logs_dataset = logs["eval"].pop("dataset")
     logs_results = logs.pop("results")
-    logs_samples = logs.pop("samples")
+    logs_tasks = logs.pop("samples")
     logs_reductions = logs.pop("reductions")
     _ = logs.pop("stats")
 
     # Filter for subject
-    logs_samples = [
-        sample for sample in logs_samples if sample["metadata"]["subject"] == subject
-    ]
-    sample_ids = {sample["id"] for sample in logs_samples}
+    logs_tasks = [task for task in logs_tasks if task["metadata"]["subject"] == subject]
+    task_ids = {task["id"] for task in logs_tasks}
 
     # Update logs
     for scorer in logs_reductions:
         scorer.update(
             {
                 "samples": [
-                    elm for elm in scorer["samples"] if elm["sample_id"] in sample_ids
+                    elm for elm in scorer["samples"] if elm["sample_id"] in task_ids
                 ]
             }
         )
     logs_dataset.update(
         {
-            "samples": len(logs_samples),
-            "sample_ids": list(sample_ids),
+            "samples": len(logs_tasks),
+            "sample_ids": list(task_ids),
         }
     )
     logs_results.update(
         {
-            "total_samples": len(logs_samples),
-            "completed_samples": len(logs_samples),
+            "total_samples": len(logs_tasks),
+            "completed_samples": len(logs_tasks),
         }
     )
     for scorer in logs_results["scores"]:
-        reduction_samples = [
+        reduction_tasks = [
             elm for elm in logs_reductions if elm["scorer"] == scorer["name"]
         ][0]["samples"]
         scorer["metrics"]["accuracy"]["value"] = np.mean(
-            [elm["value"] for elm in reduction_samples]
+            [elm["value"] for elm in reduction_tasks]
         )
         _ = scorer["metrics"].pop("stderr")
 
     # Add all log elements back
     logs["eval"].update({"dataset": logs_dataset})
     logs.update({"results": logs_results})
-    logs.update({"samples": logs_samples})
+    logs.update({"samples": logs_tasks})
     logs.update({"reductions": logs_reductions})
 
     # Write to output file

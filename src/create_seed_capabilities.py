@@ -18,7 +18,7 @@ def populate_seed_capability_dir(
     capability_domain: str,
     capability_family: str,
     capability_data: List[Dict[str, str]],
-    capability_repr_samples: List[Dict[str, str]],
+    capability_repr_tasks: List[Dict[str, str]],
     capability_instructions: str,
     capability_score_func: str,
     source_dataset: str,
@@ -37,8 +37,8 @@ def populate_seed_capability_dir(
         capability_domain (str): The domain to which the capability belongs.
         capability_family (str): The family to which the capability belongs.
         capability_data (List[Dict]): A list of dictionaries containing capability data.
-        capability_repr_samples (List[Dict]): A list of dictionaries
-        containing representative samples for the capability.
+        capability_repr_tasks (List[Dict]): A list of dictionaries
+        containing representative tasks for the capability.
         capability_instructions (str): Instructions for the capability.
         capability_score_func (str): The scoring function for the capability.
         source_dataset (str): The name of the source dataset.
@@ -67,11 +67,11 @@ def populate_seed_capability_dir(
         json.dump(capability_json, f, indent=4)
 
     # Create capability python file
-    capability_data_samples_dict = {
-        f"{idx + 1}": sample for idx, sample in enumerate(capability_repr_samples)
+    capability_tasks_dict = {
+        f"{idx + 1}": task for idx, task in enumerate(capability_repr_tasks)
     }
     capability_class_str = CAPABILITY_CLASS_TEMPLATE.format(
-        capability_data_samples_dict=json.dumps(capability_data_samples_dict, indent=4),
+        capability_tasks_dict=json.dumps(capability_tasks_dict, indent=4),
         capability_instructions=capability_instructions,
         capability_score_func=capability_score_func,
     ).lstrip("\n")
@@ -175,13 +175,13 @@ def main(cfg: DictConfig) -> None:
     It supports the following datasets:
     - "mathematics": Processes mathematics dataset, organizes them by subject,
       and populates the seed capability directory with descriptions, instructions,
-      and representative samples.
+      and representative tasks.
     - "gsm8k": Processes GSM8K dataset, extracts solutions and answers, and populates
       the seed capability directory with descriptions, instructions, and representative
-      samples.
+      tasks.
 
     The function uses a fixed random seed for reproducibility and prints the number
-    of samples created for each capability.
+    of tasks created for each capability.
     """
     random.seed(42)
 
@@ -194,39 +194,39 @@ def main(cfg: DictConfig) -> None:
         dataset = CapabilitySeedDataset(dataset_cfg)
         if dataset.name == "mathematics":
             capabilities: Dict[str, Dict[str, Any]] = defaultdict()
-            for sample in dataset._data:
-                subject = sample["type"].lower()
+            for task in dataset._data:
+                subject = task["type"].lower()
                 capability_name = (
                     f"{dataset.domain}_{dataset.family}_{'_'.join(subject.split(' '))}"
                 )
                 if capability_name not in capabilities:
                     capabilities[capability_name] = defaultdict()
                     capabilities[capability_name]["type"] = subject
-                    capabilities[capability_name]["samples"] = []
-                sample["answer"] = remove_boxed(
-                    last_boxed_only_string(sample["solution"]) or sample["solution"]
+                    capabilities[capability_name]["tasks"] = []
+                task["answer"] = remove_boxed(
+                    last_boxed_only_string(task["solution"]) or task["solution"]
                 )
-                capabilities[capability_name]["samples"].append(sample)
+                capabilities[capability_name]["tasks"].append(task)
 
-            for capability_name, math_samples in capabilities.items():
-                subject = math_samples["type"]
+            for capability_name, math_tasks in capabilities.items():
+                subject = math_tasks["type"]
                 capability_desc = dataset.description.format(
                     name=capability_name,
-                    size=len(math_samples["samples"]),
+                    size=len(math_tasks["tasks"]),
                     subject=subject,
                 )
                 capability_instructions = dataset.instructions.format(
                     subject=subject, problem='{t["problem"]}'
                 )
 
-                capability_repr_samples = random.sample(
-                    math_samples["samples"],
-                    dataset._cfg["data_args"]["num_repr_samples"],
+                capability_repr_tasks = random.sample(
+                    math_tasks["tasks"],
+                    dataset._cfg["data_args"]["num_repr_tasks"],
                 )
                 # Only keep problem and answer
-                capability_repr_samples = [
+                capability_repr_tasks = [
                     {"problem": s["problem"], "answer": s["answer"]}
-                    for s in capability_repr_samples
+                    for s in capability_repr_tasks
                 ]
 
                 populate_seed_capability_dir(
@@ -236,8 +236,8 @@ def main(cfg: DictConfig) -> None:
                     capability_domain=dataset.domain,
                     capability_family=dataset.family,
                     capability_subject=subject,
-                    capability_data=math_samples["samples"],
-                    capability_repr_samples=capability_repr_samples,
+                    capability_data=math_tasks["tasks"],
+                    capability_repr_tasks=capability_repr_tasks,
                     capability_instructions=capability_instructions,
                     capability_score_func=gsm8k_score_func.strip(
                         "\n"
@@ -245,27 +245,27 @@ def main(cfg: DictConfig) -> None:
                     source_dataset=dataset.name,
                 )
                 print(
-                    f"Created capability {capability_name} with {len(math_samples['samples'])} samples."
+                    f"Created capability {capability_name} with {len(math_tasks['tasks'])} tasks."
                 )
         elif dataset.name == "gsm8k":
             capability_name = f"{dataset.domain}_{dataset.family}"
-            gsm_samples = []
-            for sample in dataset._data:
-                sample["solution"] = sample["answer"]
-                sample["answer"] = sample["answer"].split("####").pop().strip()
-                gsm_samples.append(sample)
+            gsm_tasks = []
+            for task in dataset._data:
+                task["solution"] = task["answer"]
+                task["answer"] = task["answer"].split("####").pop().strip()
+                gsm_tasks.append(task)
 
             capability_instructions = dataset.instructions.format(
                 problem='{t["question"]}'
             )
 
-            capability_repr_samples = random.sample(
-                gsm_samples, dataset._cfg["data_args"]["num_repr_samples"]
+            capability_repr_tasks = random.sample(
+                gsm_tasks, dataset._cfg["data_args"]["num_repr_tasks"]
             )
             # Only keep question and answer
-            capability_repr_samples = [
+            capability_repr_tasks = [
                 {"question": s["question"], "answer": s["answer"]}
-                for s in capability_repr_samples
+                for s in capability_repr_tasks
             ]
 
             populate_seed_capability_dir(
@@ -274,15 +274,13 @@ def main(cfg: DictConfig) -> None:
                 capability_description=dataset.description,
                 capability_domain=dataset.domain,
                 capability_family=dataset.family,
-                capability_data=gsm_samples,
-                capability_repr_samples=capability_repr_samples,
+                capability_data=gsm_tasks,
+                capability_repr_tasks=capability_repr_tasks,
                 capability_instructions=capability_instructions,
                 capability_score_func=gsm8k_score_func.strip("\n"),
                 source_dataset=dataset.name,
             )
-            print(
-                f"Created capability {capability_name} with {len(gsm_samples)} samples."
-            )
+            print(f"Created capability {capability_name} with {len(gsm_tasks)} tasks.")
 
 
 if __name__ == "__main__":

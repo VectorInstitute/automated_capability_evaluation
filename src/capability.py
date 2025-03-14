@@ -31,11 +31,11 @@ class CapabilitySeedDataset:
     family : str
         The family of the capability seed dataset.
     instructions : str
-        The instructions for evaluating samples in the dataset.
+        The instructions for evaluating tasks in the dataset.
     _cfg : dict
         The configuration dictionary for the capability seed dataset.
     _data : Dataset
-        The set of samples associated with the capability seed dataset.
+        The set of tasks associated with the capability seed dataset.
 
     Methods
     -------
@@ -128,7 +128,7 @@ class Capability:
         capability_module = import_from_path(module_name, module_path)
         capability_class = capability_module.Capability
         # Check capability class has required methods.
-        for method in ["repr_samples", "get_instructions", "score"]:
+        for method in ["repr_tasks", "get_instructions", "score"]:
             if not hasattr(capability_class, method):
                 raise AttributeError(f"Capability class must define a {method} method.")
         self.capability_repr_class = capability_class

@@ -44,7 +44,7 @@ capability_seed_dataset_cfg = {
         "split": "train",
         "subset": "",
         "streaming": False,
-        "num_repr_samples": 3,
+        "num_repr_tasks": 3,
     },
     "instructions": "Solve the following mathematical problems.",
     "test_args": {

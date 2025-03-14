@@ -1,7 +1,7 @@
 """
 Module containing a template for the Capability class.
 
-Includes methods for representing samples, getting instructions, and
+Includes methods for representing tasks, getting instructions, and
 a placeholder for a capability score function.
 """
 
@@ -9,8 +9,8 @@ a placeholder for a capability score function.
 CAPABILITY_CLASS_TEMPLATE = """
 class Capability:
     @staticmethod
-    def repr_samples() -> dict[str, dict]:
-        return {capability_data_samples_dict}
+    def repr_tasks() -> dict[str, dict]:
+        return {capability_tasks_dict}
 
     @staticmethod
     def get_instructions(t: dict) -> str:
