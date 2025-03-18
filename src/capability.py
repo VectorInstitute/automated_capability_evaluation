@@ -118,7 +118,7 @@ class Capability:
         # Borrowed from: https://github.com/conglu1997/ACD/blob/main/generate_acd_tasks.py#L103C1-L117C23
         module_path = os.path.join(self.source_dir, "capability.py")
         module_name = f"capability_{os.path.basename(self.source_dir)}"
-        capability_module = import_from_path(module_name, module_path)
+        capability_module = _import_from_path(module_name, module_path)
         capability_class = capability_module.Capability
         # Check capability class has required methods.
         for method in ["repr_tasks", "get_instructions", "score"]:
@@ -202,9 +202,11 @@ class Capability:
         raise NotImplementedError
 
 
-def import_from_path(module_name: str, file_path: str) -> Any:
+def _import_from_path(module_name: str, file_path: str) -> Any:
     """
     Import a module from a specified file path.
+
+    This is a helper function for loading the capability.py file as a module.
 
     Args:
         module_name (str): The name to assign to the imported module.
