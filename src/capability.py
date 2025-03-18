@@ -8,12 +8,11 @@ from typing import Any, Dict, List
 
 from src.model import Model
 from src.utils.capability_utils import read_score_inspect_json
+from src.utils.constants import (
+    NON_SEED_CAPABILITIES_SCORE_DIR,
+    SEED_CAPABILITIES_SCORE_DIR,
+)
 from src.utils.data_utils import load_data
-
-
-BASE_DIR = "/fs01/projects/aieng/public/ace_artifacts"
-SEED_CAPABILITIES_SCORE_DIR = os.path.join(BASE_DIR, "seed_capabilities_results")
-NON_SEED_CAPABILITIES_SCORE_DIR = os.path.join(BASE_DIR, "capabilities_results")
 
 
 class CapabilitySeedDataset:
