@@ -36,6 +36,8 @@ def extract_math_capability_logs(
     with open(log_file, "r") as f:
         logs = json.load(f)
 
+    # Note: Inspect logs refer to capabilities as tasks, hence
+    # keeping dict keys consistent in logs
     master_capability = logs["eval"]["task"]
     logs["eval"].update({"task": f"inspect_evals/{capability_name}"})
     logs["eval"].update({"master_task": master_capability})
