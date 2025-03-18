@@ -3,7 +3,7 @@
 import os
 
 
-BASE_ARTIFACTS_DIR = "/fs01/projects/aieng/public/ace_artifacts"
+BASE_ARTIFACTS_DIR = "/fs01/projects/aieng/public/ace/artifacts"
 
 SEED_CAPABILITIES_SCORE_DIR = os.path.join(
     BASE_ARTIFACTS_DIR, "seed_capabilities_results"
