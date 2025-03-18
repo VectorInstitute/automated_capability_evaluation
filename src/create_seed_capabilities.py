@@ -8,6 +8,7 @@ import hydra  # noqa: D100
 from omegaconf import DictConfig
 
 from capability import CapabilitySeedDataset
+from utils.constants import GSM8K_SCORE_FUNC
 from utils.templates import CAPABILITY_CLASS_TEMPLATE
 
 
@@ -152,13 +153,6 @@ def last_boxed_only_string(string: str) -> str | None:
     return None if right_brace_idx is None else string[idx : right_brace_idx + 1]
 
 
-tab_w_spaces = "    "
-# Score function is based on https://github.com/UKGovernmentBEIS/inspect_evals/blob/main/src/inspect_evals/mathematics/utils.py#L57
-mathematics_score_func = f"""def score(t: dict, submission: str) -> float | None:\n{tab_w_spaces}{tab_w_spaces}ans_pattern_line = r"(?i)ANSWER\\s*:\\s*([^\\n]+)"\n{tab_w_spaces}{tab_w_spaces}match = re.search(ans_pattern_line, submission)\n{tab_w_spaces}{tab_w_spaces}if match:\n{tab_w_spaces}{tab_w_spaces}{tab_w_spaces}answer = match.group(1)\n{tab_w_spaces}{tab_w_spaces}{tab_w_spaces}correct = is_equiv(answer, t["answer"])\n{tab_w_spaces}{tab_w_spaces}else:\n{tab_w_spaces}{tab_w_spaces}{tab_w_spaces}correct = False\n{tab_w_spaces}{tab_w_spaces}return 1.0 if correct else 0.0"""
-# Score function is based on https://github.com/UKGovernmentBEIS/inspect_evals/blob/main/src/inspect_evals/mathematics/utils.py#L57
-gsm8k_score_func = f"""def score(t: dict, submission: str) -> float | None:\n{tab_w_spaces}{tab_w_spaces}return 1.0 if submission==t["answer"] else 0.0"""
-
-
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
 def main(cfg: DictConfig) -> None:
     """
@@ -235,9 +229,9 @@ def main(cfg: DictConfig) -> None:
                     capability_data=math_tasks["tasks"],
                     capability_repr_tasks=capability_repr_tasks,
                     capability_instructions=capability_instructions,
-                    capability_score_func=gsm8k_score_func.strip(
+                    capability_score_func=GSM8K_SCORE_FUNC.strip(
                         "\n"
-                    ),  # TODO: Change this to mathematics_score_func after figuring out how to implement complex score functions
+                    ),  # TODO: Change this to MATHEMATICS_SCORE_FUNC after figuring out how to implement complex score functions
                     source_dataset=dataset.name,
                 )
                 print(
@@ -272,7 +266,7 @@ def main(cfg: DictConfig) -> None:
                 capability_data=gsm_tasks,
                 capability_repr_tasks=capability_repr_tasks,
                 capability_instructions=capability_instructions,
-                capability_score_func=gsm8k_score_func.strip("\n"),
+                capability_score_func=GSM8K_SCORE_FUNC.strip("\n"),
                 source_dataset=dataset.name,
             )
             print(f"Created capability {capability_name} with {len(gsm_tasks)} tasks.")
