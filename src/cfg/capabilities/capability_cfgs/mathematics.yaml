@@ -1,0 +1,11 @@
+mathematics:
+  name: mathematics
+  description: >
+    The {name} capability consists of {size} challenging competition mathematics problems in {subject}. Each problem has a full step-by-step solution which can be used to teach models to generate answer derivations and explanations. It has 5 levels.
+  domain: math
+  data_args:
+    source: qwedsacf/competition_math
+    split: train
+    num_repr_tasks: 3
+  instructions: >-
+    f"""Solve the following {subject} math problem step by step. The last line of your response should be of the form "ANSWER: $ANSWER" (without quotes) where $ANSWER is the answer to the problem.\n\nProblem: {problem}\n\nRemember to put your answer on its own line at the end in the form "ANSWER:$ANSWER" (without quotes) where $ANSWER is the answer to the problem, and you do not need to use a \\boxed command."""

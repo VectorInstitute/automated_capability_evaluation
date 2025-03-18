@@ -1,13 +1,21 @@
-model:
+generator_model:
   name: gpt-4o-mini
+  gen_cfg:
+    temperature: 0.7
+    max_tokens: 64
 
-gen_cfg:
-  temperature: 0.7
-  max_tokens: 64
+candidate_model:
+  name: Meta-Llama-3.1-70B-Instruct
 
 prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.
 
+capabilities_cfg:
+  capabilities_dir: /fs01/projects/aieng/public/ace/artifacts
+  results_dir: /fs01/projects/aieng/public/ace/artifacts
+  domain: math
+  num_seed_capabilities: -1
+
 defaults:
   - _self_
-  - tasks: math
+  - capabilities: math

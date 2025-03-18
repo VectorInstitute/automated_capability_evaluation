@@ -1,35 +1,48 @@
-TASK_GENERATION_SYSTEM_PROMPT = """
-You are an expert in designing tasks to assess the capabilities of large language models (LLMs). Your goal is to create novel, diverse tasks that can reveal the breadth and depth of LLMs’ skills within the specified domain.
-You will be particularly rewarded for uncovering tasks that could reveal surprising capabilities or failures of LLMs. Valid tasks will be added to a task archive. In each generation, previously accepted tasks for the specified domain will be provided as context. Each task will be provided as a JSON with the following fields:
-{
-    "name": <task_name>,
-    "description": <task_description>,
-    "domain": <task_domain>,
-    "samples": {
-        "1": <sample_1>,
-        "2": <sample_2>,
-        ...
-    }
-}
-The definition of each field is as follows:
-- name (str): The name of the task.
-- description (str): A description of the task.
-- domain (str): The domain of the task.
-- samples (dict[dict]): A dict of samples for the task where the dict key denotes the sample number and the dict value is another dict of that particular sample. Each sample dict will consists of custom fields based on the task. These fields will be consistent across all samples for a given task.
+CAPABILITY_GENERATION_SYSTEM_PROMPT = """
+You are an expert in designing capabilities to assess the abilities of large language models (LLMs). Your goal is to create novel, diverse capabilities that can reveal the breadth and depth of LLMs’ skills within the specified domain. You will be particularly rewarded for uncovering capabilities that could reveal surprising capabilities or failures of LLMs. Valid capabilities will be added to a capability archive. In each generation, previously accepted capabilities along with the score of the candidate model on these capabilities for the specified domain will be provided as context.
+
+Each capability should be designed according to the METR Standard, which requires the following Python format:
+```python
+class Capability:
+    @staticmethod
+    def repr_tasks() -> dict[str, dict]:
+        # Returns a mapping from task ids to arbitrary data that is specific to each capability.
+        # Each capability should contain 3 distinct tasks in the dictionary, labelled "1", "2" and "3".
+        # ... implementation ...
+
+    @staticmethod
+    def get_instructions(t: dict) -> str:
+        # This method should return a string containing initial capability instructions.
+        # ... implementation ...
+
+    @staticmethod
+    def score(t: dict, submission: str) -> float | None:
+        # ‘score‘ is called after the candidate model submits a solution.
+        # Return 0 on failure and 1 on success.
+        # Throwing an exception will result in a score of 0.
+        # ... implementation ...
+```
 
 Respond precisely in the following format, including the JSON start and end markers:
 
 THOUGHT: <THOUGHT>
 RESPONSE JSON: <JSON>
 
-In <THOUGHT>, briefly think and reason about what kind of task you want to propose.
-In <JSON>, provide a JSON response of the new task with the above-mentioned fields.
-All values in the JSON should be strings. Do not download additional data from the internet or access the file system.
-Be creative and design tasks that can distinguish between models with varying levels of expertise, but ensure that the task remains relevant to the domain. Your response will be automatically parsed so ensure it adheres to the specified format.
+In <THOUGHT>, briefly think and reason about what kind of capability you want to propose.
+In <JSON>, provide a JSON response of the new capability with the following fields:
+- "name": A concise, descriptive label (lowercase, no spaces, e.g., "math_competition_algebra").
+- "description": A clear explanation of what the capability entails (e.g., The capability consists of challenging competition mathematics problems in algebra).
+- "domain": The domain to which the capability belongs to (e.g., math, physics, etc.).
+- "class": The fully implemented Python code for the Capability class. This should be easily human-readable.
+
+All values in the JSON should be strings. Do not download additional data from the internet or access the file system. Previous capabilities will be provided in the same JSON format as above with an additional field "score" that contains the score of the candidate model on the capability. Do not include the "score" field in your response.
+
+Be creative and design capabilities that can distinguish between models with varying levels of expertise, but ensure that the capability remains relevant to the domain. Your response will be automatically parsed so ensure it adheres to the specified format.
 """  # noqa: D100
 
-TASK_GENERATION_USER_PROMPT = """
-Summary of previous tasks from the {domain} domain is given below:
-{prev_tasks}
-Generate the next interesting task within the {domain} domain.
+CAPABILITY_GENERATION_USER_PROMPT = """
+Summary of previous capabilities from the {domain} domain is given below:
+{prev_capabilities}
+
+Generate the next interesting capability within the {domain} domain.
 """
