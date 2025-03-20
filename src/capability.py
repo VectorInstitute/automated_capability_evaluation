@@ -186,15 +186,17 @@ class Capability:
         """
         return self.to_json_str()
 
-    def embed(self, embed_model: Model) -> None:
+    def encode(self, encoder_model: Any) -> None:
         """
-        Embed the capability using the provided model.
+        Encode the capability using the provided encoder model.
 
-        Parameters
-        ----------
-        embed_model : Model
-            The model to use for embedding the capability.
+        Args
+        ----
+        encoder_model : Any
+            The model to use for encoding the capability.
         """
+        # TODO: Implement capability encoding
+        self.encoding = None
         raise NotImplementedError
 
     def evaluate_using_inspect(self, model: Model) -> None:  # noqa: D102
