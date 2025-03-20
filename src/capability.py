@@ -1,10 +1,9 @@
 import importlib  # noqa: D100
 import json
 import os
-import random
 import sys
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from src.model import Model
 from src.utils.capability_utils import read_score_inspect_json
@@ -228,73 +227,3 @@ def _import_from_path(module_name: str, file_path: str) -> Any:
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
-
-
-def select_seed_capabilities(
-    seed_capability_dir: str,
-    num_seed_capabilities: int = -1,
-    include_capabilities: List[str] | None = None,
-    random_seed: int = 42,
-) -> List[Capability]:
-    """
-    Select `num_seed_capabilities` seed capabilities from the specified directory.
-
-    Args
-    ----
-        seed_capability_dir (str): The directory containing the seed capabilities.
-        num_seed_capabilities (int): The number of seed capabilities to select.
-        include_capabilities (List[str] | None): A list of capability names to include.
-        random_seed (int): The seed for the random number generator.
-
-    Returns
-    -------
-        List[Capability]: A list of capability objects.
-    """
-    random.seed(random_seed)
-
-    selected_seed_capabilities = []
-    all_seed_capability_paths = os.listdir(seed_capability_dir)
-
-    # Select all capabilities if num_seed_capabilities is -1
-    if num_seed_capabilities == -1:
-        num_seed_capabilities = len(all_seed_capability_paths)
-        include_capabilities = None
-
-    # Force include some capabilities
-    if include_capabilities is not None:
-        assert num_seed_capabilities >= len(include_capabilities), (
-            "Number of seed capabilities is less than the number of capabilities to include."
-        )
-        for capability_name in include_capabilities:
-            capability = Capability(os.path.join(seed_capability_dir, capability_name))
-            selected_seed_capabilities.append(capability)
-            all_seed_capability_paths.remove(capability_name)
-        num_seed_capabilities -= len(include_capabilities)
-
-    # TODO: Enhance the selection criterion
-    for capability_path in random.sample(
-        all_seed_capability_paths, num_seed_capabilities
-    ):
-        capability = Capability(os.path.join(seed_capability_dir, capability_path))
-        selected_seed_capabilities.append(capability)
-
-    return selected_seed_capabilities
-
-
-def get_capability_repr_with_score(capability: Capability, model_name: str) -> str:
-    """
-    Get the capability representation with score for the specified model.
-
-    Args
-    ----
-        capability (Capability): The capability to get the representation for.
-        model_name (str): The name of the model to use for scoring the capability.
-
-    Returns
-    -------
-        str: A JSON string containing the capability representation and score.
-    """
-    model_score = capability.load_scores()[model_name]
-    capability_dict = capability._to_dict()
-    capability_dict["score"] = model_score
-    return json.dumps(capability_dict, indent=4)
