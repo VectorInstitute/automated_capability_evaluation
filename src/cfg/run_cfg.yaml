@@ -17,6 +17,9 @@ capabilities_cfg:
   num_seed_capabilities: -1
   num_gen_capabilities: 2
 
+exp_cfg:
+  trial_run: true
+
 defaults:
   - _self_
   - capabilities: math
