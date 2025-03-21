@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from capability import Capability
 from model import Model
+from utils.capability_utils import extract_and_parse_response
 from utils.constants import BASE_ARTIFACTS_DIR
 from utils.prompts import (
     CAPABILITY_GENERATION_SYSTEM_PROMPT,
@@ -63,6 +64,31 @@ def select_seed_capabilities(
     return selected_seed_capabilities
 
 
+def get_previous_capabilities(
+    capability_dir: str,
+) -> List[Capability]:
+    """
+    Get the previously generated capabilities for the specified domain.
+
+    Args
+    ----
+        capability_dir (str): The directory containing the generated capabilities.
+
+    Returns
+    -------
+        List[Capability]: A list of capabilities.
+    """
+    prev_capabilities = []
+    for capability_path in os.listdir(capability_dir):
+        try:
+            capability = Capability(os.path.join(capability_dir, capability_path))
+        except Exception as e:
+            print(f"{capability_path} could not be loaded: {e}")
+            continue
+        prev_capabilities.append(capability)
+    return prev_capabilities
+
+
 def get_capability_repr_with_score(capability: Capability, model_name: str) -> str:
     """
     Get the capability representation with score for the specified model.
@@ -91,7 +117,8 @@ def generate_capabilities_using_llm(
     num_seed_capabilities: int,
     scientist_llm_gen_cfg: Dict[str, Any],
     include_seed_capabilities: Optional[List[str]] = None,
-) -> List[str]:
+    **kwargs: Any,
+) -> Dict[str, Any]:
     """
     Generate capabilities using the scientist LLM.
 
@@ -116,6 +143,14 @@ def generate_capabilities_using_llm(
     -------
         List[str]: The generated capability names.
     """
+    if "trial_run" in kwargs:
+        base_capability_dir = os.path.join(
+            BASE_ARTIFACTS_DIR, f"capabilities_{kwargs['run_id']}"
+        )
+        os.makedirs(base_capability_dir, exist_ok=True)
+    else:
+        base_capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "capabilities")
+
     # Select seed capabilities
     seed_capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "seed_capabilities", domain)
     seed_capabilities = select_seed_capabilities(
@@ -123,6 +158,12 @@ def generate_capabilities_using_llm(
         num_seed_capabilities=num_seed_capabilities,
         include_capabilities=include_seed_capabilities,
     )
+    # Get previous capability names
+    capability_dir = os.path.join(base_capability_dir, domain)
+    os.makedirs(capability_dir, exist_ok=True)
+    prev_capabilities = [
+        elm.name for elm in get_previous_capabilities(capability_dir=capability_dir)
+    ]
 
     # Create an instance of the Model class with the specified model name
     model = Model(
@@ -136,23 +177,39 @@ def generate_capabilities_using_llm(
     ]
     # LLM input
     sample_input = user_prompt.format(
-        prev_capabilities="\n".join(seed_capabilities_repr),
+        seed_capabilities="\n".join(seed_capabilities_repr),
+        prev_capabilities="\n".join(prev_capabilities),
         domain=domain,
         num_gen_capabilities=num_capabilities,
     )
 
     # Generate output using the model with specified generation arguments
-    output, metadata = model.generate(
+    response, metadata = model.generate(
         prompt=sample_input,
         generation_config=scientist_llm_gen_cfg,
     )
 
     # Print the output
     print(f"Model: {model.get_model_name()}")
-    print(f"Output:\n\n{output}\n\n")
+    print(f"Output:\n\n{response}\n\n")
     print(f"Metadata: {metadata}")
 
-    return [""]
+    parsed_response = extract_and_parse_response(response)
+    gen_capabilities = parsed_response["capabilities"]
+    gen_capabilities = [
+        Capability.from_dict(capability_dict=capability, base_dir=capability_dir)
+        for capability in gen_capabilities
+    ]
+    gen_capabilities_names = [capability.name for capability in gen_capabilities]
+
+    return {
+        "capabilities": gen_capabilities_names,
+        "metadata": {
+            "model": model.get_model_name(),
+            "thought": parsed_response["thought"],
+            "api_metadata": metadata,
+        },
+    }
 
 
 def filter_capabilities(
@@ -182,6 +239,7 @@ def generate_capabilities(
     num_seed_capabilities: int,
     scientist_llm_gen_cfg: Dict[str, Any],
     include_seed_capabilities: Optional[List[str]] = None,
+    **kwargs: Any,
 ) -> List[str]:
     """
     Generate initial capabilities for the specified domain.
@@ -202,7 +260,7 @@ def generate_capabilities(
         List[str]: The generated capability names.
     """
     # Generate capabilities using the scientist LLM
-    capabilities = generate_capabilities_using_llm(
+    response = generate_capabilities_using_llm(
         domain=domain,
         num_capabilities=num_capabilities,
         scientist_llm=scientist_llm,
@@ -211,6 +269,9 @@ def generate_capabilities(
         num_seed_capabilities=num_seed_capabilities,
         scientist_llm_gen_cfg=scientist_llm_gen_cfg,
         include_seed_capabilities=include_seed_capabilities,
+        **kwargs,
     )
+    print(response)
+    gen_capabilities = response["capabilities"]
 
-    return filter_capabilities(capabilities)
+    return filter_capabilities(gen_capabilities)

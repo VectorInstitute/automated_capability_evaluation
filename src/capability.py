@@ -6,7 +6,7 @@ from collections import defaultdict
 from typing import Any, Dict
 
 from src.model import Model
-from src.utils.capability_utils import read_score_inspect_json
+from src.utils.capability_utils import parse_python_class_str, read_score_inspect_json
 from src.utils.constants import (
     NON_SEED_CAPABILITIES_SCORE_DIR,
     SEED_CAPABILITIES_SCORE_DIR,
@@ -100,6 +100,58 @@ class Capability:
             if self.is_seed
             else NON_SEED_CAPABILITIES_SCORE_DIR
         )
+
+    @classmethod
+    def from_dict(cls, capability_dict: Dict[str, Any], base_dir: str) -> "Capability":
+        """
+        Create a Capability object from a dictionary.
+
+        Args
+        ----
+        capability_dict (Dict[str, Any]): A dictionary containing
+            the capability attributes.
+
+        Returns
+        -------
+        Capability: A Capability object created from the dictionary.
+        """
+        for key in ["name", "description", "domain", "class"]:
+            if key not in capability_dict:
+                raise ValueError(f"Capability dictionary must contain a {key} key.")
+
+        c_dict = capability_dict.copy()
+        c_dir = os.path.join(base_dir, c_dict["name"])
+        if os.path.exists(c_dir):
+            raise FileExistsError(
+                f"Capability directory already exists: {c_dir}. Please initialize capability directly using the directory: ```Capability(<capability_dir>)```."
+            )
+        os.makedirs(c_dir, exist_ok=False)
+
+        # Extract instructions and tasks from the capability python class
+        python_class_str = parse_python_class_str(c_dict.pop("class"))
+        with open(os.path.join(c_dir, "capability.py"), "w") as f:
+            f.write(python_class_str)
+        c_module = _import_from_path(
+            f"capability_{c_dict['name']}", os.path.join(c_dir, "capability.py")
+        )
+        c_obj = c_module.Capability()
+        initial_tasks = list(c_obj.repr_tasks().values())
+        template_instructions = c_obj.get_instructions({"problem": '{t["problem"]}'})
+        template_instructions = f'f"""{template_instructions}"""'
+
+        c_dict.update(
+            {
+                "capability_name": c_dict.pop("name"),
+                "capability_description": c_dict.pop("description"),
+                "capability_domain": c_dict.pop("domain"),
+                "capability_instructions": template_instructions,
+                "capability_data": initial_tasks,
+            }
+        )
+        with open(os.path.join(c_dir, "capability.json"), "w") as f:
+            json.dump(c_dict, f, indent=4)
+
+        return cls(c_dir)
 
     def _load_capability_json(self) -> None:
         with open(os.path.join(self.source_dir, "capability.json"), "r") as f:

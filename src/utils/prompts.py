@@ -23,10 +23,17 @@ class Capability:
         # ... implementation ...
 ```
 
-For each new capability, respond precisely in the following format, including the JSON start and end markers:
+Respond precisely in the following format, including the JSON start and end markers:
 
 THOUGHT: <THOUGHT>
-RESPONSE JSON: <JSON>
+RESPONSE JSON:
+{
+    "capabilities": {
+        "capability_0": <JSON>,
+        "capability_1": <JSON>,
+        ...
+    }
+}
 
 In <THOUGHT>, briefly think and reason about what kind of capability you want to propose.
 In <JSON>, provide a JSON response of the new capability with the following fields:
@@ -35,13 +42,19 @@ In <JSON>, provide a JSON response of the new capability with the following fiel
 - "domain": The domain to which the capability belongs to (e.g., math, physics, etc.).
 - "class": The fully implemented Python code for the Capability class. This should be easily human-readable.
 
-All values in the JSON should be strings. Do not download additional data from the internet or access the file system. Previous capabilities will be provided in the same JSON format as above.
+All values in the JSON should be strings. Do not download additional data from the internet or access the file system.
 
-Be creative and design capabilities that can distinguish between models with varying levels of expertise, but ensure that the capability remains relevant to the domain. Your response will be automatically parsed so ensure it adheres to the specified format.
+Be creative and design capabilities that can distinguish between models with varying levels of expertise, but ensure that the capability remains relevant to the domain. Also ensure that the proposed capabilities ARE DISTINCT compared to the previous capabilities. Previous seed capabilities will be provided in the same JSON format as above. Whereas, only capability names will be provided for previously generated capabilities.
+
+Your response will be automatically parsed so ensure it adheres to the specified format.
 """  # noqa: D100
 
 CAPABILITY_GENERATION_USER_PROMPT = """
 Summary of previous capabilities from the {domain} domain is given below:
+Seed capabilities:
+{seed_capabilities}
+
+Previously generated capabilities:
 {prev_capabilities}
 
 Generate {num_gen_capabilities} new interesting capabilities within the {domain} domain.
