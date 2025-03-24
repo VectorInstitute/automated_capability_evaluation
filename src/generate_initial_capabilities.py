@@ -3,6 +3,8 @@ import os
 import random
 from typing import Any, Dict, List, Optional
 
+import numpy as np
+
 from capability import Capability
 from model import Model
 from utils.capability_utils import extract_and_parse_response
@@ -235,6 +237,7 @@ def filter_capabilities(
 def generate_capabilities(
     domain: str,
     num_capabilities: int,
+    num_capabilities_per_run: int,
     scientist_llm: str,
     num_seed_capabilities: int,
     scientist_llm_gen_cfg: Dict[str, Any],
@@ -248,6 +251,7 @@ def generate_capabilities(
     ----
         domain (str): The domain name.
         num_capabilities (int): The number of capabilities to generate.
+        num_capabilities_per_run (int): The number of capabilities to generate per run.
         scientist_llm (str): The scientist LLM model name.
         num_seed_capabilities (int): The number of seed capabilities to use.
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
@@ -259,19 +263,25 @@ def generate_capabilities(
     -------
         List[str]: The generated capability names.
     """
-    # Generate capabilities using the scientist LLM
-    response = generate_capabilities_using_llm(
-        domain=domain,
-        num_capabilities=num_capabilities,
-        scientist_llm=scientist_llm,
-        sys_prompt=CAPABILITY_GENERATION_SYSTEM_PROMPT,
-        user_prompt=CAPABILITY_GENERATION_USER_PROMPT,
-        num_seed_capabilities=num_seed_capabilities,
-        scientist_llm_gen_cfg=scientist_llm_gen_cfg,
-        include_seed_capabilities=include_seed_capabilities,
-        **kwargs,
-    )
-    print(response)
-    gen_capabilities = response["capabilities"]
+    num_runs = int(np.ceil(num_capabilities / num_capabilities_per_run))
+    gen_capabilities = []
+    run_metadata = []
+
+    for run_id in range(num_runs):
+        print("Run ID:", run_id)
+        # Generate capabilities using the scientist LLM
+        response = generate_capabilities_using_llm(
+            domain=domain,
+            num_capabilities=num_capabilities_per_run,
+            scientist_llm=scientist_llm,
+            sys_prompt=CAPABILITY_GENERATION_SYSTEM_PROMPT,
+            user_prompt=CAPABILITY_GENERATION_USER_PROMPT,
+            num_seed_capabilities=num_seed_capabilities,
+            scientist_llm_gen_cfg=scientist_llm_gen_cfg,
+            include_seed_capabilities=include_seed_capabilities,
+            **kwargs,
+        )
+        gen_capabilities.extend(response["capabilities"])
+        run_metadata.append(response["metadata"])
 
     return filter_capabilities(gen_capabilities)
