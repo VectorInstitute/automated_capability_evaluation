@@ -33,10 +33,6 @@ import shutil
 
 from src.capability import Capability, CapabilitySeedDataset
 from src.utils.capability_utils import extract_and_parse_response
-from src.utils.constants import BASE_ARTIFACTS_DIR
-
-
-TEST_ARTIFACTS_DIR = os.path.join(BASE_ARTIFACTS_DIR, "test_artifacts")
 
 
 # Define a capability seed dataset configuration and create an object
@@ -194,7 +190,7 @@ def test_create_capability_from_dict():
         "class": '```python\nclass Capability:\n    @staticmethod\n    def repr_tasks() -> dict[str, dict]:\n        return {\n    "1": {\n        "problem": "Prove that the number of ways to choose 2 elements from a set of n elements is equal to the number of ways to choose n-2 elements from the same set.",\n        "answer": "\\\\binom{n}{2} = \\\\binom{n}{n-2}"\n    },\n    "2": {\n        "problem": "Show that for any positive integer n, the sum of the first n odd numbers equals n^2.",\n        "answer": "1 + 3 + 5 + ... + (2n-1) = n^2"\n    },\n    "3": {\n        "problem": "Demonstrate that \\sum_{k=0}^{n} \\binom{n}{k} = 2^n using a combinatorial argument.",\n        "answer": "\\\\sum_{k=0}^{n} \\binom{n}{k} = 2^n"\n    }\n}\n\n    @staticmethod\n    def get_instructions(t: dict) -> str:\n        return f"""Provide a combinatorial proof for the following problem. The last line of your response should be of the form "ANSWER: $ANSWER" (without quotes) where $ANSWER is your proof or explanation.\\n\\nProblem: {t["problem"]}\\n\\nRemember to put your proof or explanation on its own line at the end in the form "ANSWER:$ANSWER" (without quotes) where $ANSWER is your proof or explanation."""\n\n    @staticmethod\n    def score(t: dict, submission: str) -> float | None:\n        return 1.0 if submission.lower().strip() == t["answer"].lower().strip() else 0.0\n```',
     }
     gen_capability_tests_dir = os.path.join(
-        TEST_ARTIFACTS_DIR, "capabilities", gen_capability_dict["domain"]
+        test_dir, "capabilities", gen_capability_dict["domain"]
     )
     os.makedirs(gen_capability_tests_dir, exist_ok=True)
 
@@ -204,7 +200,7 @@ def test_create_capability_from_dict():
     assert capability.name == gen_capability_dict["name"]
     assert capability.description == gen_capability_dict["description"]
     assert capability.domain == gen_capability_dict["domain"]
-    shutil.rmtree(capability.source_dir)
+    shutil.rmtree(os.path.join(test_dir, "capabilities"))
 
 
 def test_extract_and_parse_response():
