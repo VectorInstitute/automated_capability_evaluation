@@ -15,19 +15,22 @@ from utils.prompts import (
 )
 
 
-def select_seed_capabilities(
+def _sample_seed_capabilities(
     seed_capability_dir: str,
     num_seed_capabilities: int = -1,
     include_capabilities: List[str] | None = None,
     random_seed: int = 42,
 ) -> List[Capability]:
     """
-    Select `num_seed_capabilities` seed capabilities from the specified directory.
+    Sample `num_seed_capabilities` seed capabilities from the specified directory.
+
+    These sampled seed capabilities are used in the input prompt
+    to generate new capabilities.
 
     Args
     ----
         seed_capability_dir (str): The directory containing the seed capabilities.
-        num_seed_capabilities (int): The number of seed capabilities to select.
+        num_seed_capabilities (int): The number of seed capabilities to sample.
         include_capabilities (List[str] | None): A list of capability names to include.
         random_seed (int): The seed for the random number generator.
 
@@ -37,7 +40,7 @@ def select_seed_capabilities(
     """
     random.seed(random_seed)
 
-    selected_seed_capabilities = []
+    sampled_seed_capabilities = []
     all_seed_capability_paths = os.listdir(seed_capability_dir)
 
     # Select all capabilities if num_seed_capabilities is -1
@@ -51,8 +54,11 @@ def select_seed_capabilities(
             "Number of seed capabilities is less than the number of capabilities to include."
         )
         for capability_name in include_capabilities:
+            assert os.path.exists(os.path.join(seed_capability_dir, capability_name)), (
+                f"{capability_name} does not exist in {seed_capability_dir}."
+            )
             capability = Capability(os.path.join(seed_capability_dir, capability_name))
-            selected_seed_capabilities.append(capability)
+            sampled_seed_capabilities.append(capability)
             all_seed_capability_paths.remove(capability_name)
         num_seed_capabilities -= len(include_capabilities)
 
@@ -61,16 +67,18 @@ def select_seed_capabilities(
         all_seed_capability_paths, num_seed_capabilities
     ):
         capability = Capability(os.path.join(seed_capability_dir, capability_path))
-        selected_seed_capabilities.append(capability)
+        sampled_seed_capabilities.append(capability)
 
-    return selected_seed_capabilities
+    return sampled_seed_capabilities
 
 
-def get_previous_capabilities(
+def _get_previous_capabilities(
     capability_dir: str,
 ) -> List[Capability]:
     """
     Get the previously generated capabilities for the specified domain.
+
+    These are included in the input prompt to generate new capabilities.
 
     Args
     ----
@@ -82,27 +90,23 @@ def get_previous_capabilities(
     """
     prev_capabilities = []
     for capability_path in os.listdir(capability_dir):
-        try:
-            capability = Capability(os.path.join(capability_dir, capability_path))
-        except Exception as e:
-            print(f"{capability_path} could not be loaded: {e}")
-            continue
+        capability = Capability(os.path.join(capability_dir, capability_path))
         prev_capabilities.append(capability)
     return prev_capabilities
 
 
 def get_capability_repr_with_score(capability: Capability, model_name: str) -> str:
     """
-    Get the capability representation with score for the specified model.
+    Get the capability JSON string with score for the specified model.
 
     Args
     ----
-        capability (Capability): The capability to get the representation for.
+        capability (Capability): The capability to get the JSON string for.
         model_name (str): The name of the model to use for scoring the capability.
 
     Returns
     -------
-        str: A JSON string containing the capability representation and score.
+        str: A JSON string containing the capability JSON string and score.
     """
     model_score = capability.load_scores()[model_name]
     capability_dict = capability._to_dict()
@@ -125,7 +129,7 @@ def generate_capabilities_using_llm(
     Generate capabilities using the scientist LLM.
 
     Prompt the scientist LLM with instructions and
-    seed capability representations for the specified domain
+    seed capabilities for the specified domain
     to generate initial capabilities.
 
     Args
@@ -155,16 +159,21 @@ def generate_capabilities_using_llm(
 
     # Select seed capabilities
     seed_capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "seed_capabilities", domain)
-    seed_capabilities = select_seed_capabilities(
+    seed_capabilities = _sample_seed_capabilities(
         seed_capability_dir=seed_capability_dir,
         num_seed_capabilities=num_seed_capabilities,
         include_capabilities=include_seed_capabilities,
     )
+    # Get capability JSON strings (without scores)
+    seed_capabilities_repr = [
+        capability.to_json_str() for capability in seed_capabilities
+    ]
+
     # Get previous capability names
     capability_dir = os.path.join(base_capability_dir, domain)
     os.makedirs(capability_dir, exist_ok=True)
     prev_capabilities = [
-        elm.name for elm in get_previous_capabilities(capability_dir=capability_dir)
+        elm.name for elm in _get_previous_capabilities(capability_dir=capability_dir)
     ]
 
     # Create an instance of the Model class with the specified model name
@@ -173,10 +182,6 @@ def generate_capabilities_using_llm(
         sys_msg=sys_prompt,
     )
 
-    # Get capability representations (without scores)
-    seed_capabilities_repr = [
-        capability.to_json_str() for capability in seed_capabilities
-    ]
     # LLM input
     sample_input = user_prompt.format(
         seed_capabilities="\n".join(seed_capabilities_repr),
@@ -284,4 +289,4 @@ def generate_capabilities(
         gen_capabilities.extend(response["capabilities"])
         run_metadata.append(response["metadata"])
 
-    return filter_capabilities(gen_capabilities)
+    return gen_capabilities

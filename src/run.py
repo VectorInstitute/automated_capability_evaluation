@@ -1,7 +1,7 @@
 import hydra  # noqa: D100
 from omegaconf import DictConfig
 
-from generate_initial_capabilities import generate_capabilities
+from generate_capabilities import filter_capabilities, generate_capabilities
 
 
 def check_cfg(cfg: DictConfig) -> None:
@@ -42,7 +42,7 @@ def main(cfg: DictConfig) -> None:
 
     run_id = f"{cfg.generator_model.name}_T{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
 
-    _ = generate_capabilities(
+    capabilities = generate_capabilities(
         domain=cfg.capabilities_cfg.domain,
         num_capabilities=cfg.capabilities_cfg.num_gen_capabilities,
         num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
@@ -52,6 +52,7 @@ def main(cfg: DictConfig) -> None:
         run_id=run_id,
         trial_run=cfg.exp_cfg.trial_run,
     )
+    capabilities = filter_capabilities(capabilities)
 
 
 if __name__ == "__main__":
