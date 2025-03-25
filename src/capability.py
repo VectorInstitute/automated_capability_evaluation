@@ -5,9 +5,9 @@ import sys
 from collections import defaultdict
 from typing import Any, Dict, List
 
-from src.model import Model
 from src.utils.capability_utils import parse_python_class_str, read_score_inspect_json
 from src.utils.constants import (
+    BASE_ARTIFACTS_DIR,
     NON_SEED_CAPABILITIES_SCORE_DIR,
     SEED_CAPABILITIES_SCORE_DIR,
 )
@@ -258,28 +258,28 @@ class Capability:
         """
         raise NotImplementedError
 
-    def _evaluate_using_inspect(self, subject_model: Model) -> None:  # noqa: D102
+    def _evaluate_using_inspect(self, subject_llm: str) -> None:  # noqa: D102
         """
-        Evaluate subject model on the capability using the inspect framework.
+        Evaluate subject LLM on the capability using the inspect framework.
 
         Args
         ----
-        subject_model : Model
-            The model to use for evaluation.
+        subject_llm : str
+            The name of the LLM to use for evaluation.
         """
         raise NotImplementedError
 
-    def evaluate(self, subject_models: List[Model]) -> None:
+    def evaluate(self, subject_llms: List[str]) -> None:
         """
-        Evaluate the provided subject models on the capability.
+        Evaluate the provided subject LLMs on the capability.
 
         Args
         ----
-        subject_models : List[Model]
-            The models to use for evaluation.
+        subject_llms : List[str]
+            The name of the LLMs to use for evaluation.
         """
         # TODO: Run asynchronosly
-        for model in subject_models:
+        for model in subject_llms:
             self._evaluate_using_inspect(model)
 
 
@@ -307,3 +307,31 @@ def _import_from_path(module_name: str, file_path: str) -> Any:
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def evaluate_capabilities(
+    domain: str,
+    capabilities: List[str],
+    subject_llms: List[str],
+    **kwargs: Dict[str, Any],
+) -> None:
+    """
+    Evaluate the subject LLMs on the capabilities.
+
+    Args
+    ----
+        domain (str): The domain name.
+        capabilities (List[str]): The list of capabilities to evaluate on.
+        subject_llms (List[str]): The list of subject LLMs to evaluate.
+    """
+    if "trial_run" in kwargs:
+        capability_dir = os.path.join(
+            BASE_ARTIFACTS_DIR, f"capabilities_{kwargs['run_id']}", domain
+        )
+    else:
+        capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "capabilities", domain)
+
+    # TODO: Run this asynchronosly
+    for capability_name in capabilities:
+        cap = Capability(os.path.join(capability_dir, capability_name))
+        cap.evaluate(subject_llms=subject_llms)

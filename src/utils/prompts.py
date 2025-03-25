@@ -59,3 +59,7 @@ Previously generated capabilities:
 
 Generate {num_gen_capabilities} new interesting capabilities within the {domain} domain.
 """
+
+TASK_GENERATION_SYSTEM_PROMPT = """"""
+
+TASK_GENERATION_USER_PROMPT = """"""

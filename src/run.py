@@ -42,7 +42,8 @@ def main(cfg: DictConfig) -> None:
 
     run_id = f"{cfg.generator_model.name}_T{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
 
-    _ = generate_capabilities(
+    # Stage 1. Generate initial capabilities
+    capabilities = generate_capabilities(
         domain=cfg.capabilities_cfg.domain,
         num_capabilities=cfg.capabilities_cfg.num_gen_capabilities,
         num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
@@ -52,6 +53,59 @@ def main(cfg: DictConfig) -> None:
         run_id=run_id,
         trial_run=cfg.exp_cfg.trial_run,
     )
+    print(capabilities)
+
+    # # Stage 2. Generate tasks and evaluate subject model on initial capabilities
+    # generate_tasks(
+    #     domain=cfg.capabilities_cfg.domain,
+    #     capabilities=capabilities,
+    #     scientist_llm=cfg.generator_model.name,
+    #     num_tasks=cfg.tasks_cfg.num_tasks,
+    #     scientist_llm_gen_cfg=cfg.generator_model.gen_cfg,
+    #     run_id=run_id,
+    #     trial_run=cfg.exp_cfg.trial_run,
+    # )
+    # evaluate_capabilities(
+    #     domain=cfg.capabilities_cfg.domain,
+    #     capabilities=capabilities,
+    #     subject_llms=[cfg.candidate_model.name],
+    #     run_id=run_id,
+    #     trial_run=cfg.exp_cfg.trial_run,
+    # )
+
+    # # Stage 3. Use LBO to generate new capabilities
+    # for lbo_run_id in range(cfg.lbo_cfg.num_lbo_runs):
+    #     new_capability = generate_new_capability(
+    #         domain=cfg.capabilities_cfg.domain,
+    #         capabilities=capabilities,
+    #         subject_llm=cfg.candidate_model.name,
+    #         run_id=run_id,
+    #         trial_run=cfg.exp_cfg.trial_run,
+    #         lbo_run_id=lbo_run_id,
+    #     )
+    #     # Generate tasks for new capability
+    #     generate_tasks(
+    #         domain=cfg.capabilities_cfg.domain,
+    #         capabilities=[new_capability],
+    #         scientist_llm=cfg.generator_model.name,
+    #         num_tasks=cfg.tasks_cfg.num_tasks,
+    #         scientist_llm_gen_cfg=cfg.generator_model.gen_cfg,
+    #         run_id=run_id,
+    #         trial_run=cfg.exp_cfg.trial_run,
+    #     )
+    #     # Evaluate subject LLM on new capability
+    #     evaluate_capabilities(
+    #         domain=cfg.capabilities_cfg.domain,
+    #         capabilities=[new_capability],
+    #         subject_llms=[cfg.candidate_model.name],
+    #         run_id=run_id,
+    #         trial_run=cfg.exp_cfg.trial_run,
+    #     )
+    #     # Add new capability to capabilities list
+    #     capabilities.append(new_capability)
+
+    # new_capabilities = capabilities[-cfg.lbo_cfg.num_lbo_runs:]
+    # print(f"New capabilities: {new_capabilities}")
 
 
 if __name__ == "__main__":

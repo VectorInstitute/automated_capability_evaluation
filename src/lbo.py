@@ -1,8 +1,10 @@
-from typing import Any, List  # noqa: D100
+import os  # noqa: D100
+from typing import Any, List
 
 import torch
 
 from capability import Capability
+from utils.constants import BASE_ARTIFACTS_DIR
 
 
 class LBO:
@@ -24,6 +26,24 @@ class LBO:
             X (torch.Tensor): The capability representation tensor, shape (Nc, D).
             y (torch.Tensor): The candidate model scores corresponding
                 to the capabilities, shape (Nc,).
+
+        Returns
+        -------
+            None
+        """
+        raise NotImplementedError
+
+    def update(self, X: torch.Tensor, y: torch.Tensor) -> None:
+        """
+        LBO update function.
+
+        Update the LBO model with new capability representation and score.
+
+        Args
+        ----
+            X (torch.Tensor): The new capability representation tensor, shape (1, D).
+            y (torch.Tensor): The candidate model score corresponding
+                to the capability, shape (1,).
 
         Returns
         -------
@@ -131,8 +151,16 @@ def generate_capability_using_lbo(
     #   )                                                           # noqa: ERA001
     # 2. Fit the LBO model using the adjusted capability representations
     #   and the candidate model scores.
-    #   lbo = LBO()                                                 # noqa: ERA001
-    #   lbo.fit(capability_representations, capability_scores)      # noqa: ERA001
+    #   a. Fit step: If the LBO model doesn't exist (first time),
+    #      create it and fit using initial capabilities
+    #       lbo = LBO()                                                 # noqa: ERA001
+    #       lbo.fit(capability_representations, capability_scores)      # noqa: ERA001
+    #   b. Update step: Load existing LBO model and update with new capability
+    #      representation and score
+    #       assert capability_representations.shape[0] == 1,
+    #       "Only one capability can be updated at a time"              # noqa: ERA001
+    #       lbo = load_lbo_model()                                      # noqa: ERA001
+    #       lbo.update(capability_representations, capability_scores)   # noqa: ERA001
     # 3. Identify the capability representation with the highest variance.
     #   high_variance_point = lbo.identify_high_variance_point()    # noqa: ERA001
     # 4. Decode the capability representation using the decoder model.
@@ -140,3 +168,57 @@ def generate_capability_using_lbo(
     #       high_variance_point, decoder
     #   )                                                           # noqa: ERA001
     raise NotImplementedError
+
+
+def generate_new_capability(
+    domain: str,
+    capabilities: List[str],
+    subject_llm: str,
+    **kwargs: Any,
+) -> str:
+    """
+    Generate a new capability.
+
+    Args
+    ----
+        domain (str): The domain name.
+        capabilities (List[str]): The list of existing capabilities.
+        subject_llm (str): The subject LLM model name.
+
+    Returns
+    -------
+        str: The generated capability str representation.
+    """
+    if "trial_run" in kwargs:
+        capability_dir = os.path.join(
+            BASE_ARTIFACTS_DIR,
+            f"capabilities_{kwargs['run_id']}",
+            domain,
+        )
+        os.makedirs(capability_dir, exist_ok=True)
+    else:
+        capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "capabilities", domain)
+
+    if kwargs["lbo_run_id"] == 0:
+        # Load initial capabilities
+        capabilities_obj = [
+            Capability(os.path.join(capability_dir, cap)) for cap in capabilities
+        ]
+        # Load subject LLM scores for each capability
+        capability_scores = torch.Tensor(
+            [cap.load_scores()[subject_llm] for cap in capabilities_obj]
+        )
+    else:
+        # Only load newly added capability and obtain subject LLM score for it
+        capabilities_obj = [Capability(os.path.join(capability_dir, capabilities[-1]))]
+        capability_scores = torch.Tensor(
+            [capabilities_obj[-1].load_scores()[subject_llm]]
+        )
+
+    # TODO: Set the encoder and decoder models
+    encoder = None
+    decoder = None
+
+    return generate_capability_using_lbo(
+        capabilities_obj, capability_scores, encoder, decoder
+    )
