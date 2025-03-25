@@ -3,7 +3,7 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from src.model import Model
 from src.utils.capability_utils import parse_python_class_str, read_score_inspect_json
@@ -250,9 +250,37 @@ class Capability:
         self.encoding = None
         raise NotImplementedError
 
-    def evaluate_using_inspect(self, model: Model) -> None:  # noqa: D102
-        # evaluate the capability using inspect-evals
+    def _create_inspect_file(self) -> None:
+        """
+        Implement pipeline to evaluate the capability using the inspect framework.
+
+        This involves converting the METR format to inspect solvers and scorers.
+        """
         raise NotImplementedError
+
+    def _evaluate_using_inspect(self, subject_model: Model) -> None:  # noqa: D102
+        """
+        Evaluate subject model on the capability using the inspect framework.
+
+        Args
+        ----
+        subject_model : Model
+            The model to use for evaluation.
+        """
+        raise NotImplementedError
+
+    def evaluate(self, subject_models: List[Model]) -> None:
+        """
+        Evaluate the provided subject models on the capability.
+
+        Args
+        ----
+        subject_models : List[Model]
+            The models to use for evaluation.
+        """
+        # TODO: Run asynchronosly
+        for model in subject_models:
+            self._evaluate_using_inspect(model)
 
 
 def _import_from_path(module_name: str, file_path: str) -> Any:
