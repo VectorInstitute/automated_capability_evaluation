@@ -15,19 +15,22 @@ from utils.prompts import (
 )
 
 
-def select_seed_capabilities(
+def _sample_seed_capabilities(
     seed_capability_dir: str,
     num_seed_capabilities: int = -1,
     include_capabilities: List[str] | None = None,
     random_seed: int = 42,
 ) -> List[Capability]:
     """
-    Select `num_seed_capabilities` seed capabilities from the specified directory.
+    Sample `num_seed_capabilities` seed capabilities from the specified directory.
+
+    These sampled seed capabilities are used in the input prompt
+    to generate new capabilities.
 
     Args
     ----
         seed_capability_dir (str): The directory containing the seed capabilities.
-        num_seed_capabilities (int): The number of seed capabilities to select.
+        num_seed_capabilities (int): The number of seed capabilities to sample.
         include_capabilities (List[str] | None): A list of capability names to include.
         random_seed (int): The seed for the random number generator.
 
@@ -37,7 +40,7 @@ def select_seed_capabilities(
     """
     random.seed(random_seed)
 
-    selected_seed_capabilities = []
+    sampled_seed_capabilities = []
     all_seed_capability_paths = os.listdir(seed_capability_dir)
 
     # Select all capabilities if num_seed_capabilities is -1
@@ -51,8 +54,11 @@ def select_seed_capabilities(
             "Number of seed capabilities is less than the number of capabilities to include."
         )
         for capability_name in include_capabilities:
+            assert os.path.exists(os.path.join(seed_capability_dir, capability_name)), (
+                f"{capability_name} does not exist in {seed_capability_dir}."
+            )
             capability = Capability(os.path.join(seed_capability_dir, capability_name))
-            selected_seed_capabilities.append(capability)
+            sampled_seed_capabilities.append(capability)
             all_seed_capability_paths.remove(capability_name)
         num_seed_capabilities -= len(include_capabilities)
 
@@ -61,16 +67,18 @@ def select_seed_capabilities(
         all_seed_capability_paths, num_seed_capabilities
     ):
         capability = Capability(os.path.join(seed_capability_dir, capability_path))
-        selected_seed_capabilities.append(capability)
+        sampled_seed_capabilities.append(capability)
 
-    return selected_seed_capabilities
+    return sampled_seed_capabilities
 
 
-def get_previous_capabilities(
+def _get_previous_capabilities(
     capability_dir: str,
 ) -> List[Capability]:
     """
     Get the previously generated capabilities for the specified domain.
+
+    These are included in the input prompt to generate new capabilities.
 
     Args
     ----
@@ -82,27 +90,23 @@ def get_previous_capabilities(
     """
     prev_capabilities = []
     for capability_path in os.listdir(capability_dir):
-        try:
-            capability = Capability(os.path.join(capability_dir, capability_path))
-        except Exception as e:
-            print(f"{capability_path} could not be loaded: {e}")
-            continue
+        capability = Capability(os.path.join(capability_dir, capability_path))
         prev_capabilities.append(capability)
     return prev_capabilities
 
 
 def get_capability_repr_with_score(capability: Capability, model_name: str) -> str:
     """
-    Get the capability representation with score for the specified model.
+    Get the capability JSON string with score for the specified model.
 
     Args
     ----
-        capability (Capability): The capability to get the representation for.
+        capability (Capability): The capability to get the JSON string for.
         model_name (str): The name of the model to use for scoring the capability.
 
     Returns
     -------
-        str: A JSON string containing the capability representation and score.
+        str: A JSON string containing the capability JSON string and score.
     """
     model_score = capability.load_scores()[model_name]
     capability_dict = capability._to_dict()
@@ -113,11 +117,13 @@ def get_capability_repr_with_score(capability: Capability, model_name: str) -> s
 def generate_capabilities_using_llm(
     domain: str,
     num_capabilities: int,
-    scientist_llm: str,
+    scientist_llm: Model,
     sys_prompt: str,
     user_prompt: str,
     num_seed_capabilities: int,
+    prev_capabilities: List[str],
     scientist_llm_gen_cfg: Dict[str, Any],
+    base_capability_dir: str,
     include_seed_capabilities: Optional[List[str]] = None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
@@ -125,19 +131,23 @@ def generate_capabilities_using_llm(
     Generate capabilities using the scientist LLM.
 
     Prompt the scientist LLM with instructions and
-    seed capability representations for the specified domain
+    seed capabilities for the specified domain
     to generate initial capabilities.
 
     Args
     ----
         domain (str): The domain name.
         num_capabilities (int): The number of capabilities to generate.
-        scientist_llm (str): The scientist LLM model name.
+        scientist_llm (Model): The scientist LLM model name.
         sys_prompt (str): The system prompt.
         user_prompt (str): The user prompt.
         num_seed_capabilities (int): The number of seed capabilities to use.
+        prev_capabilities (List[str]): The list of previously
+            generated capability names.
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
             for the scientist LLM.
+        base_capability_dir (str): The base directory to store
+            the generated capabilities for the specified domain.
         include_seed_capabilities (List[str] | None): A list of seed capability
             names to include in the generation process.
 
@@ -145,40 +155,20 @@ def generate_capabilities_using_llm(
     -------
         List[str]: The generated capability names.
     """
-    if "trial_run" in kwargs:
-        base_capability_dir = os.path.join(
-            BASE_ARTIFACTS_DIR, f"capabilities_{kwargs['run_id']}"
-        )
-        os.makedirs(base_capability_dir, exist_ok=True)
-    else:
-        base_capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "capabilities")
-
     # Select seed capabilities
     seed_capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "seed_capabilities", domain)
-    seed_capabilities = select_seed_capabilities(
+    seed_capabilities = _sample_seed_capabilities(
         seed_capability_dir=seed_capability_dir,
         num_seed_capabilities=num_seed_capabilities,
         include_capabilities=include_seed_capabilities,
     )
-    # Get previous capability names
-    capability_dir = os.path.join(base_capability_dir, domain)
-    os.makedirs(capability_dir, exist_ok=True)
-    prev_capabilities = [
-        elm.name for elm in get_previous_capabilities(capability_dir=capability_dir)
-    ]
-
-    # Create an instance of the Model class with the specified model name
-    model = Model(
-        model_name=scientist_llm,
-        sys_msg=sys_prompt,
-    )
-
-    # Get capability representations (without scores)
+    # Get capability JSON strings (without scores)
     seed_capabilities_repr = [
         capability.to_json_str() for capability in seed_capabilities
     ]
+
     # LLM input
-    sample_input = user_prompt.format(
+    user_prompt = user_prompt.format(
         seed_capabilities="\n".join(seed_capabilities_repr),
         prev_capabilities="\n".join(prev_capabilities),
         domain=domain,
@@ -186,28 +176,29 @@ def generate_capabilities_using_llm(
     )
 
     # Generate output using the model with specified generation arguments
-    response, metadata = model.generate(
-        prompt=sample_input,
+    response, metadata = scientist_llm.generate(
+        sys_prompt=sys_prompt,
+        user_prompt=user_prompt,
         generation_config=scientist_llm_gen_cfg,
     )
 
     # Print the output
-    print(f"Model: {model.get_model_name()}")
+    print(f"Model: {scientist_llm.get_model_name()}")
     print(f"Output:\n\n{response}\n\n")
     print(f"Metadata: {metadata}")
 
     parsed_response = extract_and_parse_response(response)
     gen_capabilities = parsed_response["capabilities"]
     gen_capabilities = [
-        Capability.from_dict(capability_dict=capability, base_dir=capability_dir)
+        Capability.from_dict(capability_dict=capability, base_dir=base_capability_dir)
         for capability in gen_capabilities
     ]
-    gen_capabilities_names = [capability.name for capability in gen_capabilities]
+    gen_capabilities_names = [elm.name for elm in gen_capabilities]
 
     return {
         "capabilities": gen_capabilities_names,
         "metadata": {
-            "model": model.get_model_name(),
+            "model": scientist_llm.get_model_name(),
             "thought": parsed_response["thought"],
             "api_metadata": metadata,
         },
@@ -238,7 +229,7 @@ def generate_capabilities(
     domain: str,
     num_capabilities: int,
     num_capabilities_per_run: int,
-    scientist_llm: str,
+    scientist_llm: Model,
     num_seed_capabilities: int,
     scientist_llm_gen_cfg: Dict[str, Any],
     include_seed_capabilities: Optional[List[str]] = None,
@@ -252,7 +243,7 @@ def generate_capabilities(
         domain (str): The domain name.
         num_capabilities (int): The number of capabilities to generate.
         num_capabilities_per_run (int): The number of capabilities to generate per run.
-        scientist_llm (str): The scientist LLM model name.
+        scientist_llm (Model): The scientist LLM model.
         num_seed_capabilities (int): The number of seed capabilities to use.
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
             for the scientist LLM.
@@ -267,6 +258,21 @@ def generate_capabilities(
     gen_capabilities = []
     run_metadata = []
 
+    # Set the base capability directory
+    if "trial_run" in kwargs:
+        base_capability_dir = os.path.join(
+            BASE_ARTIFACTS_DIR, f"capabilities_{kwargs['run_id']}", domain
+        )
+        os.makedirs(base_capability_dir, exist_ok=True)
+    else:
+        base_capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "capabilities", domain)
+
+    # Fetch previously generated capabilities, if any
+    prev_capabilities = [
+        elm.name
+        for elm in _get_previous_capabilities(capability_dir=base_capability_dir)
+    ]
+
     for run_id in range(num_runs):
         print("Run ID:", run_id)
         # Generate capabilities using the scientist LLM
@@ -277,11 +283,16 @@ def generate_capabilities(
             sys_prompt=CAPABILITY_GENERATION_SYSTEM_PROMPT,
             user_prompt=CAPABILITY_GENERATION_USER_PROMPT,
             num_seed_capabilities=num_seed_capabilities,
+            prev_capabilities=prev_capabilities,
             scientist_llm_gen_cfg=scientist_llm_gen_cfg,
+            base_capability_dir=base_capability_dir,
             include_seed_capabilities=include_seed_capabilities,
             **kwargs,
         )
         gen_capabilities.extend(response["capabilities"])
         run_metadata.append(response["metadata"])
 
-    return filter_capabilities(gen_capabilities)
+        # Update the list of previously generated capabilities
+        prev_capabilities.extend(response["capabilities"])
+
+    return gen_capabilities

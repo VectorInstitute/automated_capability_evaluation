@@ -16,17 +16,15 @@ class Model:
 
     def __init__(self, model_name: str, **kwargs: Any) -> None:
         """
-        Initialize the LLM with a name, rate limit, generation configuration, and additional keyword arguments.
+        Initialize the LLM with a name and additional keyword arguments.
 
-        :param model_name: The name of the LLM.
-        :param rate_limit: A tuple containing the number of calls and the period for rate limiting in secs.
-        :param generation_config: A dictionary containing generation configuration parameters.
-        :param kwargs: Additional keyword arguments.
-        """  # noqa: W505
+        Args
+        ----
+            model_name (str): The name of the LLM.
+            kwargs (Any): Additional keyword arguments.
+        """
         self.model_name: str = model_name
         self.llm: ChatOpenAI = self._set_llm()
-
-        self._sys_msg: str = str(kwargs.get("sys_msg", ""))
 
     def _set_llm(self) -> ChatOpenAI:
         return ChatOpenAI(model=self.model_name)
@@ -34,15 +32,28 @@ class Model:
     @sleep_and_retry  # type: ignore
     @limits(**RATE_LIMIT)  # type: ignore
     def generate(
-        self, prompt: str, generation_config: Dict[str, Any]
+        self, sys_prompt: str, user_prompt: str, generation_config: Dict[str, Any]
     ) -> Tuple[str | None, Dict[str, int | Any]]:
         """
-        Generate text based on the given prompt using the LLM.
+        Generate text based on the given system and user prompts using the LLM.
 
-        :param prompt: The input prompt for the model.
-        :return: A tuple containing the generated text and metadata.
+        Args
+        ----
+            sys_prompt (str): The system prompt for the model.
+            user_prompt (str): The user prompt for the model.
+            generation_config (Dict[str, Any]): A dictionary containing generation
+                configuration parameters.
+
+        Returns
+        -------
+            Tuple[str | None, Dict[str, int | Any]]: A tuple containing the
+                generated text and metadata.
+            - str | None: The generated text.
+            - Dict[str, int | Any]: Metadata including input and output token counts.
         """
-        messages = self._get_input_messages(prompt)
+        messages = self._get_input_messages(
+            sys_prompt=sys_prompt, user_prompt=user_prompt
+        )
         generation_config = dict(generation_config)
         try:
             if "o1" in self.model_name:
@@ -70,19 +81,33 @@ class Model:
         """
         Get the name of the model.
 
-        :return: The name of the model.
+        Returns
+        -------
+        str: The name of the model.
         """
         return self.model_name
 
     def _get_input_messages(
-        self, prompt: str
-    ) -> List[Dict[str, str] | Tuple[str, str]]:
+        self, sys_prompt: str, user_prompt: str
+    ) -> List[Tuple[str, str]]:
+        """
+        Configure the input messages for the LLM based on the model name.
+
+        Args
+        ----
+            sys_prompt (str): The system prompt for the model.
+            user_prompt (str): The user prompt for the model.
+
+        Returns
+        -------
+            List[Tuple[str, str]]: A list of tuples containing the input messages.
+        """
         if "o1" in self.model_name:
             # o1 does not support system messages
             return [
-                ("user", f"{self._sys_msg}\n\n{prompt}"),
+                ("user", f"{sys_prompt}\n\n{user_prompt}"),
             ]
         return [
-            ("system", self._sys_msg),
-            ("user", prompt),
+            ("system", sys_prompt),
+            ("user", user_prompt),
         ]

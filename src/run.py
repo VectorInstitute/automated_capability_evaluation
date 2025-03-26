@@ -1,7 +1,8 @@
 import hydra  # noqa: D100
 from omegaconf import DictConfig
 
-from generate_initial_capabilities import generate_capabilities
+from generate_capabilities import filter_capabilities, generate_capabilities
+from model import Model
 
 
 def check_cfg(cfg: DictConfig) -> None:
@@ -42,17 +43,21 @@ def main(cfg: DictConfig) -> None:
 
     run_id = f"{cfg.generator_model.name}_T{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
 
+    # Initialize the scientist LLM model
+    scientist_llm = Model(cfg.generator_model.name)
+
     # Stage 1. Generate initial capabilities
     capabilities = generate_capabilities(
         domain=cfg.capabilities_cfg.domain,
         num_capabilities=cfg.capabilities_cfg.num_gen_capabilities,
         num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
-        scientist_llm=cfg.generator_model.name,
+        scientist_llm=scientist_llm,
         num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
         scientist_llm_gen_cfg=cfg.generator_model.gen_cfg,
         run_id=run_id,
         trial_run=cfg.exp_cfg.trial_run,
     )
+    capabilities = filter_capabilities(capabilities)
     print(capabilities)
 
     # # Stage 2. Generate tasks and evaluate subject model on initial capabilities

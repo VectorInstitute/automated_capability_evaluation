@@ -110,6 +110,8 @@ class Capability:
         ----
         capability_dict (Dict[str, Any]): A dictionary containing
             the capability attributes.
+        base_dir (str): The base directory where the capability
+            directory will be created
 
         Returns
         -------
