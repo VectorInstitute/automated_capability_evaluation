@@ -105,7 +105,7 @@ def main(cfg: DictConfig) -> None:
     3. Reads the capability configuration from the "capability.json" file.
     4. Determines the dataset name and capability details
     from the capability configuration.
-    5. Iterates over results for all candidate models
+    5. Iterates over results for all subject models
     in the seed datasets log directory.
     6. For each log file that matches the dataset name,
     processes the log file based on the dataset type:
@@ -137,23 +137,23 @@ def main(cfg: DictConfig) -> None:
         if dataset_name == "math":
             subject = capability_json["capability_subject"]
 
-        # Iterate over results for all candidate models
-        for candidate_model_dir in os.listdir(seed_datasets_log_dir):
-            candidate_model_log_path = os.path.join(
-                seed_datasets_log_dir, candidate_model_dir
+        # Iterate over results for all subject models
+        for subject_model_dir in os.listdir(seed_datasets_log_dir):
+            subject_model_log_path = os.path.join(
+                seed_datasets_log_dir, subject_model_dir
             )
-            for log_file in os.listdir(candidate_model_log_path):
+            for log_file in os.listdir(subject_model_log_path):
                 if dataset_name not in log_file:
                     continue
 
-                out_dir = os.path.join(seed_capability_result_dir, candidate_model_dir)
+                out_dir = os.path.join(seed_capability_result_dir, subject_model_dir)
                 out_dir = os.path.join(out_dir, domain)
                 os.makedirs(out_dir, exist_ok=True)
 
                 # For math dataset, extract math capability logs
                 if "math" in log_file:
                     extract_math_capability_logs(
-                        log_file=os.path.join(candidate_model_log_path, log_file),
+                        log_file=os.path.join(subject_model_log_path, log_file),
                         capability_name=capability_name,
                         subject=subject,
                         out_dir=out_dir,
@@ -163,7 +163,7 @@ def main(cfg: DictConfig) -> None:
                 elif "gsm8k" in log_file:
                     # No changes to log file, just copy it to output directory
                     shutil.copyfile(
-                        src=os.path.join(candidate_model_log_path, log_file),
+                        src=os.path.join(subject_model_log_path, log_file),
                         dst=os.path.join(
                             out_dir,
                             f"{capability_name}.json",
@@ -171,7 +171,7 @@ def main(cfg: DictConfig) -> None:
                     )
 
                 print(
-                    f"Extracted {candidate_model_dir} result for {capability_name} capability."
+                    f"Extracted {subject_model_dir} result for {capability_name} capability."
                 )
 
 

@@ -24,7 +24,7 @@ class LBO:
         Args
         ----
             X (torch.Tensor): The capability representation tensor, shape (Nc, D).
-            y (torch.Tensor): The candidate model scores corresponding
+            y (torch.Tensor): The subject model scores corresponding
                 to the capabilities, shape (Nc,).
 
         Returns
@@ -42,7 +42,7 @@ class LBO:
         Args
         ----
             X (torch.Tensor): The new capability representation tensor, shape (1, D).
-            y (torch.Tensor): The candidate model score corresponding
+            y (torch.Tensor): The subject model score corresponding
                 to the capability, shape (1,).
 
         Returns
@@ -63,7 +63,7 @@ class LBO:
 
         Returns
         -------
-            torch.Tensor: Predicted scores for candidate model.
+            torch.Tensor: Predicted scores for subject model.
         """
         raise NotImplementedError
 
@@ -90,7 +90,7 @@ def _get_adjusted_representation(
     Args
     ----
         capabilities (List[Capability]): The list of capabilities.
-        capability_score (torch.Tensor): The candidate model scores.
+        capability_score (torch.Tensor): The subject model scores.
         encoder (Any): The encoder model to encode the capability representation.
         decoder (Any): The decoder model to decode the capability representation.
 
@@ -138,7 +138,7 @@ def generate_capability_using_lbo(
     Args
     ----
         capabilities (List[Capability]): The list of capabilities.
-        capability_scores (torch.Tensor): The candidate model scores.
+        capability_scores (torch.Tensor): The subject model scores.
 
     Returns
     -------
@@ -150,7 +150,7 @@ def generate_capability_using_lbo(
     #       capabilities, capability_scores, encoder, decoder
     #   )                                                           # noqa: ERA001
     # 2. Fit the LBO model using the adjusted capability representations
-    #   and the candidate model scores.
+    #   and the subject model scores.
     #   a. Fit step: If the LBO model doesn't exist (first time),
     #      create it and fit using initial capabilities
     #       lbo = LBO()                                                 # noqa: ERA001

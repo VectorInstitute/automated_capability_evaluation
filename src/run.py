@@ -46,10 +46,10 @@ def main(cfg: DictConfig) -> None:
     """
     check_cfg(cfg)
 
-    run_id = f"{cfg.generator_model.name}_T{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
+    run_id = f"{cfg.scientist_llm.name}_T{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
 
     # Initialize the scientist LLM model
-    scientist_llm = Model(cfg.generator_model.name)
+    scientist_llm = Model(cfg.scientist_llm.name)
 
     # Stage 1. Generate initial capabilities
     capabilities = generate_capabilities(
@@ -58,7 +58,7 @@ def main(cfg: DictConfig) -> None:
         num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
         scientist_llm=scientist_llm,
         num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
-        scientist_llm_gen_cfg=cfg.generator_model.gen_cfg,
+        scientist_llm_gen_cfg=cfg.scientist_llm.gen_cfg,
         run_id=run_id,
         trial_run=cfg.exp_cfg.trial_run,
     )
@@ -67,13 +67,13 @@ def main(cfg: DictConfig) -> None:
 
     # # Stage 2. Generate tasks and evaluate subject model on initial capabilities
     # # Initialize the subject LLM model
-    # subject_llm = Model(cfg.candidate_model.name)
+    # subject_llm = Model(cfg.subject_llm.name)
     # generate_tasks(
     #     domain=cfg.capabilities_cfg.domain,
     #     capabilities=capabilities,
     #     scientist_llm=scientist_llm,
     #     num_tasks=cfg.tasks_cfg.num_tasks,
-    #     scientist_llm_gen_cfg=cfg.generator_model.gen_cfg,
+    #     scientist_llm_gen_cfg=cfg.scientist_llm.gen_cfg,
     #     run_id=run_id,
     #     trial_run=cfg.exp_cfg.trial_run,
     # )
@@ -90,7 +90,7 @@ def main(cfg: DictConfig) -> None:
     #     new_capability = generate_new_capability(
     #         domain=cfg.capabilities_cfg.domain,
     #         capabilities=capabilities,
-    #         subject_llm_name=cfg.candidate_model.name,
+    #         subject_llm_name=cfg.subject_llm.name,
     #         run_id=run_id,
     #         trial_run=cfg.exp_cfg.trial_run,
     #         lbo_run_id=lbo_run_id,
@@ -101,7 +101,7 @@ def main(cfg: DictConfig) -> None:
     #         capabilities=[new_capability],
     #         scientist_llm=scientist_llm,
     #         num_tasks=cfg.tasks_cfg.num_tasks,
-    #         scientist_llm_gen_cfg=cfg.generator_model.gen_cfg,
+    #         scientist_llm_gen_cfg=cfg.scientist_llm.gen_cfg,
     #         run_id=run_id,
     #         trial_run=cfg.exp_cfg.trial_run,
     #     )
