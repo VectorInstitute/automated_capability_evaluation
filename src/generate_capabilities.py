@@ -117,7 +117,7 @@ def get_capability_repr_with_score(capability: Capability, model_name: str) -> s
 def generate_capabilities_using_llm(
     domain: str,
     num_capabilities: int,
-    scientist_llm: str,
+    scientist_llm: Model,
     sys_prompt: str,
     user_prompt: str,
     num_seed_capabilities: int,
@@ -138,7 +138,7 @@ def generate_capabilities_using_llm(
     ----
         domain (str): The domain name.
         num_capabilities (int): The number of capabilities to generate.
-        scientist_llm (str): The scientist LLM model name.
+        scientist_llm (Model): The scientist LLM model name.
         sys_prompt (str): The system prompt.
         user_prompt (str): The user prompt.
         num_seed_capabilities (int): The number of seed capabilities to use.
@@ -167,14 +167,8 @@ def generate_capabilities_using_llm(
         capability.to_json_str() for capability in seed_capabilities
     ]
 
-    # Create an instance of the Model class with the specified model name
-    model = Model(
-        model_name=scientist_llm,
-        sys_msg=sys_prompt,
-    )
-
     # LLM input
-    sample_input = user_prompt.format(
+    user_prompt = user_prompt.format(
         seed_capabilities="\n".join(seed_capabilities_repr),
         prev_capabilities="\n".join(prev_capabilities),
         domain=domain,
@@ -182,13 +176,14 @@ def generate_capabilities_using_llm(
     )
 
     # Generate output using the model with specified generation arguments
-    response, metadata = model.generate(
-        prompt=sample_input,
+    response, metadata = scientist_llm.generate(
+        sys_prompt=sys_prompt,
+        user_prompt=user_prompt,
         generation_config=scientist_llm_gen_cfg,
     )
 
     # Print the output
-    print(f"Model: {model.get_model_name()}")
+    print(f"Model: {scientist_llm.get_model_name()}")
     print(f"Output:\n\n{response}\n\n")
     print(f"Metadata: {metadata}")
 
@@ -203,7 +198,7 @@ def generate_capabilities_using_llm(
     return {
         "capabilities": gen_capabilities_names,
         "metadata": {
-            "model": model.get_model_name(),
+            "model": scientist_llm.get_model_name(),
             "thought": parsed_response["thought"],
             "api_metadata": metadata,
         },
@@ -234,7 +229,7 @@ def generate_capabilities(
     domain: str,
     num_capabilities: int,
     num_capabilities_per_run: int,
-    scientist_llm: str,
+    scientist_llm: Model,
     num_seed_capabilities: int,
     scientist_llm_gen_cfg: Dict[str, Any],
     include_seed_capabilities: Optional[List[str]] = None,
@@ -248,7 +243,7 @@ def generate_capabilities(
         domain (str): The domain name.
         num_capabilities (int): The number of capabilities to generate.
         num_capabilities_per_run (int): The number of capabilities to generate per run.
-        scientist_llm (str): The scientist LLM model name.
+        scientist_llm (Model): The scientist LLM model.
         num_seed_capabilities (int): The number of seed capabilities to use.
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
             for the scientist LLM.
