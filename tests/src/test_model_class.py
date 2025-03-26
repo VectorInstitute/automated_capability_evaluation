@@ -75,10 +75,9 @@ def test_model_class_init_chatopenai():
     - The system message attribute matches the expected message.
     """
     model_name = "gpt-4o-mini"
-    model = Model(model_name=model_name, sys_msg=sys_msg)
+    model = Model(model_name=model_name)
     assert isinstance(model.llm, ChatOpenAI)
     assert model.model_name == model_name
-    assert model._sys_msg == sys_msg
 
 
 def test_model_class_get_model_name():
@@ -104,8 +103,11 @@ def test_model_class_get_input_messages_chatopenai():
     - The input messages contain the system message and prompt.
     """
     model_name = "gpt-4o-mini"
-    model = Model(model_name=model_name, sys_msg=sys_msg)
-    input_messages = model._get_input_messages(prompt=prompt)
+    model = Model(model_name=model_name)
+    input_messages = model._get_input_messages(
+        sys_prompt=sys_msg,
+        user_prompt=prompt,
+    )
     assert isinstance(input_messages, list)
     assert all(isinstance(message, tuple) for message in input_messages)
     assert input_messages[0][0] == "system"
@@ -132,10 +134,10 @@ def test_model_class_generate_chatopenai_non_o1():
     )
 
     model_name = "gpt-4o-mini"
-    model = Model(model_name=model_name, sys_msg=sys_msg)
+    model = Model(model_name=model_name)
     generation_config = {"temperature": 0.5, "max_tokens": 1}
     output, metadata = model.generate(
-        prompt=prompt, generation_config=generation_config
+        sys_prompt=sys_msg, user_prompt=prompt, generation_config=generation_config
     )
     assert output is not None
     assert isinstance(output, str)
@@ -161,10 +163,10 @@ def test_model_class_generate_chatopenai_o1():
     )
 
     model_name = "o1-mini"
-    model = Model(model_name=model_name, sys_msg=sys_msg)
+    model = Model(model_name=model_name)
     generation_config = {"temperature": 0.5, "max_tokens": 1}
     output, metadata = model.generate(
-        prompt=prompt, generation_config=generation_config
+        sys_prompt=sys_msg, user_prompt=prompt, generation_config=generation_config
     )
     assert output is not None
     assert isinstance(output, str)

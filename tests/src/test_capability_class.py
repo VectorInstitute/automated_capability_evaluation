@@ -29,8 +29,10 @@ test_capability_to_json_str()
 
 import json
 import os
+import shutil
 
 from src.capability import Capability, CapabilitySeedDataset
+from src.utils.capability_utils import extract_and_parse_response
 
 
 # Define a capability seed dataset configuration and create an object
@@ -170,3 +172,67 @@ def test_capability_load_scores():
     for model, score in capability_cfg["scores"].items():
         assert model in scores_dict
         assert scores_dict[model] == score
+
+
+def test_create_capability_from_dict():
+    """
+    Test the initialization of a capability object from a dictionary.
+
+    This test verifies that a capability object can be initialized from a dictionary
+    representation of the capability. It checks the following:
+    - The capability object is created successfully from the dictionary.
+    - The attributes of the capability match the values in the dictionary.
+    """
+    gen_capability_dict = {
+        "name": "math_mathematics_combinatorial_proofs",
+        "description": "The math_mathematics_combinatorial_proofs capability consists of 1500 challenging combinatorial proof problems. These problems require the model to provide rigorous combinatorial arguments to prove identities or count specific configurations.",
+        "domain": "math",
+        "class": '```python\nclass Capability:\n    @staticmethod\n    def repr_tasks() -> dict[str, dict]:\n        return {\n    "1": {\n        "problem": "Prove that the number of ways to choose 2 elements from a set of n elements is equal to the number of ways to choose n-2 elements from the same set.",\n        "answer": "\\\\binom{n}{2} = \\\\binom{n}{n-2}"\n    },\n    "2": {\n        "problem": "Show that for any positive integer n, the sum of the first n odd numbers equals n^2.",\n        "answer": "1 + 3 + 5 + ... + (2n-1) = n^2"\n    },\n    "3": {\n        "problem": "Demonstrate that \\sum_{k=0}^{n} \\binom{n}{k} = 2^n using a combinatorial argument.",\n        "answer": "\\\\sum_{k=0}^{n} \\binom{n}{k} = 2^n"\n    }\n}\n\n    @staticmethod\n    def get_instructions(t: dict) -> str:\n        return f"""Provide a combinatorial proof for the following problem. The last line of your response should be of the form "ANSWER: $ANSWER" (without quotes) where $ANSWER is your proof or explanation.\\n\\nProblem: {t["problem"]}\\n\\nRemember to put your proof or explanation on its own line at the end in the form "ANSWER:$ANSWER" (without quotes) where $ANSWER is your proof or explanation."""\n\n    @staticmethod\n    def score(t: dict, submission: str) -> float | None:\n        return 1.0 if submission.lower().strip() == t["answer"].lower().strip() else 0.0\n```',
+    }
+    gen_capability_tests_dir = os.path.join(
+        test_dir, "capabilities", gen_capability_dict["domain"]
+    )
+    os.makedirs(gen_capability_tests_dir, exist_ok=True)
+
+    capability = Capability.from_dict(
+        capability_dict=gen_capability_dict, base_dir=gen_capability_tests_dir
+    )
+    assert capability.name == gen_capability_dict["name"]
+    assert capability.description == gen_capability_dict["description"]
+    assert capability.domain == gen_capability_dict["domain"]
+    shutil.rmtree(os.path.join(test_dir, "capabilities"))
+
+
+def test_extract_and_parse_response():
+    """
+    Test the extract_and_parse_response function.
+
+    This test verifies that the extract_and_parse_response function correctly
+    extracts and parses the response from a given dummy response string.
+    The dummy response string contains a "thought" and a "response_json" with
+    a "capabilities" dictionary. The test checks that the extracted response
+    dictionary has the same "thought" and the same number of capabilities as
+    the dummy response dictionary.
+
+    Assertions:
+        - The "thought" in the extracted response dictionary matches the
+          "thought" in the dummy response dictionary.
+        - The number of capabilities in the extracted response dictionary
+          matches the number of capabilities in the dummy response dictionary.
+    """
+    dummy_response_dict = {
+        "thought": "<THOUGHT>",
+        "response_json": {
+            "capabilities": {
+                "0": {},
+                "1": {},
+                "2": {},
+            }
+        },
+    }
+    dummy_response = f"""THOUGHT:\n{dummy_response_dict["thought"]}\n\nRESPONSE JSON:\n{json.dumps(dummy_response_dict["response_json"])}"""
+    extracted_response_dict = extract_and_parse_response(dummy_response)
+    assert extracted_response_dict["thought"] == dummy_response_dict["thought"]
+    assert len(extracted_response_dict["capabilities"]) == len(
+        dummy_response_dict["response_json"]["capabilities"]
+    )

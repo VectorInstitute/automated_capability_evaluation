@@ -1,13 +1,12 @@
 import importlib  # noqa: D100
 import json
 import os
-import random
 import sys
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from src.model import Model
-from src.utils.capability_utils import read_score_inspect_json
+from src.utils.capability_utils import parse_python_class_str, read_score_inspect_json
 from src.utils.constants import (
     NON_SEED_CAPABILITIES_SCORE_DIR,
     SEED_CAPABILITIES_SCORE_DIR,
@@ -102,6 +101,60 @@ class Capability:
             else NON_SEED_CAPABILITIES_SCORE_DIR
         )
 
+    @classmethod
+    def from_dict(cls, capability_dict: Dict[str, Any], base_dir: str) -> "Capability":
+        """
+        Create a Capability object from a dictionary.
+
+        Args
+        ----
+        capability_dict (Dict[str, Any]): A dictionary containing
+            the capability attributes.
+        base_dir (str): The base directory where the capability
+            directory will be created
+
+        Returns
+        -------
+        Capability: A Capability object created from the dictionary.
+        """
+        for key in ["name", "description", "domain", "class"]:
+            if key not in capability_dict:
+                raise ValueError(f"Capability dictionary must contain a {key} key.")
+
+        c_dict = capability_dict.copy()
+        c_dir = os.path.join(base_dir, c_dict["name"])
+        if os.path.exists(c_dir):
+            raise FileExistsError(
+                f"Capability directory already exists: {c_dir}. Please initialize capability directly using the directory: ```Capability(<capability_dir>)```."
+            )
+        os.makedirs(c_dir, exist_ok=False)
+
+        # Extract instructions and tasks from the capability python class
+        python_class_str = parse_python_class_str(c_dict.pop("class"))
+        with open(os.path.join(c_dir, "capability.py"), "w") as f:
+            f.write(python_class_str)
+        c_module = _import_from_path(
+            f"capability_{c_dict['name']}", os.path.join(c_dir, "capability.py")
+        )
+        c_obj = c_module.Capability()
+        initial_tasks = list(c_obj.repr_tasks().values())
+        template_instructions = c_obj.get_instructions({"problem": '{t["problem"]}'})
+        template_instructions = f'f"""{template_instructions}"""'
+
+        c_dict.update(
+            {
+                "capability_name": c_dict.pop("name"),
+                "capability_description": c_dict.pop("description"),
+                "capability_domain": c_dict.pop("domain"),
+                "capability_instructions": template_instructions,
+                "capability_data": initial_tasks,
+            }
+        )
+        with open(os.path.join(c_dir, "capability.json"), "w") as f:
+            json.dump(c_dict, f, indent=4)
+
+        return cls(c_dir)
+
     def _load_capability_json(self) -> None:
         with open(os.path.join(self.source_dir, "capability.json"), "r") as f:
             _cfg = json.load(f)
@@ -186,15 +239,17 @@ class Capability:
         """
         return self.to_json_str()
 
-    def embed(self, embed_model: Model) -> None:
+    def encode(self, encoder_model: Any) -> None:
         """
-        Embed the capability using the provided model.
+        Encode the capability using the provided encoder model.
 
-        Parameters
-        ----------
-        embed_model : Model
-            The model to use for embedding the capability.
+        Args
+        ----
+        encoder_model : Any
+            The model to use for encoding the capability.
         """
+        # TODO: Implement capability encoding
+        self.encoding = None
         raise NotImplementedError
 
     def evaluate_using_inspect(self, model: Model) -> None:  # noqa: D102
@@ -226,73 +281,3 @@ def _import_from_path(module_name: str, file_path: str) -> Any:
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
-
-
-def select_seed_capabilities(
-    seed_capability_dir: str,
-    num_seed_capabilities: int = -1,
-    include_capabilities: List[str] | None = None,
-    random_seed: int = 42,
-) -> List[Capability]:
-    """
-    Select `num_seed_capabilities` seed capabilities from the specified directory.
-
-    Args
-    ----
-        seed_capability_dir (str): The directory containing the seed capabilities.
-        num_seed_capabilities (int): The number of seed capabilities to select.
-        include_capabilities (List[str] | None): A list of capability names to include.
-        random_seed (int): The seed for the random number generator.
-
-    Returns
-    -------
-        List[Capability]: A list of capability objects.
-    """
-    random.seed(random_seed)
-
-    selected_seed_capabilities = []
-    all_seed_capability_paths = os.listdir(seed_capability_dir)
-
-    # Select all capabilities if num_seed_capabilities is -1
-    if num_seed_capabilities == -1:
-        num_seed_capabilities = len(all_seed_capability_paths)
-        include_capabilities = None
-
-    # Force include some capabilities
-    if include_capabilities is not None:
-        assert num_seed_capabilities >= len(include_capabilities), (
-            "Number of seed capabilities is less than the number of capabilities to include."
-        )
-        for capability_name in include_capabilities:
-            capability = Capability(os.path.join(seed_capability_dir, capability_name))
-            selected_seed_capabilities.append(capability)
-            all_seed_capability_paths.remove(capability_name)
-        num_seed_capabilities -= len(include_capabilities)
-
-    # TODO: Enhance the selection criterion
-    for capability_path in random.sample(
-        all_seed_capability_paths, num_seed_capabilities
-    ):
-        capability = Capability(os.path.join(seed_capability_dir, capability_path))
-        selected_seed_capabilities.append(capability)
-
-    return selected_seed_capabilities
-
-
-def get_capability_repr_with_score(capability: Capability, model_name: str) -> str:
-    """
-    Get the capability representation with score for the specified model.
-
-    Args
-    ----
-        capability (Capability): The capability to get the representation for.
-        model_name (str): The name of the model to use for scoring the capability.
-
-    Returns
-    -------
-        str: A JSON string containing the capability representation and score.
-    """
-    model_score = capability.load_scores()[model_name]
-    capability_dict = capability._to_dict()
-    capability_dict["score"] = model_score
-    return json.dumps(capability_dict, indent=4)

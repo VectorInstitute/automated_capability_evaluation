@@ -15,6 +15,12 @@ capabilities_cfg:
   results_dir: /fs01/projects/aieng/public/ace/artifacts
   domain: math
   num_seed_capabilities: -1
+  num_gen_capabilities: 4
+  num_gen_capabilities_per_run: 2
+
+exp_cfg:
+  # Set this flag to true to run test experiments during development
+  trial_run: true
 
 defaults:
   - _self_
