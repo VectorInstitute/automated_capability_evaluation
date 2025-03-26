@@ -61,10 +61,12 @@ def main(cfg: DictConfig) -> None:
     print(capabilities)
 
     # # Stage 2. Generate tasks and evaluate subject model on initial capabilities
+    # # Initialize the subject LLM model
+    # subject_llm = Model(cfg.candidate_model.name)
     # generate_tasks(
     #     domain=cfg.capabilities_cfg.domain,
     #     capabilities=capabilities,
-    #     scientist_llm=cfg.generator_model.name,
+    #     scientist_llm=scientist_llm,
     #     num_tasks=cfg.tasks_cfg.num_tasks,
     #     scientist_llm_gen_cfg=cfg.generator_model.gen_cfg,
     #     run_id=run_id,
@@ -73,7 +75,7 @@ def main(cfg: DictConfig) -> None:
     # evaluate_capabilities(
     #     domain=cfg.capabilities_cfg.domain,
     #     capabilities=capabilities,
-    #     subject_llms=[cfg.candidate_model.name],
+    #     subject_llms=[subject_llm],
     #     run_id=run_id,
     #     trial_run=cfg.exp_cfg.trial_run,
     # )
@@ -83,7 +85,7 @@ def main(cfg: DictConfig) -> None:
     #     new_capability = generate_new_capability(
     #         domain=cfg.capabilities_cfg.domain,
     #         capabilities=capabilities,
-    #         subject_llm=cfg.candidate_model.name,
+    #         subject_llm_name=cfg.candidate_model.name,
     #         run_id=run_id,
     #         trial_run=cfg.exp_cfg.trial_run,
     #         lbo_run_id=lbo_run_id,
@@ -92,7 +94,7 @@ def main(cfg: DictConfig) -> None:
     #     generate_tasks(
     #         domain=cfg.capabilities_cfg.domain,
     #         capabilities=[new_capability],
-    #         scientist_llm=cfg.generator_model.name,
+    #         scientist_llm=scientist_llm,
     #         num_tasks=cfg.tasks_cfg.num_tasks,
     #         scientist_llm_gen_cfg=cfg.generator_model.gen_cfg,
     #         run_id=run_id,
@@ -102,7 +104,7 @@ def main(cfg: DictConfig) -> None:
     #     evaluate_capabilities(
     #         domain=cfg.capabilities_cfg.domain,
     #         capabilities=[new_capability],
-    #         subject_llms=[cfg.candidate_model.name],
+    #         subject_llms=[subject_llm],
     #         run_id=run_id,
     #         trial_run=cfg.exp_cfg.trial_run,
     #     )

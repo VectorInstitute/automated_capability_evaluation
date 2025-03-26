@@ -173,7 +173,7 @@ def generate_capability_using_lbo(
 def generate_new_capability(
     domain: str,
     capabilities: List[str],
-    subject_llm: str,
+    subject_llm_name: str,
     **kwargs: Any,
 ) -> str:
     """
@@ -183,7 +183,7 @@ def generate_new_capability(
     ----
         domain (str): The domain name.
         capabilities (List[str]): The list of existing capabilities.
-        subject_llm (str): The subject LLM model name.
+        subject_llm_name (str): The subject LLM model name.
 
     Returns
     -------
@@ -206,13 +206,13 @@ def generate_new_capability(
         ]
         # Load subject LLM scores for each capability
         capability_scores = torch.Tensor(
-            [cap.load_scores()[subject_llm] for cap in capabilities_obj]
+            [cap.load_scores()[subject_llm_name] for cap in capabilities_obj]
         )
     else:
         # Only load newly added capability and obtain subject LLM score for it
         capabilities_obj = [Capability(os.path.join(capability_dir, capabilities[-1]))]
         capability_scores = torch.Tensor(
-            [capabilities_obj[-1].load_scores()[subject_llm]]
+            [capabilities_obj[-1].load_scores()[subject_llm_name]]
         )
 
     # TODO: Set the encoder and decoder models

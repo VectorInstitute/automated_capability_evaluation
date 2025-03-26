@@ -1,13 +1,14 @@
 import os  # noqa: D100
 from typing import Any, Dict, List
 
+from model import Model
 from utils.constants import BASE_ARTIFACTS_DIR
 from utils.prompts import TASK_GENERATION_SYSTEM_PROMPT, TASK_GENERATION_USER_PROMPT
 
 
 def generate_tasks_using_llm(
     capability_src_dir: str,
-    scientist_llm: str,
+    scientist_llm: Model,
     sys_prompt: str,
     user_prompt: str,
     num_tasks: int,
@@ -23,7 +24,7 @@ def generate_tasks_using_llm(
     Args
     ----
         capability_src_dir (str): The directory containing the capability files.
-        scientist_llm (str): The scientist LLM model name.
+        scientist_llm (Model): The scientist LLM model.
         sys_prompt (str): The system prompt for generating tasks.
         user_prompt (str): The user prompt for generating tasks.
         num_tasks (int): The number of tasks to generate.
@@ -62,7 +63,7 @@ def generate_tasks_using_llm(
 def generate_tasks(
     domain: str,
     capabilities: List[str],
-    scientist_llm: str,
+    scientist_llm: Model,
     num_tasks: int,
     scientist_llm_gen_cfg: Dict[str, Any],
     **kwargs: Dict[str, Any],
@@ -77,7 +78,7 @@ def generate_tasks(
     ----
         domain (str): The domain name.
         capabilities (List[str]): The list of capability names to generate tasks for.
-        scientist_llm (str): The scientist LLM model name.
+        scientist_llm (Model): The scientist LLM model.
         num_tasks (int): The number of tasks to generate.
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
             for the scientist LLM.

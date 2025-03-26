@@ -5,6 +5,7 @@ import sys
 from collections import defaultdict
 from typing import Any, Dict, List
 
+from src.model import Model
 from src.utils.capability_utils import parse_python_class_str, read_score_inspect_json
 from src.utils.constants import (
     BASE_ARTIFACTS_DIR,
@@ -260,25 +261,25 @@ class Capability:
         """
         raise NotImplementedError
 
-    def _evaluate_using_inspect(self, subject_llm: str) -> None:  # noqa: D102
+    def _evaluate_using_inspect(self, subject_llm: Model) -> None:  # noqa: D102
         """
         Evaluate subject LLM on the capability using the inspect framework.
 
         Args
         ----
-        subject_llm : str
-            The name of the LLM to use for evaluation.
+        subject_llm : Model
+            The LLM to use for evaluation.
         """
         raise NotImplementedError
 
-    def evaluate(self, subject_llms: List[str]) -> None:
+    def evaluate(self, subject_llms: List[Model]) -> None:
         """
         Evaluate the provided subject LLMs on the capability.
 
         Args
         ----
-        subject_llms : List[str]
-            The name of the LLMs to use for evaluation.
+        subject_llms : List[Model]
+            The list of LLMs to use for evaluation.
         """
         # TODO: Run asynchronosly
         for model in subject_llms:
@@ -314,7 +315,7 @@ def _import_from_path(module_name: str, file_path: str) -> Any:
 def evaluate_capabilities(
     domain: str,
     capabilities: List[str],
-    subject_llms: List[str],
+    subject_llms: List[Model],
     **kwargs: Dict[str, Any],
 ) -> None:
     """
@@ -324,7 +325,7 @@ def evaluate_capabilities(
     ----
         domain (str): The domain name.
         capabilities (List[str]): The list of capabilities to evaluate on.
-        subject_llms (List[str]): The list of subject LLMs to evaluate.
+        subject_llms (List[Model]): The list of subject LLMs to evaluate.
     """
     if "trial_run" in kwargs:
         capability_dir = os.path.join(
