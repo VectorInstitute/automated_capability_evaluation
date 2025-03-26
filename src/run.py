@@ -5,6 +5,11 @@ from generate_capabilities import filter_capabilities, generate_capabilities
 from model import Model
 
 
+# from capability import evaluate_capabilities
+# from generate_tasks import generate_tasks
+# from lbo import generate_new_capability
+
+
 def check_cfg(cfg: DictConfig) -> None:
     """
     Check configuration compatibility.
