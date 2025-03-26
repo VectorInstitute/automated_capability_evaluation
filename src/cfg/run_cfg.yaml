@@ -20,6 +20,8 @@ capabilities_cfg:
 
 lbo_cfg:
   num_lbo_runs: 1
+  pipeline_id: "1"
+  train_frac: 0.5
 
 exp_cfg:
   # Set this flag to true to run test experiments during development

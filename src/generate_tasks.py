@@ -66,7 +66,7 @@ def generate_tasks(
     scientist_llm: Model,
     num_tasks: int,
     scientist_llm_gen_cfg: Dict[str, Any],
-    **kwargs: Dict[str, Any],
+    **kwargs: Any,
 ) -> None:
     """
     Generate `num_tasks` tasks for all given capabilities.

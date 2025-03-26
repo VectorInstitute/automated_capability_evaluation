@@ -316,7 +316,7 @@ def evaluate_capabilities(
     domain: str,
     capabilities: List[str],
     subject_llms: List[Model],
-    **kwargs: Dict[str, Any],
+    **kwargs: Any,
 ) -> None:
     """
     Evaluate the subject LLMs on the capabilities.
