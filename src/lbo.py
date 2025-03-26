@@ -78,7 +78,7 @@ class LBO:
         raise NotImplementedError
 
 
-def get_adjusted_representation(
+def _get_adjusted_representation(
     capabilities: List[Capability],
     capability_scores: torch.Tensor,
     encoder: Any,
@@ -107,7 +107,7 @@ def get_adjusted_representation(
     raise NotImplementedError
 
 
-def decode_capability(
+def _decode_capability(
     representation: torch.Tensor,
     decoder: Any,
 ) -> str:
@@ -146,7 +146,7 @@ def generate_capability_using_lbo(
     """
     # TODO:
     # 1. Apply the InvBO method to adjust the capabilities' representations.
-    #   capability_representations = get_adjusted_representation(   # noqa: ERA001
+    #   capability_representations = _get_adjusted_representation(   # noqa: ERA001
     #       capabilities, capability_scores, encoder, decoder
     #   )                                                           # noqa: ERA001
     # 2. Fit the LBO model using the adjusted capability representations
@@ -164,7 +164,7 @@ def generate_capability_using_lbo(
     # 3. Identify the capability representation with the highest variance.
     #   high_variance_point = lbo.identify_high_variance_point()    # noqa: ERA001
     # 4. Decode the capability representation using the decoder model.
-    #   generated_capability = decode_capability(                   # noqa: ERA001
+    #   generated_capability = _decode_capability(                   # noqa: ERA001
     #       high_variance_point, decoder
     #   )                                                           # noqa: ERA001
     raise NotImplementedError
