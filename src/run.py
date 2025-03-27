@@ -1,7 +1,7 @@
 import hydra  # noqa: D100
 from omegaconf import DictConfig
 
-from capability import evaluate_capabilities
+from capability import evaluate_model_capability
 from generate_capabilities import filter_capabilities, generate_capabilities
 from generate_tasks import generate_tasks
 from lbo import generate_new_capability, get_lbo_train_set
@@ -64,7 +64,6 @@ def main(cfg: DictConfig) -> None:
     print(capabilities)
 
     # Stage 2. Generate tasks and evaluate subject model on initial capabilities
-
     if cfg.lbo_cfg.pipeline_id == "1":
         # For pipeline 1 (pipeline_id=="1"), the set of generated capabilities
         # are split into two sets
@@ -89,7 +88,7 @@ def main(cfg: DictConfig) -> None:
         run_id=run_id,
         trial_run=cfg.exp_cfg.trial_run,
     )
-    evaluate_capabilities(
+    evaluate_model_capability(
         domain=cfg.capabilities_cfg.domain,
         capabilities=train_capabilities,
         subject_llms=[subject_llm],
@@ -120,7 +119,7 @@ def main(cfg: DictConfig) -> None:
             trial_run=cfg.exp_cfg.trial_run,
         )
         # Evaluate subject LLM on new capability
-        evaluate_capabilities(
+        evaluate_model_capability(
             domain=cfg.capabilities_cfg.domain,
             capabilities=[new_capability],
             subject_llms=[subject_llm],

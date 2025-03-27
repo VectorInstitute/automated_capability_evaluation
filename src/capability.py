@@ -312,7 +312,7 @@ def _import_from_path(module_name: str, file_path: str) -> Any:
     return module
 
 
-def evaluate_capabilities(
+def evaluate_model_capability(
     domain: str,
     capabilities: List[str],
     subject_llms: List[Model],
