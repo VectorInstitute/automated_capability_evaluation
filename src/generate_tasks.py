@@ -39,7 +39,7 @@ def generate_tasks_using_llm(
     #       - output tokens: Nt * Qt, where Qt is the mean # tokens in a question
     #   b. Multiple runs to generate `num_tasks` (Nt)
     #      questions in batches of `num_tasks_per_run` (Ntr)
-    #       - input tokens: Pt * Ntr
+    #       - input tokens: Pt * (Nt / Ntr)
     #       - output tokens: Nt * Qt
     # 2. Filter out similar/ill-formatted questions
     # 3. Then obtain task answers by:
