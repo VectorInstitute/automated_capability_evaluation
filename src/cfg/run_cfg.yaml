@@ -22,6 +22,7 @@ lbo_cfg:
   num_lbo_runs: 1
   pipeline_id: "nearest_neighbor" # "nearest_neighbor" or "discover_new"
   train_frac: 0.5
+  min_train_size: 10
 
 exp_cfg:
   # Set this flag to true to run test experiments during development

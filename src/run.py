@@ -68,7 +68,9 @@ def main(cfg: DictConfig) -> None:
         # For pipeline 1 (pipeline_id=="nearest_neighbour"), the set of
         # generated capabilities are split into two sets
         train_capabilities, candidate_capabilities = get_lbo_train_set(
-            capabilities, cfg.lbo_cfg.train_frac
+            input_data=capabilities,
+            train_frac=cfg.lbo_cfg.train_frac,
+            min_train_size=cfg.lbo_cfg.min_train_size,
         )
     elif cfg.lbo_cfg.pipeline_id == "discover_new":
         # For pipeline 2 (pipeline_id=="discover_new"), use all generated capabilities
