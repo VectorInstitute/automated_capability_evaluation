@@ -1,10 +1,8 @@
-import os  # noqa: D100
-from typing import Any, List
+from typing import Any, List  # noqa: D100
 
 import torch
 
 from capability import Capability
-from utils.constants import BASE_ARTIFACTS_DIR
 
 
 class LBO:
@@ -110,7 +108,7 @@ def _get_adjusted_representation(
 def _decode_capability(
     representation: torch.Tensor,
     decoder: Any,
-) -> str:
+) -> Capability:
     """
     Decode the capability representation using the decoder model.
 
@@ -121,15 +119,15 @@ def _decode_capability(
 
     Returns
     -------
-        str: The decoded capability representation.
+        Capability: The decoded capability.
     """
     raise NotImplementedError
 
 
 def _get_nearest_capability(
     representation: torch.Tensor,
-    capabilities_pool: List[str],
-) -> str:
+    capabilities_pool: List[Capability],
+) -> Capability:
     """
     Get the nearest capability from the existing capability pool.
 
@@ -138,11 +136,11 @@ def _get_nearest_capability(
     Args
     ----
         representation (torch.Tensor): The latent representation tensor, shape (D,).
-        capabilities_pool (List[str]): The pool of existing capabilities.
+        capabilities_pool (List[Capability]): The pool of existing capabilities.
 
     Returns
     -------
-        str: The nearest capability.
+        Capability: The nearest capability.
     """
     raise NotImplementedError
 
@@ -153,8 +151,8 @@ def generate_capability_using_lbo(
     encoder: Any,
     pipeline_id: str = "nearest_neighbour",
     decoder: Any = None,
-    capabilities_pool: List[str] | None = None,
-) -> str:
+    capabilities_pool: List[Capability] | None = None,
+) -> Capability:
     """
     Generate a new capability using the LBO method.
 
@@ -168,13 +166,14 @@ def generate_capability_using_lbo(
         pipeline_id (str): The pipeline identifier to determine the generation method.
         decoder (Any, optional): The decoder model to decode the
             capability representation (only for pipeline_id="discover_new").
-        capabilities_pool (List[str], optional): The pool of existing capabilities
-            without subject model scores, used as a search space for the generated
-            capability representation (only for pipeline_id="nearest_neighbour").
+        capabilities_pool (List[Capability], optional): The pool of existing
+            capabilities without subject model scores, used as a search space
+            for the generated capability representation
+            (only for pipeline_id="nearest_neighbour").
 
     Returns
     -------
-        str: The generated capability str representation.
+        Capability: The generated capability.
     """
     # TODO:
     # 1. Apply the InvBO method to adjust the capabilities' representations.
@@ -213,49 +212,36 @@ def generate_capability_using_lbo(
 
 
 def generate_new_capability(
-    domain: str,
-    capabilities: List[str],
+    capabilities: List[Capability],
     subject_llm_name: str,
-    capabilities_pool: List[str] | None = None,
+    capabilities_pool: List[Capability] | None = None,
     **kwargs: Any,
-) -> str:
+) -> Capability:
     """
     Generate a new capability.
 
     Args
     ----
-        domain (str): The domain name.
-        capabilities (List[str]): The list of existing capabilities.
+        capabilities (List[Capability]): The list of existing capabilities.
         subject_llm_name (str): The subject LLM model name.
+        capabilities_pool (List[Capability], optional): The list of existing
+            capabilities without subject model scores, used as a search space
+            for the generated capability representation
+            (only for pipeline_id="nearest_neighbour").
 
     Returns
     -------
-        str: The generated capability str representation.
+        Capability: The generated capability.
     """
-    if "trial_run" in kwargs:
-        capability_dir = os.path.join(
-            BASE_ARTIFACTS_DIR,
-            f"capabilities_{kwargs['run_id']}",
-            domain,
-        )
-        os.makedirs(capability_dir, exist_ok=True)
-    else:
-        capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "capabilities", domain)
-
     if kwargs.get("lbo_run_id", 0) == 0:
-        # Load initial capabilities
-        capability_objs = [
-            Capability(os.path.join(capability_dir, cap)) for cap in capabilities
-        ]
         # Load subject LLM scores for each capability
         capability_scores = torch.Tensor(
-            [cap.load_scores()[subject_llm_name] for cap in capability_objs]
+            [cap.load_scores()[subject_llm_name] for cap in capabilities]
         )
     else:
-        # Only load newly added capability and obtain subject LLM score for it
-        capability_objs = [Capability(os.path.join(capability_dir, capabilities[-1]))]
+        # Only load newly added capability's score
         capability_scores = torch.Tensor(
-            [capability_objs[-1].load_scores()[subject_llm_name]]
+            [capabilities[-1].load_scores()[subject_llm_name]]
         )
 
     # TODO: Set the encoder model
@@ -276,7 +262,7 @@ def generate_new_capability(
         )
 
     return generate_capability_using_lbo(
-        capabilities=capability_objs,
+        capabilities=capabilities,
         capability_scores=capability_scores,
         encoder=encoder,
         pipeline_id=pipeline_id,

@@ -1,13 +1,11 @@
-import os  # noqa: D100
-from typing import Any, Dict, List
+from typing import Any, Dict  # noqa: D100
 
+from capability import Capability
 from model import Model
-from utils.constants import BASE_ARTIFACTS_DIR
-from utils.prompts import TASK_GENERATION_SYSTEM_PROMPT, TASK_GENERATION_USER_PROMPT
 
 
 def generate_tasks_using_llm(
-    capability_src_dir: str,
+    capability: Capability,
     scientist_llm: Model,
     sys_prompt: str,
     user_prompt: str,
@@ -23,7 +21,7 @@ def generate_tasks_using_llm(
 
     Args
     ----
-        capability_src_dir (str): The directory containing the capability files.
+        capability (Capability): The capability to generate tasks for.
         scientist_llm (Model): The scientist LLM model.
         sys_prompt (str): The system prompt for generating tasks.
         user_prompt (str): The user prompt for generating tasks.
@@ -58,46 +56,3 @@ def generate_tasks_using_llm(
     #      then selecting the majority answer
 
     raise NotImplementedError
-
-
-def generate_tasks(
-    domain: str,
-    capabilities: List[str],
-    scientist_llm: Model,
-    num_tasks: int,
-    scientist_llm_gen_cfg: Dict[str, Any],
-    **kwargs: Any,
-) -> None:
-    """
-    Generate `num_tasks` tasks for all given capabilities.
-
-    Generate tasks for all given capabilities
-    using the scientist LLM model.
-
-    Args
-    ----
-        domain (str): The domain name.
-        capabilities (List[str]): The list of capability names to generate tasks for.
-        scientist_llm (Model): The scientist LLM model.
-        num_tasks (int): The number of tasks to generate.
-        scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
-            for the scientist LLM.
-    """
-    if "trial_run" in kwargs:
-        capability_dir = os.path.join(
-            BASE_ARTIFACTS_DIR, f"capabilities_{kwargs['run_id']}", domain
-        )
-    else:
-        capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "capabilities", domain)
-
-    # TODO: Run this asynchronosly
-    # Generate tasks for each capability
-    for capability in capabilities:
-        generate_tasks_using_llm(
-            capability_src_dir=os.path.join(capability_dir, capability),
-            scientist_llm=scientist_llm,
-            sys_prompt=TASK_GENERATION_SYSTEM_PROMPT,
-            user_prompt=TASK_GENERATION_USER_PROMPT,
-            num_tasks=num_tasks,
-            scientist_llm_gen_cfg=scientist_llm_gen_cfg,
-        )

@@ -8,7 +8,6 @@ from typing import Any, Dict, List
 from src.model import Model
 from src.utils.capability_utils import parse_python_class_str, read_score_inspect_json
 from src.utils.constants import (
-    BASE_ARTIFACTS_DIR,
     NON_SEED_CAPABILITIES_SCORE_DIR,
     SEED_CAPABILITIES_SCORE_DIR,
 )
@@ -310,31 +309,3 @@ def _import_from_path(module_name: str, file_path: str) -> Any:
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
-
-
-def evaluate_model_capability(
-    domain: str,
-    capabilities: List[str],
-    subject_llms: List[Model],
-    **kwargs: Any,
-) -> None:
-    """
-    Evaluate the subject LLMs on the capabilities.
-
-    Args
-    ----
-        domain (str): The domain name.
-        capabilities (List[str]): The list of capabilities to evaluate on.
-        subject_llms (List[Model]): The list of subject LLMs to evaluate.
-    """
-    if "trial_run" in kwargs:
-        capability_dir = os.path.join(
-            BASE_ARTIFACTS_DIR, f"capabilities_{kwargs['run_id']}", domain
-        )
-    else:
-        capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "capabilities", domain)
-
-    # TODO: Run this asynchronosly
-    for capability_name in capabilities:
-        cap = Capability(os.path.join(capability_dir, capability_name))
-        cap.evaluate(subject_llms=subject_llms)
