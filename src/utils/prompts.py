@@ -61,7 +61,7 @@ Generate {num_gen_capabilities} new interesting capabilities within the {domain}
 """
 
 TASK_GENERATION_SYSTEM_PROMPT = """
-You are an expert in designing tasks for a given capability. Each task consists of a question and an answer. Your goal is to create questions alone. You will be particularly rewarded for designing diverse questions spanning a wide range of difficulty levels for the given capability.
+You are an expert in designing tasks for a given capability. Each task consists of a question and an answer. Your goal is to create questions alone. The name, description, domain and a few sample questions for the capability will be provided. You will be particularly rewarded for designing diverse questions spanning a wide range of difficulty levels for the given capability.
 
 Respond precisely in the following format, including the JSON start and end markers:
 
@@ -85,8 +85,8 @@ TASK_GENERATION_USER_PROMPT = """
 Design questions for the following capability:
 
 Name: {capability_name}
-Domain: {capability_domain}
 Description: {capability_description}
+Domain: {capability_domain}
 Sample questions:
 {capability_sample_questions}
 
