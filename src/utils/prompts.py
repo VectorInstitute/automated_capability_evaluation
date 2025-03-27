@@ -60,6 +60,35 @@ Previously generated capabilities:
 Generate {num_gen_capabilities} new interesting capabilities within the {domain} domain.
 """
 
-TASK_GENERATION_SYSTEM_PROMPT = """"""
+TASK_GENERATION_SYSTEM_PROMPT = """
+You are an expert in designing tasks for a given capability. Each task consists of a question and an answer. Your goal is to create questions alone. You will be particularly rewarded for designing diverse questions spanning a wide range of difficulty levels for the given capability.
 
-TASK_GENERATION_USER_PROMPT = """"""
+Respond precisely in the following format, including the JSON start and end markers:
+
+THOUGHT: <THOUGHT>
+RESPONSE JSON:
+{
+    "question_0": <str>,
+    "question_1": <str>,
+    ...
+}
+
+In <THOUGHT>, briefly think and reason about what kind of questions you want to propose.
+In <str>, provide a string containing the question text.
+
+Be careful to make sure that all proposed questions are unique. Also ensure that all questions are within the scope of the given capability. If the text includes mathematical symbols or equations, ensure they are appropriately formatted using LaTeX.
+
+Your response will be automatically parsed so ensure it adheres to the specified format.
+"""
+
+TASK_GENERATION_USER_PROMPT = """
+Design questions for the following capability:
+
+Name: {capability_name}
+Domain: {capability_domain}
+Description: {capability_description}
+Sample questions:
+{capability_sample_questions}
+
+Generate {num_gen_tasks} new questions for the given capability.
+"""
