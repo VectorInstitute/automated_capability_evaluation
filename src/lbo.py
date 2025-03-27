@@ -1,11 +1,8 @@
-import os  # noqa: D100
-import random
-from typing import Any, List, Tuple
+from typing import Any, List  # noqa: D100
 
 import torch
 
 from capability import Capability
-from utils.constants import BASE_ARTIFACTS_DIR
 
 
 class LBO:
@@ -111,7 +108,7 @@ def _get_adjusted_representation(
 def _decode_capability(
     representation: torch.Tensor,
     decoder: Any,
-) -> str:
+) -> Capability:
     """
     Decode the capability representation using the decoder model.
 
@@ -122,15 +119,15 @@ def _decode_capability(
 
     Returns
     -------
-        str: The decoded capability representation.
+        Capability: The decoded capability.
     """
     raise NotImplementedError
 
 
 def _get_nearest_capability(
     representation: torch.Tensor,
-    capabilities_pool: List[str],
-) -> str:
+    capabilities_pool: List[Capability],
+) -> Capability:
     """
     Get the nearest capability from the existing capability pool.
 
@@ -139,52 +136,23 @@ def _get_nearest_capability(
     Args
     ----
         representation (torch.Tensor): The latent representation tensor, shape (D,).
-        capabilities_pool (List[str]): The pool of existing capabilities.
+        capabilities_pool (List[Capability]): The pool of existing capabilities.
 
     Returns
     -------
-        str: The nearest capability.
+        Capability: The nearest capability.
     """
     raise NotImplementedError
-
-
-def get_lbo_train_set(
-    input_data: List[str],
-    train_frac: float,
-    seed: int = 42,
-) -> Tuple[List[str], List[str]]:
-    """
-    Create LBO train partition.
-
-    Get the train set from the input data based on the train fraction.
-
-    Args
-    ----
-        input_data (List[str]): The input data.
-        train_frac (float): The fraction of data to use for training.
-
-    Returns
-    -------
-        List[str]: The train set.
-    """
-    random.seed(seed)
-    # TODO: Improve the train set selection method
-    num_train = int(len(input_data) * train_frac)
-    # TODO: Add a check for the minimum number of train samples
-    assert num_train > 0, "Train fraction is too low"
-    train_data = random.sample(input_data, num_train)
-    rem_data = list(set(input_data) - set(train_data))
-    return (train_data, rem_data)
 
 
 def generate_capability_using_lbo(
     capabilities: List[Capability],
     capability_scores: torch.Tensor,
     encoder: Any,
-    pipeline_id: str = "1",
+    pipeline_id: str = "nearest_neighbour",
     decoder: Any = None,
-    capabilities_pool: List[str] | None = None,
-) -> str:
+    capabilities_pool: List[Capability] | None = None,
+) -> Capability:
     """
     Generate a new capability using the LBO method.
 
@@ -197,14 +165,15 @@ def generate_capability_using_lbo(
         encoder (Any): The encoder model to encode the capability representation.
         pipeline_id (str): The pipeline identifier to determine the generation method.
         decoder (Any, optional): The decoder model to decode the
-            capability representation (only for pipeline_id="2").
-        capabilities_pool (List[str], optional): The pool of existing capabilities
-            without subject model scores, used as a search space for the generated
-            capability representation (only for pipeline_id="1").
+            capability representation (only for pipeline_id="discover_new").
+        capabilities_pool (List[Capability], optional): The pool of existing
+            capabilities without subject model scores, used as a search space
+            for the generated capability representation
+            (only for pipeline_id="nearest_neighbour").
 
     Returns
     -------
-        str: The generated capability str representation.
+        Capability: The generated capability.
     """
     # TODO:
     # 1. Apply the InvBO method to adjust the capabilities' representations.
@@ -228,11 +197,11 @@ def generate_capability_using_lbo(
     # 4. Obtain new capability by either fetching nearest capability
     #   from the existing capability pool or decoding the capability
     #   representation using the decoder model.
-    #       if pipeline_id == "1":
+    #       if pipeline_id == "nearest_neighbour":
     #           generated_capability = _get_nearest_capability(
     #               high_variance_point, capabilities_pool
     #           )
-    #       elif pipeline_id == "2":
+    #       elif pipeline_id == "discover_new":
     #           assert decoder is not None, (
     #               "Decoder model is not provided"
     #           )
@@ -243,68 +212,57 @@ def generate_capability_using_lbo(
 
 
 def generate_new_capability(
-    domain: str,
-    capabilities: List[str],
+    capabilities: List[Capability],
     subject_llm_name: str,
-    capabilities_pool: List[str] | None = None,
+    capabilities_pool: List[Capability] | None = None,
     **kwargs: Any,
-) -> str:
+) -> Capability:
     """
     Generate a new capability.
 
     Args
     ----
-        domain (str): The domain name.
-        capabilities (List[str]): The list of existing capabilities.
+        capabilities (List[Capability]): The list of existing capabilities.
         subject_llm_name (str): The subject LLM model name.
+        capabilities_pool (List[Capability], optional): The list of existing
+            capabilities without subject model scores, used as a search space
+            for the generated capability representation
+            (only for pipeline_id="nearest_neighbour").
 
     Returns
     -------
-        str: The generated capability str representation.
+        Capability: The generated capability.
     """
-    if "trial_run" in kwargs:
-        capability_dir = os.path.join(
-            BASE_ARTIFACTS_DIR,
-            f"capabilities_{kwargs['run_id']}",
-            domain,
-        )
-        os.makedirs(capability_dir, exist_ok=True)
-    else:
-        capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "capabilities", domain)
-
     if kwargs.get("lbo_run_id", 0) == 0:
-        # Load initial capabilities
-        capability_objs = [
-            Capability(os.path.join(capability_dir, cap)) for cap in capabilities
-        ]
         # Load subject LLM scores for each capability
         capability_scores = torch.Tensor(
-            [cap.load_scores()[subject_llm_name] for cap in capability_objs]
+            [cap.load_scores()[subject_llm_name] for cap in capabilities]
         )
     else:
-        # Only load newly added capability and obtain subject LLM score for it
-        capability_objs = [Capability(os.path.join(capability_dir, capabilities[-1]))]
+        # Only load newly added capability's score
         capability_scores = torch.Tensor(
-            [capability_objs[-1].load_scores()[subject_llm_name]]
+            [capabilities[-1].load_scores()[subject_llm_name]]
         )
 
     # TODO: Set the encoder model
     encoder = None
 
-    pipeline_id = kwargs.get("pipeline_id", "1")
-    if pipeline_id == "1":
+    pipeline_id = kwargs.get("pipeline_id", "nearest_neighbour")
+    if pipeline_id == "nearest_neighbour":
         assert capabilities_pool is not None, (
             "Pool of existing capabilities is not provided"
         )
         decoder = None
-    elif pipeline_id == "2":
+    elif pipeline_id == "discover_new":
         # TODO: Set the decoder model
         decoder = None
     else:
-        raise ValueError(f"Invalid pipeline_id: {pipeline_id}. Use either 1 or 2.")
+        raise ValueError(
+            f"Invalid pipeline_id: {pipeline_id}. Use either 'nearest_neighbour' or 'discover_new'."
+        )
 
     return generate_capability_using_lbo(
-        capabilities=capability_objs,
+        capabilities=capabilities,
         capability_scores=capability_scores,
         encoder=encoder,
         pipeline_id=pipeline_id,
