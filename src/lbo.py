@@ -181,7 +181,7 @@ def generate_capability_using_lbo(
     capabilities: List[Capability],
     capability_scores: torch.Tensor,
     encoder: Any,
-    pipeline_id: str = "1",
+    pipeline_id: str = "nearest_neighbour",
     decoder: Any = None,
     capabilities_pool: List[str] | None = None,
 ) -> str:
@@ -197,10 +197,10 @@ def generate_capability_using_lbo(
         encoder (Any): The encoder model to encode the capability representation.
         pipeline_id (str): The pipeline identifier to determine the generation method.
         decoder (Any, optional): The decoder model to decode the
-            capability representation (only for pipeline_id="2").
+            capability representation (only for pipeline_id="discover_new").
         capabilities_pool (List[str], optional): The pool of existing capabilities
             without subject model scores, used as a search space for the generated
-            capability representation (only for pipeline_id="1").
+            capability representation (only for pipeline_id="nearest_neighbour").
 
     Returns
     -------
@@ -228,11 +228,11 @@ def generate_capability_using_lbo(
     # 4. Obtain new capability by either fetching nearest capability
     #   from the existing capability pool or decoding the capability
     #   representation using the decoder model.
-    #       if pipeline_id == "1":
+    #       if pipeline_id == "nearest_neighbour":
     #           generated_capability = _get_nearest_capability(
     #               high_variance_point, capabilities_pool
     #           )
-    #       elif pipeline_id == "2":
+    #       elif pipeline_id == "discover_new":
     #           assert decoder is not None, (
     #               "Decoder model is not provided"
     #           )
@@ -291,17 +291,19 @@ def generate_new_capability(
     # TODO: Set the encoder model
     encoder = None
 
-    pipeline_id = kwargs.get("pipeline_id", "1")
-    if pipeline_id == "1":
+    pipeline_id = kwargs.get("pipeline_id", "nearest_neighbour")
+    if pipeline_id == "nearest_neighbour":
         assert capabilities_pool is not None, (
             "Pool of existing capabilities is not provided"
         )
         decoder = None
-    elif pipeline_id == "2":
+    elif pipeline_id == "discover_new":
         # TODO: Set the decoder model
         decoder = None
     else:
-        raise ValueError(f"Invalid pipeline_id: {pipeline_id}. Use either 1 or 2.")
+        raise ValueError(
+            f"Invalid pipeline_id: {pipeline_id}. Use either 'nearest_neighbour' or 'discover_new'."
+        )
 
     return generate_capability_using_lbo(
         capabilities=capability_objs,

@@ -64,14 +64,14 @@ def main(cfg: DictConfig) -> None:
     print(capabilities)
 
     # Stage 2. Generate tasks and evaluate subject model on initial capabilities
-    if cfg.lbo_cfg.pipeline_id == "1":
-        # For pipeline 1 (pipeline_id=="1"), the set of generated capabilities
-        # are split into two sets
+    if cfg.lbo_cfg.pipeline_id == "nearest_neighbour":
+        # For pipeline 1 (pipeline_id=="nearest_neighbour"), the set of
+        # generated capabilities are split into two sets
         train_capabilities, candidate_capabilities = get_lbo_train_set(
             capabilities, cfg.lbo_cfg.train_frac
         )
-    else:
-        # For pipeline 2 (pipeline_id=="2"), use all generated capabilities
+    elif cfg.lbo_cfg.pipeline_id == "discover_new":
+        # For pipeline 2 (pipeline_id=="discover_new"), use all generated capabilities
         # for training
         train_capabilities = capabilities
         candidate_capabilities = None

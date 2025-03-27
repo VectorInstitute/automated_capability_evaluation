@@ -20,7 +20,7 @@ capabilities_cfg:
 
 lbo_cfg:
   num_lbo_runs: 1
-  pipeline_id: "1"
+  pipeline_id: "nearest_neighbor" # "nearest_neighbor" or "discover_new"
   train_frac: 0.5
 
 exp_cfg:
