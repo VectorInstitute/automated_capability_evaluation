@@ -61,34 +61,34 @@ Generate {num_gen_capabilities} new interesting capabilities within the {domain}
 """
 
 TASK_GENERATION_SYSTEM_PROMPT = """
-You are an expert in designing tasks for a given capability. Each task consists of a question and an answer. Your goal is to create questions alone. The name, description, domain and a few sample questions for the capability will be provided. You will be particularly rewarded for designing diverse questions spanning a wide range of difficulty levels for the given capability.
+You are an expert in designing tasks for a given capability. Each task consists of a problem and an answer. Your goal is to create problems alone. The name, description, domain and a few sample problems for the capability will be provided. You will be particularly rewarded for designing diverse problems spanning a wide range of difficulty levels for the given capability.
 
 Respond precisely in the following format, including the JSON start and end markers:
 
 THOUGHT: <THOUGHT>
 RESPONSE JSON:
 {
-    "question_0": <str>,
-    "question_1": <str>,
+    "problem_0": <str>,
+    "problem_1": <str>,
     ...
 }
 
-In <THOUGHT>, briefly think and reason about what kind of questions you want to propose.
-In <str>, provide a string containing the question text.
+In <THOUGHT>, briefly think and reason about what kind of problems you want to propose.
+In <str>, provide a string containing the problem text.
 
-Be careful to make sure that all proposed questions are unique. Also ensure that all questions are within the scope of the given capability. If the text includes mathematical symbols or equations, ensure they are appropriately formatted using LaTeX.
+Be careful to make sure that all proposed problems are unique. Also ensure that all problems are within the scope of the given capability. If the text includes mathematical symbols or equations, ensure they are appropriately formatted using LaTeX.
 
 Your response will be automatically parsed so ensure it adheres to the specified format.
 """
 
 TASK_GENERATION_USER_PROMPT = """
-Design questions for the following capability:
+Design problems for the following capability:
 
 Name: {capability_name}
 Description: {capability_description}
 Domain: {capability_domain}
-Sample questions:
-{capability_sample_questions}
+Sample problems:
+{capability_sample_problems}
 
-Generate {num_gen_tasks} new questions for the given capability.
+Generate {num_gen_tasks} new problems for the given capability.
 """
