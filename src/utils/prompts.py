@@ -60,35 +60,44 @@ Previously generated capabilities:
 Generate {num_gen_capabilities} new interesting capabilities within the {domain} domain.
 """
 
-TASK_GENERATION_SYSTEM_PROMPT = """
-You are an expert in designing tasks for a given capability. Each task consists of a problem and an answer. Your goal is to create problems alone. The name, description, domain and a few sample problems for the capability will be provided. You will be particularly rewarded for designing diverse problems spanning a wide range of difficulty levels for the given capability.
+PROBLEM_GENERATION_SYSTEM_PROMPT = """
+You are an expert in designing tasks for a given capability. Each task consists of a problem and an answer. Your goal is to create problems alone. The name, description, {zero_or_few_shot_patch} for the capability will be provided. You will be particularly rewarded for designing diverse problems spanning a wide range of difficulty levels for the given capability.
 
 Respond precisely in the following format, including the JSON start and end markers:
 
 THOUGHT: <THOUGHT>
 RESPONSE JSON:
-{
-    "problem_0": <str>,
-    "problem_1": <str>,
-    ...
-}
+{response_json_format}
 
 In <THOUGHT>, briefly think and reason about what kind of problems you want to propose.
-In <str>, provide a string containing the problem text.
+In <STR>, provide a string containing the problem text.
 
 Be careful to make sure that all proposed problems are unique. Also ensure that all problems are within the scope of the given capability. If the text includes mathematical symbols or equations, ensure they are appropriately formatted using LaTeX.
 
 Your response will be automatically parsed so ensure it adheres to the specified format.
 """
 
-TASK_GENERATION_USER_PROMPT = """
+PROBLEM_GENERATION_USER_PROMPT = """
 Design problems for the following capability:
 
 Name: {capability_name}
 Description: {capability_description}
 Domain: {capability_domain}
-Sample problems:
-{capability_sample_problems}
-
-Generate {num_gen_tasks} new problems for the given capability.
+{zero_or_few_shot_patch}
+Generate {num_gen_problems} new problems for the given capability.
 """
+
+PROBLEM_GENERATION_ZERO_OR_FEW_SHOT_PATCH = {
+    "zero_shot": {"sys": "and domain", "user": ""},
+    "few_shot": {
+        "sys": "domain and a few sample problems",
+        "user": "Sample problems:\n{capability_sample_problems}\n",
+    },
+}
+
+PROBLEM_GENERATION_RESPONSE_JSON_FORMAT = """
+{
+    "problem_1": <STR>,
+    "problem_2": <STR>,
+    ...
+}""".strip("\n")

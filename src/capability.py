@@ -209,6 +209,26 @@ class Capability:
                 scores_dict[model] = read_score_inspect_json(scores_file)
         return scores_dict
 
+    def get_repr_tasks(self) -> List[Dict[str, Any]]:
+        """
+        Get the representative tasks for the capability.
+
+        Returns
+        -------
+        List[Dict[Any]]: A list of dictionaries containing the representative tasks.
+            Each task dict consists of id, problem, and answer keys.
+        """
+        repr_tasks = []
+        for task_id, task_data in self.capability_repr_class.repr_tasks().items():
+            repr_tasks.append(
+                {
+                    "id": task_id,
+                    "problem": task_data["problem"],
+                    "answer": task_data["answer"],
+                }
+            )
+        return repr_tasks
+
     def _to_dict(self) -> Dict[str, Any]:
         return {
             "name": self.name,

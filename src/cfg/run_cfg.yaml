@@ -17,13 +17,14 @@ capabilities_cfg:
   num_seed_capabilities: -1
   num_gen_capabilities: 4
   num_gen_capabilities_per_run: 2
-  num_gen_tasks_per_capability: 2
+  num_gen_tasks_per_capability: 3
+  task_gen_few_shot: true
 
 lbo_cfg:
   # Number of capabilities to generate using LBO
   num_lbo_runs: 1
   # Type of LBO pipeline to use
-  pipeline_id: "nearest_neighbor" # "nearest_neighbor" or "discover_new"
+  pipeline_id: "discover_new" # "nearest_neighbor" or "discover_new"
   # Train args for 'nearest_neighbor' pipeline
   train_frac: 0.5
   min_train_size: 10
