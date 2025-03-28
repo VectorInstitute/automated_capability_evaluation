@@ -147,7 +147,7 @@ def generate_tasks_using_llm(
     # Combine with sample tasks to get the full set of tasks
     start_id = len(sample_tasks) + 1
     all_tasks = sample_tasks + [
-        {"id": (start_id + idx), "problem": new_tasks[idx]}
+        {"id": str(start_id + idx), "problem": new_tasks[idx]}
         for idx in range(len(new_tasks))
     ]
 
@@ -159,3 +159,7 @@ def generate_tasks_using_llm(
     )
     print(json.dumps(solved_tasks, indent=4))
     print(task_solver_metadata)
+
+    capability.add_and_update_tasks(
+        tasks=solved_tasks,
+    )
