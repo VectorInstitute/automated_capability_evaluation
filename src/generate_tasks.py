@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Tuple
 
 from capability import Capability
 from model import Model
-from utils.capability_utils import extract_and_parse_response_for_problems
+from utils.capability_utils import extract_and_parse_response
 from utils.prompts import (
     PROBLEM_GENERATION_RESPONSE_JSON_FORMAT,
     PROBLEM_GENERATION_SYSTEM_PROMPT,
@@ -71,7 +71,8 @@ def generate_tasks_using_llm(
     capability: Capability,
     scientist_llm: Model,
     num_tasks: int,
-    scientist_llm_gen_cfg: Dict[str, Any],
+    scientist_llm_gen_cfg_task_gen: Dict[str, Any],
+    scientist_llm_gen_cfg_task_solve: Dict[str, Any],
     **kwargs: Any,
 ) -> None:
     """
@@ -86,8 +87,11 @@ def generate_tasks_using_llm(
         capability (Capability): The capability to generate tasks for.
         scientist_llm (Model): The scientist LLM model.
         num_tasks (int): The number of tasks to generate.
-        scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
-            for the scientist LLM.
+        scientist_llm_gen_cfg_task_gen (Dict[str, Any]): The generation configuration
+            for task generation using the scientist LLM.
+        scientist_llm_gen_cfg_task_solve (Dict[str, Any]): The generation configuration
+            for solving tasks using the scientist LLM.
+        **kwargs (Any): Additional arguments for task generation.
     """
     # TODO: Implement the function with the following components
     # # Approach 2
@@ -129,16 +133,16 @@ def generate_tasks_using_llm(
         few_shot=kwargs.get("few_shot", True),
         sample_problems=sample_problems,
     )
-    response, metadata = scientist_llm.generate(
+    response, task_gen_metadata = scientist_llm.generate(
         sys_prompt=sys_prompt,
         user_prompt=user_prompt,
-        generation_config=scientist_llm_gen_cfg,
+        generation_config=scientist_llm_gen_cfg_task_gen,
     )
     # Print the output
     print(f"Model: {scientist_llm.get_model_name()}")
     print(f"Output:\n\n{response}\n\n")
-    print(f"Metadata: {metadata}")
-    parsed_response = extract_and_parse_response_for_problems(response)
+    print(f"Metadata: {task_gen_metadata}")
+    parsed_response = extract_and_parse_response(response)
     new_problems = parsed_response["parsed_response"]
     # Combine with sample problems to get the full set of problems
     start_id = len(sample_problems) + 1
@@ -147,4 +151,11 @@ def generate_tasks_using_llm(
         for idx in range(len(new_problems))
     ]
 
-    print(all_problems)
+    # Solve task and generate answers
+    solved_tasks, task_solver_metadata = capability.solve_tasks(
+        tasks=all_problems,
+        llm=scientist_llm,
+        gen_cfg=scientist_llm_gen_cfg_task_solve,
+    )
+    print(json.dumps(solved_tasks, indent=4))
+    print(task_solver_metadata)

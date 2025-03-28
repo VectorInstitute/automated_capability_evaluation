@@ -56,7 +56,7 @@ def main(cfg: DictConfig) -> None:
     #     num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
     #     scientist_llm=scientist_llm,
     #     num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
-    #     scientist_llm_gen_cfg=cfg.scientist_llm.gen_cfg,
+    #     scientist_llm_gen_cfg=cfg.scientist_llm.gen_cfg.capability_gen,
     #     run_id=run_id,
     #     trial_run=cfg.exp_cfg.trial_run,
     # )
@@ -113,7 +113,8 @@ def main(cfg: DictConfig) -> None:
             capability=capability,
             scientist_llm=scientist_llm,
             num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
-            scientist_llm_gen_cfg=cfg.scientist_llm.gen_cfg,
+            scientist_llm_gen_cfg_task_gen=cfg.scientist_llm.gen_cfg.task_gen,
+            scientist_llm_gen_cfg_task_solve=cfg.scientist_llm.gen_cfg.task_solve,
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
         )
         #   # Evaluate subject LLM on each capability
@@ -140,7 +141,8 @@ def main(cfg: DictConfig) -> None:
     #         sys_prompt=TASK_GENERATION_SYSTEM_PROMPT,
     #         user_prompt=TASK_GENERATION_USER_PROMPT,
     #         num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
-    #         scientist_llm_gen_cfg=cfg.scientist_llm.gen_cfg,
+    #         scientist_llm_gen_cfg_task_gen=cfg.scientist_llm.gen_cfg.task_gen,
+    #         scientist_llm_gen_cfg_task_solve=cfg.scientist_llm.gen_cfg.task_solve,
     #     )
     #     # Evaluate subject LLM on new capability
     #     new_capability.evaluate([subject_llm])

@@ -1,8 +1,15 @@
 scientist_llm:
   name: gpt-4o-mini
   gen_cfg:
-    temperature: 0.7
-    max_tokens: 64
+    capability_gen:
+      temperature: 0.7
+      max_tokens: 64
+    task_gen:
+      temperature: 0.7
+      max_tokens: 64
+    task_solve:
+      temperature: 0.7
+      max_tokens: 64
 
 subject_llm:
   name: Meta-Llama-3.1-70B-Instruct
@@ -17,7 +24,7 @@ capabilities_cfg:
   num_seed_capabilities: -1
   num_gen_capabilities: 4
   num_gen_capabilities_per_run: 2
-  num_gen_tasks_per_capability: 3
+  num_gen_tasks_per_capability: 2
   task_gen_few_shot: true
 
 lbo_cfg:

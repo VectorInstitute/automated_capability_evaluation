@@ -99,3 +99,8 @@ PROBLEM_GENERATION_RESPONSE_JSON_FORMAT = """
     "problem_2": <STR>,
     ...
 }""".strip("\n")
+
+
+TASK_SOLVER_SYSTEM_PROMPT = """
+You are an expert in completing tasks for the {capability_name} capability in the {capability_domain} domain. Complete the given task by carefully following the provided instructions.
+"""

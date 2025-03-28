@@ -1,17 +1,20 @@
 import importlib  # noqa: D100
 import json
 import os
+import re
 import sys
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from src.model import Model
 from src.utils.capability_utils import parse_python_class_str, read_score_inspect_json
 from src.utils.constants import (
+    NO_ANSWER_STR,
     NON_SEED_CAPABILITIES_SCORE_DIR,
     SEED_CAPABILITIES_SCORE_DIR,
 )
 from src.utils.data_utils import load_data
+from src.utils.prompts import TASK_SOLVER_SYSTEM_PROMPT
 
 
 class CapabilitySeedDataset:
@@ -271,6 +274,95 @@ class Capability:
         # TODO: Implement capability encoding
         self.encoding = None
         raise NotImplementedError
+
+    def _solve_task(
+        self, task: Dict[str, Any], llm: Model, gen_cfg: Dict[str, Any]
+    ) -> Tuple[str, Dict[str, Any]]:
+        """
+        Solve the task using the given LLM.
+
+        Args
+        ----
+            task (Dict[str, Any]): The task dictionary containing the ID
+            and the problem to solve.
+            llm (Model): The LLM to use for solving the task.
+            gen_cfg (Dict[str, Any]): The generation configuration for the LLM.
+
+        Returns
+        -------
+            Tuple[str, Dict[str, Any]]: A tuple containing the answer as a string
+            and metadata as a dictionary, which includes raw response and
+            input/output tokens.
+        """
+        # Generate answer using the LLM
+        # TODO:
+        #  1. Enable tool use
+        #  2. How to link this function with the Inspect Solver
+        #   to be used in _evaluate_using_inspect()?
+        print(f"Solving task {task['id']} ...")
+        sys_prompt = TASK_SOLVER_SYSTEM_PROMPT.format(
+            capability_name=self.name, capability_domain=self.domain
+        )
+        user_prompt = self.capability_repr_class.get_instructions(task)
+        response, metadata = llm.generate(
+            sys_prompt=sys_prompt,
+            user_prompt=user_prompt,
+            generation_config=gen_cfg,
+        )
+        # Extract answer from response
+        # Borrowed from:
+        # https://github.com/UKGovernmentBEIS/inspect_ai/blob/main/src/inspect_ai/_util/pattern.py#L3
+        # TODO:
+        # 1. Dynamically set pattern based on capability instructions
+        # 2. For some capabilities the reasoning is the answer and the actual answer
+        #   is only a final statement, how to handle this?
+        # 3. How to gracefully handle cases where tokens are insufficient
+        #   and the answer is incomplete?
+        answer_pattern = r"(?i)ANSWER\s*:\s*([^\n]+)"
+        match = re.search(answer_pattern, response)
+        answer = match.group(1) if match else NO_ANSWER_STR
+        metadata = {
+            "raw_response": response,
+            "api_metadata": metadata,
+        }
+        return (answer, metadata)
+
+    def solve_tasks(
+        self, tasks: List[Dict[str, Any]], llm: Model, gen_cfg: Dict[str, Any]
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """
+        Solve the tasks using the given LLM.
+
+        Args
+        ----
+            tasks (List[Dict[str, Any]]): The list of tasks to solve.
+            llm (Model): The LLM to use for solving the tasks.
+            gen_cfg (Dict[str, Any]): The generation configuration for the LLM.
+
+        Returns
+        -------
+            Tuple[List[Dict[str, Any]], Dict[str, Any]]: A tuple containing a list of
+            dictionaries with the solved tasks and a dictionary with metadata
+            for each task.
+        """
+        solved_tasks = []
+        metadata = {}
+        for task in tasks:
+            answer, _metadata = self._solve_task(
+                task=task,
+                llm=llm,
+                gen_cfg=gen_cfg,
+            )
+            solved_tasks.append(
+                {
+                    "id": task["id"],
+                    "problem": task["problem"],
+                    "answer": answer,
+                    "reasoning": _metadata["raw_response"],
+                }
+            )
+            metadata[task["id"]] = _metadata["api_metadata"]
+        return (solved_tasks, metadata)
 
     def _create_inspect_file(self) -> None:
         """
