@@ -210,29 +210,28 @@ def test_extract_and_parse_response():
     This test verifies that the extract_and_parse_response function correctly
     extracts and parses the response from a given dummy response string.
     The dummy response string contains a "thought" and a "response_json" with
-    a "capabilities" dictionary. The test checks that the extracted response
-    dictionary has the same "thought" and the same number of capabilities as
-    the dummy response dictionary.
+    multiple entries. The test checks that the extracted response dictionary
+    has the same "thought" and the same number of parsed responses as the
+    dummy response dictionary.
 
     Assertions:
         - The "thought" in the extracted response dictionary matches the
           "thought" in the dummy response dictionary.
-        - The number of capabilities in the extracted response dictionary
-          matches the number of capabilities in the dummy response dictionary.
+        - The number of parsed responses in the extracted response dictionary
+          matches the number of entries in the "response_json" of the dummy
+          response dictionary.
     """
     dummy_response_dict = {
         "thought": "<THOUGHT>",
         "response_json": {
-            "capabilities": {
-                "0": {},
-                "1": {},
-                "2": {},
-            }
+            "0": {},
+            "1": {},
+            "2": {},
         },
     }
     dummy_response = f"""THOUGHT:\n{dummy_response_dict["thought"]}\n\nRESPONSE JSON:\n{json.dumps(dummy_response_dict["response_json"])}"""
     extracted_response_dict = extract_and_parse_response(dummy_response)
     assert extracted_response_dict["thought"] == dummy_response_dict["thought"]
-    assert len(extracted_response_dict["capabilities"]) == len(
-        dummy_response_dict["response_json"]["capabilities"]
+    assert len(extracted_response_dict["parsed_response"]) == len(
+        dummy_response_dict["response_json"]
     )

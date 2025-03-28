@@ -28,11 +28,9 @@ Respond precisely in the following format, including the JSON start and end mark
 THOUGHT: <THOUGHT>
 RESPONSE JSON:
 {
-    "capabilities": {
-        "capability_0": <JSON>,
-        "capability_1": <JSON>,
-        ...
-    }
+    "capability_0": <JSON>,
+    "capability_1": <JSON>,
+    ...
 }
 
 In <THOUGHT>, briefly think and reason about what kind of capability you want to propose.
