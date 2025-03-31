@@ -125,6 +125,8 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401", "F403", "F811"]
 "tests/src/seed_capabilities/math/math_competition_algebra/capability.py" = ["D100", "D101", "D102"]
+"src/run.py" = ["ERA001"]
+"src/lbo.py" = ["ERA001"]
 
 [tool.ruff.lint.pep8-naming]
 ignore-names = ["X*", "setUp"]

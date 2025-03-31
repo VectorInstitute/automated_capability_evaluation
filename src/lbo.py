@@ -22,8 +22,26 @@ class LBO:
         Args
         ----
             X (torch.Tensor): The capability representation tensor, shape (Nc, D).
-            y (torch.Tensor): The candidate model scores corresponding
+            y (torch.Tensor): The subject model scores corresponding
                 to the capabilities, shape (Nc,).
+
+        Returns
+        -------
+            None
+        """
+        raise NotImplementedError
+
+    def update(self, X: torch.Tensor, y: torch.Tensor) -> None:
+        """
+        LBO update function.
+
+        Update the LBO model with new capability representation and score.
+
+        Args
+        ----
+            X (torch.Tensor): The new capability representation tensor, shape (1, D).
+            y (torch.Tensor): The subject model score corresponding
+                to the capability, shape (1,).
 
         Returns
         -------
@@ -43,7 +61,7 @@ class LBO:
 
         Returns
         -------
-            torch.Tensor: Predicted scores for candidate model.
+            torch.Tensor: Predicted scores for subject model.
         """
         raise NotImplementedError
 
@@ -58,7 +76,7 @@ class LBO:
         raise NotImplementedError
 
 
-def get_adjusted_representation(
+def _get_adjusted_representation(
     capabilities: List[Capability],
     capability_scores: torch.Tensor,
     encoder: Any,
@@ -70,7 +88,7 @@ def get_adjusted_representation(
     Args
     ----
         capabilities (List[Capability]): The list of capabilities.
-        capability_score (torch.Tensor): The candidate model scores.
+        capability_score (torch.Tensor): The subject model scores.
         encoder (Any): The encoder model to encode the capability representation.
         decoder (Any): The decoder model to decode the capability representation.
 
@@ -80,17 +98,17 @@ def get_adjusted_representation(
     """
     # TODO:
     # 1. Encode the capability representation using the encoder model.
-    #   capability_representations = torch.stack(           # noqa: ERA001
-    #       [elm.encode(encoder) for elm in capabilities]   # noqa: ERA001
-    #   )                                                   # noqa: ERA001
+    #   capability_representations = torch.stack(
+    #       [elm.encode(encoder) for elm in capabilities]
+    #   )
     # 2. Apply the InvBO method to adjust the capabilities' representations.
     raise NotImplementedError
 
 
-def decode_capability(
+def _decode_capability(
     representation: torch.Tensor,
     decoder: Any,
-) -> str:
+) -> Capability:
     """
     Decode the capability representation using the decoder model.
 
@@ -101,7 +119,28 @@ def decode_capability(
 
     Returns
     -------
-        str: The decoded capability representation.
+        Capability: The decoded capability.
+    """
+    raise NotImplementedError
+
+
+def _get_nearest_capability(
+    representation: torch.Tensor,
+    capabilities_pool: List[Capability],
+) -> Capability:
+    """
+    Get the nearest capability from the existing capability pool.
+
+    Used for selecting the capability in LBO pipeline 1.
+
+    Args
+    ----
+        representation (torch.Tensor): The latent representation tensor, shape (D,).
+        capabilities_pool (List[Capability]): The pool of existing capabilities.
+
+    Returns
+    -------
+        Capability: The nearest capability.
     """
     raise NotImplementedError
 
@@ -110,33 +149,123 @@ def generate_capability_using_lbo(
     capabilities: List[Capability],
     capability_scores: torch.Tensor,
     encoder: Any,
-    decoder: Any,
-) -> str:
+    pipeline_id: str = "nearest_neighbour",
+    decoder: Any = None,
+    capabilities_pool: List[Capability] | None = None,
+) -> Capability:
     """
     Generate a new capability using the LBO method.
 
     Args
     ----
-        capabilities (List[Capability]): The list of capabilities.
-        capability_scores (torch.Tensor): The candidate model scores.
+        capabilities (List[Capability]): The list of capabilities
+            used to train/update the LBO model.
+        capability_scores (torch.Tensor): The subject model scores
+            for the given capabilities.
+        encoder (Any): The encoder model to encode the capability representation.
+        pipeline_id (str): The pipeline identifier to determine the generation method.
+        decoder (Any, optional): The decoder model to decode the
+            capability representation (only for pipeline_id="discover_new").
+        capabilities_pool (List[Capability], optional): The pool of existing
+            capabilities without subject model scores, used as a search space
+            for the generated capability representation
+            (only for pipeline_id="nearest_neighbour").
 
     Returns
     -------
-        str: The generated capability str representation.
+        Capability: The generated capability.
     """
     # TODO:
     # 1. Apply the InvBO method to adjust the capabilities' representations.
-    #   capability_representations = get_adjusted_representation(   # noqa: ERA001
-    #       capabilities, capability_scores, encoder, decoder
-    #   )                                                           # noqa: ERA001
+    #       capability_representations = _get_adjusted_representation(
+    #           capabilities, capability_scores, encoder, decoder
+    #       )
     # 2. Fit the LBO model using the adjusted capability representations
-    #   and the candidate model scores.
-    #   lbo = LBO()                                                 # noqa: ERA001
-    #   lbo.fit(capability_representations, capability_scores)      # noqa: ERA001
+    #   and the subject model scores.
+    #   a. Fit step: If the LBO model doesn't exist (first time),
+    #      create it and fit using initial capabilities
+    #       lbo = LBO()
+    #       lbo.fit(capability_representations, capability_scores)
+    #   b. Update step: Load existing LBO model and update with new capability
+    #      representation and score
+    #       assert capability_representations.shape[0] == 1,
+    #       "Only one capability can be updated at a time"
+    #       lbo = load_lbo_model()
+    #       lbo.update(capability_representations, capability_scores)
     # 3. Identify the capability representation with the highest variance.
-    #   high_variance_point = lbo.identify_high_variance_point()    # noqa: ERA001
-    # 4. Decode the capability representation using the decoder model.
-    #   generated_capability = decode_capability(                   # noqa: ERA001
-    #       high_variance_point, decoder
-    #   )                                                           # noqa: ERA001
+    #   high_variance_point = lbo.identify_high_variance_point()
+    # 4. Obtain new capability by either fetching nearest capability
+    #   from the existing capability pool or decoding the capability
+    #   representation using the decoder model.
+    #       if pipeline_id == "nearest_neighbour":
+    #           generated_capability = _get_nearest_capability(
+    #               high_variance_point, capabilities_pool
+    #           )
+    #       elif pipeline_id == "discover_new":
+    #           assert decoder is not None, (
+    #               "Decoder model is not provided"
+    #           )
+    #           generated_capability = _decode_capability(
+    #               high_variance_point, decoder
+    #           )
     raise NotImplementedError
+
+
+def generate_new_capability(
+    capabilities: List[Capability],
+    subject_llm_name: str,
+    capabilities_pool: List[Capability] | None = None,
+    **kwargs: Any,
+) -> Capability:
+    """
+    Generate a new capability.
+
+    Args
+    ----
+        capabilities (List[Capability]): The list of existing capabilities.
+        subject_llm_name (str): The subject LLM model name.
+        capabilities_pool (List[Capability], optional): The list of existing
+            capabilities without subject model scores, used as a search space
+            for the generated capability representation
+            (only for pipeline_id="nearest_neighbour").
+
+    Returns
+    -------
+        Capability: The generated capability.
+    """
+    if kwargs.get("lbo_run_id", 0) == 0:
+        # Load subject LLM scores for each capability
+        capability_scores = torch.Tensor(
+            [cap.load_scores()[subject_llm_name] for cap in capabilities]
+        )
+    else:
+        # Only load newly added capability's score
+        capability_scores = torch.Tensor(
+            [capabilities[-1].load_scores()[subject_llm_name]]
+        )
+
+    # TODO: Set the encoder model
+    encoder = None
+
+    pipeline_id = kwargs.get("pipeline_id", "nearest_neighbour")
+    if pipeline_id == "nearest_neighbour":
+        assert capabilities_pool is not None, (
+            "Pool of existing capabilities is not provided"
+        )
+        decoder = None
+    elif pipeline_id == "discover_new":
+        # TODO: Set the decoder model
+        decoder = None
+    else:
+        raise ValueError(
+            f"Invalid pipeline_id: {pipeline_id}. Use either 'nearest_neighbour' or 'discover_new'."
+        )
+
+    return generate_capability_using_lbo(
+        capabilities=capabilities,
+        capability_scores=capability_scores,
+        encoder=encoder,
+        pipeline_id=pipeline_id,
+        decoder=decoder,
+        capabilities_pool=capabilities_pool,
+    )

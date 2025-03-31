@@ -17,7 +17,7 @@ class Capability:
 
     @staticmethod
     def score(t: dict, submission: str) -> float | None:
-        # ‘score‘ is called after the candidate model submits a solution.
+        # ‘score‘ is called after the subject model submits a solution.
         # Return 0 on failure and 1 on success.
         # Throwing an exception will result in a score of 0.
         # ... implementation ...
@@ -59,3 +59,7 @@ Previously generated capabilities:
 
 Generate {num_gen_capabilities} new interesting capabilities within the {domain} domain.
 """
+
+TASK_GENERATION_SYSTEM_PROMPT = """"""
+
+TASK_GENERATION_USER_PROMPT = """"""

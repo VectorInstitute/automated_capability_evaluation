@@ -1,10 +1,10 @@
-generator_model:
+scientist_llm:
   name: gpt-4o-mini
   gen_cfg:
     temperature: 0.7
     max_tokens: 64
 
-candidate_model:
+subject_llm:
   name: Meta-Llama-3.1-70B-Instruct
 
 prompt_cfg:
@@ -17,6 +17,16 @@ capabilities_cfg:
   num_seed_capabilities: -1
   num_gen_capabilities: 4
   num_gen_capabilities_per_run: 2
+  num_gen_tasks_per_capability: 2
+
+lbo_cfg:
+  # Number of capabilities to generate using LBO
+  num_lbo_runs: 1
+  # Type of LBO pipeline to use
+  pipeline_id: "nearest_neighbor" # "nearest_neighbor" or "discover_new"
+  # Train args for 'nearest_neighbor' pipeline
+  train_frac: 0.5
+  min_train_size: 10
 
 exp_cfg:
   # Set this flag to true to run test experiments during development
