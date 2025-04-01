@@ -266,12 +266,25 @@ def test_add_and_update_tasks_new_task():
     # the update doesnt affect the representation string
     original_capability = Capability(os.path.join(test_dir, capability_path))
     assert (len(original_capability._data) + len(new_tasks)) == len(capability._data)
-    assert capability.capability_repr_class_str == original_capability.capability_repr_class_str
+    assert (
+        capability.capability_repr_class_str
+        == original_capability.capability_repr_class_str
+    )
     # Clean up
     shutil.rmtree(os.path.join(test_dir, f"copy_{capability_path.split('/')[0]}"))
 
 
 def test_add_and_update_tasks_repr_tasks():
+    """
+    Test the add_and_update_tasks method of the Capability class.
+
+    Test the add_and_update_tasks method of the Capability class.
+    This test verifies that the add_and_update_tasks method correctly
+    updates representative tasks in the capability. It checks the following:
+    - The number of tasks in the capability is updated correctly.
+    - The tasks are updated as expected.
+    - The capability's representation string is updated.
+    """
     capability_path = "capabilities_t2/math/math_mathematics_modeling_real_world"
     # Create a copy
     shutil.copytree(
@@ -299,6 +312,9 @@ def test_add_and_update_tasks_repr_tasks():
     assert capability._data[0]["answer"] == repr_tasks[0]["answer"]
     assert capability._data[1]["answer"] == repr_tasks[1]["answer"]
     assert capability._data[2]["answer"] == repr_tasks[2]["answer"]
-    assert capability.capability_repr_class_str != original_capability.capability_repr_class_str
+    assert (
+        capability.capability_repr_class_str
+        != original_capability.capability_repr_class_str
+    )
     # Clean up
     shutil.rmtree(os.path.join(test_dir, f"copy_{capability_path.split('/')[0]}"))
