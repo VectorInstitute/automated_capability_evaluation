@@ -7,6 +7,8 @@ It contains utility functions for capabilities.
 import json
 from typing import Any, Dict
 
+from src.utils.data_utils import read_json_file
+
 
 CAPABILITY_SCORER_MAP = {
     "math": "expression_equivalence",
@@ -25,8 +27,7 @@ def read_score_inspect_json(json_file: str) -> float:
     -------
         float: The score value.
     """
-    with open(json_file, "r") as f:
-        scores = json.load(f)
+    scores = read_json_file(json_file)
 
     def clean_name(x: str) -> str:
         return x.split("/")[-1]

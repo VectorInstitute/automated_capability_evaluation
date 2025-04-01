@@ -7,14 +7,17 @@ from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
 from src.model import Model
-from src.utils.capability_utils import parse_python_class_str, read_score_inspect_json
+from src.utils.capability_utils import (
+    parse_python_class_str,
+    read_score_inspect_json,
+)
 from src.utils.constants import (
     NO_ANSWER_STR,
     NON_SEED_CAPABILITIES_SCORE_DIR,
     SEED_CAPABILITIES_SCORE_DIR,
     TAB_W_SPACES,
 )
-from src.utils.data_utils import load_data
+from src.utils.data_utils import list_dir, load_data, path_exists
 from src.utils.prompts import TASK_SOLVER_SYSTEM_PROMPT
 
 
@@ -208,11 +211,11 @@ class Capability:
         """
         scores_dir = scores_dir if scores_dir else self.score_dir
         scores_dict = defaultdict(float)
-        for model in os.listdir(scores_dir):
+        for model in list_dir(scores_dir):
             scores_file = os.path.join(
                 scores_dir, model, self.domain, f"{self.name}.json"
             )
-            if os.path.isfile(scores_file):
+            if path_exists(scores_file):
                 scores_dict[model] = read_score_inspect_json(scores_file)
         return scores_dict
 

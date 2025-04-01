@@ -169,3 +169,29 @@ def copy_file(src: str, dest: str) -> None:
         # Copy file locally
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         shutil.copy2(src, dest)
+
+
+def path_exists(path: str) -> bool:
+    """
+    Check if a path exists.
+
+    This function handles both GCP bucket paths and local file system paths.
+
+    Args:
+        path (str): The path to check. If it starts with 'gs://',
+            it is treated as a GCP bucket path.
+
+    Returns
+    -------
+        bool: True if the path exists, False otherwise.
+    """
+    if path.startswith("gs://"):
+        # Check existence in GCP bucket
+        client = storage.Client()
+        bucket_name, blob_name = path[5:].split("/", 1)
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        return bool(blob.exists())
+
+    # Check existence in local file system
+    return os.path.exists(path)
