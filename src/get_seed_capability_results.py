@@ -1,10 +1,11 @@
 import json  # noqa: D100
 import os
-import shutil
 
 import hydra  # noqa: D100
 import numpy as np
 from omegaconf import DictConfig
+
+from utils.data_utils import copy_file, list_dir, read_json_file, write_json_file
 
 
 def extract_math_capability_logs(
@@ -29,12 +30,7 @@ def extract_math_capability_logs(
     -------
         None
     """
-    out_file_name = f"{out_dir}/{capability_name}.json"
-    if os.path.exists(out_file_name):
-        return
-
-    with open(log_file, "r") as f:
-        logs = json.load(f)
+    logs = read_json_file(log_file)
 
     # Note: Inspect logs refer to capabilities as tasks, hence
     # keeping dict keys consistent in logs
@@ -89,8 +85,8 @@ def extract_math_capability_logs(
     logs.update({"reductions": logs_reductions})
 
     # Write to output file
-    with open(out_file_name, "w") as f:
-        json.dump(logs, f, indent=4)
+    out_file_name = f"{out_dir}/{capability_name}.json"
+    write_json_file(file_path=out_file_name, data=logs)
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
@@ -117,10 +113,10 @@ def main(cfg: DictConfig) -> None:
         cfg.capabilities_cfg.capabilities_dir, "seed_capabilities", domain
     )
     seed_capability_result_dir = os.path.join(
-        cfg.capabilities_cfg.capabilities_dir, "seed_capabilities_results"
+        cfg.capabilities_cfg.results_dir, "seed_capabilities_results"
     )
     seed_datasets_log_dir = os.path.join(
-        cfg.capabilities_cfg.capabilities_dir, "seed_datasets_inspect_logs"
+        cfg.capabilities_cfg.results_dir, "seed_datasets_inspect_logs"
     )
 
     for capability_dir in os.listdir(seed_capability_dir):
@@ -138,17 +134,17 @@ def main(cfg: DictConfig) -> None:
             subject = capability_json["capability_subject"]
 
         # Iterate over results for all subject models
-        for subject_model_dir in os.listdir(seed_datasets_log_dir):
+        for subject_model_dir in list_dir(seed_datasets_log_dir):
             subject_model_log_path = os.path.join(
                 seed_datasets_log_dir, subject_model_dir
             )
-            for log_file in os.listdir(subject_model_log_path):
+            for log_file in list_dir(subject_model_log_path):
                 if dataset_name not in log_file:
                     continue
 
-                out_dir = os.path.join(seed_capability_result_dir, subject_model_dir)
-                out_dir = os.path.join(out_dir, domain)
-                os.makedirs(out_dir, exist_ok=True)
+                out_dir = os.path.join(
+                    seed_capability_result_dir, subject_model_dir, domain
+                )
 
                 # For math dataset, extract math capability logs
                 if "math" in log_file:
@@ -162,12 +158,9 @@ def main(cfg: DictConfig) -> None:
                 # For gsm8k dataset, copy log file to output directory
                 elif "gsm8k" in log_file:
                     # No changes to log file, just copy it to output directory
-                    shutil.copyfile(
+                    copy_file(
                         src=os.path.join(subject_model_log_path, log_file),
-                        dst=os.path.join(
-                            out_dir,
-                            f"{capability_name}.json",
-                        ),
+                        dest=os.path.join(out_dir, f"{capability_name}.json"),
                     )
 
                 print(

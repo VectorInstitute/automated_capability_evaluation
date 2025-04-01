@@ -30,6 +30,8 @@ Note: Please set the following env vars before running the command.
     - LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
     - LANGSMITH_API_KEY=<langsmith_api_key>
     - LANGSMITH_PROJECT="automated_capability_evaluation"
+- GCP env vars:
+    - GOOGLE_CLOUD_PROJECT=<project_id>
 
 ```bash
 python3 src/run.py
