@@ -170,7 +170,7 @@ class Capability:
         self.domain = _cfg["capability_domain"]
         self.instructions = _cfg["capability_instructions"]
         # TODO: Store data is stored in json or elsewhere?
-        self._data = _cfg["capability_data"]
+        self._data: List[Dict[str, Any]] = _cfg["capability_data"]
         # Check if the capability is a seed capability, use source_dataset as indicator
         self.is_seed = "source_dataset" in _cfg
 
@@ -252,13 +252,14 @@ class Capability:
                 "Each task must contain 'id', 'problem', and 'answer' keys."
             )
 
-        existing_task_ids = [task["id"] for task in self._data]
+        existing_tasks = self.get_tasks()
+        existing_task_ids = [task["id"] for task in existing_tasks]
         new_task_ids = [task["id"] for task in tasks]
         # Keep new task for overlapping tasks
         # TODO: Add `overwrite` flag to update existing tasks
         tasks_to_keep = [
             task
-            for task in self._data
+            for task in existing_tasks
             if task["id"]
             not in list(set.intersection(set(existing_task_ids), set(new_task_ids)))
         ] + tasks
@@ -456,6 +457,16 @@ class Capability:
             )
             metadata[task["id"]] = _metadata["api_metadata"]
         return (solved_tasks, metadata)
+
+    def get_tasks(self) -> List[Dict[str, Any]]:
+        """
+        Get the existing tasks for the capability.
+
+        Returns
+        -------
+            List[Dict[str, Any]]: A list of dictionaries containing the tasks.
+        """
+        return self._data
 
     def _create_inspect_file(self) -> None:
         """

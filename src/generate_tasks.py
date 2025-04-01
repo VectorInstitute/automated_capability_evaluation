@@ -73,6 +73,7 @@ def generate_tasks_using_llm(
     num_tasks: int,
     scientist_llm_gen_cfg_task_gen: Dict[str, Any],
     scientist_llm_gen_cfg_task_solve: Dict[str, Any],
+    solve_sample_tasks: bool = False,
     **kwargs: Any,
 ) -> None:
     """
@@ -91,6 +92,7 @@ def generate_tasks_using_llm(
             for task generation using the scientist LLM.
         scientist_llm_gen_cfg_task_solve (Dict[str, Any]): The generation configuration
             for solving tasks using the scientist LLM.
+        solve_sample_tasks (bool, optional): Whether to solve sample tasks.
         **kwargs (Any): Additional arguments for task generation.
     """
     # TODO: Implement the function with the following components
@@ -122,9 +124,6 @@ def generate_tasks_using_llm(
     # Generate task problems
     # Extract sample tasks from representative tasks
     sample_tasks = capability.get_repr_tasks()
-    for task in sample_tasks:
-        # Remove the answer
-        task.pop("answer", None)
 
     # Generate new tasks using the scientist LLM
     sys_prompt, user_prompt = get_task_generation_prompt(
@@ -144,14 +143,20 @@ def generate_tasks_using_llm(
     print(f"Metadata: {task_gen_metadata}")
     parsed_response = extract_and_parse_response(response)
     new_tasks = parsed_response["parsed_response"]
-    # Combine with sample tasks to get the full set of tasks
-    start_id = len(sample_tasks) + 1
-    all_tasks = sample_tasks + [
+
+    # Solve task and generate answers
+    # Set starting ID for new tasks
+    start_id = len(capability.get_tasks()) + 1
+    all_tasks = [
         {"id": str(start_id + idx), "problem": new_tasks[idx]}
         for idx in range(len(new_tasks))
     ]
-
-    # Solve task and generate answers
+    # Add sample tasks if solving them
+    if solve_sample_tasks:
+        for task in sample_tasks:
+            # Remove the answer
+            task.pop("answer", None)
+        all_tasks = sample_tasks + all_tasks
     solved_tasks, task_solver_metadata = capability.solve_tasks(
         tasks=all_tasks,
         llm=scientist_llm,

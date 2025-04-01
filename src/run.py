@@ -115,6 +115,7 @@ def main(cfg: DictConfig) -> None:
             num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
             scientist_llm_gen_cfg_task_gen=cfg.scientist_llm.gen_cfg.task_gen,
             scientist_llm_gen_cfg_task_solve=cfg.scientist_llm.gen_cfg.task_solve,
+            solve_sample_tasks=True,
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
         )
         #   # Evaluate subject LLM on each capability
@@ -143,6 +144,8 @@ def main(cfg: DictConfig) -> None:
     #         num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
     #         scientist_llm_gen_cfg_task_gen=cfg.scientist_llm.gen_cfg.task_gen,
     #         scientist_llm_gen_cfg_task_solve=cfg.scientist_llm.gen_cfg.task_solve,
+    #         solve_sample_tasks=True,
+    #         few_shot=cfg.capabilities_cfg.task_gen_few_shot,
     #     )
     #     # Evaluate subject LLM on new capability
     #     new_capability.evaluate([subject_llm])
