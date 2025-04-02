@@ -19,3 +19,56 @@ class Capability:
     @staticmethod
     {capability_score_func}
 """
+
+INSPECT_EVALS_SCRIPT_FILE_TEMPLATE = '''
+from inspect_ai import Task, task
+from inspect_ai.dataset import FieldSpec, json_dataset
+from inspect_ai.scorer import Score, Scorer, Target, accuracy, scorer, stderr
+from inspect_ai.solver import TaskState, generate, prompt_template
+
+
+@task
+def {capability_name}() -> Task:
+    """Inspect task implementing the {capability_name} capability."""
+    return Task(
+        dataset=json_dataset(
+            "dataset.jsonl",
+            FieldSpec(
+                input="problem",
+                target="answer",
+                id="id",
+                metadata={dataset_metadata_keys},
+        ),
+        solver=[
+            prompt_template(
+                template={prompt_template},
+            ),
+            generate(),
+        ],
+        scorer=custom_scorer(),
+    )
+
+
+@scorer(metrics=[accuracy(), stderr()])
+def custom_scorer() -> Scorer:
+    async def score(state: TaskState, target: Target) -> Score:
+        return await _score(
+            t={score_func_t_dict_str},
+            submission=state.output.completion,
+        )
+
+
+{score_func_str}
+'''
+
+INSPECT_EVALS_README_FILE_TEMPLATE = """
+# {capability_name}
+
+{capability_description}
+"""
+
+INSPECT_EVALS_INIT_FILE_TEMPLATE = """
+from .{capability_name} import {capability_name}
+
+__all__ = ["{capability_name}"]
+"""

@@ -5,8 +5,10 @@ It contains utility functions for capabilities.
 """
 
 import json
+import subprocess
 from typing import Any, Dict
 
+from src.model import Model
 from src.utils.data_utils import read_json_file
 
 
@@ -96,3 +98,46 @@ def extract_and_parse_response(response: str) -> Dict[str, Any]:
         raise
 
     return {"thought": thought_str, "parsed_response": parsed_response}
+
+
+def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> str:
+    """
+    Run the inspect evals command for a given capability and model.
+
+    Args
+    ----
+    path : str
+        The path to the evaluation file.
+    model_name : str
+        The name of the LLM to evaluate.
+    kwargs : Any
+        Additional arguments for the command.
+
+    Returns
+    -------
+    str
+        The output of the inspect evals command.
+    """
+    model_name = model.get_model_name(with_provider=True)
+    run_command = ["inspect", "eval", path, "--model", model_name]
+    run_args = []
+
+    # TODO: Add capability and model specific args
+    if "temperature" in kwargs:
+        run_args.extend(["--temperature", str(kwargs["temperature"])])
+    if "max_tokens" in kwargs:
+        run_args.extend(["--max-tokens", str(kwargs["max_tokens"])])
+    run_command.extend(run_args)
+
+    run_command.extend(["--log-dir", log_dir])
+
+    print(
+        f"Running inspect evals for {path.split('/')[-1]} capability using {model_name}"
+    )
+    result = subprocess.run(
+        run_command,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    return result.stdout

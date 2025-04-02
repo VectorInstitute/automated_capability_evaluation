@@ -10,8 +10,12 @@ from src.model import Model
 from src.utils.capability_utils import (
     parse_python_class_str,
     read_score_inspect_json,
+    run_inspect_evals,
 )
 from src.utils.constants import (
+    BASE_ARTIFACTS_DIR,
+    BASE_INSPECT_EVALS_DIR,
+    GCP_BASE_ARTIFACTS_DIR,
     NO_ANSWER_STR,
     NON_SEED_CAPABILITIES_SCORE_DIR,
     SEED_CAPABILITIES_SCORE_DIR,
@@ -19,6 +23,11 @@ from src.utils.constants import (
 )
 from src.utils.data_utils import list_dir, load_data, path_exists
 from src.utils.prompts import TASK_SOLVER_SYSTEM_PROMPT
+from src.utils.templates import (
+    INSPECT_EVALS_INIT_FILE_TEMPLATE,
+    INSPECT_EVALS_README_FILE_TEMPLATE,
+    INSPECT_EVALS_SCRIPT_FILE_TEMPLATE,
+)
 
 
 class CapabilitySeedDataset:
@@ -471,15 +480,56 @@ class Capability:
         """
         return self._data
 
-    def _create_inspect_file(self) -> None:
+    def _create_inspect_file(self, path: str) -> None:
         """
         Implement pipeline to evaluate the capability using the inspect framework.
 
         This involves converting the METR format to inspect solvers and scorers.
         """
-        raise NotImplementedError
+        # Create JSONL dataset and store it under the inspect path
+        dataset = self.get_tasks()
+        dataset_metadata_keys = [
+            k for k in list(dataset[0].keys()) if k not in ["id", "problem", "answer"]
+        ]
+        # Write data to a dataset JSONL file
+        with open(os.path.join(path, "dataset.jsonl"), "w") as f:
+            for elm in dataset:
+                f.write(json.dumps(elm) + "\n")
 
-    def _evaluate_using_inspect(self, subject_llm: Model) -> None:  # noqa: D102
+        # Create __init__.py and README files
+        # TODO: Add more details to the README file
+        init_file_content = INSPECT_EVALS_INIT_FILE_TEMPLATE.format(
+            capability_name=self.name,
+        ).strip("\n")
+        with open(os.path.join(path, "__init__.py"), "w") as f:
+            f.write(init_file_content)
+        readme_file_content = INSPECT_EVALS_README_FILE_TEMPLATE.format(
+            capability_name=self.name,
+            capability_description=self.description,
+        ).strip("\n")
+        with open(os.path.join(path, "README.md"), "w") as f:
+            f.write(readme_file_content)
+
+        # Create inspect evals script file
+        # TODO: How to handle more involved score functions?
+        instruction_template = self.capability_repr_class.get_instructions(
+            {"problem": "{prompt}"}
+        )
+        score_func_prefix = f"@staticmethod\n{TAB_W_SPACES}def score"
+        score_func_str = f"{score_func_prefix}{self.capability_repr_class_str.split(score_func_prefix)[1]}".strip(
+            "\n"
+        )
+        script_file_content = INSPECT_EVALS_SCRIPT_FILE_TEMPLATE.format(
+            capability_name=self.name,
+            dataset_metadata_keys=json.dumps(dataset_metadata_keys),
+            prompt_template=instruction_template,
+            score_func_t_dict_str='{"answer": target.text}',
+            score_func_str=score_func_str,
+        ).strip("\n")
+        with open(os.path.join(path, f"{self.name}.py"), "w") as f:
+            f.write(script_file_content)
+
+    def _evaluate_using_inspect(self, subject_llm: Model, **kwargs: Any) -> None:  # noqa: D102
         """
         Evaluate subject LLM on the capability using the inspect framework.
 
@@ -488,9 +538,28 @@ class Capability:
         subject_llm : Model
             The LLM to use for evaluation.
         """
-        raise NotImplementedError
+        inspect_path = os.path.join(BASE_INSPECT_EVALS_DIR, self.name)
+        if not os.path.exists(inspect_path):
+            self._create_inspect_file(path=inspect_path)
+        # TODO: Re-run based on output from previous run
+        # Temporarily store the logs locally and then transfer them to the GCP bucket,
+        # since Inspect does not support GCP bucket paths for storing logs
+        log_dir = os.path.join(
+            self.score_dir.replace(GCP_BASE_ARTIFACTS_DIR, BASE_ARTIFACTS_DIR),
+            subject_llm.get_model_name(),
+            self.domain,
+            self.name,
+        )
+        os.makedirs(log_dir, exist_ok=True)
+        output = run_inspect_evals(
+            path=inspect_path, model=subject_llm, log_dir=log_dir, **kwargs
+        )
+        print(output)
+        # TODO: Transfer the logs to the GCP bucket
 
-    def evaluate(self, subject_llms: List[Model]) -> None:
+    def evaluate(
+        self, subject_llms: List[Model], gen_args: List[Dict[Any, Any]]
+    ) -> None:
         """
         Evaluate the provided subject LLMs on the capability.
 
@@ -499,9 +568,15 @@ class Capability:
         subject_llms : List[Model]
             The list of LLMs to use for evaluation.
         """
+        assert len(subject_llms) == len(gen_args), (
+            "Each subject LLM must have a corresponding generation config."
+        )
         # TODO: Run asynchronosly
-        for model in subject_llms:
-            self._evaluate_using_inspect(model)
+        for model_idx, model in enumerate(subject_llms):
+            self._evaluate_using_inspect(
+                subject_llm=model,
+                **gen_args[model_idx],
+            )
 
 
 def _import_from_path(module_name: str, file_path: str) -> Any:
