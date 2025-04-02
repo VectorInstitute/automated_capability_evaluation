@@ -20,6 +20,7 @@ prompt_cfg:
 capabilities_cfg:
   capabilities_dir: /fs01/projects/aieng/public/ace/artifacts
   results_dir: gs://ace-artifacts
+  inspect_evals_dir: /fs01/projects/aieng/public/ace/inspect_evals/src/ace_evals
   domain: math
   num_seed_capabilities: -1
   num_gen_capabilities: 4
