@@ -21,7 +21,7 @@ from src.utils.constants import (
     SEED_CAPABILITIES_SCORE_DIR,
     TAB_W_SPACES,
 )
-from src.utils.data_utils import list_dir, load_data, path_exists
+from src.utils.data_utils import copy_file, list_dir, load_data, path_exists
 from src.utils.prompts import TASK_SOLVER_SYSTEM_PROMPT
 from src.utils.templates import (
     INSPECT_EVALS_INIT_FILE_TEMPLATE,
@@ -538,12 +538,10 @@ class Capability:
         subject_llm : Model
             The LLM to use for evaluation.
         """
-        inspect_path = os.path.join(BASE_INSPECT_EVALS_DIR, self.name)
-        if not os.path.exists(inspect_path):
-            self._create_inspect_file(path=inspect_path)
         # TODO: Re-run based on output from previous run
         # Temporarily store the logs locally and then transfer them to the GCP bucket,
         # since Inspect does not support GCP bucket paths for storing logs
+        print(f"Evaluating {subject_llm.get_model_name()} on {self.name} capability")
         log_dir = os.path.join(
             self.score_dir.replace(GCP_BASE_ARTIFACTS_DIR, BASE_ARTIFACTS_DIR),
             subject_llm.get_model_name(),
@@ -552,10 +550,17 @@ class Capability:
         )
         os.makedirs(log_dir, exist_ok=True)
         output = run_inspect_evals(
-            path=inspect_path, model=subject_llm, log_dir=log_dir, **kwargs
+            path=os.path.join(BASE_INSPECT_EVALS_DIR, self.name),
+            model=subject_llm,
+            log_dir=log_dir,
+            **kwargs,
         )
         print(output)
-        # TODO: Transfer the logs to the GCP bucket
+        # Transfer the logs to the GCP bucket
+        copy_file(
+            src=log_dir,
+            dest=log_dir.replace(BASE_ARTIFACTS_DIR, GCP_BASE_ARTIFACTS_DIR),
+        )
 
     def evaluate(
         self, subject_llms: List[Model], gen_args: List[Dict[Any, Any]]
@@ -571,6 +576,11 @@ class Capability:
         assert len(subject_llms) == len(gen_args), (
             "Each subject LLM must have a corresponding generation config."
         )
+        # Create inspect script if evaluating for the first time
+        inspect_path = os.path.join(BASE_INSPECT_EVALS_DIR, self.name)
+        if not os.path.exists(inspect_path):
+            os.makedirs(inspect_path)
+            self._create_inspect_file(path=inspect_path)
         # TODO: Run asynchronosly
         for model_idx, model in enumerate(subject_llms):
             self._evaluate_using_inspect(
