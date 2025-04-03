@@ -17,6 +17,10 @@ dependencies = [
     "omegaconf>=2.3.0",
     "openai>=1.61.1",
     "ratelimit>=2.2.1",
+    "torchvision (>=0.21.0,<0.22.0)",
+    "torchaudio (>=2.6.0,<3.0.0)",
+    "torch (>=2.6.0,<3.0.0)",
+    "gpytorch (>=1.14,<2.0)",
 ]
 
 [project.urls]
