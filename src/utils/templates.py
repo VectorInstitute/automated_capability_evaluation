@@ -27,26 +27,12 @@ from inspect_ai.scorer import Score, Scorer, Target, accuracy, scorer, stderr
 from inspect_ai.solver import TaskState, generate, prompt_template
 
 
-@task
-def {capability_name}() -> Task:
-    """Inspect task implementing the {capability_name} capability."""
-    return Task(
-        dataset=json_dataset(
-            "dataset.jsonl",
-            FieldSpec(
-                input="problem",
-                target="answer",
-                id="id",
-                metadata={dataset_metadata_keys},
-        ),
-        solver=[
-            prompt_template(
-                template={prompt_template},
-            ),
-            generate(),
-        ],
-        scorer=custom_scorer(),
-    )
+USER_PROMPT_TEMPLATE = """
+{prompt_template}
+""".strip()
+
+
+{score_func_str}
 
 
 @scorer(metrics=[accuracy(), stderr()])
@@ -58,7 +44,27 @@ def custom_scorer() -> Scorer:
         )
 
 
-{score_func_str}
+@task
+def {capability_name}() -> Task:
+    """Inspect task implementing the {capability_name} capability."""
+    return Task(
+        dataset=json_dataset(
+            "dataset.jsonl",
+            FieldSpec(
+                input="problem",
+                target="answer",
+                id="id",
+                metadata={dataset_metadata_keys},
+            ),
+        ),
+        solver=[
+            prompt_template(
+                template=USER_PROMPT_TEMPLATE,
+            ),
+            generate(),
+        ],
+        scorer=custom_scorer(),
+    )
 '''
 
 INSPECT_EVALS_README_FILE_TEMPLATE = """

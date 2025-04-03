@@ -512,22 +512,31 @@ class Capability:
 
         # Create inspect evals script file
         # TODO: How to handle more involved score functions?
+        # TODO: Do we need system prompt?
         instruction_template = self.capability_repr_class.get_instructions(
             {"problem": "{prompt}"}
         )
         score_func_prefix = f"@staticmethod\n{TAB_W_SPACES}def score"
-        score_func_str = f"{score_func_prefix}{self.capability_repr_class_str.split(score_func_prefix)[1]}".strip(
-            "\n"
+        score_func_prefix_new = score_func_prefix.split(TAB_W_SPACES)[1].replace(
+            "score", "_score"
         )
+        score_func_str = f"{score_func_prefix_new}{self.capability_repr_class_str.split(score_func_prefix)[1].replace((TAB_W_SPACES + TAB_W_SPACES), TAB_W_SPACES)}".strip(
+            "`"
+        ).strip("\n")
         script_file_content = INSPECT_EVALS_SCRIPT_FILE_TEMPLATE.format(
             capability_name=self.name,
             dataset_metadata_keys=json.dumps(dataset_metadata_keys),
             prompt_template=instruction_template,
             score_func_t_dict_str='{"answer": target.text}',
             score_func_str=score_func_str,
-        ).strip("\n")
-        with open(os.path.join(path, f"{self.name}.py"), "w") as f:
+        )
+        script_file_path = os.path.join(path, f"{self.name}.py")
+        with open(script_file_path, "w") as f:
             f.write(script_file_content)
+        # TODO: Validate formatting of script file
+        _ = _import_from_path(
+            module_name=f"{self.name}_inspect_eval_script", file_path=script_file_path
+        )
 
     def _evaluate_using_inspect(self, subject_llm: Model, **kwargs: Any) -> None:  # noqa: D102
         """
