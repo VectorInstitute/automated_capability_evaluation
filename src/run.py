@@ -1,12 +1,14 @@
-import hydra  # noqa: D100
+import os  # noqa: D100
+
+import hydra
 from omegaconf import DictConfig
 
-from generate_tasks import (
-    generate_tasks_using_llm,
-)
+from generate_capabilities import _get_previous_capabilities
+from generate_tasks import generate_tasks_using_llm
 
 # from lbo import generate_new_capability
 from model import Model
+from utils.constants import BASE_ARTIFACTS_DIR
 from utils.lbo_utils import get_lbo_train_set
 
 
@@ -50,6 +52,7 @@ def main(cfg: DictConfig) -> None:
 
     # Initialize the scientist LLM model
     scientist_llm = Model(cfg.scientist_llm.name)
+    scientist_llm_gen_cfg = cfg.scientist_llm.generation_cfg
 
     # # Stage 1. Generate initial capabilities
     # capabilities = generate_capabilities(
@@ -58,7 +61,7 @@ def main(cfg: DictConfig) -> None:
     #     num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
     #     scientist_llm=scientist_llm,
     #     num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
-    #     scientist_llm_gen_cfg=cfg.scientist_llm.gen_cfg.capability_gen,
+    #     scientist_llm_gen_cfg=scientist_llm_gen_cfg.capability_generation,
     #     run_id=run_id,
     #     trial_run=cfg.exp_cfg.trial_run,
     # )
@@ -66,11 +69,6 @@ def main(cfg: DictConfig) -> None:
     # print(capabilities)
 
     # TODO: Only used for testing, remove this block later ========================
-    import os
-
-    from generate_capabilities import _get_previous_capabilities
-    from utils.constants import BASE_ARTIFACTS_DIR
-
     if cfg.exp_cfg.trial_run:
         # Set the base capability directory
         base_capability_dir = os.path.join(
@@ -115,8 +113,8 @@ def main(cfg: DictConfig) -> None:
             capability=capability,
             scientist_llm=scientist_llm,
             num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
-            scientist_llm_gen_cfg_task_gen=cfg.scientist_llm.gen_cfg.task_gen,
-            scientist_llm_gen_cfg_task_solve=cfg.scientist_llm.gen_cfg.task_solve,
+            scientist_llm_gen_cfg_task_gen=scientist_llm_gen_cfg.task_generation,
+            scientist_llm_gen_cfg_task_solve=scientist_llm_gen_cfg.task_solve,
             solve_sample_tasks=True,
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
         )
@@ -146,8 +144,8 @@ def main(cfg: DictConfig) -> None:
     #         sys_prompt=TASK_GENERATION_SYSTEM_PROMPT,
     #         user_prompt=TASK_GENERATION_USER_PROMPT,
     #         num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
-    #         scientist_llm_gen_cfg_task_gen=cfg.scientist_llm.gen_cfg.task_gen,
-    #         scientist_llm_gen_cfg_task_solve=cfg.scientist_llm.gen_cfg.task_solve,
+    #         scientist_llm_gen_cfg_task_gen=scientist_llm_gen_cfg.task_generation,
+    #         scientist_llm_gen_cfg_task_solve=scientist_llm_gen_cfg.task_solve,
     #         solve_sample_tasks=True,
     #         few_shot=cfg.capabilities_cfg.task_gen_few_shot,
     #     )

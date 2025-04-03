@@ -1,10 +1,10 @@
 scientist_llm:
   name: gpt-4o-mini
-  gen_cfg:
-    capability_gen:
+  generation_cfg:
+    capability_generation:
       temperature: 0.7
       max_tokens: 64
-    task_gen:
+    task_generation:
       temperature: 0.7
       max_tokens: 64
     task_solve:
@@ -25,10 +25,17 @@ capabilities_cfg:
   results_dir: gs://ace-artifacts
   inspect_evals_dir: /fs01/projects/aieng/public/ace/inspect_evals/src/ace_evals
   domain: math
+  # Number of seed capabilities to use for initial capability generation
+  # Set to -1 to use all seed capabilities
   num_seed_capabilities: -1
+  # Number of initial capabilities to generate using the scientist LLM
   num_gen_capabilities: 4
+  # Number of initial capabilities to generate per run
   num_gen_capabilities_per_run: 2
+  # Number of tasks to generate for each capability
   num_gen_tasks_per_capability: 1
+  # Set this flag to true to use representative tasks
+  # as few shot examples for task generation
   task_gen_few_shot: true
 
 lbo_cfg:

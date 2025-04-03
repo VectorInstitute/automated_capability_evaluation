@@ -291,18 +291,16 @@ class Capability:
             for task in tasks
             if task["id"] in self.capability_repr_class.repr_tasks()
         ]
-        if len(repr_tasks) > 0:
+        if repr_tasks:
             partial_repr_task_ids = [task["id"] for task in repr_tasks]
-            if len(partial_repr_task_ids) < len(
-                self.capability_repr_class.repr_tasks()
-            ):
-                # Get remaining tasks from existing task list
-                for k, v in self.capability_repr_class.repr_tasks().items():
-                    if k not in partial_repr_task_ids:
-                        repr_task = {"id": k}
-                        repr_task.update(v)
-                        repr_tasks.append(repr_task)
-                repr_tasks.sort(key=lambda x: x["id"])
+            missing_repr_tasks = {
+                k: v
+                for k, v in self.capability_repr_class.repr_tasks().items()
+                if k not in partial_repr_task_ids
+            }
+            for task_id, task_data in missing_repr_tasks.items():
+                repr_tasks.append({"id": task_id, **task_data})
+            repr_tasks.sort(key=lambda x: x["id"])
             # Update the capability class python file
             # Extract str which contains the repr_tasks dictionary
             # TODO: Since these are hardcoded, update when the format changes
