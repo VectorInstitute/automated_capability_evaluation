@@ -1,6 +1,10 @@
 import hydra  # noqa: D100
 from omegaconf import DictConfig
 
+from generate_tasks import (
+    generate_tasks_using_llm,
+)
+
 # from lbo import generate_new_capability
 from model import Model
 from utils.lbo_utils import get_lbo_train_set
@@ -44,8 +48,8 @@ def main(cfg: DictConfig) -> None:
 
     run_id = f"{cfg.scientist_llm.name}_T{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
 
-    # # Initialize the scientist LLM model
-    # scientist_llm = Model(cfg.scientist_llm.name)
+    # Initialize the scientist LLM model
+    scientist_llm = Model(cfg.scientist_llm.name)
 
     # # Stage 1. Generate initial capabilities
     # capabilities = generate_capabilities(
@@ -106,16 +110,16 @@ def main(cfg: DictConfig) -> None:
 
     # TODO: Run this asynchronosly
     for capability in train_capabilities:
-        # # Generate tasks for each capability
-        # generate_tasks_using_llm(
-        #     capability=capability,
-        #     scientist_llm=scientist_llm,
-        #     num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
-        #     scientist_llm_gen_cfg_task_gen=cfg.scientist_llm.gen_cfg.task_gen,
-        #     scientist_llm_gen_cfg_task_solve=cfg.scientist_llm.gen_cfg.task_solve,
-        #     solve_sample_tasks=True,
-        #     few_shot=cfg.capabilities_cfg.task_gen_few_shot,
-        # )
+        # Generate tasks for each capability
+        generate_tasks_using_llm(
+            capability=capability,
+            scientist_llm=scientist_llm,
+            num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
+            scientist_llm_gen_cfg_task_gen=cfg.scientist_llm.gen_cfg.task_gen,
+            scientist_llm_gen_cfg_task_solve=cfg.scientist_llm.gen_cfg.task_solve,
+            solve_sample_tasks=True,
+            few_shot=cfg.capabilities_cfg.task_gen_few_shot,
+        )
         # Evaluate subject LLM on each capability
         capability.evaluate(
             subject_llms=[subject_llm], gen_args=[cfg.subject_llm.gen_cfg]
