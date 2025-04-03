@@ -201,14 +201,12 @@ def transfer_inspect_log_to_gcp(src_dir: str, gcp_dir: str) -> None:
     """
     Transfer the inspect log file from local to GCP bucket.
 
-    This function ensures that the source directory contains only one file
-    and that the file has a .json extension.
-
     Args:
         src_dir (str): The source directory containing the file.
         gcp_dir (str): The destination GCP bucket directory.
     """
     src_files = os.listdir(src_dir)
+    # Ensure the source directory contains only one file
     assert len(src_files) == 1, (
         f"Expected only one file in {src_dir}, but found {len(src_files)} files."
     )

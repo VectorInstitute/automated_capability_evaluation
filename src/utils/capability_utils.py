@@ -108,7 +108,7 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
     Args
     ----
     path : str
-        The path to the evaluation file.
+        The path to the evaluation file for the capability.
     model : Model
         The model object to evaluate.
     log_dir : str

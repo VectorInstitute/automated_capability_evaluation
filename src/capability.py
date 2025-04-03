@@ -546,16 +546,29 @@ class Capability:
             module_name=f"{self.name}_inspect_eval_script", file_path=script_file_path
         )
 
-    def _evaluate_using_inspect(self, subject_llm: Model, **kwargs: Any) -> None:  # noqa: D102
+    def _evaluate_using_inspect(self, subject_llm: Model, **kwargs: Any) -> None:
         """
-        Evaluate subject LLM on the capability using the inspect framework.
+        Evaluate the subject LLM on the capability using the Inspect framework.
 
-        Args
-        ----
-        subject_llm : Model
-            The LLM to use for evaluation.
+        This method uses the Inspect evaluation framework to assess the performance of
+        the provided language model (LLM) on a specific capability. It ensures that the
+        required evaluation files exist, temporarily stores logs locally, and transfers
+        them to a GCP bucket after the evaluation is complete.
+
+        Args:
+            subject_llm (Model): The LLM model to evaluate.
+            **kwargs (Any): Additional args for running the evals.
+
+        Raises
+        ------
+            FileNotFoundError: If the required Inspect evaluation path does not exist.
         """
-        # TODO: Re-run based on output from previous run
+        inspect_path = os.path.join(BASE_INSPECT_EVALS_DIR, self.name)
+        if not os.path.exists(inspect_path):
+            raise FileNotFoundError(
+                f"Inspect evaluation path does not exist: {inspect_path}. "
+                "Please ensure the inspect files are created before evaluation."
+            )
         # Temporarily store the logs locally and then transfer them to the GCP bucket,
         # since Inspect does not support GCP bucket paths for storing logs
         log_dir = os.path.join(
@@ -566,7 +579,7 @@ class Capability:
         )
         os.makedirs(log_dir, exist_ok=True)
 
-        # TODO: Track costs, langsmith doesn't track this
+        # TODO: Track costs, LangSmith doesn't track this
         run_inspect_evals(
             path=self.name,
             model=subject_llm,
@@ -592,6 +605,8 @@ class Capability:
         ----
         subject_llms : List[Model]
             The list of LLMs to use for evaluation.
+        gen_args : List[Dict[Any, Any]]
+            The list of generation configurations corresponding to each LLM.
         """
         assert len(subject_llms) == len(gen_args), (
             "Each subject LLM must have a corresponding generation config."
@@ -601,18 +616,18 @@ class Capability:
         if not os.path.exists(inspect_path):
             os.makedirs(inspect_path)
             self._create_inspect_file(path=inspect_path)
-        # TODO: Run asynchronosly
+
         # Change dir to where inspect eval scrips are stored
-        # because it does not support non-relative paths
+        # because inspect evals does not support non-relative paths
         cwd = os.getcwd()
         os.chdir(BASE_INSPECT_EVALS_DIR)
-        print(os.getcwd())
+        # TODO: Run asynchronosly
         for model_idx, model in enumerate(subject_llms):
             self._evaluate_using_inspect(
                 subject_llm=model,
                 **gen_args[model_idx],
             )
-        # Change back after evaluation
+        # Revert to original working dir after evaluation
         os.chdir(cwd)
 
 
