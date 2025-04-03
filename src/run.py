@@ -1,10 +1,14 @@
-import hydra  # noqa: D100
+import os  # noqa: D100
+
+import hydra
 from omegaconf import DictConfig
 
+from generate_capabilities import _get_previous_capabilities
 from generate_tasks import generate_tasks_using_llm
 
 # from lbo import generate_new_capability
 from model import Model
+from utils.constants import BASE_ARTIFACTS_DIR
 from utils.lbo_utils import get_lbo_train_set
 
 
@@ -64,11 +68,6 @@ def main(cfg: DictConfig) -> None:
     # print(capabilities)
 
     # TODO: Only used for testing, remove this block later ========================
-    import os
-
-    from generate_capabilities import _get_previous_capabilities
-    from utils.constants import BASE_ARTIFACTS_DIR
-
     if cfg.exp_cfg.trial_run:
         # Set the base capability directory
         base_capability_dir = os.path.join(
