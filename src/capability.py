@@ -2,6 +2,7 @@ import importlib  # noqa: D100
 import json
 import os
 import re
+import shutil
 import sys
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
@@ -21,7 +22,12 @@ from src.utils.constants import (
     SEED_CAPABILITIES_SCORE_DIR,
     TAB_W_SPACES,
 )
-from src.utils.data_utils import copy_file, list_dir, load_data, path_exists
+from src.utils.data_utils import (
+    list_dir,
+    load_data,
+    path_exists,
+    transfer_inspect_log_to_gcp,
+)
 from src.utils.prompts import TASK_SOLVER_SYSTEM_PROMPT
 from src.utils.templates import (
     INSPECT_EVALS_INIT_FILE_TEMPLATE,
@@ -559,18 +565,21 @@ class Capability:
             self.name,
         )
         os.makedirs(log_dir, exist_ok=True)
-        output = run_inspect_evals(
+
+        _ = run_inspect_evals(
             path=self.name,
             model=subject_llm,
             log_dir=log_dir,
             **kwargs,
         )
-        print(output)
+
         # Transfer the logs to the GCP bucket
-        copy_file(
-            src=log_dir,
-            dest=log_dir.replace(BASE_ARTIFACTS_DIR, GCP_BASE_ARTIFACTS_DIR),
+        transfer_inspect_log_to_gcp(
+            src_dir=log_dir,
+            gcp_dir=log_dir.replace(BASE_ARTIFACTS_DIR, GCP_BASE_ARTIFACTS_DIR),
         )
+        # Remove the local logs
+        shutil.rmtree(log_dir)
 
     def evaluate(
         self, subject_llms: List[Model], gen_args: List[Dict[Any, Any]]

@@ -195,3 +195,29 @@ def path_exists(path: str) -> bool:
 
     # Check existence in local file system
     return os.path.exists(path)
+
+
+def transfer_inspect_log_to_gcp(src_dir: str, gcp_dir: str) -> None:
+    """
+    Transfer the inspect log file from local to GCP bucket.
+
+    This function ensures that the source directory contains only one file
+    and that the file has a .json extension.
+
+    Args:
+        src_dir (str): The source directory containing the file.
+        gcp_dir (str): The destination GCP bucket directory.
+    """
+    src_files = os.listdir(src_dir)
+    assert len(src_files) == 1, (
+        f"Expected only one file in {src_dir}, but found {len(src_files)} files."
+    )
+    # Ensure the file has a .json extension
+    src_file = src_files[0]
+    if not src_file.endswith(".json"):
+        raise ValueError(f"Expected a .json file, but got: {src_file}")
+
+    # Transfer the file to GCP
+    src_path = os.path.join(src_dir, src_file)
+    dest_path = os.path.join(gcp_dir, src_file)
+    copy_file(src_path, dest_path)
