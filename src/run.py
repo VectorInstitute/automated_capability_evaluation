@@ -120,7 +120,7 @@ def main(cfg: DictConfig) -> None:
         )
         # Evaluate subject LLM on each capability
         capability.evaluate(
-            subject_llms=[subject_llm], gen_args=[cfg.subject_llm.gen_cfg]
+            subject_llms=[subject_llm], gen_args=[cfg.subject_llm.generation_cfg]
         )
 
         # TODO: Only used for testing, remove this block later ==============
