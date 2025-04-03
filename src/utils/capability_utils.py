@@ -5,8 +5,9 @@ It contains utility functions for capabilities.
 """
 
 import json
-import subprocess
 from typing import Any, Dict
+
+from inspect_ai import eval as inspect_eval
 
 from src.model import Model
 from src.utils.data_utils import read_json_file
@@ -100,7 +101,7 @@ def extract_and_parse_response(response: str) -> Dict[str, Any]:
     return {"thought": thought_str, "parsed_response": parsed_response}
 
 
-def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> str:
+def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> None:
     """
     Run the inspect evals command for a given capability and model.
 
@@ -108,36 +109,30 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> s
     ----
     path : str
         The path to the evaluation file.
-    model_name : str
-        The name of the LLM to evaluate.
+    model : Model
+        The model object to evaluate.
+    log_dir : str
+        The directory to store evaluation logs.
     kwargs : Any
         Additional arguments for the command.
 
     Returns
     -------
-    str
-        The output of the inspect evals command.
+    None
     """
     model_name = model.get_model_name(with_provider=True)
-    run_command = ["inspect", "eval", path, "--model", model_name]
-    run_args = []
-
-    # TODO: Add capability and model specific args
-    if "temperature" in kwargs:
-        run_args.extend(["--temperature", str(kwargs["temperature"])])
-    if "max_tokens" in kwargs:
-        run_args.extend(["--max-tokens", str(kwargs["max_tokens"])])
-    run_command.extend(run_args)
-
-    run_command.extend(["--log-dir", log_dir, "--log-format", "json"])
 
     print(f"Running inspect evals for {path} capability using {model_name}")
-
-    result = subprocess.run(
-        run_command,
-        text=True,
-        capture_output=True,
-        check=True,
-    )
-    print(result)
-    return result.stdout
+    eval_log = inspect_eval(
+        tasks=path,
+        model=model_name,
+        log_dir=log_dir,
+        log_format="json",
+        **kwargs,
+    )[0]
+    if eval_log.status == "error":
+        # TODO: Add option to retry with limit
+        raise ValueError(
+            f"Error running inspect evals for {path} capability using {model_name}: {eval_log.error}"
+        )
+    # TODO: Return usage stats if needed

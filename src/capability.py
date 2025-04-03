@@ -566,7 +566,8 @@ class Capability:
         )
         os.makedirs(log_dir, exist_ok=True)
 
-        _ = run_inspect_evals(
+        # TODO: Track costs, langsmith doesn't track this
+        run_inspect_evals(
             path=self.name,
             model=subject_llm,
             log_dir=log_dir,
@@ -602,6 +603,7 @@ class Capability:
             self._create_inspect_file(path=inspect_path)
         # TODO: Run asynchronosly
         # Change dir to where inspect eval scrips are stored
+        # because it does not support non-relative paths
         cwd = os.getcwd()
         os.chdir(BASE_INSPECT_EVALS_DIR)
         print(os.getcwd())
