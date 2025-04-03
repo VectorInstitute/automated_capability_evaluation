@@ -15,7 +15,6 @@ from utils.prompts import (
 def get_task_generation_prompt(
     capability: Capability,
     num_gen_tasks: int,
-    few_shot: bool = False,
     sample_tasks: List[Dict[str, Any]] | None = None,
 ) -> Tuple[str, str]:
     """
@@ -29,7 +28,6 @@ def get_task_generation_prompt(
     ----
         capability (Capability): The capability to generate tasks for.
         num_gen_tasks (int): The number of tasks to generate.
-        few_shot (bool, optional): The few-shot setting. Defaults to False.
         sample_tasks (List[Dict[str, Any]] | None, optional): The sample tasks
             to use. Defaults to None.
 
@@ -37,10 +35,7 @@ def get_task_generation_prompt(
     -------
         Tuple[str, str]: The system and user prompts.
     """
-    assert (few_shot and (sample_tasks is not None)) or (not few_shot), (
-        "Few-shot setting is enabled but no sample tasks are provided."
-    )
-    prompt_type = "few_shot" if few_shot else "zero_shot"
+    prompt_type = "few_shot" if sample_tasks is not None else "zero_shot"
     sys_prompt = TASK_GENERATION_SYSTEM_PROMPT.format(
         zero_or_few_shot_patch=TASK_GENERATION_ZERO_OR_FEW_SHOT_PATCH[prompt_type][
             "sys"
@@ -50,7 +45,7 @@ def get_task_generation_prompt(
     user_zero_or_few_shot_patch = TASK_GENERATION_ZERO_OR_FEW_SHOT_PATCH[prompt_type][
         "user"
     ]
-    if few_shot and sample_tasks is not None:
+    if sample_tasks is not None:
         user_zero_or_few_shot_patch = user_zero_or_few_shot_patch.format(
             capability_sample_tasks=json.dumps(
                 {f"task_{elm['id']}": elm["problem"] for elm in sample_tasks},
@@ -129,8 +124,7 @@ def generate_tasks_using_llm(
     sys_prompt, user_prompt = get_task_generation_prompt(
         capability=capability,
         num_gen_tasks=num_tasks,
-        few_shot=kwargs.get("few_shot", True),
-        sample_tasks=sample_tasks,
+        sample_tasks=sample_tasks if kwargs.get("few_shot", True) else None,
     )
     response, task_gen_metadata = scientist_llm.generate(
         sys_prompt=sys_prompt,
