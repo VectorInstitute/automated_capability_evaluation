@@ -131,13 +131,25 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> s
 
     run_command.extend(["--log-dir", log_dir])
 
-    print(
-        f"Running inspect evals for {path.split('/')[-1]} capability using {model_name}"
-    )
+    print(f"Running inspect evals for {path} capability using {model_name}")
+
+    # slurm_command = [
+    #     "srun",
+    #     "--nodes=1",
+    #     "--ntasks=1",
+    #     "--cpus-per-task=1",
+    #     "--partition=cpu",
+    #     "--mem=16G",
+    #     "--time=01:00:00",
+    #     f"--job-name=ace_inspect_evals_{path.split('/')[-1]}",
+    #     f"--output={log_dir}/slurm-%j.out",
+    #     f"--error={log_dir}/slurm-%j.err"
+    # ] + run_command
     result = subprocess.run(
         run_command,
         text=True,
         capture_output=True,
         check=True,
     )
+    print(result)
     return result.stdout

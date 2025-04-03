@@ -23,7 +23,7 @@ class Capability:
 INSPECT_EVALS_SCRIPT_FILE_TEMPLATE = '''
 from inspect_ai import Task, task
 from inspect_ai.dataset import FieldSpec, json_dataset
-from inspect_ai.scorer import Score, Scorer, Target, accuracy, scorer, stderr
+from inspect_ai.scorer import Score, Scorer, Target, accuracy, scorer, stderr, CORRECT, INCORRECT
 from inspect_ai.solver import TaskState, generate, prompt_template
 
 
@@ -38,10 +38,16 @@ USER_PROMPT_TEMPLATE = """
 @scorer(metrics=[accuracy(), stderr()])
 def custom_scorer() -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
-        return await _score(
+        correct = await _score(
             t={score_func_t_dict_str},
             submission=state.output.completion,
         )
+        return Score(
+            value=CORRECT if correct else INCORRECT,
+            explanation=state.output.completion,
+        )
+
+    return score
 
 
 @task

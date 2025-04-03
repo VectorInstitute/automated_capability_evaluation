@@ -517,8 +517,10 @@ class Capability:
             {"problem": "{prompt}"}
         )
         score_func_prefix = f"@staticmethod\n{TAB_W_SPACES}def score"
-        score_func_prefix_new = score_func_prefix.split(TAB_W_SPACES)[1].replace(
-            "score", "_score"
+        score_func_prefix_new = (
+            f"async {score_func_prefix.split(TAB_W_SPACES)[1]}".replace(
+                "score", "_score"
+            )
         )
         score_func_str = f"{score_func_prefix_new}{self.capability_repr_class_str.split(score_func_prefix)[1].replace((TAB_W_SPACES + TAB_W_SPACES), TAB_W_SPACES)}".strip(
             "`"
@@ -550,7 +552,6 @@ class Capability:
         # TODO: Re-run based on output from previous run
         # Temporarily store the logs locally and then transfer them to the GCP bucket,
         # since Inspect does not support GCP bucket paths for storing logs
-        print(f"Evaluating {subject_llm.get_model_name()} on {self.name} capability")
         log_dir = os.path.join(
             self.score_dir.replace(GCP_BASE_ARTIFACTS_DIR, BASE_ARTIFACTS_DIR),
             subject_llm.get_model_name(),
@@ -559,7 +560,7 @@ class Capability:
         )
         os.makedirs(log_dir, exist_ok=True)
         output = run_inspect_evals(
-            path=os.path.join(BASE_INSPECT_EVALS_DIR, self.name),
+            path=self.name,
             model=subject_llm,
             log_dir=log_dir,
             **kwargs,
@@ -591,11 +592,17 @@ class Capability:
             os.makedirs(inspect_path)
             self._create_inspect_file(path=inspect_path)
         # TODO: Run asynchronosly
+        # Change dir to where inspect eval scrips are stored
+        cwd = os.getcwd()
+        os.chdir(BASE_INSPECT_EVALS_DIR)
+        print(os.getcwd())
         for model_idx, model in enumerate(subject_llms):
             self._evaluate_using_inspect(
                 subject_llm=model,
                 **gen_args[model_idx],
             )
+        # Change back after evaluation
+        os.chdir(cwd)
 
 
 def _import_from_path(module_name: str, file_path: str) -> Any:
