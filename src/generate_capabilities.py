@@ -191,7 +191,7 @@ def generate_capabilities_using_llm(
     print(f"Metadata: {metadata}")
 
     parsed_response = extract_and_parse_response(response)
-    gen_capabilities = parsed_response["capabilities"]
+    gen_capabilities = parsed_response["parsed_response"]
     gen_capabilities = [
         Capability.from_dict(capability_dict=capability, base_dir=base_capability_dir)
         for capability in gen_capabilities

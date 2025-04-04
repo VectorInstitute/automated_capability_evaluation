@@ -1,0 +1,23 @@
+{
+    "capability_name": "math_mathematics_modeling_real_world",
+    "capability_description": "The math_mathematics_modeling_real_world capability consists of 1500 real-world mathematical modeling problems. Each problem requires the application of mathematical concepts to formulate and solve real-life scenarios, emphasizing critical thinking and problem-solving skills.",
+    "capability_domain": "math",
+    "capability_instructions": "f\"\"\"Solve the following real-world modeling problem step by step. The last line of your response should be of the form \"ANSWER: $ANSWER\" (without quotes) where $ANSWER is the answer to the problem.\\n\\nProblem: {t[\"problem\"]}\\n\\nRemember to put your answer on its own line at the end in the form \"ANSWER:$ANSWER\" (without quotes) where $ANSWER is the answer to the problem, and you do not need to use a \\\boxed command.\"\"\"",
+    "capability_data": [
+        {
+            "id": "1",
+            "problem": "A company wants to determine the optimal number of units to produce in order to maximize profit. The profit function is given by P(x) = -2x^2 + 40x - 150, where x is the number of units produced. How many units should the company produce to maximize profit?",
+            "answer": "10"
+        },
+        {
+            "id": "2",
+            "problem": "A farmer has 240 meters of fencing to create a rectangular pen. What dimensions will maximize the area of the pen?",
+            "answer": "60 by 60"
+        },
+        {
+            "id": "3",
+            "problem": "A car rental company charges a flat fee of $50 plus $20 per day. If a customer has a budget of $200, how many days can they rent a car?",
+            "answer": "7"
+        }
+    ]
+}

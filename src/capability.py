@@ -1,17 +1,21 @@
 import importlib  # noqa: D100
 import json
 import os
+import re
 import sys
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from src.model import Model
 from src.utils.capability_utils import parse_python_class_str, read_score_inspect_json
 from src.utils.constants import (
+    NO_ANSWER_STR,
     NON_SEED_CAPABILITIES_SCORE_DIR,
     SEED_CAPABILITIES_SCORE_DIR,
+    TAB_W_SPACES,
 )
 from src.utils.data_utils import load_data
+from src.utils.prompts import TASK_SOLVER_SYSTEM_PROMPT
 
 
 class CapabilitySeedDataset:
@@ -137,7 +141,10 @@ class Capability:
             f"capability_{c_dict['name']}", os.path.join(c_dir, "capability.py")
         )
         c_obj = c_module.Capability()
-        initial_tasks = list(c_obj.repr_tasks().values())
+        initial_tasks = [
+            {"id": k, "problem": v["problem"], "answer": v["answer"]}
+            for k, v in c_obj.repr_tasks().items()
+        ]
         template_instructions = c_obj.get_instructions({"problem": '{t["problem"]}'})
         template_instructions = f'f"""{template_instructions}"""'
 
@@ -163,7 +170,7 @@ class Capability:
         self.domain = _cfg["capability_domain"]
         self.instructions = _cfg["capability_instructions"]
         # TODO: Store data is stored in json or elsewhere?
-        self._data = _cfg["capability_data"]
+        self._data: List[Dict[str, Any]] = _cfg["capability_data"]
         # Check if the capability is a seed capability, use source_dataset as indicator
         self.is_seed = "source_dataset" in _cfg
 
@@ -209,6 +216,114 @@ class Capability:
                 scores_dict[model] = read_score_inspect_json(scores_file)
         return scores_dict
 
+    def get_repr_tasks(self) -> List[Dict[str, Any]]:
+        """
+        Get the representative tasks for the capability.
+
+        Returns
+        -------
+        List[Dict[Any]]: A list of dictionaries containing the representative tasks.
+            Each task dict consists of id, problem, and answer keys.
+        """
+        repr_tasks = []
+        for task_id, task_data in self.capability_repr_class.repr_tasks().items():
+            repr_tasks.append(
+                {
+                    "id": task_id,
+                    "problem": task_data["problem"],
+                    "answer": task_data["answer"],
+                }
+            )
+        return repr_tasks
+
+    def add_and_update_tasks(self, tasks: List[Dict[str, Any]]) -> None:
+        """
+        Add and/or update tasks for the capability.
+
+        Args
+        ----
+            tasks (List[Dict[str, Any]]): A list of dictionaries containing the tasks
+            to be added. Each task dict consists of id, problem, and answer keys.
+        """
+        if not all(
+            "id" in task and "problem" in task and "answer" in task for task in tasks
+        ):
+            raise ValueError(
+                "Each task must contain 'id', 'problem', and 'answer' keys."
+            )
+
+        existing_tasks = self.get_tasks()
+        existing_task_ids = [task["id"] for task in existing_tasks]
+        new_task_ids = [task["id"] for task in tasks]
+        # Keep new task for overlapping tasks
+        # TODO: Add `overwrite` flag to update existing tasks
+        tasks_to_keep = [
+            task
+            for task in existing_tasks
+            if task["id"]
+            not in list(set.intersection(set(existing_task_ids), set(new_task_ids)))
+        ] + tasks
+        # Sort by task id
+        tasks_to_keep.sort(key=lambda x: x["id"])
+
+        # Check if the new task list consists of representative tasks
+        # If yes, update the capability class python file
+        repr_tasks = [
+            task
+            for task in tasks
+            if task["id"] in self.capability_repr_class.repr_tasks()
+        ]
+        if repr_tasks:
+            partial_repr_task_ids = [task["id"] for task in repr_tasks]
+            missing_repr_tasks = {
+                k: v
+                for k, v in self.capability_repr_class.repr_tasks().items()
+                if k not in partial_repr_task_ids
+            }
+            for task_id, task_data in missing_repr_tasks.items():
+                repr_tasks.append({"id": task_id, **task_data})
+            repr_tasks.sort(key=lambda x: x["id"])
+            # Update the capability class python file
+            # Extract str which contains the repr_tasks dictionary
+            # TODO: Since these are hardcoded, update when the format changes
+            prefix_str = f"def repr_tasks() -> dict[str, dict]:\n{TAB_W_SPACES}{TAB_W_SPACES}return "
+            suffix_str = f"\n\n{TAB_W_SPACES}@staticmethod\n{TAB_W_SPACES}def get_instructions(t: dict) -> str:"
+            prev_repr_tasks_str = self.capability_repr_class_str.split(prefix_str)[
+                1
+            ].split(suffix_str)[0]
+            # Restructure to match the original format
+            repr_tasks_dict = {}
+            for elm in repr_tasks:
+                repr_tasks_dict[elm["id"]] = {k: v for k, v in elm.items() if k != "id"}
+            # Replace the repr_tasks dictionary in the capability class string
+            # with the updated one
+            updated_repr_tasks_str = json.dumps(repr_tasks_dict, indent=4)
+            newline = "\n"
+            capability_repr_class_str = self.capability_repr_class_str.lstrip(
+                f"```python{newline}"
+            ).rstrip(f"{newline}```")
+            capability_repr_class_str = capability_repr_class_str.replace(
+                prev_repr_tasks_str,
+                updated_repr_tasks_str,
+            )
+            with open(os.path.join(self.source_dir, "capability.py"), "w") as f:
+                f.write(capability_repr_class_str)
+
+        # Update the capability data in the capability json file
+        c_dict = {
+            "capability_name": self.name,
+            "capability_description": self.description,
+            "capability_domain": self.domain,
+            "capability_instructions": self.instructions,
+            "capability_data": tasks_to_keep,
+        }
+        with open(os.path.join(self.source_dir, "capability.json"), "w") as f:
+            json.dump(c_dict, f, indent=4)
+
+        # Reload the capability class to reflect these changes
+        self._load_capability_json()
+        self._load_capability_repr_class()
+
     def _to_dict(self) -> Dict[str, Any]:
         return {
             "name": self.name,
@@ -251,6 +366,105 @@ class Capability:
         # TODO: Implement capability encoding
         self.encoding = None
         raise NotImplementedError
+
+    def _solve_task(
+        self, task: Dict[str, Any], llm: Model, gen_cfg: Dict[str, Any]
+    ) -> Tuple[str, Dict[str, Any]]:
+        """
+        Solve the task using the given LLM.
+
+        Args
+        ----
+            task (Dict[str, Any]): The task dictionary containing the ID
+            and the problem to solve.
+            llm (Model): The LLM to use for solving the task.
+            gen_cfg (Dict[str, Any]): The generation configuration for the LLM.
+
+        Returns
+        -------
+            Tuple[str, Dict[str, Any]]: A tuple containing the answer as a string
+            and metadata as a dictionary, which includes raw response and
+            input/output tokens.
+        """
+        # Generate answer using the LLM
+        # TODO:
+        #  1. Enable tool use
+        #  2. How to link this function with the Inspect Solver
+        #   to be used in _evaluate_using_inspect()?
+        print(f"Solving task {task['id']} ...")
+        sys_prompt = TASK_SOLVER_SYSTEM_PROMPT.format(
+            capability_name=self.name, capability_domain=self.domain
+        )
+        user_prompt = self.capability_repr_class.get_instructions(task)
+        response, metadata = llm.generate(
+            sys_prompt=sys_prompt,
+            user_prompt=user_prompt,
+            generation_config=gen_cfg,
+        )
+        # Extract answer from response
+        # Borrowed from:
+        # https://github.com/UKGovernmentBEIS/inspect_ai/blob/main/src/inspect_ai/_util/pattern.py#L3
+        # TODO:
+        # 1. Dynamically set pattern based on capability instructions
+        # 2. For some capabilities the reasoning is the answer and the actual answer
+        #   is only a final statement, how to handle this?
+        # 3. How to gracefully handle cases where tokens are insufficient
+        #   and the answer is incomplete?
+        answer_pattern = r"(?i)ANSWER\s*:\s*([^\n]+)"
+        match = re.search(answer_pattern, response)
+        answer = match.group(1) if match else NO_ANSWER_STR
+        metadata = {
+            "raw_response": response,
+            "api_metadata": metadata,
+        }
+        return (answer, metadata)
+
+    def solve_tasks(
+        self, tasks: List[Dict[str, Any]], llm: Model, gen_cfg: Dict[str, Any]
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """
+        Solve the tasks using the given LLM.
+
+        Args
+        ----
+            tasks (List[Dict[str, Any]]): The list of tasks to solve.
+            llm (Model): The LLM to use for solving the tasks.
+            gen_cfg (Dict[str, Any]): The generation configuration for the LLM.
+
+        Returns
+        -------
+            Tuple[List[Dict[str, Any]], Dict[str, Any]]: A tuple containing a list of
+            dictionaries with the solved tasks and a dictionary with metadata
+            for each task.
+        """
+        solved_tasks = []
+        metadata = {}
+        for task in tasks:
+            answer, _metadata = self._solve_task(
+                task=task,
+                llm=llm,
+                gen_cfg=gen_cfg,
+            )
+            solved_tasks.append(
+                {
+                    "id": task["id"],
+                    "problem": task["problem"],
+                    "answer": answer,
+                    "reasoning": _metadata["raw_response"],
+                }
+            )
+            metadata[task["id"]] = _metadata["api_metadata"]
+        return (solved_tasks, metadata)
+
+    def get_tasks(self) -> List[Dict[str, Any]]:
+        """
+        Get the existing tasks for the capability.
+
+        Returns
+        -------
+            List[Dict[str, Any]]: A list of dictionaries containing the tasks.
+        """
+        return self._data
 
     def _create_inspect_file(self) -> None:
         """

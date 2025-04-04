@@ -13,7 +13,7 @@ def get_lbo_train_set(
     train_frac: float,
     min_train_size: int,
     seed: int = 42,
-) -> Tuple[List[str], List[str]]:
+) -> Tuple[List[Any], List[Any]]:
     """
     Create LBO train partition.
 
@@ -24,10 +24,12 @@ def get_lbo_train_set(
         input_data (List[Any]): The input data.
         train_frac (float): The fraction of data to use for training.
         min_train_size (int): The minimum number of training data points.
+        seed (int): The random seed for reproducibility.
 
     Returns
     -------
-        List[str]: The train set.
+        Tuple[List[Any], List[Any]]: A tuple containing the train set
+            and the remaining data.
     """
     random.seed(seed)
 

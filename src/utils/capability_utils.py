@@ -60,7 +60,7 @@ def parse_python_class_str(class_str: str) -> str:
 
 def extract_and_parse_response(response: str) -> Dict[str, Any]:
     """
-    Extract the thought string and capabilities JSON data from the response string.
+    Extract the thought string and response JSON data from the response string.
 
     Args
     ----
@@ -70,8 +70,7 @@ def extract_and_parse_response(response: str) -> Dict[str, Any]:
     -------
         Dict[str, Any]: A dictionary with two keys:
             - "thought" (str): The extracted thought string.
-            - "capabilities" (List[Dict[str, Any]]): A list of parsed
-            JSON objects representing capabilities.
+            - "parsed_response" (List[Any]): A list of parsed JSON objects.
 
     Raises
     ------
@@ -86,13 +85,13 @@ def extract_and_parse_response(response: str) -> Dict[str, Any]:
         raise
 
     try:
-        capabilities_str = response.split("RESPONSE JSON:\n")[1].strip().strip("\n")
-        capabilities_json = json.loads(capabilities_str)
-        capabilities = []
-        for _, capability_dict in capabilities_json["capabilities"].items():
-            capabilities.append(capability_dict)
+        response_str = response.split("RESPONSE JSON:\n")[1].strip().strip("\n")
+        response_json = json.loads(response_str)
+        parsed_response = []
+        for _, v in response_json.items():
+            parsed_response.append(v)
     except (IndexError, json.JSONDecodeError) as e:
         print(f"Error parsing capabilities json: {e}")
         raise
 
-    return {"thought": thought_str, "capabilities": capabilities}
+    return {"thought": thought_str, "parsed_response": parsed_response}
