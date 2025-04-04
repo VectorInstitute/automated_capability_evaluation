@@ -223,7 +223,7 @@ def filter_capabilities(
     -------
         List[Capability]: The list of remaining capabilities.
     """
-    # TODO: Implement capability filtering
+    
     return capabilities
 
 
