@@ -324,15 +324,19 @@ class Capability:
         self._load_capability_json()
         self._load_capability_repr_class()
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self, attribute_names: List[str] | None = None) -> Dict[str, Any]:
+        if attribute_names is None:
+            return {
+                "name": self.name,
+                "description": self.description,
+                "domain": self.domain,
+                "class": self.capability_repr_class_str,
+            }
         return {
-            "name": self.name,
-            "description": self.description,
-            "domain": self.domain,
-            "class": self.capability_repr_class_str,
+            attr: getattr(self, attr) for attr in attribute_names if hasattr(self, attr)
         }
 
-    def to_json_str(self) -> str:
+    def to_json_str(self, attribute_names: List[str] | None = None) -> str:
         """
         Convert the capability to a JSON string.
 
@@ -341,7 +345,7 @@ class Capability:
         str
             A JSON string representation of the capability.
         """
-        return json.dumps(self._to_dict(), indent=4)
+        return json.dumps(self._to_dict(attribute_names), indent=4)
 
     def __str__(self) -> str:
         """
@@ -497,6 +501,26 @@ class Capability:
         # TODO: Run asynchronosly
         for model in subject_llms:
             self._evaluate_using_inspect(model)
+
+    def set_embedding(self, embedding: List[float]) -> None:
+        """
+        Set the embedding for the capability.
+
+        Args
+        ----
+            embedding (List[float]): The embedding to set.
+        """
+        self.embedding = embedding
+
+    def get_embedding(self) -> List[float]:
+        """
+        Get the embedding for the capability.
+
+        Returns
+        -------
+            List[float]: The embedding of the capability.
+        """
+        return self.embedding if hasattr(self, "embedding") else None
 
 
 def _import_from_path(module_name: str, file_path: str) -> Any:

@@ -152,6 +152,16 @@ def test_capability_to_json_str():
     assert "domain" in capability_repr_json
     assert "class" in capability_repr_json
 
+    # Choose some of the attributes to represent.
+    partial_capability_repr_json_str = capability.to_json_str(
+        attribute_names=["name", "description"]
+    )
+    partial_capability_repr_json = json.loads(partial_capability_repr_json_str)
+    assert "name" in partial_capability_repr_json
+    assert "description" in partial_capability_repr_json
+    assert "domain" not in partial_capability_repr_json
+    assert "class" not in partial_capability_repr_json
+
 
 def test_capability_load_scores():
     """

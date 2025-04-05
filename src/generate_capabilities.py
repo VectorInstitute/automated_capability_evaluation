@@ -4,12 +4,14 @@ import random
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
-from capability import Capability
-from model import Model
-from utils.capability_utils import extract_and_parse_response
-from utils.constants import BASE_ARTIFACTS_DIR
-from utils.prompts import (
+from src.capability import Capability
+from src.generate_embeddings import EmbeddingGenerator, EmbeddingModelName
+from src.model import Model
+from src.utils.capability_utils import extract_and_parse_response
+from src.utils.constants import BASE_ARTIFACTS_DIR
+from src.utils.prompts import (
     CAPABILITY_GENERATION_SYSTEM_PROMPT,
     CAPABILITY_GENERATION_USER_PROMPT,
 )
@@ -207,8 +209,19 @@ def generate_capabilities_using_llm(
     }
 
 
+def score_capability(capability: Capability) -> float:
+    # TODO: Improve this.
+    # Heuristic: longer description
+    description_length = len(capability.description)
+    # Heuristic: domain bonus (not implemented)
+    # domain_bonus = 10 if capability.domain not in {"", None, "general"} else 0
+    # description_length + domain_bonus
+    return description_length
+
+
 def filter_capabilities(
     capabilities: List[Capability],
+    similarity_threshold: float = 0.85,
 ) -> List[Capability]:
     """
     Filter capabilities based on multiple criterion.
@@ -223,8 +236,48 @@ def filter_capabilities(
     -------
         List[Capability]: The list of remaining capabilities.
     """
-    
-    return capabilities
+    embedding_generator = EmbeddingGenerator(
+        model_name=EmbeddingModelName.text_embedding_3_small,
+        embed_dimensions=512,
+    )
+    # Generate embeddings for the capabilities, all at the same time.
+    embeddings = embedding_generator.generate_embeddings(
+        texts=[
+            capability.to_json_str(attribute_names=["name", "description", "domain"])
+            for capability in capabilities
+        ]
+    )
+    # Set embeddings for capabilities.
+    for i, capability in enumerate(capabilities):
+        capability.set_embedding(embeddings[i])
+
+    # Remove capabilities with close embeddings.
+    embeddings_array = np.array(embeddings)
+    similarity_matrix = cosine_similarity(embeddings_array)
+    # Track which capabilities to keep
+    keep_indices = []
+    removed_indices = set()
+
+    # O(n^2) complexity, we can use a more efficient algorithm for more capabilities.
+    for i in range(len(capabilities)):
+        if i in removed_indices:
+            continue
+        keep_indices.append(i)
+        for j in range(i + 1, len(capabilities)):
+            if j in removed_indices:
+                continue
+            # If capabilities have similar embeddings, remove the one with lower score.
+            if similarity_matrix[i][j] >= similarity_threshold:
+                score_i = score_capability(capabilities[i])
+                score_j = score_capability(capabilities[j])
+                if score_j > score_i:
+                    removed_indices.add(i)
+                    break  # Don't compare i with more elements, it's already removed
+                removed_indices.add(j)
+
+    filtered_capabilities = [capabilities[i] for i in keep_indices]
+
+    return filtered_capabilities
 
 
 def generate_capabilities(
