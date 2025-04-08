@@ -1,13 +1,12 @@
 import os  # noqa: D100
 
 import hydra
-from omegaconf import DictConfig
-
 from generate_capabilities import _get_previous_capabilities
 from generate_tasks import generate_tasks_using_llm
 
 # from lbo import generate_new_capability
 from model import Model
+from omegaconf import DictConfig
 from utils.constants import BASE_ARTIFACTS_DIR
 from utils.lbo_utils import get_lbo_train_set
 
@@ -25,9 +24,7 @@ def check_cfg(cfg: DictConfig) -> None:
     assert (
         cfg.capabilities_cfg.num_gen_capabilities
         >= cfg.capabilities_cfg.num_gen_capabilities_per_run
-    ), (
-        "The total number of capabilities to generate must be greater than or equal to the number of capabilities to generate per run."
-    )
+    ), "The total number of capabilities to generate must be greater than or equal to the number of capabilities to generate per run."
     # log warning
     rem_c = (
         cfg.capabilities_cfg.num_gen_capabilities

@@ -5,11 +5,11 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-from capability import Capability
-from model import Model
-from utils.capability_utils import extract_and_parse_response
-from utils.constants import BASE_ARTIFACTS_DIR
-from utils.prompts import (
+from src.capability import Capability
+from src.model import Model
+from src.utils.capability_utils import extract_and_parse_response
+from src.utils.constants import BASE_ARTIFACTS_DIR
+from src.utils.prompts import (
     CAPABILITY_GENERATION_SYSTEM_PROMPT,
     CAPABILITY_GENERATION_USER_PROMPT,
 )
@@ -51,13 +51,13 @@ def _sample_seed_capabilities(
 
     # Force include some capabilities
     if include_capability_names is not None:
-        assert (
-            num_seed_capabilities >= len(include_capability_names)
-        ), "Number of seed capabilities is less than the number of capabilities to include."
+        assert num_seed_capabilities >= len(include_capability_names), (
+            "Number of seed capabilities is less than the number of capabilities to include."
+        )
         for capability_name in include_capability_names:
-            assert os.path.exists(
-                os.path.join(seed_capability_dir, capability_name)
-            ), f"{capability_name} does not exist in {seed_capability_dir}."
+            assert os.path.exists(os.path.join(seed_capability_dir, capability_name)), (
+                f"{capability_name} does not exist in {seed_capability_dir}."
+            )
             capability = Capability(os.path.join(seed_capability_dir, capability_name))
             sampled_seed_capabilities.append(capability)
             all_seed_capability_paths.remove(capability_name)

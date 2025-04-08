@@ -1,6 +1,9 @@
+"""Unit tests for the LBO module."""
+
+import gpytorch
 import pytest
 import torch
-import gpytorch
+
 from src.lbo import LBO  # Import the LBO class
 
 
@@ -59,9 +62,9 @@ def test_select_next_point(test_data):
     _, _, x_candidates, lbo = test_data
     idx, selected_x = lbo.select_next_point(x_candidates)
     assert 0 <= idx < x_candidates.shape[0], "Index should be within candidates."
-    assert torch.any(
-        torch.all(x_candidates == selected_x, dim=1)
-    ), "Selected point must be from the candidate set."
+    assert torch.any(torch.all(x_candidates == selected_x, dim=1)), (
+        "Selected point must be from the candidate set."
+    )
 
 
 def test_update_model(test_data):
