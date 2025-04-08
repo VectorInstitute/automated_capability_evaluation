@@ -9,10 +9,16 @@ from src.capability import Capability
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class GPModel(gpytorch.models.ExactGP):
+class GPModel(gpytorch.models.ExactGP):  # type: ignore
     """A Gaussian Process regression model using an RBF kernel."""
 
-    def __init__(self, train_x, train_y, likelihood, input_dim):
+    def __init__(
+        self,
+        train_x: torch.Tensor,
+        train_y: torch.Tensor,
+        likelihood: gpytorch.likelihoods.Likelihood,
+        input_dim: int,
+    ):
         super().__init__(train_x.to(device), train_y.to(device), likelihood)
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.ScaleKernel(
@@ -20,7 +26,7 @@ class GPModel(gpytorch.models.ExactGP):
         )
         self.to(device)
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> gpytorch.distributions.MultivariateNormal:
         """
         Compute the GP prior/posterior distribution at input x.
 
@@ -51,12 +57,12 @@ class LBO:
 
     def __init__(
         self,
-        x_train,
-        y_train,
-        acquisition_function,
-        num_gp_train_iterations=50,
-        optimizer_lr=0.1,
-    ) -> None:
+        x_train: torch.Tensor,
+        y_train: torch.Tensor,
+        acquisition_function: str,
+        num_gp_train_iterations: int = 50,
+        optimizer_lr: float = 0.1,
+    ):
         """Initialize the LBO parameters."""
         # x_train shape is [N, d].
         self.input_dim = x_train.shape[1]
@@ -69,7 +75,7 @@ class LBO:
         self.likelihood = self.likelihood.to(device)
         self.model = self._train_gp()
 
-    def _train_gp(self):
+    def _train_gp(self) -> GPModel:
         model = GPModel(self.x_train, self.y_train, self.likelihood, self.input_dim)
         model.train()
         self.likelihood.train()
@@ -87,7 +93,9 @@ class LBO:
         self.likelihood.eval()
         return model
 
-    def select_next_point(self, x_query):
+    def select_next_point(
+        self, x_query: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Select the next query point from x_query."""
         x_query = x_query.to(device)
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
@@ -223,7 +231,7 @@ def generate_capability_using_lbo(
     acquisition_function: str = "variance",
     decoder: Any = None,
     capabilities_pool: List[Capability] | None = None,
-) -> Capability:
+) -> Capability | None:
     """
     Generate a new capability using the LBO method.
 
@@ -317,13 +325,15 @@ def generate_capability_using_lbo(
     # else:
     #     raise ValueError(f"Unsupported pipeline id: {pipeline_id}")
 
+    return None
+
 
 def generate_new_capability(
     capabilities: List[Capability],
     subject_llm_name: str,
     capabilities_pool: List[Capability] | None = None,
     **kwargs: Any,
-) -> Capability:
+) -> Capability | None:
     """
     Generate a new capability.
 
