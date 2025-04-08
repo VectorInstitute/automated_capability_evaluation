@@ -368,9 +368,9 @@ def generate_new_capability(
 
     pipeline_id = kwargs.get("pipeline_id", "nearest_neighbour")
     if pipeline_id == "nearest_neighbour":
-        assert (
-            capabilities_pool is not None
-        ), "Pool of existing capabilities is not provided"
+        assert capabilities_pool is not None, (
+            "Pool of existing capabilities is not provided"
+        )
         decoder = None
     elif pipeline_id == "discover_new":
         # TODO: Set the decoder model

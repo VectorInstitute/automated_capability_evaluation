@@ -51,13 +51,13 @@ def _sample_seed_capabilities(
 
     # Force include some capabilities
     if include_capability_names is not None:
-        assert (
-            num_seed_capabilities >= len(include_capability_names)
-        ), "Number of seed capabilities is less than the number of capabilities to include."
+        assert num_seed_capabilities >= len(include_capability_names), (
+            "Number of seed capabilities is less than the number of capabilities to include."
+        )
         for capability_name in include_capability_names:
-            assert os.path.exists(
-                os.path.join(seed_capability_dir, capability_name)
-            ), f"{capability_name} does not exist in {seed_capability_dir}."
+            assert os.path.exists(os.path.join(seed_capability_dir, capability_name)), (
+                f"{capability_name} does not exist in {seed_capability_dir}."
+            )
             capability = Capability(os.path.join(seed_capability_dir, capability_name))
             sampled_seed_capabilities.append(capability)
             all_seed_capability_paths.remove(capability_name)

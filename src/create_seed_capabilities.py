@@ -5,8 +5,9 @@ from collections import defaultdict
 from typing import Any, Dict, List
 
 import hydra  # noqa: D100
-from capability import CapabilitySeedDataset
 from omegaconf import DictConfig
+
+from capability import CapabilitySeedDataset
 from utils.constants import GSM8K_SCORE_FUNC
 from utils.templates import CAPABILITY_CLASS_TEMPLATE
 
