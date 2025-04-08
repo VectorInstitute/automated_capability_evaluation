@@ -2,9 +2,9 @@ from typing import Any, List, Tuple  # noqa: D100
 
 import gpytorch
 import torch
-from src.capability import Capability
 
 from src.capability import Capability
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -36,20 +36,6 @@ class GPModel(gpytorch.models.ExactGP):
             and covariance.
         """
         x = x.to(device)
-        mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x)
-        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
-
-
-class LBO:
-    """A class used to represent the Latent Bayesian Optimization (LBO) model.
-
-    The current implementation works with a finite set of candidate points for active
-    learning. In the future we will change that to support active choice of query
-    points.
-    """
-
-    def forward(self, x):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
