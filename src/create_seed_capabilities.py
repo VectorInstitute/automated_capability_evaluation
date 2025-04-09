@@ -8,7 +8,7 @@ import hydra  # noqa: D100
 from omegaconf import DictConfig
 
 from capability import CapabilitySeedDataset
-from utils.constants import GSM8K_SCORE_FUNC
+from utils.constants import DATASET_NAME_MAP, GSM8K_SCORE_FUNC, MATHEMATICS_SCORE_FUNC
 from utils.templates import CAPABILITY_CLASS_TEMPLATE
 
 
@@ -188,7 +188,7 @@ def main(cfg: DictConfig) -> None:
             for task in dataset._data:
                 subject = task["type"].lower()
                 capability_name = (
-                    f"{dataset.domain}_{dataset.name}_{'_'.join(subject.split(' '))}"
+                    f"{DATASET_NAME_MAP[dataset.name]}_{'_'.join(subject.split(' '))}"
                 )
                 if capability_name not in capabilities:
                     capabilities[capability_name] = defaultdict()
@@ -229,16 +229,14 @@ def main(cfg: DictConfig) -> None:
                     capability_data=math_tasks["tasks"],
                     capability_repr_tasks=capability_repr_tasks,
                     capability_instructions=capability_instructions,
-                    capability_score_func=GSM8K_SCORE_FUNC.strip(
-                        "\n"
-                    ),  # TODO: Change this to MATHEMATICS_SCORE_FUNC after figuring out how to implement complex score functions
+                    capability_score_func=MATHEMATICS_SCORE_FUNC.strip("\n"),
                     source_dataset=dataset.name,
                 )
                 print(
                     f"Created capability {capability_name} with {len(math_tasks['tasks'])} tasks."
                 )
         elif dataset.name == "gsm8k":
-            capability_name = f"{dataset.domain}_{dataset.name}"
+            capability_name = f"{DATASET_NAME_MAP[dataset.name]}"
             gsm_tasks = []
             for task in dataset._data:
                 task["solution"] = task["answer"]
