@@ -1,7 +1,6 @@
 import importlib  # noqa: D100
 import json
 import os
-import re
 import shutil
 import sys
 from collections import defaultdict
@@ -10,6 +9,7 @@ from typing import Any, Dict, List, Tuple
 from src.model import Model
 from src.utils.capability_utils import (
     parse_python_class_str,
+    parse_submission,
     read_score_inspect_json,
     run_inspect_evals,
 )
@@ -17,7 +17,6 @@ from src.utils.constants import (
     BASE_ARTIFACTS_DIR,
     BASE_INSPECT_EVALS_DIR,
     GCP_BASE_ARTIFACTS_DIR,
-    NO_ANSWER_STR,
     NON_SEED_CAPABILITIES_SCORE_DIR,
     SEED_CAPABILITIES_SCORE_DIR,
     TAB_W_SPACES,
@@ -372,6 +371,17 @@ class Capability:
         """
         return self.to_json_str()
 
+    def __repr__(self) -> str:
+        """
+        Return a JSON string representation of the capability.
+
+        Returns
+        -------
+        str
+            A JSON string representation of the capability.
+        """
+        return self.to_json_str()
+
     def encode(self, encoder_model: Any) -> None:
         """
         Encode the capability using the provided encoder model.
@@ -428,9 +438,7 @@ class Capability:
         #   is only a final statement, how to handle this?
         # 3. How to gracefully handle cases where tokens are insufficient
         #   and the answer is incomplete?
-        answer_pattern = r"(?i)ANSWER\s*:\s*([^\n]+)"
-        match = re.search(answer_pattern, response)
-        answer = match.group(1) if match else NO_ANSWER_STR
+        answer = parse_submission(response)
         metadata = {
             "raw_response": response,
             "api_metadata": metadata,

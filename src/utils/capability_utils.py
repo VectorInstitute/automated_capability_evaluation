@@ -5,13 +5,19 @@ It contains utility functions for capabilities.
 """
 
 import json
+import re
 from typing import Any, Dict
 
 from inspect_ai import eval as inspect_eval
+from inspect_ai.model import GenerateConfig as InspectGenerateConfig
+from inspect_ai.model import Model as InspectModel
+from inspect_ai.model import get_model
 from langsmith import traceable
 
 from src.model import Model
+from src.utils.constants import DEFAULT_INSPECT_GRADER_MODEL
 from src.utils.data_utils import read_json_file
+from src.utils.prompts import LLM_JUDGE_PROMPT
 
 
 CAPABILITY_SCORER_MAP = {
@@ -170,3 +176,60 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
         raise ValueError(
             f"Error running inspect evals for {path} capability using {model_name}: {eval_log.error}"
         )
+
+
+def parse_submission(submission: str) -> str:
+    """
+    Parse the submission string to extract the answer based on the "ANSWER" keyword.
+
+    This function is used in the capability class score method.
+
+    Args
+    ----
+        submission (str): The submission string to parse.
+
+    Returns
+    -------
+        str: The extracted answer from the submission, or an empty string
+            if no match is found.
+    """
+    answer_pattern = r"(?i)ANSWER\s*:\s*([^\n]+)"
+    match = re.search(answer_pattern, submission)
+    return match.group(1) if match else ""
+
+
+async def evaluate_with_llm_judge(
+    submission: str,
+    target: str,
+    llm_model: str | InspectModel = DEFAULT_INSPECT_GRADER_MODEL,
+    **kwargs: Any,
+) -> bool:
+    """
+    Evaluate the submission using an LLM judge.
+
+    This function uses the LLM judge to determine if
+    the submission aligns with the target.
+
+    Args
+    ----
+        submission (str): The submission string to evaluate.
+        target (str): The target answer string.
+        llm_model (str | InspectModel): The LLM model to use for evaluation.
+        **kwargs: Additional arguments for the LLM model.
+
+    Returns
+    -------
+        bool: True if the submission is correct, False otherwise.
+    """
+    prompt = LLM_JUDGE_PROMPT.format(
+        submission=submission,
+        target=target,
+    )
+    result = await get_model(llm_model).generate(
+        input=prompt,
+        config=InspectGenerateConfig(
+            temperature=kwargs.get("temperature"),
+            max_tokens=kwargs.get("max_tokens"),
+        ),
+    )
+    return bool(result.completion.lower() == "yes")
