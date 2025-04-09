@@ -19,6 +19,7 @@ def _sample_seed_capabilities(
     seed_capability_dir: str,
     num_seed_capabilities: int = -1,
     include_capability_names: List[str] | None = None,
+    exclude_capability_names: List[str] | None = None,
     random_seed: int = 42,
 ) -> List[Capability]:
     """
@@ -33,6 +34,8 @@ def _sample_seed_capabilities(
         num_seed_capabilities (int): The number of seed capabilities to sample.
         include_capability_names (List[str] | None): A list of
             capability names to include.
+        exclude_capability_names (List[str] | None): A list of
+            capability names to exclude.
         random_seed (int): The seed for the random number generator.
 
     Returns
@@ -43,6 +46,25 @@ def _sample_seed_capabilities(
 
     sampled_seed_capabilities = []
     all_seed_capability_paths = os.listdir(seed_capability_dir)
+
+    if exclude_capability_names is not None:
+        assert num_seed_capabilities != -1, (
+            "Number of seed capabilities should be specified when excluding capabilities."
+        )
+        assert len(exclude_capability_names) < len(all_seed_capability_paths), (
+            "Number of excluded capabilities should be less than the total number of seed capabilities."
+        )
+        assert (
+            len(all_seed_capability_paths) - len(exclude_capability_names)
+        ) >= num_seed_capabilities, (
+            "Number of remaining seed capabilities should be greater than or equal to the number of seed capabilities to sample."
+        )
+        # Remove the excluded capabilities from the list
+        all_seed_capability_paths = [
+            path
+            for path in all_seed_capability_paths
+            if path not in exclude_capability_names
+        ]
 
     # Select all capabilities if num_seed_capabilities is -1
     if num_seed_capabilities == -1:
@@ -126,6 +148,7 @@ def generate_capabilities_using_llm(
     scientist_llm_gen_cfg: Dict[str, Any],
     base_capability_dir: str,
     include_seed_capability_names: Optional[List[str]] = None,
+    exclude_seed_capability_names: Optional[List[str]] = None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """
@@ -151,6 +174,8 @@ def generate_capabilities_using_llm(
             the generated capabilities for the specified domain.
         include_seed_capability_names (List[str] | None): A list of seed capability
             names to include in the generation process.
+        exclude_seed_capability_names (List[str] | None): A list of seed capability
+            names to exclude from the generation process.
         **kwargs (Any): Additional keyword arguments.
 
     Returns
@@ -160,10 +185,19 @@ def generate_capabilities_using_llm(
     """
     # Select seed capabilities
     seed_capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "seed_capabilities", domain)
+    # Add all seed capabilities to the list of prev_capabilities
+    prev_capabilities.extend(
+        _sample_seed_capabilities(
+            seed_capability_dir=seed_capability_dir,
+            num_seed_capabilities=-1,
+        )
+    )
+    # Sample seed capabilities for the generation process
     seed_capabilities = _sample_seed_capabilities(
         seed_capability_dir=seed_capability_dir,
         num_seed_capabilities=num_seed_capabilities,
         include_capability_names=include_seed_capability_names,
+        exclude_capability_names=exclude_seed_capability_names,
     )
     # Get capability JSON strings (without scores)
     seed_capabilities_repr = [
@@ -172,7 +206,7 @@ def generate_capabilities_using_llm(
 
     # LLM input
     user_prompt = user_prompt.format(
-        seed_capabilities="\n".join(seed_capabilities_repr),
+        sample_capability_json="\n".join(seed_capabilities_repr),
         prev_capabilities="\n".join([elm.name for elm in prev_capabilities]),
         domain=domain,
         num_gen_capabilities=num_capabilities,
@@ -235,6 +269,7 @@ def generate_capabilities(
     num_seed_capabilities: int,
     scientist_llm_gen_cfg: Dict[str, Any],
     include_seed_capability_names: Optional[List[str]] = None,
+    exclude_seed_capability_names: Optional[List[str]] = None,
     **kwargs: Any,
 ) -> List[Capability]:
     """
@@ -251,6 +286,8 @@ def generate_capabilities(
             for the scientist LLM.
         include_seed_capability_names (List[str] | None): A list of seed capability
             names to include in the generation process.
+        exclude_seed_capability_names (List[str] | None): A list of seed capability
+            names to exclude from the generation process.
 
     Returns
     -------
@@ -286,6 +323,7 @@ def generate_capabilities(
             scientist_llm_gen_cfg=scientist_llm_gen_cfg,
             base_capability_dir=base_capability_dir,
             include_seed_capability_names=include_seed_capability_names,
+            exclude_seed_capability_names=exclude_seed_capability_names,
             **kwargs,
         )
         gen_capabilities.extend(response["capabilities"])

@@ -27,9 +27,9 @@ capabilities_cfg:
   domain: math
   # Number of seed capabilities to use for initial capability generation
   # Set to -1 to use all seed capabilities
-  num_seed_capabilities: -1
+  num_seed_capabilities: 1
   # Number of initial capabilities to generate using the scientist LLM
-  num_gen_capabilities: 4
+  num_gen_capabilities: 2
   # Number of initial capabilities to generate per run
   num_gen_capabilities_per_run: 2
   # Number of tasks to generate for each capability
