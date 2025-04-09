@@ -105,6 +105,12 @@ def main(cfg: DictConfig) -> None:
 
     # Initialize the subject LLM model
     subject_llm = Model(cfg.subject_llm.name)
+    subject_llm_gen_cfg = dict(cfg.subject_llm.generation_cfg)
+    subject_llm_gen_cfg.update(
+        {
+            "limit": cfg.capabilities_cfg.num_eval_tasks_per_capability,
+        }
+    )
 
     # TODO: Run this asynchronosly
     for capability in train_capabilities:
@@ -119,9 +125,7 @@ def main(cfg: DictConfig) -> None:
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
         )
         # Evaluate subject LLM on each capability
-        capability.evaluate(
-            subject_llms=[subject_llm], gen_args=[cfg.subject_llm.generation_cfg]
-        )
+        capability.evaluate([subject_llm], [subject_llm_gen_cfg])
 
         # TODO: Only used for testing, remove this block later ==============
         if cfg.exp_cfg.trial_run:
@@ -150,7 +154,7 @@ def main(cfg: DictConfig) -> None:
     #         few_shot=cfg.capabilities_cfg.task_gen_few_shot,
     #     )
     #     # Evaluate subject LLM on new capability
-    #     new_capability.evaluate([subject_llm])
+    #     new_capability.evaluate([subject_llm], [subject_llm_gen_cfg])
     #     # Add new capability to train capabilities list
     #     train_capabilities.append(new_capability)
     #     # Remove new capability from candidate capabilities

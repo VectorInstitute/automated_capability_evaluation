@@ -37,6 +37,9 @@ capabilities_cfg:
   # Set this flag to true to use representative tasks
   # as few shot examples for task generation
   task_gen_few_shot: true
+  # Number of tasks to evaluate for each capability
+  # Set to -1 to evaluate all tasks
+  num_eval_tasks_per_capability: 1
 
 lbo_cfg:
   # Number of capabilities to generate using LBO
