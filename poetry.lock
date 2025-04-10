@@ -5729,6 +5729,28 @@ socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
 zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
+name = "vec-inf"
+version = "0.5.0"
+description = "Efficient LLM inference on Slurm clusters using vLLM."
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "vec_inf-0.5.0-py3-none-any.whl", hash = "sha256:b5a1d50cc21e3f8556b5bf01e8ede9e9230f010ddb7e66677b704080c2e32052"},
+    {file = "vec_inf-0.5.0.tar.gz", hash = "sha256:1b944f12679de386bfd694ca9db96f1acda4ef15fff0a4018cb19342b6b23b80"},
+]
+
+[package.dependencies]
+click = ">=8.1.0"
+pydantic = ">=2.10.6"
+pyyaml = ">=6.0.2"
+requests = ">=2.31.0"
+rich = ">=13.7.0"
+
+[package.extras]
+dev = ["cupy-cuda12x (==12.1.0)", "ray (>=2.40.0)", "torch (>=2.5.1)", "vllm (>=0.7.3)", "vllm-nccl-cu12 (>=2.18,<2.19)", "xgrammar (>=0.1.11)"]
+
+[[package]]
 name = "virtualenv"
 version = "20.27.0"
 description = "Virtual Python Environment builder"
@@ -6228,4 +6250,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10, <3.13"
-content-hash = "c3df77d0957fe37f3708cff32925af0afba35e9b4c9742d4d0ebbdea566c855d"
+content-hash = "f9a6d83abbf546ee7604053aaf863d1eb116a5b316bf050d705a29c71044c0ee"
