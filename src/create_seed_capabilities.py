@@ -1,6 +1,7 @@
 import json  # noqa: D100
 import os
 import random
+import shutil
 from collections import defaultdict
 from typing import Any, Dict, List
 
@@ -63,6 +64,16 @@ def populate_seed_capability_dir(
         capability_json.update({"capability_subject": capability_subject})
     with open(os.path.join(capability_dir, "capability.json"), "w") as f:
         json.dump(capability_json, f, indent=4)
+
+    # Create capability utils file, which includes utils for evaluation
+    # Copy the contents of `utils/inspect_eval_utils.py` here
+    shutil.copyfile(
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "utils/inspect_eval_utils.py",
+        ),
+        os.path.join(capability_dir, "utils.py"),
+    )
 
     # Create capability python file
     capability_tasks_dict = {

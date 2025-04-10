@@ -153,6 +153,16 @@ class Capability:
             )
         os.makedirs(c_dir, exist_ok=False)
 
+        # Create capability utils file, which includes utils for evaluation
+        # Copy the contents of `utils/inspect_eval_utils.py` here
+        shutil.copyfile(
+            os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "utils/inspect_eval_utils.py",
+            ),
+            os.path.join(c_dir, "utils.py"),
+        )
+
         # Extract instructions and tasks from the capability python class
         python_class_str = parse_python_class_str(c_dict.pop("class"))
         with open(os.path.join(c_dir, "capability.py"), "w") as f:
