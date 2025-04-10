@@ -3,9 +3,10 @@ import os  # noqa: D100
 import hydra
 from omegaconf import DictConfig
 
+from generate_capabilities import _get_previous_capabilities
+
 # from lbo import generate_new_capability
 from model import Model
-from utils.capability_utils import _get_previous_capabilities
 from utils.constants import BASE_ARTIFACTS_DIR
 from utils.lbo_utils import get_lbo_train_set
 
@@ -128,7 +129,7 @@ def main(cfg: DictConfig) -> None:
             subject_llms=[subject_llm],
             gen_args=[subject_llm_gen_cfg],
             judge_llm=scientist_llm,  # Use scientist LLM as judge
-            judge_gen_cfg=scientist_llm_gen_cfg.judge_llm,
+            judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
         )
 
         # TODO: Only used for testing, remove this block later ==============
@@ -162,7 +163,7 @@ def main(cfg: DictConfig) -> None:
     #         subject_llms=[subject_llm],
     #         gen_args=[subject_llm_gen_cfg],
     #         judge_llm=scientist_llm, # Use scientist LLM as judge
-    #         judge_gen_cfg=scientist_llm_gen_cfg.judge_llm,
+    #         judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
     #     )
     #     # Add new capability to train capabilities list
     #     train_capabilities.append(new_capability)

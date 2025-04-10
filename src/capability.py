@@ -554,12 +554,12 @@ class Capability:
         if judge_llm is not None:
             utils_file_contents = utils_file_contents.replace(
                 'INSPECT_JUDGE_LLM = "openai/gpt-4o-mini"',
-                f"INSPECT_JUDGE_LLM = {judge_llm.get_model_name(with_provider=True)}",
+                f'INSPECT_JUDGE_LLM = "{judge_llm.get_model_name(with_provider=True)}"',
             )
         if judge_llm_gen_args is not None:
             utils_file_contents = utils_file_contents.replace(
                 "INSPECT_JUDGE_LLM_GEN_CONFIG: Dict[str, Any] = {}",
-                f"INSPECT_JUDGE_LLM_GEN_CONFIG: Dict[str, Any] = {json.dumps(judge_llm_gen_args, indent=0)}",
+                f"INSPECT_JUDGE_LLM_GEN_CONFIG: Dict[str, Any] = {json.dumps(judge_llm_gen_args, indent=4)}",
             )
         # Write the modified content to the local utils.py file
         with open(os.path.join(path, "utils.py"), "w") as f:
@@ -584,6 +584,10 @@ class Capability:
         score_func_str = score_func_str.replace(
             "correct = evaluate_with_llm_judge",
             "correct = await evaluate_with_llm_judge",
+        )
+        # Add source folder to the import path
+        score_func_str = score_func_str.replace(
+            "from .utils", f"from {self.name}.utils"
         )
         script_file_content = INSPECT_EVALS_SCRIPT_FILE_TEMPLATE.format(
             capability_name=self.name,
@@ -679,9 +683,11 @@ class Capability:
             )
 
         # Change dir to where inspect eval scrips are stored
-        # because inspect evals does not support non-relative paths
+        # because inspect evals does not support non-relative paths.
+        # Additionally, add this path to sys.path to enable imports
         cwd = os.getcwd()
         os.chdir(BASE_INSPECT_EVALS_DIR)
+        sys.path.append(BASE_INSPECT_EVALS_DIR)
         # TODO: Run asynchronosly
         for model_idx, model in enumerate(subject_llms):
             self._evaluate_using_inspect(
@@ -689,6 +695,8 @@ class Capability:
                 **gen_args[model_idx],
             )
         # Revert to original working dir after evaluation
+        # and remove the inspect evals path from sys.path
+        sys.path.remove(BASE_INSPECT_EVALS_DIR)
         os.chdir(cwd)
 
 
