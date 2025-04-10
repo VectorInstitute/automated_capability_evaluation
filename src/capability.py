@@ -570,6 +570,7 @@ class Capability:
         instruction_template = self.capability_repr_class.get_instructions(
             {"problem": "{prompt}"}
         )
+        # Add `async` to the score function
         score_func_prefix = f"@staticmethod\n{TAB_W_SPACES}def score"
         score_func_prefix_new = (
             f"async {score_func_prefix.split(TAB_W_SPACES)[1]}".replace(
@@ -579,6 +580,11 @@ class Capability:
         score_func_str = f"{score_func_prefix_new}{self.capability_repr_class_str.split(score_func_prefix)[1].replace((TAB_W_SPACES + TAB_W_SPACES), TAB_W_SPACES)}".strip(
             "`"
         ).strip("\n")
+        # Add `await` while calling `evaluate_with_llm_judge`
+        score_func_str = score_func_str.replace(
+            "correct = evaluate_with_llm_judge",
+            "correct = await evaluate_with_llm_judge",
+        )
         script_file_content = INSPECT_EVALS_SCRIPT_FILE_TEMPLATE.format(
             capability_name=self.name,
             dataset_metadata_keys=json.dumps(dataset_metadata_keys),
