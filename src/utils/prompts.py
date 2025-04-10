@@ -122,10 +122,3 @@ TASK_GENERATION_RESPONSE_JSON_FORMAT = """
 TASK_SOLVER_SYSTEM_PROMPT = """
 You are an expert in completing tasks for the {capability_name} capability in the {capability_domain} domain. Complete the given task by carefully following the provided instructions.
 """
-
-LLM_JUDGE_PROMPT = """
-Look at the submission and the target string for a given task and judge whether they are equivalent or not. The submission should include all aspects present in the target. Respond with only "Yes" or "No" (without quotes). Do not include a rationale.
-
-Submission: {submission}
-Target: {target}
-"""
