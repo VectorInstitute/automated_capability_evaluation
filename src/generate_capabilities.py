@@ -5,11 +5,11 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-from capability import Capability
-from model import Model
-from utils.capability_utils import extract_and_parse_response
-from utils.constants import BASE_ARTIFACTS_DIR
-from utils.prompts import (
+from src.capability import Capability
+from src.model import Model
+from src.utils.capability_utils import extract_and_parse_response
+from src.utils.constants import BASE_ARTIFACTS_DIR
+from src.utils.prompts import (
     CAPABILITY_GENERATION_SYSTEM_PROMPT,
     CAPABILITY_GENERATION_USER_PROMPT,
 )
