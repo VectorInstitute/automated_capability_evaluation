@@ -510,7 +510,7 @@ class Capability:
     def _create_inspect_file(
         self,
         path: str,
-        judge_llm: Model | None,
+        judge_llm_name: str | None,
         judge_llm_gen_args: Dict[str, Any] | None,
     ) -> None:
         """
@@ -554,10 +554,10 @@ class Capability:
         # NOTE: Judge LLM does not support local models (hosted using vector inference)
         # TODO: Add support for local models? Not required,
         # since we will rarely use open source LLMs as judge LLMs
-        if judge_llm is not None:
+        if judge_llm_name is not None:
             utils_file_contents = utils_file_contents.replace(
                 'INSPECT_JUDGE_LLM = "openai/gpt-4o-mini"',
-                f'INSPECT_JUDGE_LLM = "{judge_llm.get_model_name(with_provider=True)}"',
+                f'INSPECT_JUDGE_LLM = "{judge_llm_name}"',
             )
         if judge_llm_gen_args is not None:
             utils_file_contents = utils_file_contents.replace(
@@ -602,10 +602,14 @@ class Capability:
         script_file_path = os.path.join(path, f"{self.name}.py")
         with open(script_file_path, "w") as f:
             f.write(script_file_content)
-        # TODO: Validate formatting of script file
-        _ = _import_from_path(
-            module_name=f"{self.name}_inspect_eval_script", file_path=script_file_path
-        )
+        try:
+            _ = _import_from_path(
+                module_name=f"{self.name}_inspect_eval_script",
+                file_path=script_file_path,
+            )
+        except Exception as e:
+            print(f"Error in creating {script_file_path}: {e}")
+            raise e
 
     def _evaluate_using_inspect(self, subject_llm: Model, **kwargs: Any) -> None:
         """
@@ -681,7 +685,9 @@ class Capability:
             os.makedirs(inspect_path)
             self._create_inspect_file(
                 path=inspect_path,
-                judge_llm=judge_llm,
+                judge_llm_name=judge_llm.get_model_name(with_provider=True)
+                if judge_llm
+                else None,
                 judge_llm_gen_args=judge_llm_gen_args,
             )
 
