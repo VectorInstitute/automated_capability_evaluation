@@ -42,6 +42,10 @@ lbo_cfg:
   # Train args for 'nearest_neighbor' pipeline
   train_frac: 0.5
   min_train_size: 10
+  # Acquisition function that guides selecting the next query point.
+  # For now, only "variance" is supported.
+  # TODO: Add other acquisition functions.
+  acquisition_function: "variance"
 
 embedding_cfg:
   # The embedding model name used to generate capability embeddings used for filtering.
