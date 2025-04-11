@@ -4,6 +4,7 @@ The inspect_eval_utils module for the automatic_benchmark_generation project.
 It contains utility functions for inspect evals.
 """
 
+import os
 import re
 from typing import Any, Dict
 
@@ -74,7 +75,11 @@ async def evaluate_with_llm_judge(
         submission=submission,
         target=target,
     )
-    result = await get_model(llm_model).generate(
+    result = await get_model(
+        model=llm_model,
+        base_url=os.getenv("INSPECT_JUDGE_LLM_BASE_URL", None),
+        api_key=os.getenv("INSPECT_JUDGE_LLM_API_KEY", None),
+    ).generate(
         input=prompt,
         config=InspectGenerateConfig(
             temperature=gen_cfg.get("temperature"),

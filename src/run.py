@@ -50,7 +50,10 @@ def main(cfg: DictConfig) -> None:
     run_id = f"{cfg.scientist_llm.name}_T{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
 
     # Initialize the scientist LLM model
-    scientist_llm = Model(cfg.scientist_llm.name)
+    scientist_llm = Model(
+        model_name=cfg.scientist_llm.name,
+        model_provider=cfg.scientist_llm.provider,
+    )
     scientist_llm_gen_cfg = cfg.scientist_llm.generation_cfg
 
     # # Stage 1. Generate initial capabilities
@@ -104,7 +107,10 @@ def main(cfg: DictConfig) -> None:
         candidate_capabilities = None
 
     # Initialize the subject LLM model
-    subject_llm = Model(cfg.subject_llm.name)
+    subject_llm = Model(
+        model_name=cfg.subject_llm.name,
+        model_provider=cfg.subject_llm.provider,
+    )
     subject_llm_gen_cfg = dict(cfg.subject_llm.generation_cfg)
     subject_llm_gen_cfg.update(
         {

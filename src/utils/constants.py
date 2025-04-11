@@ -1,6 +1,7 @@
 """Module containing constants used throughout the codebase."""
 
 import os
+from enum import Enum
 
 
 BASE_ARTIFACTS_DIR = "/fs01/projects/aieng/public/ace/artifacts"
@@ -31,3 +32,16 @@ DATASET_NAME_MAP = {
 
 
 NO_ANSWER_STR = "NO_ANSWER"
+
+
+class VecInfStatus(Enum):
+    """Enum class for vector inference status."""
+
+    PENDING = "PENDING"
+    LAUNCHING = "LAUNCHING"
+    READY = "READY"
+    FAILED = "FAILED"
+    SHUTDOWN = "SHUTDOWN"
+
+
+DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"

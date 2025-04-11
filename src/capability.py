@@ -551,6 +551,9 @@ class Capability:
         ) as f:
             utils_file_contents = f.read()
         # Update judge LLM if provided
+        # NOTE: Judge LLM does not support local models (hosted using vector inference)
+        # TODO: Add support for local models? Not required,
+        # since we will rarely use open source LLMs as judge LLMs
         if judge_llm is not None:
             utils_file_contents = utils_file_contents.replace(
                 'INSPECT_JUDGE_LLM = "openai/gpt-4o-mini"',

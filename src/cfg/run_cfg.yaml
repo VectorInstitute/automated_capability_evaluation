@@ -1,5 +1,6 @@
 scientist_llm:
   name: gpt-4o-mini
+  provider: openai
   generation_cfg:
     capability_generation:
       temperature: 0.7
@@ -13,12 +14,31 @@ scientist_llm:
     judge_llm:
       temperature: 1.0
       max_tokens: 64
+  local_launch_cfg:
+    # Number of threads to use for local LLM
+    max_num_seqs: 1
+    # Type of GPU to use for local LLM
+    partition: "a40"
+    # QoS for local LLM
+    qos: "m2"
+    # Time limit for local LLM
+    time: "01:00:00"
 
 subject_llm:
-  name: gpt-4o-mini # Meta-Llama-3.1-70B-Instruct
+  name: Meta-Llama-3.1-8B-Instruct
+  provider: local
   generation_cfg:
     temperature: 0.7
     max_tokens: 64
+  local_launch_cfg:
+    # Number of threads to use for local LLM
+    max_num_seqs: 1
+    # Type of GPU to use for local LLM
+    partition: "a40"
+    # QoS for local LLM
+    qos: "m2"
+    # Time limit for local LLM
+    time: "01:00:00"
 
 prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.

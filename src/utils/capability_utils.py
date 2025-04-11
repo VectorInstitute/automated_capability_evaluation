@@ -5,12 +5,14 @@ It contains utility functions for capabilities.
 """
 
 import json
+import os
 from typing import Any, Dict
 
 from inspect_ai import eval as inspect_eval
 from langsmith import traceable
 
 from src.model import Model
+from src.utils.constants import DEFAULT_OPENAI_BASE_URL
 from src.utils.data_utils import read_json_file
 
 
@@ -142,9 +144,18 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
         Local function to enable tracing using langsmith.
         """
         print(f"Running inspect evals for {path} capability using {model_name}")
+        if model.model_provider == "local":
+            # Set OPENAI_BASE_URL to local model URL and replace "local" with "openai"
+            # See: https://inspect.aisi.org.uk/providers.html#vllm-server
+            # TODO: How to ensure this doesn't affect other processes
+            # if running in parallel?
+            os.environ["OPENAI_BASE_URL"] = model.model_url
+            inspect_model_name = model_name.replace("local", "openai")
+        else:
+            inspect_model_name = model_name
         eval_log = inspect_eval(
             tasks=path,
-            model=model_name,
+            model=inspect_model_name,
             log_dir=log_dir,
             log_format="json",
             **kwargs,
@@ -157,6 +168,11 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
             "total_tokens": eval_model_usage.total_tokens,
             "reasoning_tokens": eval_model_usage.reasoning_tokens,
         }
+        if model.model_provider == "local":
+            # Reset OPENAI_BASE_URL to actual openai URL
+            os.environ["OPENAI_BASE_URL"] = os.getenv(
+                "ORIGINAL_OPENAI_BASE_URL", DEFAULT_OPENAI_BASE_URL
+            )
         return {
             "inspect_eval_log": eval_log,
             "usage_metadata": usage_metadata,
