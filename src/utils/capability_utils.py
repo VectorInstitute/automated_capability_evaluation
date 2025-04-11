@@ -14,6 +14,7 @@ from langsmith import traceable
 from src.model import Model
 from src.utils.constants import DEFAULT_OPENAI_BASE_URL
 from src.utils.data_utils import read_json_file
+from src.utils.inspect_eval_utils import INSPECT_JUDGE_LLM
 
 
 CAPABILITY_SCORER_MAP = {
@@ -133,6 +134,8 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
     }
     ls_metadata.update({f"ls_{k}": v for k, v in kwargs.items()})
 
+    judge_llm_name = kwargs.pop("judge_llm_name", INSPECT_JUDGE_LLM)
+
     @traceable(
         run_type="llm",
         metadata=ls_metadata,
@@ -161,12 +164,14 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
             **kwargs,
         )[0]
         # Return usage stats
-        eval_model_usage = eval_log.stats.model_usage[model_name]
+        eval_model_usage = eval_log.stats.model_usage[inspect_model_name]
+        # [IMP] TODO: How to track usage for judge llm?
         usage_metadata = {
             "input_tokens": eval_model_usage.input_tokens,
             "output_tokens": eval_model_usage.output_tokens,
             "total_tokens": eval_model_usage.total_tokens,
             "reasoning_tokens": eval_model_usage.reasoning_tokens,
+            "judge_llm_usage": eval_log.stats.model_usage[judge_llm_name],
         }
         if model.model_provider == "local":
             # Reset OPENAI_BASE_URL to actual openai URL

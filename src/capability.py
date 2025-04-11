@@ -695,6 +695,9 @@ class Capability:
         for model_idx, model in enumerate(subject_llms):
             self._evaluate_using_inspect(
                 subject_llm=model,
+                judge_llm_name=judge_llm.get_model_name(with_provider=True)
+                if judge_llm
+                else None,
                 **gen_args[model_idx],
             )
         # Revert to original working dir after evaluation

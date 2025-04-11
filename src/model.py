@@ -191,6 +191,8 @@ def get_local_model_url(model_name: str, **kwargs: Any) -> str:
         raise RuntimeError(f"Model launch failed: {status_out['failed_reason']}")
     if status == vec_inf_status.SHUTDOWN.value:
         raise RuntimeError("Model launch cancelled")
+    if status == vec_inf_status.UNAVAILABLE.value:
+        raise RuntimeError("Model launch has either failed or is shutdown")
 
     # Check if the model is ready and get the base URL
     assert status == vec_inf_status.READY.value, f"Unknown model status: {status}"
@@ -213,7 +215,7 @@ def _sanitize_json(json_str: str) -> str:
     return json_str.strip().replace("'", '"')
 
 
-def _run_command(command: List[str]) -> Dict[str, Any]:
+def _run_command(command: List[str]) -> Dict[str, Any] | Any:
     """
     Run a command and return the parsed JSON output.
 
@@ -229,7 +231,10 @@ def _run_command(command: List[str]) -> Dict[str, Any]:
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
     stdout, stderr = p.communicate()
-    stdout_dict = dict(json.loads(_sanitize_json(stdout)))
     if p.returncode != 0:
         raise RuntimeError(f"Failed to launch local model server: {stderr.strip()}")
+    try:
+        stdout_dict = json.loads(_sanitize_json(stdout))
+    except json.JSONDecodeError:
+        raise ValueError(f"Failed to parse JSON output: {stdout.strip()}") from None
     return stdout_dict

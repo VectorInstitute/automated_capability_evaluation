@@ -110,6 +110,7 @@ def main(cfg: DictConfig) -> None:
     subject_llm = Model(
         model_name=cfg.subject_llm.name,
         model_provider=cfg.subject_llm.provider,
+        **dict(cfg.subject_llm.local_launch_cfg),
     )
     subject_llm_gen_cfg = dict(cfg.subject_llm.generation_cfg)
     subject_llm_gen_cfg.update(

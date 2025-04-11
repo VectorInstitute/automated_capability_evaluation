@@ -42,6 +42,7 @@ class VecInfStatus(Enum):
     READY = "READY"
     FAILED = "FAILED"
     SHUTDOWN = "SHUTDOWN"
+    UNAVAILABLE = "UNAVAILABLE"
 
 
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"

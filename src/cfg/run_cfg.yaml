@@ -29,7 +29,7 @@ subject_llm:
   provider: local
   generation_cfg:
     temperature: 0.7
-    max_tokens: 64
+    max_tokens: 512
   local_launch_cfg:
     # Number of threads to use for local LLM
     max_num_seqs: 1
