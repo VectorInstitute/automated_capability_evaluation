@@ -8,19 +8,11 @@ from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
 from src.model import Model
+from src.utils import constants
 from src.utils.capability_utils import (
     parse_python_class_str,
     read_score_inspect_json,
     run_inspect_evals,
-)
-from src.utils.constants import (
-    BASE_ARTIFACTS_DIR,
-    BASE_INSPECT_EVALS_DIR,
-    GCP_BASE_ARTIFACTS_DIR,
-    NO_ANSWER_STR,
-    NON_SEED_CAPABILITIES_SCORE_DIR,
-    SEED_CAPABILITIES_SCORE_DIR,
-    TAB_W_SPACES,
 )
 from src.utils.data_utils import (
     list_dir,
@@ -118,9 +110,9 @@ class Capability:
         self._load_capability_repr_class()
 
         self.score_dir = (
-            SEED_CAPABILITIES_SCORE_DIR
+            constants.SEED_CAPABILITIES_SCORE_DIR
             if self.is_seed
-            else NON_SEED_CAPABILITIES_SCORE_DIR
+            else constants.NON_SEED_CAPABILITIES_SCORE_DIR
         )
 
     @classmethod
@@ -304,8 +296,8 @@ class Capability:
             # Update the capability class python file
             # Extract str which contains the repr_tasks dictionary
             # TODO: Since these are hardcoded, update when the format changes
-            prefix_str = f"def repr_tasks() -> dict[str, dict]:\n{TAB_W_SPACES}{TAB_W_SPACES}return "
-            suffix_str = f"\n\n{TAB_W_SPACES}@staticmethod\n{TAB_W_SPACES}def get_instructions(t: dict) -> str:"
+            prefix_str = f"def repr_tasks() -> dict[str, dict]:\n{constants.TAB_W_SPACES}{constants.TAB_W_SPACES}return "
+            suffix_str = f"\n\n{constants.TAB_W_SPACES}@staticmethod\n{constants.TAB_W_SPACES}def get_instructions(t: dict) -> str:"
             prev_repr_tasks_str = self.capability_repr_class_str.split(prefix_str)[
                 1
             ].split(suffix_str)[0]
@@ -430,7 +422,7 @@ class Capability:
         #   and the answer is incomplete?
         answer_pattern = r"(?i)ANSWER\s*:\s*([^\n]+)"
         match = re.search(answer_pattern, response)
-        answer = match.group(1) if match else NO_ANSWER_STR
+        answer = match.group(1) if match else constants.NO_ANSWER_STR
         metadata = {
             "raw_response": response,
             "api_metadata": metadata,
@@ -520,13 +512,13 @@ class Capability:
         instruction_template = self.capability_repr_class.get_instructions(
             {"problem": "{prompt}"}
         )
-        score_func_prefix = f"@staticmethod\n{TAB_W_SPACES}def score"
+        score_func_prefix = f"@staticmethod\n{constants.TAB_W_SPACES}def score"
         score_func_prefix_new = (
-            f"async {score_func_prefix.split(TAB_W_SPACES)[1]}".replace(
+            f"async {score_func_prefix.split(constants.TAB_W_SPACES)[1]}".replace(
                 "score", "_score"
             )
         )
-        score_func_str = f"{score_func_prefix_new}{self.capability_repr_class_str.split(score_func_prefix)[1].replace((TAB_W_SPACES + TAB_W_SPACES), TAB_W_SPACES)}".strip(
+        score_func_str = f"{score_func_prefix_new}{self.capability_repr_class_str.split(score_func_prefix)[1].replace((constants.TAB_W_SPACES + constants.TAB_W_SPACES), constants.TAB_W_SPACES)}".strip(
             "`"
         ).strip("\n")
         script_file_content = INSPECT_EVALS_SCRIPT_FILE_TEMPLATE.format(
@@ -561,7 +553,7 @@ class Capability:
         ------
             FileNotFoundError: If the required Inspect evaluation path does not exist.
         """
-        inspect_path = os.path.join(BASE_INSPECT_EVALS_DIR, self.name)
+        inspect_path = os.path.join(constants.BASE_INSPECT_EVALS_DIR, self.name)
         if not os.path.exists(inspect_path):
             raise FileNotFoundError(
                 f"Inspect evaluation path does not exist: {inspect_path}. "
@@ -570,7 +562,9 @@ class Capability:
         # Temporarily store the logs locally and then transfer them to the GCP bucket,
         # since Inspect does not support GCP bucket paths for storing logs
         log_dir = os.path.join(
-            self.score_dir.replace(GCP_BASE_ARTIFACTS_DIR, BASE_ARTIFACTS_DIR),
+            self.score_dir.replace(
+                constants.GCP_BASE_ARTIFACTS_DIR, constants.BASE_ARTIFACTS_DIR
+            ),
             subject_llm.get_model_name(),
             self.domain,
             self.name,
@@ -587,7 +581,9 @@ class Capability:
         # Transfer the logs to the GCP bucket
         transfer_inspect_log_to_gcp(
             src_dir=log_dir,
-            gcp_dir=log_dir.replace(BASE_ARTIFACTS_DIR, GCP_BASE_ARTIFACTS_DIR),
+            gcp_dir=log_dir.replace(
+                constants.BASE_ARTIFACTS_DIR, constants.GCP_BASE_ARTIFACTS_DIR
+            ),
         )
         # Remove the local logs
         shutil.rmtree(log_dir)
@@ -609,7 +605,7 @@ class Capability:
             "Each subject LLM must have a corresponding generation config."
         )
         # Create inspect script if evaluating for the first time
-        inspect_path = os.path.join(BASE_INSPECT_EVALS_DIR, self.name)
+        inspect_path = os.path.join(constants.BASE_INSPECT_EVALS_DIR, self.name)
         if not os.path.exists(inspect_path):
             os.makedirs(inspect_path)
             self._create_inspect_file(path=inspect_path)
@@ -617,7 +613,7 @@ class Capability:
         # Change dir to where inspect eval scrips are stored
         # because inspect evals does not support non-relative paths
         cwd = os.getcwd()
-        os.chdir(BASE_INSPECT_EVALS_DIR)
+        os.chdir(constants.BASE_INSPECT_EVALS_DIR)
         # TODO: Run asynchronosly
         for model_idx, model in enumerate(subject_llms):
             self._evaluate_using_inspect(

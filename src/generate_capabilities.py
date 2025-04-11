@@ -7,8 +7,8 @@ import numpy as np
 
 from capability import Capability
 from model import Model
+from utils import constants
 from utils.capability_utils import extract_and_parse_response
-from utils.constants import BASE_ARTIFACTS_DIR
 from utils.prompts import (
     CAPABILITY_GENERATION_SYSTEM_PROMPT,
     CAPABILITY_GENERATION_USER_PROMPT,
@@ -159,7 +159,9 @@ def generate_capabilities_using_llm(
         and metadata about the generation process.
     """
     # Select seed capabilities
-    seed_capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "seed_capabilities", domain)
+    seed_capability_dir = os.path.join(
+        constants.BASE_ARTIFACTS_DIR, "seed_capabilities", domain
+    )
     seed_capabilities = _sample_seed_capabilities(
         seed_capability_dir=seed_capability_dir,
         num_seed_capabilities=num_seed_capabilities,
@@ -263,11 +265,13 @@ def generate_capabilities(
     # Set the base capability directory
     if "trial_run" in kwargs:
         base_capability_dir = os.path.join(
-            BASE_ARTIFACTS_DIR, f"capabilities_{kwargs['run_id']}", domain
+            constants.BASE_ARTIFACTS_DIR, f"capabilities_{kwargs['run_id']}", domain
         )
         os.makedirs(base_capability_dir, exist_ok=True)
     else:
-        base_capability_dir = os.path.join(BASE_ARTIFACTS_DIR, "capabilities", domain)
+        base_capability_dir = os.path.join(
+            constants.BASE_ARTIFACTS_DIR, "capabilities", domain
+        )
 
     # Fetch previously generated capabilities, if any
     prev_capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
