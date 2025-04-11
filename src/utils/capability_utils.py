@@ -12,7 +12,7 @@ from inspect_ai import eval as inspect_eval
 from langsmith import traceable
 
 from src.model import Model
-from src.utils.constants import DEFAULT_OPENAI_BASE_URL
+from src.utils import constants
 from src.utils.data_utils import read_json_file
 from src.utils.inspect_eval_utils import INSPECT_JUDGE_LLM
 
@@ -191,7 +191,7 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
     if model.model_provider == "local":
         # Reset OPENAI_BASE_URL to actual openai URL
         os.environ["OPENAI_BASE_URL"] = os.getenv(
-            "ORIGINAL_OPENAI_BASE_URL", DEFAULT_OPENAI_BASE_URL
+            "ORIGINAL_OPENAI_BASE_URL", constants.DEFAULT_OPENAI_BASE_URL
         )
 
     eval_log = output["inspect_eval_log"]
