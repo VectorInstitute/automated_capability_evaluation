@@ -82,7 +82,7 @@ def main(cfg: DictConfig) -> None:
         # Fetch previously generated capabilities, if any
         capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
     # =============================================================================
-    # Encode capabilities using openai embedding model
+    # Embed capabilities using openai embedding model
     generate_and_set_capabilities_embeddings(
         capabilities=capabilities,
         embedding_model_name=cfg.embedding_cfg.embedding_model,
@@ -92,8 +92,8 @@ def main(cfg: DictConfig) -> None:
     filtered_capabilities = filter_capabilities(
         capabilities,
         similarity_threshold=cfg.embedding_cfg.filtering_similarity_threshold,
-        embeddings_set=True,  # This flag acts as a reminder for us to generate
-        # and set embeddings before filtering.
+        embeddings_set=True,  # With this flag we want to make sure embeddings are
+        # set before filtering.
     )
     # Set encoded values for capabilities, this assumes capability embeddings
     # are already set. fit_and_set_encodings function currently only supports

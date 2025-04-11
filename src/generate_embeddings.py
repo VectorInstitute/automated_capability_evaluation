@@ -155,6 +155,7 @@ def visualize_embeddings(
     embeddings: List[torch.Tensor],
     save_dir: str,
     plot_name: str,
+    point_names: List[str] | None = None,
 ) -> None:
     """
     Visualize the embeddings, and make sure they are 2D.
@@ -175,11 +176,31 @@ def visualize_embeddings(
             output_dimensions=2,
             dim_reduction_technique=DimensionalityReductionTechnique.TSNE,
         )
-    # Plot the 2D embeddings
-    # Convert embeddings to numpy array for plotting
-    np_embeddings = np.array([embedding.numpy() for embedding in embeddings])
-    plt.figure(figsize=(10, 8))
-    sns.scatterplot(x=np_embeddings[:, 0], y=np_embeddings[:, 1])
+    # If point names are provided, annotate each point with its name
+    if point_names is not None:
+        assert len(point_names) == len(embeddings), (
+            "The number of point names must match the number of embeddings."
+        )
+        x_coords = [embedding[0].item() for embedding in embeddings]
+        y_coords = [embedding[1].item() for embedding in embeddings]
+        plt.scatter(x_coords, y_coords)
+        for i, label in enumerate(point_names):
+            plt.text(
+                x_coords[i],
+                y_coords[i],
+                label,
+                fontsize=9,
+                ha="center",
+                va="center",
+                bbox={"facecolor": "white", "alpha": 0.5, "edgecolor": "none"},
+            )
+    else:
+        # If no point names are provided, just plot the points
+        sns.scatterplot(
+            x=[embedding[0].item() for embedding in embeddings],
+            y=[embedding[1].item() for embedding in embeddings],
+        )
+
     plt.title("2D Embedding Visualization")
     plt.xlabel("Dimension 1")
     plt.ylabel("Dimension 2")
