@@ -1,35 +1,56 @@
-import os
+import os  # noqa: D100
 from enum import Enum
 from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import seaborn as sns
+import torch
 from langchain_openai import OpenAIEmbeddings
 from sklearn.manifold import TSNE
 
 
 class EmbeddingModelName(Enum):
+    """Enum for OpenAI embedding model names."""
+
     text_embedding_3_small = "text-embedding-3-small"
     text_embedding_3_large = "text-embedding-3-large"
 
 
 class DimensionalityReductionTechnique(Enum):
-    TSNE = "T-SNE"
-    CUT_EMBEDDING = "CUT_EMBEDDING"
+    """Enum for dimensionality reduction techniques."""
+
+    TSNE = "t-sne"
+    CUT_EMBEDDING = "cut_embedding"
 
 
-# Taken from https://platform.openai.com/docs/guides/embeddings
-def normalize_l2(x: np.ndarray) -> np.ndarray:
-    if x.ndim == 1:
-        norm = np.linalg.norm(x)
-        return x if norm == 0 else x / norm
-    norm = np.linalg.norm(x, axis=1, keepdims=True)
-    return np.where(norm == 0, x, x / norm)
+def normalize_l2(tensors: List[torch.Tensor]) -> List[torch.Tensor]:
+    """
+    Normalize a list of PyTorch tensors using L2 norm.
+
+    Args:
+        tensors (List[torch.Tensor]): List of input tensors.
+
+    Returns
+    -------
+        List[torch.Tensor]: List of L2-normalized tensors.
+    """
+    normalized_tensors = []
+    for x in tensors:
+        # If x is 1D
+        if x.ndimension() == 1:
+            norm = torch.norm(x, p=2)
+            normalized_tensors.append(x if norm == 0 else x / norm)
+        # If x is 2D or higher
+        else:
+            norm = torch.norm(x, p=2, dim=1, keepdim=True)
+            normalized_tensors.append(torch.where(norm == 0, x, x / norm))
+    return normalized_tensors
 
 
 class EmbeddingGenerator:
+    """A class to generate embeddings using OpenAI's embedding model."""
+
     def __init__(
         self,
         model_name: EmbeddingModelName = EmbeddingModelName.text_embedding_3_small,
@@ -40,58 +61,29 @@ class EmbeddingGenerator:
         self.embed_dimensions = embed_dimensions
 
     def _load_embedding_model(
-        self, model_name: EmbeddingModelName, dimensions: int = 512
-    ):
-        # A dimension of 512 for 3-small model shows really good performance on MTEB benchmark.
-        # Source: https://openai.com/index/new-embedding-models-and-api-updates/
-        # You can still cut down the embedding vector to smaller dimensions, but you have to normalize it.
-        return OpenAIEmbeddings(model=model_name, dimensions=dimensions)
-
-    def reduce_embeddings_dimensions(
         self,
-        embeddings: List[List[float]],
-        output_dimensions: int = 4,
-        dim_reduction_technique: DimensionalityReductionTechnique = DimensionalityReductionTechnique.TSNE,
-        normalize: bool = True,
-        perplexity: int = 30,
-    ) -> List[List[float]]:
+        model_name: EmbeddingModelName,
+        dimensions: int = 512,
+    ) -> OpenAIEmbeddings:
         """
-        Reduce the dimensionality of the given embeddings.
+        Load the embedding model.
 
         Args:
-            embeddings (List[List[float]]): A list of embeddings to reduce.
-            output_dimensions (int): The number of dimensions to reduce to.
-            dim_reduction_technique (DimensionalityReductionTechnique): The technique to use for dimensionality reduction.
-            normalize (bool): Whether to normalize the reduced embeddings.
-            perplexity (int): The perplexity parameter for t-SNE.
+            model_name (EmbeddingModelName): The name of the embedding model.
+            dimensions (int): The dimensions of the embedding.
 
         Returns
         -------
-            List[List[float]]: A list of reduced embeddings.
+            OpenAIEmbeddings: The loaded embedding model.
         """
-        if len(embeddings) < perplexity:
-            # perplexity should always be smaller than number os samples.
-            perplexity = len(embeddings) - 2
-        embeddings = np.array(embeddings)
-        if dim_reduction_technique == DimensionalityReductionTechnique.CUT_EMBEDDING:
-            reduced_embeddings = np.array(
-                [embedding[:output_dimensions] for embedding in embeddings]
-            )
-        elif dim_reduction_technique == DimensionalityReductionTechnique.TSNE:
-            self.tsne = TSNE(
-                n_components=output_dimensions, perplexity=perplexity, random_state=42
-            )
-            reduced_embeddings = self.tsne.fit_transform(embeddings)
-
-        if normalize:
-            reduced_embeddings = normalize_l2(reduced_embeddings)
-
-        return reduced_embeddings.tolist()
+        # A dimension of 512 for 3-small model shows good performance on MTEB benchmark.
+        # Source: https://openai.com/index/new-embedding-models-and-api-updates/
+        return OpenAIEmbeddings(model=model_name, dimensions=dimensions)  # type: ignore
 
     def generate_embeddings(
         self,
         texts: list[str],
-    ) -> List[List[float]]:
+    ) -> List[torch.Tensor]:
         """
         Generate and optionally reduce embeddings for a list of texts.
 
@@ -100,49 +92,101 @@ class EmbeddingGenerator:
 
         Returns
         -------
-            List[List[float]]: A list of embeddings, where each embedding is a list of floats.
+            List[torch.Tensor]: A list of embeddings, where each embedding
+                                is a torch.Tensor.
         """
-        return self.embedding_model.embed_documents(texts)
+        output_float_list = self.embedding_model.embed_documents(texts)
+        return [torch.tensor(vec) for vec in output_float_list]
 
-    def visualize_embeddings(
-        self,
-        embeddings: List[List[float]],
-        save_dir: str,
-        plot_name: str,
-    ) -> None:
-        """
-        Visualize the embeddings, and make sure they are 2D.
-        Args:
-            embeddings (List[List[float]]): A list of embeddings to visualize.
-            save_dir (str): The directory to save the plot.
-            plot_name (str): The name of the plot file.
-        Returns
-        -------
-            None
 
-        """
-        # Check if the embeddings are already 2D
-        if len(embeddings[0]) > 2:
-            embeddings = self.reduce_embeddings_dimensions(
-                embeddings,
-                output_dimensions=2,
-                dim_reduction_technique=DimensionalityReductionTechnique.TSNE,
-            )
-        # Plot the 2D embeddings
-        df = pd.DataFrame(embeddings, columns=["x", "y"])
+def reduce_embeddings_dimensions(
+    embeddings: List[torch.Tensor],
+    output_dimensions: int = 4,
+    dim_reduction_technique: DimensionalityReductionTechnique = (
+        DimensionalityReductionTechnique.TSNE
+    ),
+    normalize: bool = True,
+    perplexity: int = 30,
+) -> List[torch.Tensor]:
+    """
+    Reduce the dimensionality of the given embeddings.
 
-        plt.figure(figsize=(10, 8))
+    Args:
+        embeddings (List[torch.Tensor]): A list of embeddings to reduce.
+        output_dimensions (int): The number of dimensions to reduce to.
+        dim_reduction_technique (DimensionalityReductionTechnique): The
+            dimensionality reduction technique to use.
+        normalize (bool): Whether to normalize the reduced embeddings.
+        perplexity (int): The perplexity parameter for t-SNE.
 
-        sns.scatterplot(data=df, x="x", y="y", s=50)
+    Returns
+    -------
+        List[torch.Tensor]: A list of reduced embeddings as PyTorch tensors.
+    """
+    # set torch random seed for reproducibility.
+    torch.manual_seed(42)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(42)
 
-        plt.title("T-SNE Visualization of Embeddings")
-        plt.xlabel("T-SNE Dim 1")
-        plt.ylabel("T-SNE Dim 2")
-        plt.legend(loc="best")
-        # Save to PDF
-        plt.tight_layout()
-        plot_path = os.path.join(save_dir, plot_name)
-        plt.savefig(plot_path, format="pdf")
+    if len(embeddings) < perplexity:
+        # perplexity should always be smaller than number os samples.
+        perplexity = len(embeddings) - 2
+    if dim_reduction_technique == DimensionalityReductionTechnique.CUT_EMBEDDING:
+        reduced_embeddings = [embedding[:output_dimensions] for embedding in embeddings]
+    elif dim_reduction_technique == DimensionalityReductionTechnique.TSNE:
+        # Convert embeddings to numpy array because that is what t-SNE expects.
+        np_embeddings = np.array(embeddings)
+        tsne = TSNE(
+            n_components=output_dimensions, perplexity=perplexity, random_state=42
+        )
+        # The output of t-SNE is a numpy array, so we need to convert it back to
+        # a list of tensors.
+        reduced_embeddings = [
+            torch.Tensor(e) for e in tsne.fit_transform(np_embeddings)
+        ]
 
-        # Optionally close the plot if running in a script or loop
-        plt.close()
+    if normalize:
+        reduced_embeddings = normalize_l2(reduced_embeddings)
+
+    return reduced_embeddings
+
+
+def visualize_embeddings(
+    embeddings: List[torch.Tensor],
+    save_dir: str,
+    plot_name: str,
+) -> None:
+    """
+    Visualize the embeddings, and make sure they are 2D.
+
+    Args:
+        embeddings (List[torch.Tensor]): A list of embeddings to visualize.
+        save_dir (str): The directory to save the plot.
+        plot_name (str): The name of the plot file.
+
+    Returns
+    -------
+        None
+    """
+    # Check if the embeddings are already 2D
+    if embeddings[0].ndimension() > 1 and embeddings[0].size(1) > 2:
+        embeddings = reduce_embeddings_dimensions(
+            embeddings,
+            output_dimensions=2,
+            dim_reduction_technique=DimensionalityReductionTechnique.TSNE,
+        )
+    # Plot the 2D embeddings
+    # Convert embeddings to numpy array for plotting
+    np_embeddings = np.array([embedding.numpy() for embedding in embeddings])
+    plt.figure(figsize=(10, 8))
+    sns.scatterplot(x=np_embeddings[:, 0], y=np_embeddings[:, 1])
+    plt.title("2D Embedding Visualization")
+    plt.xlabel("Dimension 1")
+    plt.ylabel("Dimension 2")
+    plt.grid(True)
+
+    # Ensure the save directory exists
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, f"{plot_name}.pdf")
+    plt.savefig(save_path, format="pdf")
+    plt.close()

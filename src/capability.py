@@ -6,6 +6,8 @@ import sys
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
+import torch
+
 from src.model import Model
 from src.utils.capability_utils import parse_python_class_str, read_score_inspect_json
 from src.utils.constants import (
@@ -104,6 +106,14 @@ class Capability:
             if self.is_seed
             else NON_SEED_CAPABILITIES_SCORE_DIR
         )
+        # self.embedding is a high dimensional tensor that is the output
+        # of the embedding model.
+        self.embedding: torch.Tensor | None = None
+        # self.encoder_output_dict is a dictionary of tensors where each key
+        # is the name of the encoder model and the value is the output of the
+        # encoder model. The encoder model is used to encode the capability
+        #  seed dataset into a lower dimensional space.
+        self.encoder_output_dict: dict[str, torch.Tensor] = {}
 
     @classmethod
     def from_dict(cls, capability_dict: Dict[str, Any], base_dir: str) -> "Capability":
@@ -358,18 +368,27 @@ class Capability:
         """
         return self.to_json_str()
 
-    def encode(self, encoder_model: Any) -> None:
-        """
-        Encode the capability using the provided encoder model.
+    def encode(self, encoder_model_name: str | None = None) -> torch.Tensor:
+        """Return the encoded capability based the provided encoder model name.
+
+        If the encoder model name is not provided, it uses the default encoder model.
 
         Args
         ----
-        encoder_model : Any
+        encoder_model_name : str | None
             The model to use for encoding the capability.
         """
-        # TODO: Implement capability encoding
-        self.encoding = None
-        raise NotImplementedError
+        if encoder_model_name is None:
+            # TODO: implement a better way to set the default encoder.
+            # We should make sure all the capabilities use the same default encoder.
+            encoder_model_name = "t-sne"
+        else:
+            # assert encoder model name is in encoder_output_dict keys
+            assert encoder_model_name in self.encoder_output_dict, (
+                f"Encoder model {encoder_model_name} not found in encoder output dictionary."
+            )
+
+        return self.get_encoder_output(encoder_model_name)
 
     def _solve_task(
         self, task: Dict[str, Any], llm: Model, gen_cfg: Dict[str, Any]
@@ -502,25 +521,57 @@ class Capability:
         for model in subject_llms:
             self._evaluate_using_inspect(model)
 
-    def set_embedding(self, embedding: List[float]) -> None:
+    def set_embedding(self, embedding: torch.Tensor) -> None:
         """
         Set the embedding for the capability.
 
         Args
         ----
-            embedding (List[float]): The embedding to set.
+            embedding (torch.Tensor): The embedding to set.
         """
         self.embedding = embedding
 
-    def get_embedding(self) -> List[float]:
+    def get_embedding(self) -> torch.Tensor | None:
         """
         Get the embedding for the capability.
 
         Returns
         -------
-            List[float]: The embedding of the capability.
+            torch.Tensor | None: The embedding of the capability.
+            Returns None if the embedding is not set.
         """
-        return self.embedding if hasattr(self, "embedding") else None
+        return self.embedding
+
+    def set_encoder_output(
+        self, encoder_name: str, encoder_output: torch.Tensor
+    ) -> None:
+        """
+        Set the encoder output for the capability.
+
+        Args
+        ----
+            encoder_name (str): The name of the encoder model.
+            encoder_output (torch.Tensor): The encoder output to set.
+        """
+        self.encoder_output_dict.update({encoder_name: encoder_output})
+
+    def get_encoder_output(self, encoder_name: str) -> torch.Tensor:
+        """
+        Get the encoder output for the capability.
+
+        Args
+        ----
+            encoder_name (str): The name of the encoder model.
+
+        Returns
+        -------
+            torch.Tensor | None: The encoder output of the capability.
+            Returns None if the encoder output is not set.
+        """
+        assert encoder_name in self.encoder_output_dict, (
+            f"Encoder model {encoder_name} not found in encoder output dictionary."
+        )
+        return self.encoder_output_dict[encoder_name]
 
 
 def _import_from_path(module_name: str, file_path: str) -> Any:

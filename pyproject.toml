@@ -17,6 +17,11 @@ dependencies = [
     "omegaconf>=2.3.0",
     "openai>=1.61.1",
     "ratelimit>=2.2.1",
+    "torchvision (>=0.21.0,<0.22.0)",
+    "torchaudio (>=2.6.0,<3.0.0)",
+    "torch (>=2.6.0,<3.0.0)",
+    "gpytorch (>=1.14,<2.0)",
+    "ruff (>=0.11.4,<0.12.0)",
     "scikit-learn (>=1.6.1,<2.0.0)",
     "seaborn (>=0.13.2,<0.14.0)",
 ]
@@ -40,7 +45,7 @@ pre-commit = "^4.0.0"
 pytest-cov = "^3.0.0"
 codecov = "^2.1.13"
 mypy = "^1.15.0"
-ruff = "^0.2.2"
+ruff = ">=0.11.4,<0.12.0"
 nbqa = { version = "^1.7.0", extras = ["toolchain"] }
 pip-audit = "^2.7.1"
 

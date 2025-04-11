@@ -3,7 +3,12 @@ import os  # noqa: D100
 import hydra
 from omegaconf import DictConfig
 
-from generate_capabilities import _get_previous_capabilities
+from generate_capabilities import (
+    _get_previous_capabilities,
+    filter_capabilities,
+    fit_and_set_encodings,
+    generate_and_set_capabilities_embeddings,
+)
 from generate_tasks import generate_tasks_using_llm
 
 # from lbo import generate_new_capability
@@ -65,8 +70,6 @@ def main(cfg: DictConfig) -> None:
     #     run_id=run_id,
     #     trial_run=cfg.exp_cfg.trial_run,
     # )
-    # capabilities = filter_capabilities(capabilities)
-    # print(capabilities)
 
     # TODO: Only used for testing, remove this block later ========================
     if cfg.exp_cfg.trial_run:
@@ -79,6 +82,27 @@ def main(cfg: DictConfig) -> None:
         # Fetch previously generated capabilities, if any
         capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
     # =============================================================================
+    # Encode capabilities using openai embedding model
+    generate_and_set_capabilities_embeddings(
+        capabilities=capabilities,
+        embedding_model_name=cfg.embedding_cfg.embedding_model,
+        embed_dimensions=cfg.embedding_cfg.embedding_size,
+    )
+    # Filter capabilities based on their embeddings
+    filtered_capabilities = filter_capabilities(
+        capabilities,
+        similarity_threshold=cfg.embedding_cfg.filtering_similarity_threshold,
+        embeddings_set=True,  # This flag acts as a reminder for us to generate
+        # and set embeddings before filtering.
+    )
+    # Set encoded values for capabilities, this assumes capability embeddings
+    # are already set. fit_and_set_encodings function currently only supports
+    # "t-sne" encoder_model.
+    fit_and_set_encodings(
+        filtered_capabilities,
+        encoder_model=cfg.encoding_cfg.encoder_model,
+        output_dimensions=cfg.encoding_cfg.encoder_dimensions,
+    )
 
     # Stage 2. Generate tasks and evaluate subject model on initial capabilities
     num_lbo_runs = cfg.lbo_cfg.num_lbo_runs

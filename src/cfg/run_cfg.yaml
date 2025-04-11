@@ -43,6 +43,19 @@ lbo_cfg:
   train_frac: 0.5
   min_train_size: 10
 
+embedding_cfg:
+  # The embedding model name used to generate capability embeddings used for filtering.
+  embedding_model: "text-embedding-3-small" # "text-embedding-3-small" or "text-embedding-3-large"
+  embedding_size: 512
+  # The cosine similarity threshold for filtering capabilities based on their embeddings.
+  filtering_similarity_threshold: 0.85
+
+encoding_cfg:
+  # encoding model generates the low dimensional encodings
+  encoder_model: "t-sne" # "t-sne" or the name of the encoder model
+  # The number of dimensions to reduce the encodings to
+  encoder_dimensions: 2
+
 exp_cfg:
   # Set this flag to true to run test experiments during development
   trial_run: true
