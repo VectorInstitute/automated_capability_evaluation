@@ -7,7 +7,7 @@ from generate_capabilities import _get_previous_capabilities
 
 # from lbo import generate_new_capability
 from model import Model
-from utils.constants import BASE_ARTIFACTS_DIR
+from utils import constants
 from utils.lbo_utils import get_lbo_train_set
 
 
@@ -75,7 +75,9 @@ def main(cfg: DictConfig) -> None:
     if cfg.exp_cfg.trial_run:
         # Set the base capability directory
         base_capability_dir = os.path.join(
-            BASE_ARTIFACTS_DIR, f"capabilities_{run_id}", cfg.capabilities_cfg.domain
+            constants.BASE_ARTIFACTS_DIR,
+            f"capabilities_{run_id}",
+            cfg.capabilities_cfg.domain,
         )
         os.makedirs(base_capability_dir, exist_ok=True)
 

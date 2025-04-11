@@ -1,55 +1,140 @@
-from typing import Any, List  # noqa: D100
+from typing import Any, List, Tuple  # noqa: D100
 
+import gpytorch
 import torch
 
-from capability import Capability
+from src.capability import Capability
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+class GPModel(gpytorch.models.ExactGP):  # type: ignore
+    """A Gaussian Process regression model using an RBF kernel."""
+
+    def __init__(
+        self,
+        train_x: torch.Tensor,
+        train_y: torch.Tensor,
+        likelihood: gpytorch.likelihoods.Likelihood,
+        input_dim: int,
+    ):
+        super().__init__(train_x.to(device), train_y.to(device), likelihood)
+        self.mean_module = gpytorch.means.ConstantMean()
+        self.covar_module = gpytorch.kernels.ScaleKernel(
+            gpytorch.kernels.RBFKernel(ard_num_dims=input_dim)
+        )
+        self.to(device)
+
+    def forward(self, x: torch.Tensor) -> gpytorch.distributions.MultivariateNormal:
+        """
+        Compute the GP prior/posterior distribution at input x.
+
+        Args:
+            x (torch.Tensor): A tensor of input points at which to evaluate the GP.
+                Shape: (n_samples, input_dim)
+
+        Returns
+        -------
+            gpytorch.distributions.MultivariateNormal: A multivariate normal
+            distribution representing the GP's belief over the latent function
+            values at the input points `x`, characterized by the predicted mean
+            and covariance.
+        """
+        x = x.to(device)
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 
 class LBO:
-    """A class used to represent the Latent Bayesian Optimization (LBO) model."""
+    """A class used to represent the Latent Bayesian Optimization (LBO) model.
 
-    def __init__(self) -> None:
+    The current implementation works with a finite set of candidate points for active
+    learning. In the future we will change that to support active choice of query
+    points.
+    """
+
+    def __init__(
+        self,
+        x_train: torch.Tensor,
+        y_train: torch.Tensor,
+        acquisition_function: str,
+        num_gp_train_iterations: int = 50,
+        optimizer_lr: float = 0.1,
+    ):
         """Initialize the LBO parameters."""
-        pass
+        # x_train shape is [N, d].
+        self.input_dim = x_train.shape[1]
+        self.x_train = x_train.clone().to(device)
+        self.y_train = y_train.clone().to(device)
+        self.acquisition_function = acquisition_function
+        self.num_gp_train_iterations = num_gp_train_iterations
+        self.optimizer_lr = optimizer_lr
+        self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        self.likelihood = self.likelihood.to(device)
+        self.model = self._train_gp()
 
-    def fit(self, X: torch.Tensor, y: torch.Tensor) -> None:
-        """
-        LBO fit function.
+    def _train_gp(self) -> GPModel:
+        model = GPModel(self.x_train, self.y_train, self.likelihood, self.input_dim)
+        model.train()
+        self.likelihood.train()
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.optimizer_lr)
+        mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, model)
 
-        Create a mapping function from the adjusted capability representations
-        to the capability scores.
+        for _ in range(self.num_gp_train_iterations):
+            optimizer.zero_grad()
+            output = model(self.x_train)
+            loss = -mll(output, self.y_train)
+            loss.backward()
+            optimizer.step()
 
-        Args
-        ----
-            X (torch.Tensor): The capability representation tensor, shape (Nc, D).
-            y (torch.Tensor): The subject model scores corresponding
-                to the capabilities, shape (Nc,).
+        model.eval()
+        self.likelihood.eval()
+        return model
 
-        Returns
-        -------
-            None
-        """
-        raise NotImplementedError
+    def select_next_point(
+        self, x_query: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Select the next query point from x_query."""
+        x_query = x_query.to(device)
+        with torch.no_grad(), gpytorch.settings.fast_pred_var():
+            _, st_devs = self.predict(x_query)
+            if self.acquisition_function == "variance":
+                idx = torch.argmax(st_devs)
+            else:
+                raise ValueError(
+                    f"Acquisition function: {self.acquisition_function} is unsupported."
+                )
+        return idx, x_query[idx]
 
-    def update(self, X: torch.Tensor, y: torch.Tensor) -> None:
+    def update(self, q_x: torch.Tensor, q_y: torch.Tensor) -> None:
         """
         LBO update function.
 
-        Update the LBO model with new capability representation and score.
+        Update the training set, the query set, and the LBO model.
 
         Args
         ----
-            X (torch.Tensor): The new capability representation tensor, shape (1, D).
-            y (torch.Tensor): The subject model score corresponding
-                to the capability, shape (1,).
+            q_x (torch.Tensor): The new capability representation tensor, shape (D,).
+            q_y (torch.Tensor): The subject model score corresponding to q_x, shape
+            (1,).
 
         Returns
         -------
             None
         """
-        raise NotImplementedError
+        q_x = q_x.to(device)
+        q_y = (
+            torch.tensor([q_y], device=device)
+            if not isinstance(q_y, torch.Tensor)
+            else q_y.to(device)
+        )
+        self.x_train = torch.cat([self.x_train, q_x.unsqueeze(0)], dim=0)
+        self.y_train = torch.cat([self.y_train, q_y], dim=0)
+        self.model = self._train_gp()
 
-    def predict(self, X: torch.Tensor) -> torch.Tensor:
+    def predict(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         LBO predict function.
 
@@ -57,23 +142,16 @@ class LBO:
 
         Args
         ----
-            X (torch.Tensor): The capability representation tensor with shape (Nc, D).
+            x (torch.Tensor): The capability representation tensor with shape (Nc, D).
 
         Returns
         -------
-            torch.Tensor: Predicted scores for subject model.
+            mean: Predicted mean values for input x.
+            std: Predicted standard deviation values for input x.
         """
-        raise NotImplementedError
-
-    def identify_high_variance_point(self) -> torch.Tensor:
-        """
-        Identify the capability representation with the highest variance.
-
-        Returns
-        -------
-            torch.Tensor: The capability representation with the highest variance.
-        """
-        raise NotImplementedError
+        x = x.to(device)
+        vals = self.model(x)
+        return vals.mean, vals.variance.sqrt()
 
 
 def _get_adjusted_representation(
@@ -150,9 +228,10 @@ def generate_capability_using_lbo(
     capability_scores: torch.Tensor,
     encoder: Any,
     pipeline_id: str = "nearest_neighbour",
+    acquisition_function: str = "variance",
     decoder: Any = None,
     capabilities_pool: List[Capability] | None = None,
-) -> Capability:
+) -> Capability | None:
     """
     Generate a new capability using the LBO method.
 
@@ -164,6 +243,7 @@ def generate_capability_using_lbo(
             for the given capabilities.
         encoder (Any): The encoder model to encode the capability representation.
         pipeline_id (str): The pipeline identifier to determine the generation method.
+        acquisition_function (str): The acquisition function for LBO.
         decoder (Any, optional): The decoder model to decode the
             capability representation (only for pipeline_id="discover_new").
         capabilities_pool (List[Capability], optional): The pool of existing
@@ -175,6 +255,7 @@ def generate_capability_using_lbo(
     -------
         Capability: The generated capability.
     """
+    capability_scores = capability_scores.to(device)
     # TODO:
     # 1. Apply the InvBO method to adjust the capabilities' representations.
     #       capability_representations = _get_adjusted_representation(
@@ -208,7 +289,43 @@ def generate_capability_using_lbo(
     #           generated_capability = _decode_capability(
     #               high_variance_point, decoder
     #           )
-    raise NotImplementedError
+
+    # TODO: Part or all of the following code must be moved to run.py, especially the
+    # loop on selecting the next capapbility. I'm commenting this out.
+    # if pipeline_id == "nearest_neighbour":
+    #     capabilities_encoding = torch.stack(
+    #         [cap.encode(encoder) for cap in capabilities]
+    #     )
+    #     capabilities_pool_encoding = torch.stack(
+    #         [cap.encode(encoder) for cap in capabilities_pool]
+    #     )
+    #     lbo = LBO(
+    #         capabilities_encoding,
+    #         capability_scores,
+    #         acquisition_function,
+    #     )
+    #     init_pool_size = len(capabilities_pool)
+    #     for _ in range(init_pool_size):
+    #         idx, selected_capability_encoding = lbo.select_next_point(
+    #             capabilities_pool_encoding
+    #         )
+    #         # TODO: Implement and call `evaluate_capability` for the selected
+    #           capability to calculate its score.
+    #         selected_capability_score = evaluate_capability(capabilities_pool[idx])
+    #         # Remove the selected capability and its encoding.
+    #         capabilities_pool.pop(idx)
+    #         capabilities_pool_encoding = torch.cat(
+    #             [
+    #                 capabilities_pool_encoding[:idx],
+    #                 capabilities_pool_encoding[idx + 1 :],
+    #             ],
+    #             dim=0,
+    #         )
+    #         lbo.update(selected_capability_encoding, selected_capability_score)
+    # else:
+    #     raise ValueError(f"Unsupported pipeline id: {pipeline_id}")
+
+    return None
 
 
 def generate_new_capability(
@@ -216,7 +333,7 @@ def generate_new_capability(
     subject_llm_name: str,
     capabilities_pool: List[Capability] | None = None,
     **kwargs: Any,
-) -> Capability:
+) -> Capability | None:
     """
     Generate a new capability.
 
@@ -236,16 +353,18 @@ def generate_new_capability(
     if kwargs.get("lbo_run_id", 0) == 0:
         # Load subject LLM scores for each capability
         capability_scores = torch.Tensor(
-            [cap.load_scores()[subject_llm_name] for cap in capabilities]
+            [cap.load_scores()[subject_llm_name] for cap in capabilities], device=device
         )
     else:
         # Only load newly added capability's score
         capability_scores = torch.Tensor(
-            [capabilities[-1].load_scores()[subject_llm_name]]
+            [capabilities[-1].load_scores()[subject_llm_name]], device=device
         )
 
     # TODO: Set the encoder model
     encoder = None
+    if encoder is not None:
+        encoder = encoder.to(device)
 
     pipeline_id = kwargs.get("pipeline_id", "nearest_neighbour")
     if pipeline_id == "nearest_neighbour":

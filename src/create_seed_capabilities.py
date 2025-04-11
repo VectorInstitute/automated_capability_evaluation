@@ -9,7 +9,7 @@ import hydra  # noqa: D100
 from omegaconf import DictConfig
 
 from capability import CapabilitySeedDataset
-from utils.constants import DATASET_NAME_MAP, GSM8K_SCORE_FUNC, MATHEMATICS_SCORE_FUNC
+from utils import constants
 from utils.templates import CAPABILITY_CLASS_TEMPLATE
 
 
@@ -198,9 +198,7 @@ def main(cfg: DictConfig) -> None:
             capabilities: Dict[str, Dict[str, Any]] = defaultdict()
             for task in dataset._data:
                 subject = task["type"].lower()
-                capability_name = (
-                    f"{DATASET_NAME_MAP[dataset.name]}_{'_'.join(subject.split(' '))}"
-                )
+                capability_name = f"{constants.DATASET_NAME_MAP[dataset.name]}_{'_'.join(subject.split(' '))}"
                 if capability_name not in capabilities:
                     capabilities[capability_name] = defaultdict()
                     capabilities[capability_name]["type"] = subject
@@ -240,14 +238,14 @@ def main(cfg: DictConfig) -> None:
                     capability_data=math_tasks["tasks"],
                     capability_repr_tasks=capability_repr_tasks,
                     capability_instructions=capability_instructions,
-                    capability_score_func=MATHEMATICS_SCORE_FUNC.strip("\n"),
+                    capability_score_func=constants.MATHEMATICS_SCORE_FUNC.strip("\n"),
                     source_dataset=dataset.name,
                 )
                 print(
                     f"Created capability {capability_name} with {len(math_tasks['tasks'])} tasks."
                 )
         elif dataset.name == "gsm8k":
-            capability_name = f"{DATASET_NAME_MAP[dataset.name]}"
+            capability_name = f"{constants.DATASET_NAME_MAP[dataset.name]}"
             gsm_tasks = []
             for task in dataset._data:
                 task["solution"] = task["answer"]
@@ -275,7 +273,7 @@ def main(cfg: DictConfig) -> None:
                 capability_data=gsm_tasks,
                 capability_repr_tasks=capability_repr_tasks,
                 capability_instructions=capability_instructions,
-                capability_score_func=GSM8K_SCORE_FUNC.strip("\n"),
+                capability_score_func=constants.GSM8K_SCORE_FUNC.strip("\n"),
                 source_dataset=dataset.name,
             )
             print(f"Created capability {capability_name} with {len(gsm_tasks)} tasks.")
