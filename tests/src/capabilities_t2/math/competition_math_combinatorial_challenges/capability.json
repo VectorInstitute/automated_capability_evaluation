@@ -1,0 +1,23 @@
+{
+    "capability_name": "competition_math_combinatorial_challenges",
+    "capability_description": "The competition_math_combinatorial_challenges capability consists of a collection of intricate combinatorial problems that require advanced reasoning skills. Each problem will involve elements of permutation, combination, and creative counting strategies. The capability is designed to push the limits of LLMs' understanding of combinatorial mathematics and problem-solving techniques.",
+    "capability_domain": "math",
+    "capability_instructions": "f\"\"\"Solve the following combinatorial problem step by step. The last line of your response should be of the form \"ANSWER: $ANSWER\" (without quotes) where $ANSWER is the answer to the problem.\n\nProblem: {t[\"problem\"]}\n\nRemember to put your answer on its own line at the end in the form \"ANSWER:$ANSWER\" (without quotes) where $ANSWER is the answer to the problem.\"\"\"",
+    "capability_data": [
+        {
+            "id": "1",
+            "problem": "In how many ways can you arrange the letters of the word 'COMBINATORICS' such that no two 'C's are adjacent?",
+            "answer": "86400"
+        },
+        {
+            "id": "2",
+            "problem": "A committee of 5 people is to be formed from a group of 10 people. If two specific people refuse to work together, how many different committees can be formed?",
+            "answer": "126"
+        },
+        {
+            "id": "3",
+            "problem": "How many ways can you distribute 10 indistinguishable balls into 4 distinguishable boxes such that each box contains at least 1 ball?",
+            "answer": "210"
+        }
+    ]
+}

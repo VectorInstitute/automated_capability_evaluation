@@ -39,6 +39,7 @@ optional = true
 pytest = "^7.1.1"
 pre-commit = "^4.0.0"
 pytest-cov = "^3.0.0"
+pytest-mock = "^3.10.0"
 codecov = "^2.1.13"
 mypy = "^1.15.0"
 ruff = "^0.2.2"
@@ -127,8 +128,8 @@ ignore = [
 # Ignore import violations in all `__init__.py` files.
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401", "F403", "F811"]
-"tests/src/seed_capabilities/math/math_competition_algebra/capability.py" = ["D100", "D101", "D102"]
-"tests/src/capabilities_t2/math/math_mathematics_modeling_real_world/capability.py" = ["D100", "D101", "D102"]
+"tests/src/seed_capabilities/math/competition_math_algebra/capability.py" = ["D100", "D101", "D102"]
+"tests/src/capabilities_t2/math/competition_math_combinatorial_challenges/capability.py" = ["D100", "D101", "D102"]
 "src/run.py" = ["ERA001"]
 "src/lbo.py" = ["ERA001"]
 "src/utils/capability_utils.py" = ["ERA001"]

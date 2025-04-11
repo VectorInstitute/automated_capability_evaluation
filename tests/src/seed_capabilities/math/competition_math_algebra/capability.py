@@ -22,4 +22,8 @@ class Capability:
 
     @staticmethod
     def score(t: dict, submission: str) -> float | None:
-        return 1.0 if submission == t["answer"] else 0.0
+        from .utils import evaluate_with_llm_judge, parse_submission
+
+        answer = parse_submission(submission)
+        correct = evaluate_with_llm_judge(answer, t["answer"])
+        return 1.0 if correct else 0.0
