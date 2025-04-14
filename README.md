@@ -18,6 +18,14 @@ run:
 python3 -m poetry install --with test
 ```
 
+### [Optional] Google Cloud Authentication
+
+The capability evaluation logs (evaluated using [Inspect](https://inspect.aisi.org.uk/)) are stored in a GCP bucket. Use the following command to log in using your GCP account:
+
+```bash
+gcloud auth application-default login
+```
+
 ### Run pipeline with default config
 
 Note: Please set the following env vars before running the command.
@@ -30,6 +38,8 @@ Note: Please set the following env vars before running the command.
     - LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
     - LANGSMITH_API_KEY=<langsmith_api_key>
     - LANGSMITH_PROJECT="automated_capability_evaluation"
+- GCP env vars:
+    - GOOGLE_CLOUD_PROJECT=<project_id>
 
 ```bash
 python3 src/run.py

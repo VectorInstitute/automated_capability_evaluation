@@ -8,7 +8,7 @@ import hydra  # noqa: D100
 from omegaconf import DictConfig
 
 from capability import CapabilitySeedDataset
-from utils.constants import GSM8K_SCORE_FUNC
+from utils import constants
 from utils.templates import CAPABILITY_CLASS_TEMPLATE
 
 
@@ -229,7 +229,7 @@ def main(cfg: DictConfig) -> None:
                     capability_data=math_tasks["tasks"],
                     capability_repr_tasks=capability_repr_tasks,
                     capability_instructions=capability_instructions,
-                    capability_score_func=GSM8K_SCORE_FUNC.strip(
+                    capability_score_func=constants.GSM8K_SCORE_FUNC.strip(
                         "\n"
                     ),  # TODO: Change this to MATHEMATICS_SCORE_FUNC after figuring out how to implement complex score functions
                     source_dataset=dataset.name,
@@ -266,7 +266,7 @@ def main(cfg: DictConfig) -> None:
                 capability_data=gsm_tasks,
                 capability_repr_tasks=capability_repr_tasks,
                 capability_instructions=capability_instructions,
-                capability_score_func=GSM8K_SCORE_FUNC.strip("\n"),
+                capability_score_func=constants.GSM8K_SCORE_FUNC.strip("\n"),
                 source_dataset=dataset.name,
             )
             print(f"Created capability {capability_name} with {len(gsm_tasks)} tasks.")
