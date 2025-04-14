@@ -115,13 +115,13 @@ def skip_test_embedding(function):
 @skip_test_embedding
 def test_capability_embedding(embeddings: List[torch.Tensor]):
     """Test that embeddings similarities are as expected and make sense."""
-    assert len(embeddings) == len(
-        capabilities_json_str
-    ), "The number of embeddings generated should be equal to the number of capabilities."
+    assert len(embeddings) == len(capabilities_json_str), (
+        "The number of embeddings generated should be equal to the number of capabilities."
+    )
     # Check the length of embeddings
-    assert (
-        len(embeddings[0]) == EMBEDDING_SIZE
-    ), "The length of the embeddings should be equal to the specified embedding dimensions."
+    assert len(embeddings[0]) == EMBEDDING_SIZE, (
+        "The length of the embeddings should be equal to the specified embedding dimensions."
+    )
 
     # Calculate the cosine similarity between the embeddings
     capability_0_2_cosine_similarity = cosine_similarity(
@@ -266,7 +266,7 @@ def test_embedding_visualization(embeddings: List[torch.Tensor]) -> None:
     save_dir = os.path.join(test_dir, "visualizations")
     os.makedirs(save_dir, exist_ok=True)
     plot_name = "embeddings_visualization_names"
-    plot_dir = os.path.join(save_dir, plot_name)
+    plot_dir = os.path.join(save_dir, f"{plot_name}.pdf")
     if os.path.isfile(plot_dir):
         assert True
     else:
@@ -275,7 +275,6 @@ def test_embedding_visualization(embeddings: List[torch.Tensor]) -> None:
             visualize_embeddings(
                 embeddings, save_dir=save_dir, plot_name=plot_name, point_names=names
             )
-            assert True
         except Exception as e:
             pytest.fail(f"Visualization failed with error: {e}")
 
@@ -311,18 +310,13 @@ def test_capability_filtering_logic_manual() -> None:
         # Count the number of neighbors for each row and
         # subtract 1 to ignore the diagonal (self connection).
         num_neighbors[row_inx] = sum(binary_matrix[row_inx]) - 1
-    # sort the keys in the dictionary by their values in descending order
-    sorted_indices = sorted(num_neighbors, key=num_neighbors.get, reverse=True)
+    # Sort the keys in the dictionary by their values in descending order
+    sorted_indices = sorted(num_neighbors, key=lambda x: num_neighbors[x], reverse=True)
 
     assert num_neighbors == {0: 1, 1: 2, 2: 1, 3: 1, 4: 1}
     assert sorted_indices == [1, 0, 2, 3, 4]
     assert np.array_equal(
-        close_pairs, np.array([[0, 1],
-                                [1, 0],
-                                [1, 2],
-                                [2, 1],
-                                [3, 4],
-                                [4, 3]])
+        close_pairs, np.array([[0, 1], [1, 0], [1, 2], [2, 1], [3, 4], [4, 3]])
     )
     # Eliminate all closely similar neighbors while minimizing
     # the number of removed points.

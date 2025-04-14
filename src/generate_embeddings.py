@@ -164,6 +164,7 @@ def visualize_embeddings(
         embeddings (List[torch.Tensor]): A list of embeddings to visualize.
         save_dir (str): The directory to save the plot.
         plot_name (str): The name of the plot file.
+        point_names (List[str] | None): Optional names for each point in the plot.
 
     Returns
     -------
