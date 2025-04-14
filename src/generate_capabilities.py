@@ -144,6 +144,7 @@ def generate_capabilities_using_llm(
     sys_prompt: str,
     user_prompt: str,
     num_seed_capabilities: int,
+    seed_capability_dir: str,
     prev_capabilities: List[Capability],
     scientist_llm_gen_cfg: Dict[str, Any],
     base_capability_dir: str,
@@ -166,6 +167,7 @@ def generate_capabilities_using_llm(
         sys_prompt (str): The system prompt.
         user_prompt (str): The user prompt.
         num_seed_capabilities (int): The number of seed capabilities to use.
+        seed_capability_dir (str): The directory containing the seed capabilities.
         prev_capabilities (List[Capability]): The list of previously
             generated capabilities.
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
@@ -183,17 +185,6 @@ def generate_capabilities_using_llm(
         Dict[str, Any]: A dictionary containing the generated capabilities
         and metadata about the generation process.
     """
-    # Select seed capabilities
-    seed_capability_dir = os.path.join(
-        constants.BASE_ARTIFACTS_DIR, "seed_capabilities", domain
-    )
-    # Add all seed capabilities to the list of prev_capabilities
-    prev_capabilities.extend(
-        _sample_seed_capabilities(
-            seed_capability_dir=seed_capability_dir,
-            num_seed_capabilities=-1,
-        )
-    )
     # Sample seed capabilities for the generation process
     seed_capabilities = _sample_seed_capabilities(
         seed_capability_dir=seed_capability_dir,
@@ -313,6 +304,17 @@ def generate_capabilities(
     # Fetch previously generated capabilities, if any
     prev_capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
 
+    # Add all seed capabilities to the list of prev_capabilities
+    seed_capability_dir = os.path.join(
+        constants.BASE_ARTIFACTS_DIR, "seed_capabilities", domain
+    )
+    prev_capabilities.extend(
+        _sample_seed_capabilities(
+            seed_capability_dir=seed_capability_dir,
+            num_seed_capabilities=-1,
+        )
+    )
+
     for run_id in range(num_runs):
         print("Run ID:", run_id)
         # Generate capabilities using the scientist LLM
@@ -323,6 +325,7 @@ def generate_capabilities(
             sys_prompt=CAPABILITY_GENERATION_SYSTEM_PROMPT,
             user_prompt=CAPABILITY_GENERATION_USER_PROMPT,
             num_seed_capabilities=num_seed_capabilities,
+            seed_capability_dir=seed_capability_dir,
             prev_capabilities=prev_capabilities,
             scientist_llm_gen_cfg=scientist_llm_gen_cfg,
             base_capability_dir=base_capability_dir,
