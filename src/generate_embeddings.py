@@ -21,7 +21,7 @@ class DimensionalityReductionTechnique(Enum):
     """Enum for dimensionality reduction techniques."""
 
     TSNE = "t-sne"
-    CUT_EMBEDDING = "cut_embedding"
+    CUT_EMBEDDING = "cut-embedding"
 
 
 def normalize_l2(tensors: List[torch.Tensor]) -> List[torch.Tensor]:
@@ -53,8 +53,8 @@ class EmbeddingGenerator:
 
     def __init__(
         self,
-        model_name: EmbeddingModelName = EmbeddingModelName.text_embedding_3_small,
-        embed_dimensions: int = 512,
+        model_name: EmbeddingModelName,
+        embed_dimensions: int,
     ):
         self.embedding_model = self._load_embedding_model(model_name, embed_dimensions)
         self.embedding_model_name = model_name
@@ -63,7 +63,7 @@ class EmbeddingGenerator:
     def _load_embedding_model(
         self,
         model_name: EmbeddingModelName,
-        dimensions: int = 512,
+        dimensions: int,
     ) -> OpenAIEmbeddings:
         """
         Load the embedding model.
@@ -101,7 +101,7 @@ class EmbeddingGenerator:
 
 def reduce_embeddings_dimensions(
     embeddings: List[torch.Tensor],
-    output_dimensions: int = 4,
+    output_dimensions: int,
     dim_reduction_technique: DimensionalityReductionTechnique = (
         DimensionalityReductionTechnique.TSNE
     ),

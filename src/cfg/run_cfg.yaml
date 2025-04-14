@@ -54,11 +54,10 @@ embedding_cfg:
   # The cosine similarity threshold for filtering capabilities based on their embeddings.
   filtering_similarity_threshold: 0.85
 
-encoding_cfg:
-  # encoding model generates the low dimensional encodings
-  encoder_model: "t-sne" # "t-sne" or the name of the encoder model
-  # The number of dimensions to reduce the encodings to
-  encoder_dimensions: 2
+dimensionality_reduction_cfg:
+  # dimensionality reduction method generates the low dimensional encodings.
+  reduce_dimensionality_method: "t-sne" # "t-sne" or "cut-embedding".
+  reduced_dimensionality_size: 2
 
 exp_cfg:
   # Set this flag to true to run test experiments during development

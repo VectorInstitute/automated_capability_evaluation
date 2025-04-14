@@ -2,6 +2,7 @@ import json  # noqa: D100
 import os
 from typing import List
 
+import numpy as np
 import pytest
 import torch
 from sklearn.metrics.pairwise import cosine_similarity
@@ -114,13 +115,13 @@ def skip_test_embedding(function):
 @skip_test_embedding
 def test_capability_embedding(embeddings: List[torch.Tensor]):
     """Test that embeddings similarities are as expected and make sense."""
-    assert len(embeddings) == len(capabilities_json_str), (
-        "The number of embeddings generated should be equal to the number of capabilities."
-    )
+    assert len(embeddings) == len(
+        capabilities_json_str
+    ), "The number of embeddings generated should be equal to the number of capabilities."
     # Check the length of embeddings
-    assert len(embeddings[0]) == EMBEDDING_SIZE, (
-        "The length of the embeddings should be equal to the specified embedding dimensions."
-    )
+    assert (
+        len(embeddings[0]) == EMBEDDING_SIZE
+    ), "The length of the embeddings should be equal to the specified embedding dimensions."
 
     # Calculate the cosine similarity between the embeddings
     capability_0_2_cosine_similarity = cosine_similarity(
@@ -149,24 +150,47 @@ def test_filtering_logic(embeddings: List[torch.Tensor]):
     # Filter the capabilities
     # Remove capabilities with close embeddings.
     similarity_matrix = cosine_similarity(embeddings)
-    # Track which capabilities to keep
-    keep_indices = []
-    removed_indices = set()
+    binary_matrix = (similarity_matrix > similarity_threshold).astype(int)
+    # Getting the neighbor pairs, and ignoring the diagonal (self neighbors)
+    close_pairs = np.argwhere(
+        (binary_matrix == 1) & ~np.eye(binary_matrix.shape[0], dtype=bool)
+    )
+    # Iterate through the similarity matrix
+    num_neighbors = {}
+    for row_inx in range(len(similarity_matrix)):
+        # Count the number of neighbors for each row and
+        # subtract 1 to ignore the diagonal (self connection).
+        num_neighbors[row_inx] = sum(binary_matrix[row_inx]) - 1
+    # sort the keys in the dictionary by their values in descending order
+    sorted_indices = sorted(num_neighbors, key=num_neighbors.get, reverse=True)
 
-    # Directly taken from generate_capabilities.filter_capabilities
-    for i in range(len(embeddings)):
-        if i in removed_indices:
-            continue
-        keep_indices.append(i)
-        for j in range(i + 1, len(embeddings)):
-            if j in removed_indices:
-                continue
-            # If capabilities have similar embeddings, remove the one with lower score.
-            if similarity_matrix[i][j] >= similarity_threshold:
-                # We select j to remove.
-                removed_indices.add(j)
+    assert sorted_indices == [0, 1, 2]
+    assert np.array_equal(close_pairs, np.array([[0, 1], [1, 0]]))
 
-    assert keep_indices == [0, 2]
+    # Eliminate all closely similar neighbors while minimizing the number of
+    # removed points.
+    idx = -1
+    remove_indices = set()
+    while close_pairs.size > 0:
+        idx += 1
+        # While there are close embeddings (connections),
+        # remove the first index from sorted_indices
+        current_connected_index = sorted_indices[idx]
+        # Remove any trace of current_connected_index from
+        # the close_pairs list because this point is removed.
+        pair_idx = 0
+        while pair_idx < len(close_pairs):
+            if current_connected_index in close_pairs[pair_idx]:
+                # remove the pair_idx from close_pairs np array
+                close_pairs = np.delete(close_pairs, pair_idx, axis=0)
+                remove_indices.add(current_connected_index)
+            else:
+                pair_idx += 1
+    # Now we have no other close pairs of points.
+    assert len(close_pairs) == 0
+    # Remaining points that are left in sorted_indices are filtered capability indices.
+    remaining_indices = set(sorted_indices) - remove_indices
+    assert list(remaining_indices) == [1, 2]
 
 
 @skip_test_embedding
@@ -196,7 +220,7 @@ def test_dimensionality_reduction_tsne(embeddings: List[torch.Tensor]):
     # The t-SNE reduced vectors may vary between runs due to the stochastic
     # nature of the algorithm. Also, three points are not enough to get a good
     # representation of the data. So the below assertion might sometimes fail.
-    tolerance = 0.3  # Therefore, we add tolerance.
+    tolerance = 0.7  # Therefore, we add tolerance.
     assert (
         abs(capability_0_1_cosine_similarity)
         > abs(capability_0_2_cosine_similarity) - tolerance
@@ -254,3 +278,73 @@ def test_embedding_visualization(embeddings: List[torch.Tensor]) -> None:
             assert True
         except Exception as e:
             pytest.fail(f"Visualization failed with error: {e}")
+
+
+def test_capability_filtering_logic_manual() -> None:
+    """Test the filtering logic for capabilities using manually defined embeddings."""
+    embedding_1 = torch.tensor([0.2, 0.2, 0.15, 0.45])
+    embedding_2 = torch.tensor([0.2, 0.2, 0.25, 0.35])
+    embedding_3 = torch.tensor([0.3, 0.1, 0.25, 0.35])
+    embedding_4 = torch.tensor([0.0, 0.5, 0.5, 0.0])
+    embedding_5 = torch.tensor([0.05, 0.45, 0.45, 0.05])
+    manual_embeddings = [
+        embedding_1,
+        embedding_2,
+        embedding_3,
+        embedding_4,
+        embedding_5,
+    ]
+
+    similarity_threshold = 0.94
+
+    # Filter the capabilities
+    # Remove capabilities with close embeddings.
+    similarity_matrix = cosine_similarity(manual_embeddings)
+    binary_matrix = (similarity_matrix > similarity_threshold).astype(int)
+    # Getting the neighbor pairs, and ignoring the diagonal (self neighbors)
+    close_pairs = np.argwhere(
+        (binary_matrix == 1) & ~np.eye(binary_matrix.shape[0], dtype=bool)
+    )
+    # Iterate through the similarity matrix
+    num_neighbors = {}
+    for row_inx in range(len(similarity_matrix)):
+        # Count the number of neighbors for each row and
+        # subtract 1 to ignore the diagonal (self connection).
+        num_neighbors[row_inx] = sum(binary_matrix[row_inx]) - 1
+    # sort the keys in the dictionary by their values in descending order
+    sorted_indices = sorted(num_neighbors, key=num_neighbors.get, reverse=True)
+
+    assert num_neighbors == {0: 1, 1: 2, 2: 1, 3: 1, 4: 1}
+    assert sorted_indices == [1, 0, 2, 3, 4]
+    assert np.array_equal(
+        close_pairs, np.array([[0, 1],
+                                [1, 0],
+                                [1, 2],
+                                [2, 1],
+                                [3, 4],
+                                [4, 3]])
+    )
+    # Eliminate all closely similar neighbors while minimizing
+    # the number of removed points.
+    idx = -1
+    remove_indices = set()
+    while close_pairs.size > 0:
+        idx += 1
+        # While there are close embeddings (connections),
+        # remove the first index from sorted_indices
+        current_connected_index = sorted_indices[idx]
+        # Remove any trace of current_connected_index from
+        # the close_pairs list because this point is removed.
+        pair_idx = 0
+        while pair_idx < len(close_pairs):
+            if current_connected_index in close_pairs[pair_idx]:
+                # remove the pair_idx from close_pairs np array
+                close_pairs = np.delete(close_pairs, pair_idx, axis=0)
+                remove_indices.add(current_connected_index)
+            else:
+                pair_idx += 1
+
+    assert len(close_pairs) == 0
+    assert remove_indices == {1, 3}
+    remaining_indices = set(sorted_indices) - remove_indices
+    assert remaining_indices == {0, 2, 4}

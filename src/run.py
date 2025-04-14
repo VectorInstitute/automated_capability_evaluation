@@ -5,8 +5,8 @@ from omegaconf import DictConfig
 
 from generate_capabilities import (
     _get_previous_capabilities,
+    apply_dimensionality_reduction,
     filter_capabilities,
-    fit_and_set_encodings,
     generate_and_set_capabilities_embeddings,
 )
 from generate_tasks import generate_tasks_using_llm
@@ -91,17 +91,17 @@ def main(cfg: DictConfig) -> None:
     # Filter capabilities based on their embeddings
     filtered_capabilities = filter_capabilities(
         capabilities,
+        embedding_model_name=cfg.embedding_cfg.embedding_model,
         similarity_threshold=cfg.embedding_cfg.filtering_similarity_threshold,
-        embeddings_set=True,  # With this flag we want to make sure embeddings are
-        # set before filtering.
     )
     # Set encoded values for capabilities, this assumes capability embeddings
     # are already set. fit_and_set_encodings function currently only supports
     # "t-sne" encoder_model.
-    fit_and_set_encodings(
+    apply_dimensionality_reduction(
         filtered_capabilities,
-        encoder_model=cfg.encoding_cfg.encoder_model,
-        output_dimensions=cfg.encoding_cfg.encoder_dimensions,
+        dim_reduction_method=cfg.dimensionality_reduction_cfg.reduce_dimensionality_method,
+        output_dimensions=cfg.dimensionality_reduction_cfg.reduced_dimensionality_size,
+        embedding_model_name=cfg.embedding_cfg.embedding_model,
     )
 
     # Stage 2. Generate tasks and evaluate subject model on initial capabilities

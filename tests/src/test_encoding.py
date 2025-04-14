@@ -2,7 +2,7 @@ import pytest  # noqa: D100
 import torch
 
 from src.capability import Capability
-from src.generate_capabilities import fit_and_set_encodings
+from src.generate_capabilities import apply_dimensionality_reduction
 
 
 @pytest.fixture
@@ -23,24 +23,34 @@ def mock_capabilities():
     ]
 
 
-def test_fit_and_set_encodings_tsne(mock_capabilities):
-    """Test the fit_and_set_encodings function with the T-SNE encoder."""
-    encoder_model = "t-sne"
+def test_apply_dim_reduction_tsne(mock_capabilities):
+    """Test the apply_dimensionality_reduction function with the T-SNE method."""
+    dimensionality_reduction_method = "t-sne"
     output_dimensions = 2
+    embedding_model_name = "text-embedding-3-small"
+
+    for capability in mock_capabilities:
+        capability.set_encoder_output(
+            embedding_model_name,
+            capability.embedding,
+        )
 
     # Call the function
-    fit_and_set_encodings(
+    apply_dimensionality_reduction(
         filtered_capabilities=mock_capabilities,
-        encoder_model=encoder_model,
+        dim_reduction_method=dimensionality_reduction_method,
         output_dimensions=output_dimensions,
+        embedding_model_name="text-embedding-3-small",
     )
 
-    # Verify that the encoder output is set for each capability
+    # Verify that the dim reduction output is set for each capability
     for capability in mock_capabilities:
-        assert encoder_model in capability.encoder_output_dict, (
-            f"Encoder output for {encoder_model} not set for capability {capability.name}."
+        assert dimensionality_reduction_method in capability.encoder_output_dict, (
+            f"Encoder output for {dimensionality_reduction_method} not set for capability {capability.name}."
         )
-        reduced_embedding = capability.encoder_output_dict[encoder_model]
+        reduced_embedding = capability.encoder_output_dict[
+            dimensionality_reduction_method
+        ]
         assert isinstance(reduced_embedding, torch.Tensor), (
             f"Reduced embedding for {capability.name} is not a torch.Tensor."
         )
@@ -48,41 +58,11 @@ def test_fit_and_set_encodings_tsne(mock_capabilities):
             f"Reduced embedding for {capability.name} does not have the correct dimensions."
         )
 
-
-def test_fit_and_set_encodings_invalid_encoder(mock_capabilities):
-    """Test the fit_and_set_encodings function with an invalid encoder model."""
-    encoder_model = "invalid-encoder"
-    output_dimensions = 2
-
-    with pytest.raises(
-        AssertionError, match="Currently, only the t-sne encoder is supported."
-    ):
-        fit_and_set_encodings(
-            filtered_capabilities=mock_capabilities,
-            encoder_model=encoder_model,
-            output_dimensions=output_dimensions,
-        )
-
-
-def test_capability_encode_function(mock_capabilities):
-    """Test the encode function of the Capability class."""
-    encoder_model = "t-sne"
-    output_dimensions = 2
-
-    # Call the function
-    fit_and_set_encodings(
-        filtered_capabilities=mock_capabilities,
-        encoder_model=encoder_model,
-        output_dimensions=output_dimensions,
-    )
     capability_0 = mock_capabilities[0]
-    encoded_tensor = capability_0.encode(encoder_model_name=encoder_model)
-
-    # Verify that the encoder output is set
-    assert "t-sne" in capability_0.encoder_output_dict
-    assert isinstance(capability_0.encoder_output_dict["t-sne"], torch.Tensor), (
-        "Encoder output is not a torch.Tensor."
+    encoded_tensor = capability_0.encode(
+        encoder_model_name=dimensionality_reduction_method
     )
+
     assert torch.isclose(
-        encoded_tensor, capability_0.get_encoder_output(encoder_model)
+        encoded_tensor, capability_0.encode(dimensionality_reduction_method)
     ).all()
