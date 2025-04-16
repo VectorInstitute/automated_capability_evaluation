@@ -259,20 +259,18 @@ def filter_embeddings(
     # removed points.
     idx = -1
     remove_indices = set()
-    while close_pairs.size > 0:
+    close_pairs_list = [tuple(pair) for pair in close_pairs]
+
+    while close_pairs_list:
         idx += 1
         # While there are close embeddings (connections),
         # remove the first index from sorted_indices
-        current_connected_index = sorted_indices[idx]
-        # Remove any trace of current_connected_index from
-        # the close_pairs list because this point is removed.
-        pair_idx = 0
-        while pair_idx < len(close_pairs):
-            if current_connected_index in close_pairs[pair_idx]:
-                # Remove the pair_idx from close_pairs np array
-                close_pairs = np.delete(close_pairs, pair_idx, axis=0)
-                remove_indices.add(current_connected_index)
-            else:
-                pair_idx += 1
+        current_index = sorted_indices[idx]
+        if any(current_index in pair for pair in close_pairs_list):
+            remove_indices.add(current_index)
+            close_pairs_list = [
+                pair for pair in close_pairs_list if current_index not in pair
+            ]
+
     # Remaining points that are left in sorted_indices are filtered embedding indices.
     return set(sorted_indices) - remove_indices

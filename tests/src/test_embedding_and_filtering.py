@@ -286,21 +286,16 @@ def test_manual_capability_filtering_logic_steps() -> None:
     # the number of removed points.
     idx = -1
     remove_indices = set()
-    while close_pairs.size > 0:
+    close_pairs = close_pairs.tolist()
+
+    while close_pairs:
         idx += 1
         # While there are close embeddings (connections),
         # remove the first index from sorted_indices
-        current_connected_index = sorted_indices[idx]
-        # Remove any trace of current_connected_index from
-        # the close_pairs list because this point is removed.
-        pair_idx = 0
-        while pair_idx < len(close_pairs):
-            if current_connected_index in close_pairs[pair_idx]:
-                # remove the pair_idx from close_pairs np array
-                close_pairs = np.delete(close_pairs, pair_idx, axis=0)
-                remove_indices.add(current_connected_index)
-            else:
-                pair_idx += 1
+        current_index = sorted_indices[idx]
+        if any(current_index in pair for pair in close_pairs):
+            remove_indices.add(current_index)
+            close_pairs = [pair for pair in close_pairs if current_index not in pair]
 
     assert len(close_pairs) == 0
     assert remove_indices == {1, 3}
