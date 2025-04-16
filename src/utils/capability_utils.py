@@ -7,6 +7,12 @@ It contains utility functions for capabilities.
 import json
 from typing import Any, Dict
 
+from inspect_ai import eval as inspect_eval
+from langsmith import traceable
+
+from src.model import Model
+from src.utils.data_utils import read_json_file
+
 
 CAPABILITY_SCORER_MAP = {
     "math": "expression_equivalence",
@@ -25,8 +31,7 @@ def read_score_inspect_json(json_file: str) -> float:
     -------
         float: The score value.
     """
-    with open(json_file, "r") as f:
-        scores = json.load(f)
+    scores = read_json_file(json_file)
 
     def clean_name(x: str) -> str:
         return x.split("/")[-1]
@@ -95,3 +100,73 @@ def extract_and_parse_response(response: str) -> Dict[str, Any]:
         raise
 
     return {"thought": thought_str, "parsed_response": parsed_response}
+
+
+def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> None:
+    """
+    Run the inspect evals command for a given capability and model.
+
+    Args
+    ----
+    path : str
+        The path to the evaluation file for the capability.
+    model : Model
+        The model object to evaluate.
+    log_dir : str
+        The directory to store evaluation logs.
+    kwargs : Any
+        Additional arguments for the command.
+
+    Returns
+    -------
+    None
+    """
+    model_name = model.get_model_name(with_provider=True)
+
+    # Create langsmith metadata
+    ls_metadata = {
+        "ls_provider": model.model_provider,
+        "ls_model_name": model.get_model_name(with_provider=False),
+        "ls_model_type": "chat",
+    }
+    ls_metadata.update({f"ls_{k}": v for k, v in kwargs.items()})
+
+    @traceable(
+        run_type="llm",
+        metadata=ls_metadata,
+    )
+    def _run_inspect_evals() -> Dict[str, Any]:
+        """
+        Run the inspect evals command for a given capability and model.
+
+        Local function to enable tracing using langsmith.
+        """
+        print(f"Running inspect evals for {path} capability using {model_name}")
+        eval_log = inspect_eval(
+            tasks=path,
+            model=model_name,
+            log_dir=log_dir,
+            log_format="json",
+            **kwargs,
+        )[0]
+        # Return usage stats
+        eval_model_usage = eval_log.stats.model_usage[model_name]
+        usage_metadata = {
+            "input_tokens": eval_model_usage.input_tokens,
+            "output_tokens": eval_model_usage.output_tokens,
+            "total_tokens": eval_model_usage.total_tokens,
+            "reasoning_tokens": eval_model_usage.reasoning_tokens,
+        }
+        return {
+            "inspect_eval_log": eval_log,
+            "usage_metadata": usage_metadata,
+        }
+
+    output = _run_inspect_evals()
+
+    eval_log = output["inspect_eval_log"]
+    if eval_log.status == "error":
+        # TODO: Add option to retry with limit
+        raise ValueError(
+            f"Error running inspect evals for {path} capability using {model_name}: {eval_log.error}"
+        )

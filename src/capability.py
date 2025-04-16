@@ -2,6 +2,7 @@ import importlib  # noqa: D100
 import json
 import os
 import re
+import shutil
 import sys
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
@@ -9,15 +10,24 @@ from typing import Any, Dict, List, Tuple
 import torch
 
 from src.model import Model
-from src.utils.capability_utils import parse_python_class_str, read_score_inspect_json
-from src.utils.constants import (
-    NO_ANSWER_STR,
-    NON_SEED_CAPABILITIES_SCORE_DIR,
-    SEED_CAPABILITIES_SCORE_DIR,
-    TAB_W_SPACES,
+from src.utils import constants
+from src.utils.capability_utils import (
+    parse_python_class_str,
+    read_score_inspect_json,
+    run_inspect_evals,
 )
-from src.utils.data_utils import load_data
+from src.utils.data_utils import (
+    list_dir,
+    load_data,
+    path_exists,
+    transfer_inspect_log_to_gcp,
+)
 from src.utils.prompts import TASK_SOLVER_SYSTEM_PROMPT
+from src.utils.templates import (
+    INSPECT_EVALS_INIT_FILE_TEMPLATE,
+    INSPECT_EVALS_README_FILE_TEMPLATE,
+    INSPECT_EVALS_SCRIPT_FILE_TEMPLATE,
+)
 
 
 class CapabilitySeedDataset:
@@ -102,9 +112,9 @@ class Capability:
         self._load_capability_repr_class()
 
         self.score_dir = (
-            SEED_CAPABILITIES_SCORE_DIR
+            constants.SEED_CAPABILITIES_SCORE_DIR
             if self.is_seed
-            else NON_SEED_CAPABILITIES_SCORE_DIR
+            else constants.NON_SEED_CAPABILITIES_SCORE_DIR
         )
         # The embedding_dict stores various embedding vector associated with
         # different models, encoders, or dimensionality reduction algorithms.
@@ -216,11 +226,11 @@ class Capability:
         """
         scores_dir = scores_dir if scores_dir else self.score_dir
         scores_dict = defaultdict(float)
-        for model in os.listdir(scores_dir):
+        for model in list_dir(scores_dir):
             scores_file = os.path.join(
                 scores_dir, model, self.domain, f"{self.name}.json"
             )
-            if os.path.isfile(scores_file):
+            if path_exists(scores_file):
                 scores_dict[model] = read_score_inspect_json(scores_file)
         return scores_dict
 
@@ -294,8 +304,8 @@ class Capability:
             # Update the capability class python file
             # Extract str which contains the repr_tasks dictionary
             # TODO: Since these are hardcoded, update when the format changes
-            prefix_str = f"def repr_tasks() -> dict[str, dict]:\n{TAB_W_SPACES}{TAB_W_SPACES}return "
-            suffix_str = f"\n\n{TAB_W_SPACES}@staticmethod\n{TAB_W_SPACES}def get_instructions(t: dict) -> str:"
+            prefix_str = f"def repr_tasks() -> dict[str, dict]:\n{constants.TAB_W_SPACES}{constants.TAB_W_SPACES}return "
+            suffix_str = f"\n\n{constants.TAB_W_SPACES}@staticmethod\n{constants.TAB_W_SPACES}def get_instructions(t: dict) -> str:"
             prev_repr_tasks_str = self.capability_repr_class_str.split(prefix_str)[
                 1
             ].split(suffix_str)[0]
@@ -451,7 +461,7 @@ class Capability:
         #   and the answer is incomplete?
         answer_pattern = r"(?i)ANSWER\s*:\s*([^\n]+)"
         match = re.search(answer_pattern, response)
-        answer = match.group(1) if match else NO_ANSWER_STR
+        answer = match.group(1) if match else constants.NO_ANSWER_STR
         metadata = {
             "raw_response": response,
             "api_metadata": metadata,
@@ -505,26 +515,121 @@ class Capability:
         """
         return self._data
 
-    def _create_inspect_file(self) -> None:
+    def _create_inspect_file(self, path: str) -> None:
         """
         Implement pipeline to evaluate the capability using the inspect framework.
 
         This involves converting the METR format to inspect solvers and scorers.
         """
-        raise NotImplementedError
+        # Create JSONL dataset and store it under the inspect path
+        dataset = self.get_tasks()
+        dataset_metadata_keys = [
+            k for k in list(dataset[0].keys()) if k not in ["id", "problem", "answer"]
+        ]
+        # Write data to a dataset JSONL file
+        with open(os.path.join(path, "dataset.jsonl"), "w") as f:
+            for elm in dataset:
+                f.write(json.dumps(elm) + "\n")
 
-    def _evaluate_using_inspect(self, subject_llm: Model) -> None:  # noqa: D102
+        # Create __init__.py and README files
+        # TODO: Add more details to the README file
+        init_file_content = INSPECT_EVALS_INIT_FILE_TEMPLATE.format(
+            capability_name=self.name,
+        ).strip("\n")
+        with open(os.path.join(path, "__init__.py"), "w") as f:
+            f.write(init_file_content)
+        readme_file_content = INSPECT_EVALS_README_FILE_TEMPLATE.format(
+            capability_name=self.name,
+            capability_description=self.description,
+        ).strip("\n")
+        with open(os.path.join(path, "README.md"), "w") as f:
+            f.write(readme_file_content)
+
+        # Create inspect evals script file
+        # TODO: How to handle more involved score functions?
+        # TODO: Do we need system prompt?
+        instruction_template = self.capability_repr_class.get_instructions(
+            {"problem": "{prompt}"}
+        )
+        score_func_prefix = f"@staticmethod\n{constants.TAB_W_SPACES}def score"
+        score_func_prefix_new = (
+            f"async {score_func_prefix.split(constants.TAB_W_SPACES)[1]}".replace(
+                "score", "_score"
+            )
+        )
+        score_func_str = f"{score_func_prefix_new}{self.capability_repr_class_str.split(score_func_prefix)[1].replace((constants.TAB_W_SPACES + constants.TAB_W_SPACES), constants.TAB_W_SPACES)}".strip(
+            "`"
+        ).strip("\n")
+        script_file_content = INSPECT_EVALS_SCRIPT_FILE_TEMPLATE.format(
+            capability_name=self.name,
+            dataset_metadata_keys=json.dumps(dataset_metadata_keys),
+            prompt_template=instruction_template,
+            score_func_t_dict_str='{"answer": target.text}',
+            score_func_str=score_func_str,
+        )
+        script_file_path = os.path.join(path, f"{self.name}.py")
+        with open(script_file_path, "w") as f:
+            f.write(script_file_content)
+        # TODO: Validate formatting of script file
+        _ = _import_from_path(
+            module_name=f"{self.name}_inspect_eval_script", file_path=script_file_path
+        )
+
+    def _evaluate_using_inspect(self, subject_llm: Model, **kwargs: Any) -> None:
         """
-        Evaluate subject LLM on the capability using the inspect framework.
+        Evaluate the subject LLM on the capability using the Inspect framework.
 
-        Args
-        ----
-        subject_llm : Model
-            The LLM to use for evaluation.
+        This method uses the Inspect evaluation framework to assess the performance of
+        the provided language model (LLM) on a specific capability. It ensures that the
+        required evaluation files exist, temporarily stores logs locally, and transfers
+        them to a GCP bucket after the evaluation is complete.
+
+        Args:
+            subject_llm (Model): The LLM model to evaluate.
+            **kwargs (Any): Additional args for running the evals.
+
+        Raises
+        ------
+            FileNotFoundError: If the required Inspect evaluation path does not exist.
         """
-        raise NotImplementedError
+        inspect_path = os.path.join(constants.BASE_INSPECT_EVALS_DIR, self.name)
+        if not os.path.exists(inspect_path):
+            raise FileNotFoundError(
+                f"Inspect evaluation path does not exist: {inspect_path}. "
+                "Please ensure the inspect files are created before evaluation."
+            )
+        # Temporarily store the logs locally and then transfer them to the GCP bucket,
+        # since Inspect does not support GCP bucket paths for storing logs
+        log_dir = os.path.join(
+            self.score_dir.replace(
+                constants.GCP_BASE_ARTIFACTS_DIR, constants.BASE_ARTIFACTS_DIR
+            ),
+            subject_llm.get_model_name(),
+            self.domain,
+            self.name,
+        )
+        os.makedirs(log_dir, exist_ok=True)
 
-    def evaluate(self, subject_llms: List[Model]) -> None:
+        run_inspect_evals(
+            path=self.name,
+            model=subject_llm,
+            log_dir=log_dir,
+            **kwargs,
+        )
+
+        # Transfer the logs to the GCP bucket
+        transfer_inspect_log_to_gcp(
+            src_dir=log_dir,
+            gcp_dir=log_dir.replace(
+                constants.BASE_ARTIFACTS_DIR, constants.GCP_BASE_ARTIFACTS_DIR
+            ),
+        )
+        # Remove the local logs
+        shutil.rmtree(log_dir)
+
+    def evaluate(
+        self, subject_llms: List[Model], gen_args: List[Dict[Any, Any]]
+    ) -> None:
         """
         Evaluate the provided subject LLMs on the capability.
 
@@ -532,10 +637,30 @@ class Capability:
         ----
         subject_llms : List[Model]
             The list of LLMs to use for evaluation.
+        gen_args : List[Dict[Any, Any]]
+            The list of generation configurations corresponding to each LLM.
         """
+        assert len(subject_llms) == len(gen_args), (
+            "Each subject LLM must have a corresponding generation config."
+        )
+        # Create inspect script if evaluating for the first time
+        inspect_path = os.path.join(constants.BASE_INSPECT_EVALS_DIR, self.name)
+        if not os.path.exists(inspect_path):
+            os.makedirs(inspect_path)
+            self._create_inspect_file(path=inspect_path)
+
+        # Change dir to where inspect eval scrips are stored
+        # because inspect evals does not support non-relative paths
+        cwd = os.getcwd()
+        os.chdir(constants.BASE_INSPECT_EVALS_DIR)
         # TODO: Run asynchronosly
-        for model in subject_llms:
-            self._evaluate_using_inspect(model)
+        for model_idx, model in enumerate(subject_llms):
+            self._evaluate_using_inspect(
+                subject_llm=model,
+                **gen_args[model_idx],
+            )
+        # Revert to original working dir after evaluation
+        os.chdir(cwd)
 
 
 def _import_from_path(module_name: str, file_path: str) -> Any:

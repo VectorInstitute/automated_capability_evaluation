@@ -12,14 +12,18 @@ scientist_llm:
       max_tokens: 64
 
 subject_llm:
-  name: Meta-Llama-3.1-70B-Instruct
+  name: gpt-4o-mini # Meta-Llama-3.1-70B-Instruct
+  generation_cfg:
+    temperature: 0.7
+    max_tokens: 8
 
 prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.
 
 capabilities_cfg:
   capabilities_dir: /fs01/projects/aieng/public/ace/artifacts
-  results_dir: /fs01/projects/aieng/public/ace/artifacts
+  results_dir: gs://ace-artifacts
+  inspect_evals_dir: /fs01/projects/aieng/public/ace/inspect_evals/src/ace_evals
   domain: math
   # Number of seed capabilities to use for initial capability generation
   # Set to -1 to use all seed capabilities
@@ -33,6 +37,9 @@ capabilities_cfg:
   # Set this flag to true to use representative tasks
   # as few shot examples for task generation
   task_gen_few_shot: true
+  # Number of tasks to evaluate for each capability
+  # Set to -1 to evaluate all tasks
+  num_eval_tasks_per_capability: 1
 
 lbo_cfg:
   # Number of capabilities to generate using LBO

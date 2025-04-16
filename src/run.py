@@ -13,7 +13,7 @@ from generate_tasks import generate_tasks_using_llm
 
 # from lbo import generate_new_capability
 from model import Model
-from utils.constants import BASE_ARTIFACTS_DIR
+from utils import constants
 from utils.lbo_utils import get_lbo_train_set
 
 
@@ -75,7 +75,9 @@ def main(cfg: DictConfig) -> None:
     if cfg.exp_cfg.trial_run:
         # Set the base capability directory
         base_capability_dir = os.path.join(
-            BASE_ARTIFACTS_DIR, f"capabilities_{run_id}", cfg.capabilities_cfg.domain
+            constants.BASE_ARTIFACTS_DIR,
+            f"capabilities_{run_id}",
+            cfg.capabilities_cfg.domain,
         )
         os.makedirs(base_capability_dir, exist_ok=True)
 
@@ -126,8 +128,14 @@ def main(cfg: DictConfig) -> None:
         train_capabilities = capabilities
         candidate_capabilities = None
 
-    # # Initialize the subject LLM model
-    # subject_llm = Model(cfg.subject_llm.name)
+    # Initialize the subject LLM model
+    subject_llm = Model(cfg.subject_llm.name)
+    subject_llm_gen_cfg = dict(cfg.subject_llm.generation_cfg)
+    subject_llm_gen_cfg.update(
+        {
+            "limit": cfg.capabilities_cfg.num_eval_tasks_per_capability,
+        }
+    )
 
     # TODO: Run this asynchronosly
     for capability in train_capabilities:
@@ -141,8 +149,8 @@ def main(cfg: DictConfig) -> None:
             solve_sample_tasks=True,
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
         )
-        #   # Evaluate subject LLM on each capability
-        #   capability.evaluate([subject_llm])
+        # Evaluate subject LLM on each capability
+        capability.evaluate([subject_llm], [subject_llm_gen_cfg])
 
         # TODO: Only used for testing, remove this block later ==============
         if cfg.exp_cfg.trial_run:
@@ -171,7 +179,7 @@ def main(cfg: DictConfig) -> None:
     #         few_shot=cfg.capabilities_cfg.task_gen_few_shot,
     #     )
     #     # Evaluate subject LLM on new capability
-    #     new_capability.evaluate([subject_llm])
+    #     new_capability.evaluate([subject_llm], [subject_llm_gen_cfg])
     #     # Add new capability to train capabilities list
     #     train_capabilities.append(new_capability)
     #     # Remove new capability from candidate capabilities

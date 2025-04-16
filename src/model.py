@@ -24,6 +24,7 @@ class Model:
             kwargs (Any): Additional keyword arguments.
         """
         self.model_name: str = model_name
+        self.model_provider: str = kwargs.get("model_provider", "openai")
         self.llm: ChatOpenAI = self._set_llm()
 
     def _set_llm(self) -> ChatOpenAI:
@@ -77,15 +78,20 @@ class Model:
         metadata = {"input_tokens": input_tokens, "output_tokens": output_tokens}
         return generated_text, metadata
 
-    def get_model_name(self) -> str:
+    def get_model_name(self, with_provider: bool = False) -> str:
         """
         Get the name of the model.
 
         Returns
         -------
         str: The name of the model.
+        with_provider (bool): If True, include the model provider in the name.
         """
-        return self.model_name
+        return (
+            self.model_name
+            if not with_provider
+            else f"{self.model_provider}/{self.model_name}"
+        )
 
     def _get_input_messages(
         self, sys_prompt: str, user_prompt: str
