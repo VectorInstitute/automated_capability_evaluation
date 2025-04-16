@@ -131,6 +131,10 @@ def reduce_embeddings_dimensions(
     if len(embeddings) < perplexity:
         # perplexity should always be smaller than number os samples.
         perplexity = len(embeddings) - 2
+        print(
+            f"Only {len(embeddings)} points are provided for t-SNE\
+              perplexity is reduced to the number of points - 1."
+        )
     if dim_reduction_technique == DimensionalityReductionTechnique.CUT_EMBEDDING:
         reduced_embeddings = [embedding[:output_dimensions] for embedding in embeddings]
     elif dim_reduction_technique == DimensionalityReductionTechnique.TSNE:

@@ -106,11 +106,12 @@ class Capability:
             if self.is_seed
             else NON_SEED_CAPABILITIES_SCORE_DIR
         )
-        # The encoder_output_dict stores the outputs of various encoder models.
-        # Each key represents the name of an encoder model, and the corresponding
-        # value is a tensor containing the encoded representation of the capability
-        # dataset in a lower-dimensional space.
-        self.encoder_output_dict: dict[str, torch.Tensor] = {}
+        # The embedding_dict stores various embedding vector associated with
+        # different models, encoders, or dimensionality reduction algorithms.
+        # Key represents the name of the embedding model or the algorithm,
+        # and the corresponding value is a tensor containing the vector representation
+        # of the capability.
+        self.embedding_dict: dict[str, torch.Tensor] = {}
 
     @classmethod
     def from_dict(cls, capability_dict: Dict[str, Any], base_dir: str) -> "Capability":
@@ -365,21 +366,45 @@ class Capability:
         """
         return self.to_json_str()
 
-    def encode(
-        self, encoder_model_name: str = "reduce_dimensionality_method"
-    ) -> torch.Tensor:
-        """Return the encoded capability based the provided encoder model name.
+    def set_embedding(
+        self, embedding_name: str, embedding_tensor: torch.Tensor
+    ) -> None:
+        """Set the embedding of the capability based on embedding_name.
+
+        Examples of `embedding_name` are text-embedding-3-small and t-sne.
 
         Args
         ----
-        encoder_model_name : str
-            The model to use for encoding the capability.
+            embedding_name (str): The name of the embedding model/algorithm.
+            embedding_vector (torch.Tensor): The embedding vector to set.
+
+        Returns
+        -------
+            None
         """
-        assert encoder_model_name in self.encoder_output_dict, (
-            f"Encoder model {encoder_model_name} not found in encoder output dictionary."
+        self.embedding_dict[embedding_name] = embedding_tensor
+
+    def get_embedding(self, embedding_name: str) -> torch.Tensor:
+        """
+        Get the embedding for the capability.
+
+        Args
+        ----
+            embedding_name (str): The name of the embedding model/algorithm.
+
+        Returns
+        -------
+            torch.Tensor: The embedding tensor for the capability.
+
+        Raises
+        ------
+            AssertionError: If the embedding name is not set in the capability.
+        """
+        assert embedding_name in self.embedding_dict, (
+            f"Embedding {embedding_name} not found in capability {self.name}."
         )
 
-        return self.encoder_output_dict[encoder_model_name]
+        return self.embedding_dict[embedding_name]
 
     def _solve_task(
         self, task: Dict[str, Any], llm: Model, gen_cfg: Dict[str, Any]
@@ -511,19 +536,6 @@ class Capability:
         # TODO: Run asynchronosly
         for model in subject_llms:
             self._evaluate_using_inspect(model)
-
-    def set_encoder_output(
-        self, encoder_name: str, encoder_output: torch.Tensor
-    ) -> None:
-        """
-        Set the encoder output for the capability.
-
-        Args
-        ----
-            encoder_name (str): The name of the encoder model.
-            encoder_output (torch.Tensor): The encoder output to set.
-        """
-        self.encoder_output_dict.update({encoder_name: encoder_output})
 
 
 def _import_from_path(module_name: str, file_path: str) -> Any:

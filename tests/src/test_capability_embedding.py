@@ -13,7 +13,7 @@ def mock_capabilities():
         def __init__(self, name, embedding):
             self.name = name
             self.embedding = embedding
-            self.encoder_output_dict = {}
+            self.embedding_dict = {}
 
     return [
         MockCapability("math", torch.tensor([1.0, 2.0, 3.0, 4.0])),
@@ -30,7 +30,7 @@ def test_apply_dim_reduction_tsne(mock_capabilities):
     embedding_model_name = "text-embedding-3-small"
 
     for capability in mock_capabilities:
-        capability.set_encoder_output(
+        capability.set_embedding(
             embedding_model_name,
             capability.embedding,
         )
@@ -45,12 +45,10 @@ def test_apply_dim_reduction_tsne(mock_capabilities):
 
     # Verify that the dim reduction output is set for each capability
     for capability in mock_capabilities:
-        assert dimensionality_reduction_method in capability.encoder_output_dict, (
+        assert dimensionality_reduction_method in capability.embedding_dict, (
             f"Encoder output for {dimensionality_reduction_method} not set for capability {capability.name}."
         )
-        reduced_embedding = capability.encoder_output_dict[
-            dimensionality_reduction_method
-        ]
+        reduced_embedding = capability.embedding_dict[dimensionality_reduction_method]
         assert isinstance(reduced_embedding, torch.Tensor), (
             f"Reduced embedding for {capability.name} is not a torch.Tensor."
         )
@@ -59,10 +57,8 @@ def test_apply_dim_reduction_tsne(mock_capabilities):
         )
 
     capability_0 = mock_capabilities[0]
-    encoded_tensor = capability_0.encode(
-        encoder_model_name=dimensionality_reduction_method
-    )
+    encoded_tensor = capability_0.get_embedding(dimensionality_reduction_method)
 
     assert torch.isclose(
-        encoded_tensor, capability_0.encode(dimensionality_reduction_method)
+        encoded_tensor, capability_0.get_embedding(dimensionality_reduction_method)
     ).all()
