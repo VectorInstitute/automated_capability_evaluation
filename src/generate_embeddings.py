@@ -130,7 +130,11 @@ def reduce_embeddings_dimensions(
         torch.cuda.manual_seed_all(42)
 
     if len(embeddings) < perplexity:
-        # perplexity should always be smaller than number os samples.
+        # Perplexity should always be smaller than the number of samples.
+        # If the number of samples is smaller than the default perplexity
+        # value, we set the perplexity to the number of samples - 2 since a
+        # larger value either throws and error or is too big for the algorithm
+        # to work properly.
         perplexity = len(embeddings) - 2
         print(
             f"Only {len(embeddings)} points are provided for t-SNE\
