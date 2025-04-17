@@ -2,9 +2,9 @@ import json  # noqa: D100
 import os
 from typing import List
 
-import numpy as np
 import pytest
 import torch
+from openai import AuthenticationError
 from sklearn.metrics.pairwise import cosine_similarity
 
 from src.generate_embeddings import (
@@ -15,7 +15,6 @@ from src.generate_embeddings import (
     reduce_embeddings_dimensions,
     visualize_embeddings,
 )
-from tests.src.test_model_class import skip_test
 
 
 # Use dummy OpenAI API key for tests not making API calls.
@@ -28,6 +27,42 @@ EMBEDDING_SIZE = 256
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(42)
 torch.manual_seed(42)
+
+
+# API key error code vars
+EC_401 = "Error code: 401"
+EC_401_SKIP_MSG = (
+    "Skip this test for code check because this test depends on actual API call."
+)
+
+
+def skip_embedding_generation(function):
+    """
+    Wrap a function to handle AuthenticationError exceptions.
+
+    If an AuthenticationError with error code EC_401 is raised
+    (Incorrect API key provided), it prints a skip message and
+    does not re-raise the exception. For other AuthenticationError exceptions,
+    it re-raises the exception.
+    Args:
+        function (callable): The test function to be wrapped.
+
+    Returns
+    -------
+        callable: The wrapped function.
+    """
+
+    def wrapper():
+        try:
+            return function()
+        except AuthenticationError as e:
+            if EC_401 in str(e):
+                print(EC_401_SKIP_MSG)
+            else:
+                raise e
+            return None
+
+    return wrapper
 
 
 capabilities_dicts = [
@@ -62,9 +97,13 @@ capabilities_json_str = [
 ]
 
 
-@skip_test
+@skip_embedding_generation
 def generate_embeddings():
-    """Reconstruct embeddings one time here to avoid repeated API calls during tests."""
+    """Generate embeddings once to avoid repeated API calls during tests.
+
+    If an AuthenticationError occurs due to OpenAI API key issues,
+    `embeddings` will be set to None.
+    """
     # We need to make actual API calls to generate embeddings
     os.environ["OPENAI_API_KEY"] = os.environ.get(
         "TEST_OPENAI_API_KEY", DUMMY_OPENAI_API_KEY
@@ -88,24 +127,23 @@ def embeddings() -> List[torch.Tensor] | bool:
 
 
 def skip_test_embedding(function):
-    """Wrap the test functions that are using the embeddings.
+    """Wrap test functions that depend on embeddings.
 
-    Wraps a test function that requires OpenAI API key, and skips the test if the key
-    is not set. It also checks that embeddings are generated and are not set to True.
-    `embeddings` could be set to `True` only if `embeddings()`
-    function is skipped due to error.
+    This decorator ensures that tests requiring embeddings are skipped if embeddings
+    are not available. Embeddings may be unavailable if the OpenAI API key is not set
+    or if an error occurred during embedding generation.
 
     Args:
-        function (function): The test function to wrap.
+        function (function): The test function to be wrapped.
 
     Returns
     -------
-        function: The wrapped test function.
+        function: The wrapped test function that skips execution if embeddings are None.
     """
 
     def wrapper(embeddings, *args, **kwargs):
-        # Check if embeddings are missing or invalid
-        if embeddings is True:
+        # Check if embeddings are missing.
+        if embeddings is None:
             pytest.skip("Skipping test due to missing embeddings.")
         else:
             return function(embeddings, *args, **kwargs)
