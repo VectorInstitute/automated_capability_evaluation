@@ -54,6 +54,18 @@ lbo_cfg:
   # TODO: Add other acquisition functions.
   acquisition_function: "variance"
 
+embedding_cfg:
+  # The embedding model name used to generate capability embeddings used for filtering.
+  embedding_model: "text-embedding-3-small" # "text-embedding-3-small" or "text-embedding-3-large"
+  embedding_size: 512
+  # The cosine similarity threshold for filtering capabilities based on their embeddings.
+  filtering_similarity_threshold: 0.85
+
+dimensionality_reduction_cfg:
+  # dimensionality reduction method generates the low dimensional encodings.
+  reduce_dimensionality_method: "t-sne" # "t-sne" or "cut-embedding".
+  reduced_dimensionality_size: 2
+
 exp_cfg:
   # Set this flag to true to run test experiments during development
   trial_run: true
