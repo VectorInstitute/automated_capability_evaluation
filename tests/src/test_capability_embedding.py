@@ -37,9 +37,9 @@ def test_apply_dim_reduction_tsne(mock_capabilities):
 
     # Call the function
     apply_dimensionality_reduction(
-        filtered_capabilities=mock_capabilities,
+        mock_capabilities,
         dim_reduction_method=dimensionality_reduction_method,
-        output_dimensions=output_dimensions,
+        output_dimension_size=output_dimensions,
         embedding_model_name="text-embedding-3-small",
     )
 
