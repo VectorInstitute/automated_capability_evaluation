@@ -6,6 +6,8 @@ import sys
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
+import torch
+
 from src.model import Model
 from src.utils import constants
 from src.utils.capability_utils import (
@@ -116,6 +118,12 @@ class Capability:
             if self.is_seed
             else constants.NON_SEED_CAPABILITIES_SCORE_DIR
         )
+        # The embedding_dict stores various embedding vector associated with
+        # different models, encoders, or dimensionality reduction algorithms.
+        # Key represents the name of the embedding model or the algorithm,
+        # and the corresponding value is a tensor containing the vector representation
+        # of the capability.
+        self.embedding_dict: dict[str, torch.Tensor] = {}
 
     @classmethod
     def from_dict(cls, capability_dict: Dict[str, Any], base_dir: str) -> "Capability":
@@ -346,15 +354,19 @@ class Capability:
         self._load_capability_json()
         self._load_capability_repr_class()
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self, attribute_names: List[str] | None = None) -> Dict[str, Any]:
+        if attribute_names is None:
+            return {
+                "name": self.name,
+                "description": self.description,
+                "domain": self.domain,
+                "class": self.capability_repr_class_str,
+            }
         return {
-            "name": self.name,
-            "description": self.description,
-            "domain": self.domain,
-            "class": self.capability_repr_class_str,
+            attr: getattr(self, attr) for attr in attribute_names if hasattr(self, attr)
         }
 
-    def to_json_str(self) -> str:
+    def to_json_str(self, attribute_names: List[str] | None = None) -> str:
         """
         Convert the capability to a JSON string.
 
@@ -363,7 +375,7 @@ class Capability:
         str
             A JSON string representation of the capability.
         """
-        return json.dumps(self._to_dict(), indent=4)
+        return json.dumps(self._to_dict(attribute_names), indent=4)
 
     def __str__(self) -> str:
         """
@@ -387,18 +399,45 @@ class Capability:
         """
         return self.to_json_str()
 
-    def encode(self, encoder_model: Any) -> None:
-        """
-        Encode the capability using the provided encoder model.
+    def set_embedding(
+        self, embedding_name: str, embedding_tensor: torch.Tensor
+    ) -> None:
+        """Set the embedding of the capability based on embedding_name.
+
+        Examples of `embedding_name` are text-embedding-3-small and t-sne.
 
         Args
         ----
-        encoder_model : Any
-            The model to use for encoding the capability.
+            embedding_name (str): The name of the embedding model/algorithm.
+            embedding_vector (torch.Tensor): The embedding vector to set.
+
+        Returns
+        -------
+            None
         """
-        # TODO: Implement capability encoding
-        self.encoding = None
-        raise NotImplementedError
+        self.embedding_dict[embedding_name] = embedding_tensor
+
+    def get_embedding(self, embedding_name: str) -> torch.Tensor:
+        """
+        Get the embedding for the capability.
+
+        Args
+        ----
+            embedding_name (str): The name of the embedding model/algorithm.
+
+        Returns
+        -------
+            torch.Tensor: The embedding tensor for the capability.
+
+        Raises
+        ------
+            AssertionError: If the embedding name is not set in the capability.
+        """
+        assert embedding_name in self.embedding_dict, (
+            f"Embedding {embedding_name} not found in capability {self.name}."
+        )
+
+        return self.embedding_dict[embedding_name]
 
     def _solve_task(
         self, task: Dict[str, Any], llm: Model, gen_cfg: Dict[str, Any]
