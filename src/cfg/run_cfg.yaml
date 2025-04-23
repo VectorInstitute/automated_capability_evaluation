@@ -1,5 +1,6 @@
 scientist_llm:
   name: gpt-4o-mini
+  provider: openai
   generation_cfg:
     capability_generation:
       temperature: 0.7
@@ -10,12 +11,34 @@ scientist_llm:
     task_solve:
       temperature: 0.7
       max_tokens: 64
+    judge_llm:
+      temperature: 1.0
+      max_tokens: 64
+  local_launch_cfg:
+    # Number of threads to use for local LLM
+    max_num_seqs: 1
+    # Type of GPU to use for local LLM
+    partition: "a40"
+    # QoS for local LLM
+    qos: "m2"
+    # Time limit for local LLM
+    time: "01:00:00"
 
 subject_llm:
-  name: gpt-4o-mini # Meta-Llama-3.1-70B-Instruct
+  name: Meta-Llama-3.1-8B-Instruct
+  provider: local
   generation_cfg:
     temperature: 0.7
-    max_tokens: 8
+    max_tokens: 512
+  local_launch_cfg:
+    # Number of threads to use for local LLM
+    max_num_seqs: 1
+    # Type of GPU to use for local LLM
+    partition: "a40"
+    # QoS for local LLM
+    qos: "m2"
+    # Time limit for local LLM
+    time: "01:00:00"
 
 prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.
@@ -27,11 +50,11 @@ capabilities_cfg:
   domain: math
   # Number of seed capabilities to use for initial capability generation
   # Set to -1 to use all seed capabilities
-  num_seed_capabilities: -1
+  num_seed_capabilities: 1
   # Number of initial capabilities to generate using the scientist LLM
-  num_gen_capabilities: 4
+  num_gen_capabilities: 1
   # Number of initial capabilities to generate per run
-  num_gen_capabilities_per_run: 2
+  num_gen_capabilities_per_run: 1
   # Number of tasks to generate for each capability
   num_gen_tasks_per_capability: 1
   # Set this flag to true to use representative tasks

@@ -1,6 +1,7 @@
 import json  # noqa: D100
 import os
 import random
+import shutil
 from collections import defaultdict
 from typing import Any, Dict, List
 
@@ -63,6 +64,16 @@ def populate_seed_capability_dir(
         capability_json.update({"capability_subject": capability_subject})
     with open(os.path.join(capability_dir, "capability.json"), "w") as f:
         json.dump(capability_json, f, indent=4)
+
+    # Create capability utils file, which includes utils for evaluation
+    # Copy the contents of `utils/inspect_eval_utils.py` here
+    shutil.copyfile(
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "utils/inspect_eval_utils.py",
+        ),
+        os.path.join(capability_dir, "utils.py"),
+    )
 
     # Create capability python file
     capability_tasks_dict = {
@@ -187,9 +198,7 @@ def main(cfg: DictConfig) -> None:
             capabilities: Dict[str, Dict[str, Any]] = defaultdict()
             for task in dataset._data:
                 subject = task["type"].lower()
-                capability_name = (
-                    f"{dataset.domain}_{dataset.name}_{'_'.join(subject.split(' '))}"
-                )
+                capability_name = f"{constants.DATASET_NAME_MAP[dataset.name]}_{'_'.join(subject.split(' '))}"
                 if capability_name not in capabilities:
                     capabilities[capability_name] = defaultdict()
                     capabilities[capability_name]["type"] = subject
@@ -229,16 +238,14 @@ def main(cfg: DictConfig) -> None:
                     capability_data=math_tasks["tasks"],
                     capability_repr_tasks=capability_repr_tasks,
                     capability_instructions=capability_instructions,
-                    capability_score_func=constants.GSM8K_SCORE_FUNC.strip(
-                        "\n"
-                    ),  # TODO: Change this to MATHEMATICS_SCORE_FUNC after figuring out how to implement complex score functions
+                    capability_score_func=constants.MATHEMATICS_SCORE_FUNC.strip("\n"),
                     source_dataset=dataset.name,
                 )
                 print(
                     f"Created capability {capability_name} with {len(math_tasks['tasks'])} tasks."
                 )
         elif dataset.name == "gsm8k":
-            capability_name = f"{dataset.domain}_{dataset.name}"
+            capability_name = f"{constants.DATASET_NAME_MAP[dataset.name]}"
             gsm_tasks = []
             for task in dataset._data:
                 task["solution"] = task["answer"]
