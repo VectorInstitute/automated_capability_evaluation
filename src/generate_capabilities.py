@@ -395,6 +395,7 @@ def generate_capability_areas(
     user_prompt: str,
     scientist_llm_gen_cfg: Dict[str, Any],
     sys_prompt: str | None = None,
+    **kwargs: Any,
 ) -> Dict[str, Any]:
     """
     Generate capability areas for the specified domain.
@@ -408,6 +409,7 @@ def generate_capability_areas(
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
             for the scientist LLM.
         sys_prompt (str | None): The system prompt for the scientist LLM.
+        **kwargs (Any): Additional keyword arguments.
 
     Returns
     -------
@@ -420,11 +422,24 @@ def generate_capability_areas(
         domain=domain,
         response_json_format=prompts.CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT,
     )
-    response, metadata = scientist_llm.generate(
-        sys_prompt=sys_prompt if sys_prompt else "",
-        user_prompt=user_prompt,
-        generation_config=scientist_llm_gen_cfg,
-    )
+    with tracing_context(
+        enabled=True,
+        tags=["generate_capability_areas"],
+        metadata={
+            "ls_provider": scientist_llm.model_provider,
+            "ls_model_name": scientist_llm.get_model_name(with_provider=False),
+            "ls_model_type": "chat",
+            "exp_id": kwargs.get("run_id"),
+            "domain": domain,
+            "num_areas": num_areas,
+            **{f"ls_{k}": v for k, v in scientist_llm_gen_cfg.items()},
+        },
+    ):
+        response, metadata = scientist_llm.generate(
+            sys_prompt=sys_prompt if sys_prompt else "",
+            user_prompt=user_prompt,
+            generation_config=scientist_llm_gen_cfg,
+        )
 
     parsed_response = extract_and_parse_response(response, has_thought=False)
     capability_areas = parsed_response["parsed_response"]
