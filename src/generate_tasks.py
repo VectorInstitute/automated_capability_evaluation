@@ -5,6 +5,8 @@ from capability import Capability
 from model import Model
 from utils.capability_utils import extract_and_parse_response
 from utils.prompts import (
+    ANSWER_JUDGEMENT_SYSTEM_PROMPT,
+    ANSWER_JUDGEMENT_USER_PROMPT,
     TASK_GENERATION_RESPONSE_JSON_FORMAT,
     TASK_GENERATION_SYSTEM_PROMPT,
     TASK_GENERATION_USER_PROMPT,
@@ -68,6 +70,7 @@ def generate_tasks_using_llm(
     num_tasks: int,
     scientist_llm_gen_cfg_task_gen: Dict[str, Any],
     scientist_llm_gen_cfg_task_solve: Dict[str, Any],
+    scientist_llm_gen_cfg_task_verify: Dict[str, Any],
     solve_sample_tasks: bool = False,
     **kwargs: Any,
 ) -> None:
@@ -87,6 +90,8 @@ def generate_tasks_using_llm(
             for task generation using the scientist LLM.
         scientist_llm_gen_cfg_task_solve (Dict[str, Any]): The generation configuration
             for solving tasks using the scientist LLM.
+        scientist_llm_gen_cfg_task_verify (Dict[str, Any]): The generation configuration
+            for verifying tasks using the scientist LLM.
         solve_sample_tasks (bool, optional): Whether to solve sample tasks.
         **kwargs (Any): Additional arguments for task generation.
     """
@@ -159,6 +164,85 @@ def generate_tasks_using_llm(
     print(json.dumps(solved_tasks, indent=4))
     print(task_solver_metadata)
 
-    capability.add_and_update_tasks(
+    (successful_tasks, failed_tasks), task_judge_metadata = verify_solved_tasks(
         tasks=solved_tasks,
+        capability=capability,
+        llm=scientist_llm,
+        gen_cfg=scientist_llm_gen_cfg_task_verify,
     )
+    print(f"{len(successful_tasks)}/{len(solved_tasks)} tasks passed the verification.")
+    print(task_judge_metadata)
+
+    capability.add_and_update_tasks(
+        tasks=successful_tasks,
+        failed_tasks=failed_tasks if failed_tasks else None,
+    )
+
+
+def verify_solved_tasks(
+    tasks: List[Dict[str, Any]],
+    capability: Capability,
+    llm: Model,
+    gen_cfg: Dict[str, Any],
+) -> Tuple[Tuple[List[Dict[str, Any]], List[Dict[str, Any]]], Dict[Any, Any]]:
+    """
+    Verify the solved tasks using the given LLM.
+
+    Args
+    ----
+        tasks (List[Dict[str, Any]]): The list of tasks to verify.
+        capability (Capability): The capability to which the tasks belong.
+        llm (Model): The LLM model to use for verification.
+        gen_cfg (Dict[str, Any]): The generation configuration for the LLM.
+
+    Returns
+    -------
+        Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]: A tuple containing
+            the list of successful tasks and the list of failed tasks.
+    """
+    successful_tasks = []
+    failed_tasks = []
+    metadata = {}
+
+    sys_prompt = ANSWER_JUDGEMENT_SYSTEM_PROMPT.format(
+        capability_domain=capability.domain,
+    )
+
+    for task in tasks:
+        print(f"Verifying task {task['id']} ...")
+        user_prompt = ANSWER_JUDGEMENT_USER_PROMPT.format(
+            capability_name=capability.name,
+            capability_domain=capability.domain,
+            problem=task["problem"],
+            answer=task["answer"],
+        )
+        response, _metadata = llm.generate(
+            sys_prompt=sys_prompt,
+            user_prompt=user_prompt,
+            generation_config=gen_cfg,
+        )
+        try:
+            parsed_response = extract_and_parse_response(
+                response,
+                has_thought=True,
+                parse_kw="JUDGEMENT",
+                response_type="str_yes_no",
+            )
+        except AssertionError as e:
+            # Tag as fail where the response is not "yes" or "no"
+            parsed_response = {
+                "parsed_response": "no",
+                "thought": str(e),
+            }
+        verdict_str = parsed_response["parsed_response"]
+        task["verification"] = {
+            "verdict": verdict_str,
+            "reason": parsed_response["thought"],
+        }
+        if verdict_str == "yes":
+            successful_tasks.append(task)
+        else:
+            failed_tasks.append(task)
+        metadata[task["id"]] = _metadata
+
+    return (successful_tasks, failed_tasks), metadata

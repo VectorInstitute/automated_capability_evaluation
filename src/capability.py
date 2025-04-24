@@ -268,7 +268,11 @@ class Capability:
             )
         return repr_tasks
 
-    def add_and_update_tasks(self, tasks: List[Dict[str, Any]]) -> None:
+    def add_and_update_tasks(
+        self,
+        tasks: List[Dict[str, Any]],
+        failed_tasks: List[Dict[str, Any]] | None = None,
+    ) -> None:
         """
         Add and/or update tasks for the capability.
 
@@ -276,6 +280,9 @@ class Capability:
         ----
             tasks (List[Dict[str, Any]]): A list of dictionaries containing the tasks
             to be added. Each task dict consists of id, problem, and answer keys.
+            failed_tasks (List[Dict[str, Any]]): A list of dictionaries
+                containing the tasks that failed to be solved.
+                Each task dict consists of id, problem, and answer keys.
         """
         if not all(
             "id" in task and "problem" in task and "answer" in task for task in tasks
@@ -350,6 +357,13 @@ class Capability:
             "capability_instructions": self.instructions,
             "capability_data": tasks_to_keep,
         }
+        # TODO: Handle edge cases for failed tasks
+        if failed_tasks:
+            c_dict.update(
+                {
+                    "capability_failed_data": failed_tasks,
+                }
+            )
         with open(os.path.join(self.source_dir, "capability.json"), "w") as f:
             json.dump(c_dict, f, indent=4)
 

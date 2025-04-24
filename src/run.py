@@ -9,12 +9,13 @@ from generate_capabilities import (
     filter_capabilities,
     generate_and_set_capabilities_embeddings,
     generate_capabilities,
-    get_lbo_train_set,
 )
+from generate_tasks import generate_tasks_using_llm
 
 # from lbo import generate_new_capability
 from model import Model
 from utils import constants
+from utils.lbo_utils import get_lbo_train_set
 
 
 def check_cfg(cfg: DictConfig) -> None:
@@ -78,7 +79,7 @@ def main(cfg: DictConfig) -> None:
         run_id=run_id,
         trial_run=cfg.exp_cfg.trial_run,
     )
-    print(capabilities)
+    # print(capabilities)
 
     # TODO: Only used for testing, remove this block later ========================
     if cfg.exp_cfg.trial_run:
@@ -93,6 +94,7 @@ def main(cfg: DictConfig) -> None:
         # Fetch previously generated capabilities, if any
         capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
     # =============================================================================
+
     # Embed capabilities using openai embedding model
     generate_and_set_capabilities_embeddings(
         capabilities=capabilities,
@@ -152,16 +154,17 @@ def main(cfg: DictConfig) -> None:
 
     # TODO: Run this asynchronosly
     for capability in train_capabilities:
-        # # Generate tasks for each capability
-        # generate_tasks_using_llm(
-        #     capability=capability,
-        #     scientist_llm=scientist_llm,
-        #     num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
-        #     scientist_llm_gen_cfg_task_gen=scientist_llm_gen_cfg.task_generation,
-        #     scientist_llm_gen_cfg_task_solve=scientist_llm_gen_cfg.task_solve,
-        #     solve_sample_tasks=True,
-        #     few_shot=cfg.capabilities_cfg.task_gen_few_shot,
-        # )
+        # Generate tasks for each capability
+        generate_tasks_using_llm(
+            capability=capability,
+            scientist_llm=scientist_llm,
+            num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
+            scientist_llm_gen_cfg_task_gen=scientist_llm_gen_cfg.task_generation,
+            scientist_llm_gen_cfg_task_solve=scientist_llm_gen_cfg.task_solve,
+            scientist_llm_gen_cfg_task_verify=scientist_llm_gen_cfg.task_verify,
+            solve_sample_tasks=False,
+            few_shot=cfg.capabilities_cfg.task_gen_few_shot,
+        )
         # Evaluate subject LLM on each capability
         capability.evaluate(
             subject_llms=[subject_llm],

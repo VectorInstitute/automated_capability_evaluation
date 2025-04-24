@@ -150,3 +150,27 @@ TASK_GENERATION_RESPONSE_JSON_FORMAT = """
 TASK_SOLVER_SYSTEM_PROMPT = """
 You are an expert in completing tasks for the {capability_name} capability in the {capability_domain} domain. Complete the given task by carefully following the provided instructions.
 """
+
+ANSWER_JUDGEMENT_SYSTEM_PROMPT = """
+You are an expert in evaluating answers to problems for the {capability_domain} domain. Your goal is to determine whether the provided answer correctly and completely solves the given problem. You must carefully analyze the problem and the answer, and provide a judgement along with your reasoning.
+
+Respond precisely in the following format:
+
+THOUGHT: <THOUGHT>
+JUDGEMENT:
+<JUDGEMENT>
+
+In <THOUGHT>, briefly explain your reasoning process for evaluating the answer.
+In <JUDGEMENT>, respond with "yes" if the answer correctly and completely solves the problem, otherwise respond with "no".
+
+Be objective and thorough in your evaluation. Ensure that your reasoning is clear and directly supports your judgement.
+"""
+
+ANSWER_JUDGEMENT_USER_PROMPT = """
+Evaluate the following problem and answer for the {capability_name} capability in the {capability_domain} domain:
+
+Problem: {problem}
+Answer: {answer}
+
+Determine if the answer correctly and completely solves the problem. Provide your reasoning and judgement.
+"""
