@@ -11,6 +11,7 @@ from src.generate_embeddings import (
     EmbeddingModelName,
     hierarchical_2d_visualization,
     reduce_embeddings_dimensions,
+    save_embedding_heatmap,
 )
 
 
@@ -105,7 +106,9 @@ def mock_capabilities():
 
 
 def call_visualize(
-    points_by_group: dict[str, List[torch.Tensor]], plot_name: str
+    points_by_group: dict[str, List[torch.Tensor]],
+    plot_name: str,
+    point_ids: dict[str, List[int]] | None = None,
 ) -> None:
     """
     Call the visualization function and check if the plot is saved.
@@ -131,6 +134,7 @@ def call_visualize(
                 points_by_group=points_by_group,
                 save_dir=save_dir,
                 plot_name=plot_name,
+                point_ids=point_ids,
             )
         except Exception as e:
             pytest.fail(f"Visualization failed with error: {e}")
@@ -175,15 +179,19 @@ def test_reduce_and_visualize_name_description_embeddings(
     )
     # Populate points_by_group
     points_by_group = {}
+    point_ids = {}
     for idx in range(len(reduced_embeddings)):
         embedding_group = group_names[idx]
         if embedding_group not in points_by_group:
             points_by_group[embedding_group] = []
+            point_ids[embedding_group] = []
         points_by_group[embedding_group].append(reduced_embeddings[idx])
+        point_ids[embedding_group].append(idx)
 
     call_visualize(
         points_by_group=points_by_group,
         plot_name="name_description_embedding_plot",
+        point_ids=point_ids,
     )
 
 
@@ -207,3 +215,32 @@ def test_reduce_and_visualize_json_embeddings(
         points_by_group[embedding_group].append(reduced_embeddings[idx])
 
     call_visualize(points_by_group=points_by_group, plot_name="json_embedding_plot")
+
+
+def test_visualize_name_description_heatmap(
+    mock_capabilities: List[Capability],
+) -> None:
+    """Visualize name_description openai embedding heatmap."""
+    name_description_embeddings = [
+        capability.get_embedding("name_description_embedding")
+        for capability in mock_capabilities
+    ]
+
+    plot_name = "heatmap_plot"
+
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    save_dir = os.path.join(test_dir, "visualizations")
+    os.makedirs(save_dir, exist_ok=True)
+    plot_dir = os.path.join(save_dir, f"{plot_name}.pdf")
+    if os.path.isfile(plot_dir):
+        assert True
+    else:
+        try:
+            save_embedding_heatmap(
+                embeddings=name_description_embeddings,
+                save_dir=save_dir,
+                plot_name=plot_name,
+                num_groups=4,
+            )
+        except Exception as e:
+            pytest.fail(f"Visualization failed with error: {e}")

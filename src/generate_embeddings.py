@@ -7,6 +7,7 @@ import numpy as np
 import seaborn as sns
 import torch
 from langchain_openai import OpenAIEmbeddings
+from matplotlib.patches import Rectangle
 from sklearn.manifold import TSNE
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -284,6 +285,7 @@ def hierarchical_2d_visualization(
     points_by_group: dict[str, List[torch.Tensor]],
     save_dir: str,
     plot_name: str,
+    point_ids: dict[str, List[int]] | None = None,
 ) -> None:
     """Visualize 2D points grouped by labels using a scatter plot.
 
@@ -303,10 +305,25 @@ def hierarchical_2d_visualization(
     colors = sns.color_palette("husl", len(points_by_group))
 
     for i, (label, points) in enumerate(points_by_group.items()):
+        ids = point_ids.get(label) if point_ids else None
         points_tensor = torch.stack(points)  # Shape: (N, 2)
         x = points_tensor[:, 0].numpy()
         y = points_tensor[:, 1].numpy()
         plt.scatter(x, y, label=label, color=colors[i], alpha=0.6, edgecolor="k", s=50)
+
+        # Write point IDs on each point
+        if ids:
+            for j, (x_coord, y_coord) in enumerate(zip(x, y)):
+                plt.text(
+                    x_coord,
+                    y_coord,
+                    str(ids[j]),
+                    fontsize=6,
+                    ha="center",
+                    va="center",
+                    color="black",
+                    bbox={"facecolor": "white", "alpha": 0.7, "edgecolor": "none"},
+                )
 
         # Compute cluster center to place label
         center_x = x.mean()
@@ -329,6 +346,61 @@ def hierarchical_2d_visualization(
     plt.axis("equal")
     plt.tight_layout()
 
+    # Ensure the save directory exists
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, f"{plot_name}.pdf")
+    plt.savefig(save_path, format="pdf")
+    plt.close()
+
+
+def save_embedding_heatmap(
+    embeddings: List[torch.Tensor],
+    save_dir: str,
+    plot_name: str,
+    num_groups: int | None = None,
+) -> None:
+    """Generate and save a heatmap of cosine similarity between embeddings.
+
+    This function computes the cosine similarity between a list of
+    embeddings and generates a heatmap to visualize the similarity
+    matrix. If num_groups is provided, it highlights the squares
+    along the diagonal corresponding to the number of groups.
+    Args:
+        embeddings (List[torch.Tensor]): A list of embedding tensors.
+        save_dir (str): The directory to save the plot.
+        plot_name (str): The name of the plot file.
+        num_groups (int | None): Number of groups to highlight in the heatmap.
+    """
+    similarity_matrix = cosine_similarity(embeddings)
+    plt.figure(figsize=(10, 8))
+    ax = sns.heatmap(
+        similarity_matrix,
+        annot=True,
+        cmap="Blues",
+        vmin=0,
+        vmax=1,
+        xticklabels=True,
+        yticklabels=True,
+    )
+    # If num_groups is provided, highlight the squares along the diagonal
+    # Highlight num_groups x num_groups squares.
+    if num_groups:
+        num_elements = similarity_matrix.shape[0]
+        for i in range(0, num_elements, num_groups):
+            if i + num_groups <= num_elements:
+                ax.add_patch(
+                    Rectangle(
+                        (i, i),
+                        num_groups,
+                        num_groups,
+                        fill=False,
+                        edgecolor="red",
+                        lw=2,
+                        clip_on=False,
+                    )
+                )
+
+    plt.tight_layout()
     # Ensure the save directory exists
     os.makedirs(save_dir, exist_ok=True)
     save_path = os.path.join(save_dir, f"{plot_name}.pdf")
