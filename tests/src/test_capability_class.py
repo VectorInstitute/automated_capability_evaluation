@@ -493,6 +493,7 @@ def test_run_inspect_evals_success():
 
     mock_eval_log = MagicMock()
     mock_eval_log.status = "success"
+    mock_eval_log.samples = [{}]
     mock_eval_log.stats.model_usage = {
         "openai-model": MagicMock(
             input_tokens=100,
@@ -563,6 +564,7 @@ def test_run_inspect_evals_local_model():
 
     mock_eval_log = MagicMock()
     mock_eval_log.status = "success"
+    mock_eval_log.samples = [{}]
     mock_eval_log.stats.model_usage = {}
 
     with (
@@ -597,6 +599,7 @@ def test_run_inspect_evals_with_kwargs():
 
     mock_eval_log = MagicMock()
     mock_eval_log.status = "success"
+    mock_eval_log.samples = [{}]
     mock_eval_log.stats.model_usage = {}
 
     with (

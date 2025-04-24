@@ -581,4 +581,30 @@ def generate_capabilities(
             # Update the list of previously generated capabilities
             prev_capabilities.extend(response["capabilities"])
 
+    # Analyze tokens metadata for capability generation
+    total_input_tokens = sum([m["api_metadata"]["input_tokens"] for m in run_metadata])
+    total_output_tokens = sum(
+        [m["api_metadata"]["output_tokens"] for m in run_metadata]
+    )
+    tokens_summary = {
+        "total_input_tokens": total_input_tokens,
+        "total_output_tokens": total_output_tokens,
+        "total_tokens": total_input_tokens + total_output_tokens,
+        "input_tokens_per_run": int(total_input_tokens / sum(num_runs)),
+        "output_tokens_per_run": int(total_output_tokens / sum(num_runs)),
+        "total_tokens_per_run": int(
+            (total_input_tokens + total_output_tokens) / sum(num_runs)
+        ),
+        "input_tokens_per_capability": int(total_input_tokens / len(gen_capabilities)),
+        "output_tokens_per_capability": int(
+            total_output_tokens / len(gen_capabilities)
+        ),
+        "total_tokens_per_capability": int(
+            (total_input_tokens + total_output_tokens) / len(gen_capabilities)
+        ),
+    }
+    logger.info(
+        f"Capability generation tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
+    )
+
     return gen_capabilities

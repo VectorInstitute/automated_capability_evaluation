@@ -97,7 +97,7 @@ def generate_tasks_using_llm(
         solve_sample_tasks (bool, optional): Whether to solve sample tasks.
         **kwargs (Any): Additional arguments for task generation.
     """
-    # TODO: Implement the function with the following components
+    # TODO: Implement Approach 2 (low priority)
     # # Approach 2
     # 1. Generate task problems and answers together in a single run.
     #    Again, this can be done in two ways described above.
@@ -106,22 +106,6 @@ def generate_tasks_using_llm(
     #   a. prompting the scientist LLM to function as a judge
     #   b. using a group of (less capable) models to judge and
     #      then selecting the majority answer
-
-    # ==== Approach 1 ====
-    # 1. First generate task problems. This can be done in two ways:
-    #   a. Single run to generate all `num_tasks` (Nt) problems
-    #       - input tokens: Pt
-    #       - output tokens: Nt * Qt, where Qt is the mean # tokens in a problem
-    #   b. Multiple runs to generate `num_tasks` (Nt)
-    #      problems in batches of `num_tasks_per_run` (Ntr)
-    #       - input tokens: Pt * (Nt / Ntr)
-    #       - output tokens: Nt * Qt
-    # 2. Filter out similar/ill-formatted problems
-    # 3. Then obtain task answers by:
-    #   a. prompting the scientist LLM to solve these selected problems
-    #   b. using a group of (less capable) models to solve
-    #      these problems and then selecting the majority answer
-    #   c. using a scoring function
 
     # Generate task problems
     # Extract sample tasks from representative tasks
@@ -160,6 +144,27 @@ def generate_tasks_using_llm(
     parsed_response = extract_and_parse_response(response)
     new_tasks = parsed_response["parsed_response"]
 
+    # Analyze tokens metadata for task problems generation
+    tokens_summary = {
+        "total_input_tokens": task_gen_metadata["input_tokens"],
+        "total_output_tokens": task_gen_metadata["output_tokens"],
+        "total_tokens": task_gen_metadata["input_tokens"]
+        + task_gen_metadata["output_tokens"],
+        "input_tokens_per_task": int(
+            task_gen_metadata["input_tokens"] / len(new_tasks)
+        ),
+        "output_tokens_per_task": int(
+            task_gen_metadata["output_tokens"] / len(new_tasks)
+        ),
+        "total_tokens_per_task": int(
+            (task_gen_metadata["input_tokens"] + task_gen_metadata["output_tokens"])
+            / len(new_tasks)
+        ),
+    }
+    logger.info(
+        f"Task problems generation tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
+    )
+
     # Solve task and generate answers
     # Set starting ID for new tasks
     start_id = len(capability.get_tasks()) + 1
@@ -180,6 +185,23 @@ def generate_tasks_using_llm(
         run_id=kwargs.get("run_id"),
     )
 
+    # Analyze tokens metadata for task solving
+    total_input_tokens = sum([v["input_tokens"] for v in task_solver_metadata.values()])
+    total_output_tokens = sum(
+        [v["output_tokens"] for v in task_solver_metadata.values()]
+    )
+    tokens_summary = {
+        "total_input_tokens": total_input_tokens,
+        "total_output_tokens": total_output_tokens,
+        "total_tokens": total_input_tokens + total_output_tokens,
+        "input_tokens_per_task": int(total_input_tokens / len(solved_tasks)),
+        "output_tokens_per_task": int(total_output_tokens / len(solved_tasks)),
+        "total_tokens_per_task": int(
+            (total_input_tokens + total_output_tokens) / len(solved_tasks)
+        ),
+    }
+    logger.info(f"Task solving tokens summary:\n{json.dumps(tokens_summary, indent=4)}")
+
     (successful_tasks, failed_tasks), task_judge_metadata = verify_solved_tasks(
         tasks=solved_tasks,
         capability=capability,
@@ -189,6 +211,25 @@ def generate_tasks_using_llm(
     )
     logger.info(
         f"{len(successful_tasks)}/{len(solved_tasks)} tasks passed the verification."
+    )
+
+    # Analyze tokens metadata for task verification
+    total_input_tokens = sum([v["input_tokens"] for v in task_judge_metadata.values()])
+    total_output_tokens = sum(
+        [v["output_tokens"] for v in task_judge_metadata.values()]
+    )
+    tokens_summary = {
+        "total_input_tokens": total_input_tokens,
+        "total_output_tokens": total_output_tokens,
+        "total_tokens": total_input_tokens + total_output_tokens,
+        "input_tokens_per_task": int(total_input_tokens / len(solved_tasks)),
+        "output_tokens_per_task": int(total_output_tokens / len(solved_tasks)),
+        "total_tokens_per_task": int(
+            (total_input_tokens + total_output_tokens) / len(solved_tasks)
+        ),
+    }
+    logger.info(
+        f"Task verification tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
     )
 
     capability.add_and_update_tasks(

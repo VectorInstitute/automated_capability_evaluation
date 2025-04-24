@@ -235,3 +235,18 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
         raise ValueError(
             f"Error running inspect evals for {path} capability using {model_name}: {eval_log.error}"
         )
+
+    # Analyze tokens metadata for evaluation
+    usage_metadata = output["usage_metadata"]
+    tokens_summary = {
+        "total_input_tokens": usage_metadata["input_tokens"],
+        "total_output_tokens": usage_metadata["output_tokens"],
+        "total_tokens": usage_metadata["total_tokens"],
+        "input_tokens_per_task": usage_metadata["input_tokens"] / len(eval_log.samples),
+        "output_tokens_per_task": usage_metadata["output_tokens"]
+        / len(eval_log.samples),
+        "total_tokens_per_task": usage_metadata["total_tokens"] / len(eval_log.samples),
+    }
+    logger.info(
+        f"Task evaluation tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
+    )
