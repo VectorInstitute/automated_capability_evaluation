@@ -9,8 +9,8 @@ from src.capability import Capability
 from src.generate_embeddings import (
     EmbeddingGenerator,
     EmbeddingModelName,
+    hierarchical_2d_visualization,
     reduce_embeddings_dimensions,
-    visualize_embeddings,
 )
 
 
@@ -105,7 +105,7 @@ def mock_capabilities():
 
 
 def call_visualize(
-    embeddings: List[torch.Tensor], group_names: List[str], plot_name: str
+    points_by_group: dict[str, List[torch.Tensor]], plot_name: str
 ) -> None:
     """
     Call the visualization function and check if the plot is saved.
@@ -126,13 +126,11 @@ def call_visualize(
     if os.path.isfile(plot_dir):
         assert True
     else:
-        point_ids_str = [f"{group_names[i]}_{i}" for i in range(len(embeddings))]
         try:
-            visualize_embeddings(
-                embeddings,
+            hierarchical_2d_visualization(
+                points_by_group=points_by_group,
                 save_dir=save_dir,
                 plot_name=plot_name,
-                point_names=point_ids_str,
             )
         except Exception as e:
             pytest.fail(f"Visualization failed with error: {e}")
@@ -150,9 +148,15 @@ def test_reduce_and_visualize_name_embeddings(
     reduced_embeddings = reduce_embeddings_dimensions(
         embeddings=name_embeddings, output_dimensions=2, perplexity=PERPLEXITY
     )
-    call_visualize(
-        reduced_embeddings, group_names=group_names, plot_name="name_embedding_plot"
-    )
+    # Populate points_by_group
+    points_by_group = {}
+    for idx in range(len(reduced_embeddings)):
+        embedding_group = group_names[idx]
+        if embedding_group not in points_by_group:
+            points_by_group[embedding_group] = []
+        points_by_group[embedding_group].append(reduced_embeddings[idx])
+
+    call_visualize(points_by_group=points_by_group, plot_name="name_embedding_plot")
 
 
 def test_reduce_and_visualize_name_description_embeddings(
@@ -169,9 +173,16 @@ def test_reduce_and_visualize_name_description_embeddings(
         output_dimensions=2,
         perplexity=PERPLEXITY,
     )
+    # Populate points_by_group
+    points_by_group = {}
+    for idx in range(len(reduced_embeddings)):
+        embedding_group = group_names[idx]
+        if embedding_group not in points_by_group:
+            points_by_group[embedding_group] = []
+        points_by_group[embedding_group].append(reduced_embeddings[idx])
+
     call_visualize(
-        reduced_embeddings,
-        group_names=group_names,
+        points_by_group=points_by_group,
         plot_name="name_description_embedding_plot",
     )
 
@@ -187,6 +198,12 @@ def test_reduce_and_visualize_json_embeddings(
     reduced_embeddings = reduce_embeddings_dimensions(
         embeddings=json_embeddings, output_dimensions=2, perplexity=PERPLEXITY
     )
-    call_visualize(
-        reduced_embeddings, group_names=group_names, plot_name="json_embedding_plot"
-    )
+    # Populate points_by_group
+    points_by_group = {}
+    for idx in range(len(reduced_embeddings)):
+        embedding_group = group_names[idx]
+        if embedding_group not in points_by_group:
+            points_by_group[embedding_group] = []
+        points_by_group[embedding_group].append(reduced_embeddings[idx])
+
+    call_visualize(points_by_group=points_by_group, plot_name="json_embedding_plot")

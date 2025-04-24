@@ -160,6 +160,63 @@ def reduce_embeddings_dimensions(
     return reduced_embeddings
 
 
+def filter_embeddings(
+    embeddings: List[torch.Tensor],
+    similarity_threshold: float,
+) -> Set[int]:
+    """Filter embeddings based on cosine similarity.
+
+    This function removes embeddings that are too similar to each other,
+    based on a specified threshold while minimizing the number of
+    removed points.
+
+    Args:
+        embeddings (List[torch.Tensor]): The list of embedding tensors.
+        similarity_threshold (float): The threshold for cosine similarity
+                        above which capabilities are considered duplicates.
+
+    Returns
+    -------
+        Set[int]: A set if indices that should be removed from the
+                original list of embeddings.
+    """
+    # Remove close embeddings.
+    similarity_matrix = cosine_similarity(embeddings)
+    binary_matrix = (similarity_matrix > similarity_threshold).astype(int)
+    # Getting the neighbor pairs, and ignoring the diagonal (self neighbors)
+    close_pairs = np.argwhere(
+        (binary_matrix == 1) & ~np.eye(binary_matrix.shape[0], dtype=bool)
+    )
+    # Iterate through the similarity matrix
+    num_neighbors = {}
+    for row_inx in range(len(similarity_matrix)):
+        # Count the number of neighbors for each row and
+        # subtract 1 to ignore the diagonal (self connection).
+        num_neighbors[row_inx] = sum(binary_matrix[row_inx]) - 1
+    # Sort the keys in the dictionary by their values in descending order
+    sorted_indices = sorted(num_neighbors, key=lambda x: num_neighbors[x], reverse=True)
+
+    # Eliminate all closely similar neighbors while minimizing the number of
+    # removed points.
+    idx = -1
+    remove_indices = set()
+    close_pairs_list = [tuple(pair) for pair in close_pairs]
+
+    while close_pairs_list:
+        idx += 1
+        # While there are close embeddings (connections),
+        # remove the first index from sorted_indices
+        current_index = sorted_indices[idx]
+        if any(current_index in pair for pair in close_pairs_list):
+            remove_indices.add(current_index)
+            close_pairs_list = [
+                pair for pair in close_pairs_list if current_index not in pair
+            ]
+
+    # Remaining points that are left in sorted_indices are filtered embedding indices.
+    return set(sorted_indices) - remove_indices
+
+
 def visualize_embeddings(
     embeddings: List[torch.Tensor],
     save_dir: str,
@@ -223,58 +280,57 @@ def visualize_embeddings(
     plt.close()
 
 
-def filter_embeddings(
-    embeddings: List[torch.Tensor],
-    similarity_threshold: float,
-) -> Set[int]:
-    """Filter embeddings based on cosine similarity.
-
-    This function removes embeddings that are too similar to each other,
-    based on a specified threshold while minimizing the number of
-    removed points.
+def hierarchical_2d_visualization(
+    points_by_group: dict[str, List[torch.Tensor]],
+    save_dir: str,
+    plot_name: str,
+) -> None:
+    """Visualize 2D points grouped by labels using a scatter plot.
 
     Args:
-        embeddings (List[torch.Tensor]): The list of embedding tensors.
-        similarity_threshold (float): The threshold for cosine similarity
-                        above which capabilities are considered duplicates.
-
-    Returns
-    -------
-        Set[int]: A set if indices that should be removed from the
-                original list of embeddings.
+        points_by_group (dict[str, List[torch.Tensor]]): A dictionary where
+            keys are labels or groups and values are lists of 2D points (as tensors).
+        save_dir (str): The directory to save the plot.
+        plot_name (str): The name of the plot file.
     """
-    # Remove close embeddings.
-    similarity_matrix = cosine_similarity(embeddings)
-    binary_matrix = (similarity_matrix > similarity_threshold).astype(int)
-    # Getting the neighbor pairs, and ignoring the diagonal (self neighbors)
-    close_pairs = np.argwhere(
-        (binary_matrix == 1) & ~np.eye(binary_matrix.shape[0], dtype=bool)
-    )
-    # Iterate through the similarity matrix
-    num_neighbors = {}
-    for row_inx in range(len(similarity_matrix)):
-        # Count the number of neighbors for each row and
-        # subtract 1 to ignore the diagonal (self connection).
-        num_neighbors[row_inx] = sum(binary_matrix[row_inx]) - 1
-    # Sort the keys in the dictionary by their values in descending order
-    sorted_indices = sorted(num_neighbors, key=lambda x: num_neighbors[x], reverse=True)
+    # Assert that all points are 2D
+    assert all(
+        point.ndimension() == 1 and point.size(0) == 2
+        for points in points_by_group.values()
+        for point in points
+    ), "All points must be 2D tensors for visualization."
 
-    # Eliminate all closely similar neighbors while minimizing the number of
-    # removed points.
-    idx = -1
-    remove_indices = set()
-    close_pairs_list = [tuple(pair) for pair in close_pairs]
+    colors = sns.color_palette("husl", len(points_by_group))
 
-    while close_pairs_list:
-        idx += 1
-        # While there are close embeddings (connections),
-        # remove the first index from sorted_indices
-        current_index = sorted_indices[idx]
-        if any(current_index in pair for pair in close_pairs_list):
-            remove_indices.add(current_index)
-            close_pairs_list = [
-                pair for pair in close_pairs_list if current_index not in pair
-            ]
+    for i, (label, points) in enumerate(points_by_group.items()):
+        points_tensor = torch.stack(points)  # Shape: (N, 2)
+        x = points_tensor[:, 0].numpy()
+        y = points_tensor[:, 1].numpy()
+        plt.scatter(x, y, label=label, color=colors[i], alpha=0.6, edgecolor="k", s=50)
 
-    # Remaining points that are left in sorted_indices are filtered embedding indices.
-    return set(sorted_indices) - remove_indices
+        # Compute cluster center to place label
+        center_x = x.mean()
+        center_y = y.mean()
+        plt.text(
+            center_x,
+            center_y,
+            label,
+            fontsize=8,
+            weight="normal",
+            bbox={"facecolor": colors[i], "alpha": 0.6, "edgecolor": "none"},
+            ha="center",
+            va="center",
+            color="white",
+        )
+
+    plt.title("Hierarchical 2D Embedding Visualization")
+    plt.xlabel("Dim 1")
+    plt.ylabel("Dim 2")
+    plt.axis("equal")
+    plt.tight_layout()
+
+    # Ensure the save directory exists
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, f"{plot_name}.pdf")
+    plt.savefig(save_path, format="pdf")
+    plt.close()
