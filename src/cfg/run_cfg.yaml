@@ -48,11 +48,15 @@ capabilities_cfg:
   results_dir: gs://ace-artifacts
   inspect_evals_dir: /fs01/projects/aieng/public/ace/inspect_evals/src/ace_evals
   domain: math
+  # Method used to generate capabilities
+  method: "hierarchical"
   # Number of seed capabilities to use for initial capability generation
   # Set to -1 to use all seed capabilities
   num_seed_capabilities: 1
   # Number of initial capabilities to generate using the scientist LLM
-  num_gen_capabilities: 1
+  num_gen_capabilities: 2
+  # Number of capability areas to generate
+  num_capability_areas: 2
   # Number of initial capabilities to generate per run
   num_gen_capabilities_per_run: 1
   # Number of tasks to generate for each capability

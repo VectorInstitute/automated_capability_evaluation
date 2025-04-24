@@ -66,31 +66,38 @@ def parse_python_class_str(class_str: str) -> str:
     return class_str.split("```python\n")[1].split("\n```")[0].strip()
 
 
-def extract_and_parse_response(response: str) -> Dict[str, Any]:
+def extract_and_parse_response(
+    response: str, has_thought: bool = True
+) -> Dict[str, Any]:
     """
     Extract the thought string and response JSON data from the response string.
 
     Args
     ----
         response (str): The response string containing the thought and JSON data.
+        has_thought (bool): Whether the response contains a thought string.
 
     Returns
     -------
         Dict[str, Any]: A dictionary with two keys:
-            - "thought" (str): The extracted thought string.
+            - "thought" (str, optional): The extracted thought string if present.
             - "parsed_response" (List[Any]): A list of parsed JSON objects.
 
     Raises
     ------
         ValueError: If there is an error parsing the thought or JSON data.
     """
-    try:
-        thought_str = (
-            response.split("THOUGHT:")[1].split("RESPONSE JSON")[0].strip().strip("\n")
-        )
-    except (IndexError, json.JSONDecodeError) as e:
-        print(f"Error parsing thought string: {e}")
-        raise
+    if has_thought:
+        try:
+            thought_str = (
+                response.split("THOUGHT:")[1]
+                .split("RESPONSE JSON")[0]
+                .strip()
+                .strip("\n")
+            )
+        except (IndexError, json.JSONDecodeError) as e:
+            print(f"Error parsing thought string: {e}")
+            raise
 
     try:
         response_str = response.split("RESPONSE JSON:\n")[1].strip().strip("\n")
@@ -102,7 +109,10 @@ def extract_and_parse_response(response: str) -> Dict[str, Any]:
         print(f"Error parsing capabilities json: {e}")
         raise
 
-    return {"thought": thought_str, "parsed_response": parsed_response}
+    return {
+        "thought": thought_str if has_thought else None,
+        "parsed_response": parsed_response,
+    }
 
 
 def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> None:

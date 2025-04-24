@@ -183,6 +183,7 @@ class Capability:
                 "capability_name": c_dict.pop("name"),
                 "capability_description": c_dict.pop("description"),
                 "capability_domain": c_dict.pop("domain"),
+                "capability_area": c_dict.pop("area", None),
                 "capability_instructions": template_instructions,
                 "capability_data": initial_tasks,
             }
@@ -199,6 +200,7 @@ class Capability:
         self.description = _cfg["capability_description"]
         self.domain = _cfg["capability_domain"]
         self.instructions = _cfg["capability_instructions"]
+        self.area = _cfg.get("capability_area", None)
         # TODO: Store data is stored in json or elsewhere?
         self._data: List[Dict[str, Any]] = _cfg["capability_data"]
         # Check if the capability is a seed capability, use source_dataset as indicator
@@ -344,6 +346,7 @@ class Capability:
             "capability_name": self.name,
             "capability_description": self.description,
             "capability_domain": self.domain,
+            "capability_area": self.area,
             "capability_instructions": self.instructions,
             "capability_data": tasks_to_keep,
         }

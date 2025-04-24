@@ -76,6 +76,34 @@ Existing capability names:
 Generate {num_gen_capabilities} new, interesting capabilities within the {domain} domain.
 """
 
+HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT = """
+A sample capability JSON is provided below. The names of all existing capabilities are also provided.
+
+Sample capability:
+{{sample_capability_json}}
+
+Existing capability names:
+{{prev_capabilities}}
+
+Generate {{num_gen_capabilities}} new, interesting capabilities for the "{capability_area}" area within the {{domain}} domain.
+"""
+
+HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT = """
+You are an expert in designing capabilities to assess the abilities of large language models (LLMs). Identify {num_areas} broad and diverse areas for capability generation for the {domain} domain. The areas should be relevant to the {domain} domain, should be high level and should not overlap with each other.
+
+Respond precisely in the following format:
+
+RESPONSE JSON:
+{response_json_format}
+"""
+
+CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT = """
+{
+    "area_0": <STR>,
+    "area_1": <STR>,
+    ...
+}""".strip("\n")
+
 TASK_GENERATION_SYSTEM_PROMPT = """
 You are an expert in designing tasks for a given capability. The name, description, {zero_or_few_shot_patch} for the capability will be provided. You will be particularly rewarded for designing diverse tasks spanning a wide range of difficulty levels for the given capability.
 

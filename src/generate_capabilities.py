@@ -17,8 +17,11 @@ from src.model import Model
 from src.utils import constants
 from src.utils.capability_utils import extract_and_parse_response
 from src.utils.prompts import (
+    CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT,
     CAPABILITY_GENERATION_SYSTEM_PROMPT,
     CAPABILITY_GENERATION_USER_PROMPT,
+    HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT,
+    HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT,
 )
 
 
@@ -104,6 +107,7 @@ def _sample_seed_capabilities(
 
 def _get_previous_capabilities(
     capability_dir: str,
+    capability_area: str | None = None,
 ) -> List[Capability]:
     """
     Get the previously generated capabilities for the specified domain.
@@ -121,6 +125,8 @@ def _get_previous_capabilities(
     prev_capabilities = []
     for capability_path in os.listdir(capability_dir):
         capability = Capability(os.path.join(capability_dir, capability_path))
+        if capability_area is not None and capability.area != capability_area:
+            continue
         prev_capabilities.append(capability)
     return prev_capabilities
 
@@ -157,6 +163,7 @@ def generate_capabilities_using_llm(
     base_capability_dir: str,
     include_seed_capability_names: Optional[List[str]] = None,
     exclude_seed_capability_names: Optional[List[str]] = None,
+    capability_area: str | None = None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """
@@ -185,6 +192,7 @@ def generate_capabilities_using_llm(
             names to include in the generation process.
         exclude_seed_capability_names (List[str] | None): A list of seed capability
             names to exclude from the generation process.
+        capability_area (str | None): The capability area for the generation
         **kwargs (Any): Additional keyword arguments.
 
     Returns
@@ -226,6 +234,10 @@ def generate_capabilities_using_llm(
 
     parsed_response = extract_and_parse_response(response)
     gen_capabilities = parsed_response["parsed_response"]
+    if capability_area is not None:
+        # Add the capability area to the generated capabilities
+        for capability in gen_capabilities:
+            capability["area"] = capability_area
     gen_capabilities = [
         Capability.from_dict(capability_dict=capability, base_dir=base_capability_dir)
         for capability in gen_capabilities
@@ -366,6 +378,61 @@ def filter_capabilities(
     return [capabilities[i] for i in remaining_indices]
 
 
+def generate_capability_areas(
+    domain: str,
+    num_areas: int,
+    scientist_llm: Model,
+    user_prompt: str,
+    scientist_llm_gen_cfg: Dict[str, Any],
+    sys_prompt: str | None = None,
+) -> Dict[str, Any]:
+    """
+    Generate capability areas for the specified domain.
+
+    Args
+    ----
+        domain (str): The domain name.
+        num_areas (int): The number of capability areas to generate.
+        scientist_llm (Model): The scientist LLM model.
+        user_prompt (str): The user prompt for generating capability areas.
+        scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
+            for the scientist LLM.
+        sys_prompt (str | None): The system prompt for the scientist LLM.
+
+    Returns
+    -------
+        Dict[str, Any]: A dictionary containing the generated capability areas
+        and metadata about the generation process.
+    """
+    # Generate output using the model with specified generation arguments
+    user_prompt = user_prompt.format(
+        num_areas=num_areas,
+        domain=domain,
+        response_json_format=CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT,
+    )
+    response, metadata = scientist_llm.generate(
+        sys_prompt=sys_prompt if sys_prompt else "",
+        user_prompt=user_prompt,
+        generation_config=scientist_llm_gen_cfg,
+    )
+
+    # Print the output
+    print(f"Model: {scientist_llm.get_model_name()}")
+    print(f"Output:\n\n{response}\n\n")
+    print(f"Metadata: {metadata}")
+
+    parsed_response = extract_and_parse_response(response, has_thought=False)
+    capability_areas = parsed_response["parsed_response"]
+
+    return {
+        "capability_areas": capability_areas,
+        "metadata": {
+            "model": scientist_llm.get_model_name(),
+            "api_metadata": metadata,
+        },
+    }
+
+
 def generate_capabilities(
     domain: str,
     num_capabilities: int,
@@ -373,6 +440,7 @@ def generate_capabilities(
     scientist_llm: Model,
     num_seed_capabilities: int,
     scientist_llm_gen_cfg: Dict[str, Any],
+    method: str = "flat",
     include_seed_capability_names: Optional[List[str]] = None,
     exclude_seed_capability_names: Optional[List[str]] = None,
     **kwargs: Any,
@@ -389,6 +457,8 @@ def generate_capabilities(
         num_seed_capabilities (int): The number of seed capabilities to use.
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
             for the scientist LLM.
+        method (str): The method to use for generating capabilities.
+            Choose from "flat" or "hierarchical".
         include_seed_capability_names (List[str] | None): A list of seed capability
             names to include in the generation process.
         exclude_seed_capability_names (List[str] | None): A list of seed capability
@@ -398,7 +468,6 @@ def generate_capabilities(
     -------
         List[Capability]: The generated capabilities.
     """
-    num_runs = int(np.ceil(num_capabilities / num_capabilities_per_run))
     gen_capabilities = []
     run_metadata = []
 
@@ -413,42 +482,97 @@ def generate_capabilities(
             constants.BASE_ARTIFACTS_DIR, "capabilities", domain
         )
 
-    # Fetch previously generated capabilities, if any
-    prev_capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
-
-    # Add all seed capabilities to the list of prev_capabilities
-    seed_capability_dir = os.path.join(
-        constants.BASE_ARTIFACTS_DIR, "seed_capabilities", domain
-    )
-    prev_capabilities.extend(
-        _sample_seed_capabilities(
-            seed_capability_dir=seed_capability_dir,
-            num_seed_capabilities=-1,
+    if method == "hierarchical":
+        assert "num_capability_areas" in kwargs, (
+            "`num_capability_areas` should be specified for hierarchical generation."
         )
-    )
+        num_capability_areas = kwargs["num_capability_areas"]
+        assert num_capabilities >= num_capability_areas, (
+            "Number of capabilities should be greater than or equal to the number of capability areas, "
+            + "so that each area can have at least one capability."
+        )
+        # Uniformly distribute num_capabilities across num_capability_areas
+        num_capabilities_per_area = [
+            num_capabilities // num_capability_areas
+        ] * num_capability_areas
+        for i in range(num_capabilities % num_capability_areas):
+            num_capabilities_per_area[i] += 1
+        num_runs = [
+            int(np.ceil(num / num_capabilities_per_run))
+            for num in num_capabilities_per_area
+        ]
 
-    for run_id in range(num_runs):
-        print("Run ID:", run_id)
-        # Generate capabilities using the scientist LLM
-        response = generate_capabilities_using_llm(
+        # Generate capability areas for the specified domain
+        response = generate_capability_areas(
             domain=domain,
-            num_capabilities=num_capabilities_per_run,
+            num_areas=kwargs["num_capability_areas"],
             scientist_llm=scientist_llm,
-            sys_prompt=CAPABILITY_GENERATION_SYSTEM_PROMPT,
-            user_prompt=CAPABILITY_GENERATION_USER_PROMPT,
-            num_seed_capabilities=num_seed_capabilities,
-            seed_capability_dir=seed_capability_dir,
-            prev_capabilities=prev_capabilities,
+            user_prompt=HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT,
             scientist_llm_gen_cfg=scientist_llm_gen_cfg,
-            base_capability_dir=base_capability_dir,
-            include_seed_capability_names=include_seed_capability_names,
-            exclude_seed_capability_names=exclude_seed_capability_names,
-            **kwargs,
         )
-        gen_capabilities.extend(response["capabilities"])
-        run_metadata.append(response["metadata"])
+        capability_areas = response["capability_areas"]
+    else:
+        num_capabilities_per_area = [num_capabilities]
+        num_runs = [int(np.ceil(num_capabilities / num_capabilities_per_run))]
+        # No capability areas for flat generation, use the domain as the area
+        capability_areas = [domain]
 
-        # Update the list of previously generated capabilities
-        prev_capabilities.extend(response["capabilities"])
+    for idx, capability_area in enumerate(capability_areas):
+        if method == "hierarchical":
+            print(f"Generating capabilities for area: {capability_area}")
+            # Fetch previously generated capabilities, if any
+            prev_capabilities = _get_previous_capabilities(
+                capability_dir=base_capability_dir, capability_area=capability_area
+            )
+            user_prompt = HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT.format(
+                capability_area=capability_area,
+            )
+        else:
+            prev_capabilities = _get_previous_capabilities(
+                capability_dir=base_capability_dir
+            )
+            user_prompt = CAPABILITY_GENERATION_USER_PROMPT
+
+        # Add all seed capabilities to the list of prev_capabilities
+        seed_capability_dir = os.path.join(
+            constants.BASE_ARTIFACTS_DIR, "seed_capabilities", domain
+        )
+        prev_capabilities.extend(
+            _sample_seed_capabilities(
+                seed_capability_dir=seed_capability_dir,
+                num_seed_capabilities=-1,
+            )
+        )
+
+        num_capabilities_left = num_capabilities_per_area[idx]
+        for run_id in range(num_runs[idx]):
+            print("Run ID:", run_id)
+            # Generate capabilities using the scientist LLM
+
+            response = generate_capabilities_using_llm(
+                domain=domain,
+                num_capabilities=min(
+                    num_capabilities_per_run,
+                    num_capabilities_left,
+                ),
+                scientist_llm=scientist_llm,
+                sys_prompt=CAPABILITY_GENERATION_SYSTEM_PROMPT,
+                user_prompt=user_prompt,
+                num_seed_capabilities=num_seed_capabilities,
+                seed_capability_dir=seed_capability_dir,
+                prev_capabilities=prev_capabilities,
+                scientist_llm_gen_cfg=scientist_llm_gen_cfg,
+                base_capability_dir=base_capability_dir,
+                include_seed_capability_names=include_seed_capability_names,
+                exclude_seed_capability_names=exclude_seed_capability_names,
+                capability_area=capability_area if method == "hierarchical" else None,
+                **kwargs,
+            )
+            gen_capabilities.extend(response["capabilities"])
+            num_capabilities_left -= len(response["capabilities"])
+            run_metadata.append(response["metadata"])
+
+            # Update the list of previously generated capabilities
+            prev_capabilities.extend(response["capabilities"])
 
     return gen_capabilities

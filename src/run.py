@@ -8,12 +8,13 @@ from generate_capabilities import (
     apply_dimensionality_reduction,
     filter_capabilities,
     generate_and_set_capabilities_embeddings,
+    generate_capabilities,
+    get_lbo_train_set,
 )
 
 # from lbo import generate_new_capability
 from model import Model
 from utils import constants
-from utils.lbo_utils import get_lbo_train_set
 
 
 def check_cfg(cfg: DictConfig) -> None:
@@ -53,6 +54,8 @@ def main(cfg: DictConfig) -> None:
     check_cfg(cfg)
 
     run_id = f"{cfg.scientist_llm.name}_T{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
+    if cfg.capabilities_cfg.method == "hierarchical":
+        run_id += f"_A{cfg.capabilities_cfg.num_capability_areas}"
 
     # Initialize the scientist LLM model
     scientist_llm = Model(
@@ -61,18 +64,21 @@ def main(cfg: DictConfig) -> None:
     )
     scientist_llm_gen_cfg = cfg.scientist_llm.generation_cfg
 
-    # # Stage 1. Generate initial capabilities
-    # capabilities = generate_capabilities(
-    #     domain=cfg.capabilities_cfg.domain,
-    #     num_capabilities=cfg.capabilities_cfg.num_gen_capabilities,
-    #     num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
-    #     scientist_llm=scientist_llm,
-    #     num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
-    #     scientist_llm_gen_cfg=scientist_llm_gen_cfg.capability_generation,
-    #     exclude_seed_capability_names=["grade_school_math_word_problems"],
-    #     run_id=run_id,
-    #     trial_run=cfg.exp_cfg.trial_run,
-    # )
+    # Stage 1. Generate initial capabilities
+    capabilities = generate_capabilities(
+        domain=cfg.capabilities_cfg.domain,
+        num_capabilities=cfg.capabilities_cfg.num_gen_capabilities,
+        num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
+        scientist_llm=scientist_llm,
+        num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
+        scientist_llm_gen_cfg=scientist_llm_gen_cfg.capability_generation,
+        method=cfg.capabilities_cfg.method,
+        num_capability_areas=cfg.capabilities_cfg.num_capability_areas,
+        exclude_seed_capability_names=["grade_school_math_word_problems"],
+        run_id=run_id,
+        trial_run=cfg.exp_cfg.trial_run,
+    )
+    print(capabilities)
 
     # TODO: Only used for testing, remove this block later ========================
     if cfg.exp_cfg.trial_run:
