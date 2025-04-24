@@ -68,6 +68,7 @@ def generate_tasks_using_llm(
     capability: Capability,
     scientist_llm: Model,
     num_tasks: int,
+    num_tasks_buffer: float,
     scientist_llm_gen_cfg_task_gen: Dict[str, Any],
     scientist_llm_gen_cfg_task_solve: Dict[str, Any],
     scientist_llm_gen_cfg_task_verify: Dict[str, Any],
@@ -86,6 +87,8 @@ def generate_tasks_using_llm(
         capability (Capability): The capability to generate tasks for.
         scientist_llm (Model): The scientist LLM model.
         num_tasks (int): The number of tasks to generate.
+        num_tasks_buffer (float): Fraction of additional tasks to generate
+            to account for filtering in the verification step.
         scientist_llm_gen_cfg_task_gen (Dict[str, Any]): The generation configuration
             for task generation using the scientist LLM.
         scientist_llm_gen_cfg_task_solve (Dict[str, Any]): The generation configuration
@@ -124,6 +127,9 @@ def generate_tasks_using_llm(
     # Generate task problems
     # Extract sample tasks from representative tasks
     sample_tasks = capability.get_repr_tasks()
+
+    # Calculate the number of tasks to generate
+    num_tasks = int(num_tasks * (1 + num_tasks_buffer))
 
     # Generate new tasks using the scientist LLM
     sys_prompt, user_prompt = get_task_generation_prompt(

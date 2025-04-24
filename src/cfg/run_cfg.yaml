@@ -64,6 +64,8 @@ capabilities_cfg:
   num_gen_capabilities_per_run: 1
   # Number of tasks to generate for each capability
   num_gen_tasks_per_capability: 1
+  # Buffer for task generation
+  num_gen_tasks_buffer: 0.2
   # Set this flag to true to use representative tasks
   # as few shot examples for task generation
   task_gen_few_shot: true

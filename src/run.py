@@ -159,6 +159,7 @@ def main(cfg: DictConfig) -> None:
             capability=capability,
             scientist_llm=scientist_llm,
             num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
+            num_tasks_buffer=cfg.capabilities_cfg.num_gen_tasks_buffer,
             scientist_llm_gen_cfg_task_gen=scientist_llm_gen_cfg.task_generation,
             scientist_llm_gen_cfg_task_solve=scientist_llm_gen_cfg.task_solve,
             scientist_llm_gen_cfg_task_verify=scientist_llm_gen_cfg.task_verify,
