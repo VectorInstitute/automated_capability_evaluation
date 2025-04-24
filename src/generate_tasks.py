@@ -1,6 +1,8 @@
 import json  # noqa: D100
 from typing import Any, Dict, List, Tuple
 
+from langsmith import tracing_context
+
 from capability import Capability
 from model import Model
 from utils.capability_utils import extract_and_parse_response
@@ -137,11 +139,27 @@ def generate_tasks_using_llm(
         num_gen_tasks=num_tasks,
         sample_tasks=sample_tasks if kwargs.get("few_shot", True) else None,
     )
-    response, task_gen_metadata = scientist_llm.generate(
-        sys_prompt=sys_prompt,
-        user_prompt=user_prompt,
-        generation_config=scientist_llm_gen_cfg_task_gen,
-    )
+    with tracing_context(
+        enabled=True,
+        tags=["generate_tasks_using_llm"],
+        metadata={
+            "ls_provider": scientist_llm.model_provider,
+            "ls_model_name": scientist_llm.get_model_name(with_provider=False),
+            "ls_model_type": "chat",
+            "exp_id": kwargs.get("run_id"),
+            "capability_name": capability.name,
+            "domain": capability.domain,
+            "num_tasks": num_tasks,
+            **{f"ls_{k}": v for k, v in scientist_llm_gen_cfg_task_gen.items()},
+        },
+    ):
+        # Generate tasks
+        print(f"Generating {num_tasks} tasks for {capability.name} ...")
+        response, task_gen_metadata = scientist_llm.generate(
+            sys_prompt=sys_prompt,
+            user_prompt=user_prompt,
+            generation_config=scientist_llm_gen_cfg_task_gen,
+        )
     # Print the output
     print(f"Model: {scientist_llm.get_model_name()}")
     print(f"Output:\n\n{response}\n\n")
@@ -166,6 +184,7 @@ def generate_tasks_using_llm(
         tasks=all_tasks,
         llm=scientist_llm,
         gen_cfg=scientist_llm_gen_cfg_task_solve,
+        run_id=kwargs.get("run_id"),
     )
     print(json.dumps(solved_tasks, indent=4))
     print(task_solver_metadata)
@@ -175,6 +194,7 @@ def generate_tasks_using_llm(
         capability=capability,
         llm=scientist_llm,
         gen_cfg=scientist_llm_gen_cfg_task_verify,
+        run_id=kwargs.get("run_id"),
     )
     print(f"{len(successful_tasks)}/{len(solved_tasks)} tasks passed the verification.")
     print(task_judge_metadata)
@@ -190,6 +210,7 @@ def verify_solved_tasks(
     capability: Capability,
     llm: Model,
     gen_cfg: Dict[str, Any],
+    **kwargs: Any,
 ) -> Tuple[Tuple[List[Dict[str, Any]], List[Dict[str, Any]]], Dict[Any, Any]]:
     """
     Verify the solved tasks using the given LLM.
@@ -200,6 +221,7 @@ def verify_solved_tasks(
         capability (Capability): The capability to which the tasks belong.
         llm (Model): The LLM model to use for verification.
         gen_cfg (Dict[str, Any]): The generation configuration for the LLM.
+        **kwargs (Any): Additional arguments for verification.
 
     Returns
     -------
@@ -222,11 +244,25 @@ def verify_solved_tasks(
             problem=task["problem"],
             answer=task["answer"],
         )
-        response, _metadata = llm.generate(
-            sys_prompt=sys_prompt,
-            user_prompt=user_prompt,
-            generation_config=gen_cfg,
-        )
+        with tracing_context(
+            enabled=True,
+            tags=["verify_solved_tasks"],
+            metadata={
+                "ls_provider": llm.model_provider,
+                "ls_model_name": llm.get_model_name(with_provider=False),
+                "ls_model_type": "chat",
+                "exp_id": kwargs.get("run_id"),
+                "capability_name": capability.name,
+                "domain": capability.domain,
+                "task_id": task["id"],
+                **{f"ls_{k}": v for k, v in gen_cfg.items()},
+            },
+        ):
+            response, _metadata = llm.generate(
+                sys_prompt=sys_prompt,
+                user_prompt=user_prompt,
+                generation_config=gen_cfg,
+            )
         try:
             parsed_response = extract_and_parse_response(
                 response,

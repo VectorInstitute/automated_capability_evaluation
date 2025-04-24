@@ -5,6 +5,7 @@ import time
 from typing import Any, Dict, List, Tuple
 
 from langchain_openai import ChatOpenAI
+from langsmith import traceable
 from pydantic import SecretStr
 from ratelimit import limits, sleep_and_retry
 
@@ -49,6 +50,7 @@ class Model:
 
     @sleep_and_retry  # type: ignore
     @limits(**RATE_LIMIT)  # type: ignore
+    @traceable
     def generate(
         self, sys_prompt: str, user_prompt: str, generation_config: Dict[str, Any]
     ) -> Tuple[str | None, Dict[str, int | Any]]:

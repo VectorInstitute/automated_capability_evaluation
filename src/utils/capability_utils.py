@@ -4,13 +4,12 @@ The capability_utils module for the automatic_benchmark_generation project.
 It contains utility functions for capabilities.
 """
 
-import collections
 import json
 import os
 from typing import Any, Dict
 
 from inspect_ai import eval as inspect_eval
-from langsmith import traceable
+from langsmith import traceable, tracing_context
 
 from src.model import Model
 from src.utils import constants
@@ -151,16 +150,18 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
     """
     # Create langsmith metadata
     model_name = model.get_model_name(with_provider=True)
-    ls_metadata = {
+    ls_metadata: Dict[str, Any] = {
         "ls_provider": model.model_provider,
         "ls_model_name": model.get_model_name(with_provider=False),
         "ls_model_type": "chat",
+        "exp_id": kwargs.get("run_id"),
+        "capability_name": path,
+        "log_dir": log_dir,
     }
     ls_metadata.update({f"ls_{k}": v for k, v in kwargs.items()})
 
     @traceable(
         run_type="llm",
-        metadata=ls_metadata,
     )
     def _run_inspect_evals() -> Dict[str, Any]:
         """
@@ -211,7 +212,12 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
     else:
         inspect_model_name = model_name
 
-    output = _run_inspect_evals()
+    with tracing_context(
+        enabled=True,
+        tags=["run_inspect_evals"],
+        metadata=ls_metadata,
+    ):
+        output = _run_inspect_evals()
 
     if model.model_provider == "local":
         # Reset OPENAI_BASE_URL to actual openai URL

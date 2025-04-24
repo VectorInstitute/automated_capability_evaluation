@@ -165,6 +165,7 @@ def main(cfg: DictConfig) -> None:
             scientist_llm_gen_cfg_task_verify=scientist_llm_gen_cfg.task_verify,
             solve_sample_tasks=False,
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
+            run_id=run_id,
         )
         # Evaluate subject LLM on each capability
         capability.evaluate(
@@ -172,6 +173,7 @@ def main(cfg: DictConfig) -> None:
             gen_args=[subject_llm_gen_cfg],
             judge_llm=scientist_llm,  # Use scientist LLM as judge
             judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
+            run_id=run_id,
         )
 
         # TODO: Only used for testing, remove this block later ==============
@@ -199,6 +201,7 @@ def main(cfg: DictConfig) -> None:
     #         scientist_llm_gen_cfg_task_solve=scientist_llm_gen_cfg.task_solve,
     #         solve_sample_tasks=True,
     #         few_shot=cfg.capabilities_cfg.task_gen_few_shot,
+    #         run_id=run_id,
     #     )
     #     # Evaluate subject LLM on new capability
     #     new_capability.evaluate(
@@ -206,6 +209,7 @@ def main(cfg: DictConfig) -> None:
     #         gen_args=[subject_llm_gen_cfg],
     #         judge_llm=scientist_llm, # Use scientist LLM as judge
     #         judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
+    #         run_id=run_id,
     #     )
     #     # Add new capability to train capabilities list
     #     train_capabilities.append(new_capability)

@@ -4,6 +4,7 @@ import random
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+from langsmith import tracing_context
 
 from src.capability import Capability
 from src.generate_embeddings import (
@@ -221,11 +222,28 @@ def generate_capabilities_using_llm(
     )
 
     # Generate output using the model with specified generation arguments
-    response, metadata = scientist_llm.generate(
-        sys_prompt=sys_prompt,
-        user_prompt=user_prompt,
-        generation_config=scientist_llm_gen_cfg,
-    )
+    with tracing_context(
+        enabled=True,
+        tags=["generate_capabilities_using_llm"],
+        metadata={
+            "ls_provider": scientist_llm.model_provider,
+            "ls_model_name": scientist_llm.get_model_name(with_provider=False),
+            "ls_model_type": "chat",
+            "exp_id": kwargs.get("run_id"),
+            "run_id": kwargs.get("local_run_id"),
+            "domain": domain,
+            "capability_area": capability_area,
+            "num_capabilities": num_capabilities,
+            "seed_capabilities": [elm.name for elm in seed_capabilities],
+            "prev_capabilities": [elm.name for elm in prev_capabilities],
+            **{f"ls_{k}": v for k, v in scientist_llm_gen_cfg.items()},
+        },
+    ):
+        response, metadata = scientist_llm.generate(
+            sys_prompt=sys_prompt,
+            user_prompt=user_prompt,
+            generation_config=scientist_llm_gen_cfg,
+        )
 
     # Print the output
     print(f"Model: {scientist_llm.get_model_name()}")
@@ -566,6 +584,7 @@ def generate_capabilities(
                 include_seed_capability_names=include_seed_capability_names,
                 exclude_seed_capability_names=exclude_seed_capability_names,
                 capability_area=capability_area if method == "hierarchical" else None,
+                local_run_id=run_id,
                 **kwargs,
             )
             gen_capabilities.extend(response["capabilities"])

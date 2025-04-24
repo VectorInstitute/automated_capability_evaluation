@@ -7,6 +7,7 @@ from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
 import torch
+from langsmith import tracing_context
 
 from src.model import Model
 from src.utils import constants
@@ -457,7 +458,7 @@ class Capability:
         return self.embedding_dict[embedding_name]
 
     def _solve_task(
-        self, task: Dict[str, Any], llm: Model, gen_cfg: Dict[str, Any]
+        self, task: Dict[str, Any], llm: Model, gen_cfg: Dict[str, Any], **kwargs: Any
     ) -> Tuple[str, Dict[str, Any]]:
         """
         Solve the task using the given LLM.
@@ -468,6 +469,7 @@ class Capability:
             and the problem to solve.
             llm (Model): The LLM to use for solving the task.
             gen_cfg (Dict[str, Any]): The generation configuration for the LLM.
+            **kwargs: Additional arguments for the LLM.
 
         Returns
         -------
@@ -485,11 +487,25 @@ class Capability:
             capability_name=self.name, capability_domain=self.domain
         )
         user_prompt = self.capability_repr_class.get_instructions(task)
-        response, metadata = llm.generate(
-            sys_prompt=sys_prompt,
-            user_prompt=user_prompt,
-            generation_config=gen_cfg,
-        )
+        with tracing_context(
+            enabled=True,
+            tags=["_solve_task"],
+            metadata={
+                "ls_provider": llm.model_provider,
+                "ls_model_name": llm.get_model_name(with_provider=False),
+                "ls_model_type": "chat",
+                "exp_id": kwargs.get("run_id"),
+                "capability_name": self.name,
+                "domain": self.domain,
+                "task_id": task["id"],
+                **{f"ls_{k}": v for k, v in gen_cfg.items()},
+            },
+        ):
+            response, metadata = llm.generate(
+                sys_prompt=sys_prompt,
+                user_prompt=user_prompt,
+                generation_config=gen_cfg,
+            )
         # Parse for "ANSWER" keyword only if the score function
         # uses the `parse_submission` function.
         # TODO:
@@ -509,7 +525,11 @@ class Capability:
         return (answer, metadata)
 
     def solve_tasks(
-        self, tasks: List[Dict[str, Any]], llm: Model, gen_cfg: Dict[str, Any]
+        self,
+        tasks: List[Dict[str, Any]],
+        llm: Model,
+        gen_cfg: Dict[str, Any],
+        **kwargs: Any,
     ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """
         Solve the tasks using the given LLM.
@@ -519,6 +539,7 @@ class Capability:
             tasks (List[Dict[str, Any]]): The list of tasks to solve.
             llm (Model): The LLM to use for solving the tasks.
             gen_cfg (Dict[str, Any]): The generation configuration for the LLM.
+            **kwargs: Additional arguments for the LLM.
 
         Returns
         -------
@@ -533,6 +554,7 @@ class Capability:
                 task=task,
                 llm=llm,
                 gen_cfg=gen_cfg,
+                **kwargs,
             )
             solved_tasks.append(
                 {
@@ -716,6 +738,7 @@ class Capability:
         gen_args: List[Dict[Any, Any]],
         judge_llm: Model | None = None,
         judge_llm_gen_args: Dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> None:
         """
         Evaluate the provided subject LLMs on the capability.
@@ -726,6 +749,12 @@ class Capability:
             The list of LLMs to use for evaluation.
         gen_args : List[Dict[Any, Any]]
             The list of generation configurations corresponding to each LLM.
+        judge_llm : Model | None
+            The judge LLM to use for evaluation. If None, no judge LLM is used.
+        judge_llm_gen_args : Dict[str, Any] | None
+            The generation configuration for the judge LLM. If None, defaults are used.
+        **kwargs : Any
+            Additional arguments for the evaluation.
         """
         assert len(subject_llms) == len(gen_args), (
             "Each subject LLM must have a corresponding generation config."
@@ -756,6 +785,7 @@ class Capability:
                 if judge_llm
                 else None,
                 **gen_args[model_idx],
+                **kwargs,
             )
         # Revert to original working dir after evaluation
         # and remove the inspect evals path from sys.path
