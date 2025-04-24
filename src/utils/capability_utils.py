@@ -120,7 +120,7 @@ def extract_and_parse_response(
         print(f"Error parsing capabilities json: {e}")
         raise
 
-    output: Dict[str, Any] = collections.defaultdict()
+    output: Dict[str, Any] = {}
     output["thought"] = thought_str if has_thought else None
     if response_type == "json":
         output.update({"parsed_response": parsed_response_list})
