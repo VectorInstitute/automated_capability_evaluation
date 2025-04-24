@@ -5,15 +5,8 @@ from langsmith import tracing_context
 
 from capability import Capability
 from model import Model
+from utils import prompts
 from utils.capability_utils import extract_and_parse_response
-from utils.prompts import (
-    ANSWER_JUDGEMENT_SYSTEM_PROMPT,
-    ANSWER_JUDGEMENT_USER_PROMPT,
-    TASK_GENERATION_RESPONSE_JSON_FORMAT,
-    TASK_GENERATION_SYSTEM_PROMPT,
-    TASK_GENERATION_USER_PROMPT,
-    TASK_GENERATION_ZERO_OR_FEW_SHOT_PATCH,
-)
 
 
 def get_task_generation_prompt(
@@ -40,15 +33,15 @@ def get_task_generation_prompt(
         Tuple[str, str]: The system and user prompts.
     """
     prompt_type = "few_shot" if sample_tasks is not None else "zero_shot"
-    sys_prompt = TASK_GENERATION_SYSTEM_PROMPT.format(
-        zero_or_few_shot_patch=TASK_GENERATION_ZERO_OR_FEW_SHOT_PATCH[prompt_type][
-            "sys"
-        ],
-        response_json_format=TASK_GENERATION_RESPONSE_JSON_FORMAT,
+    sys_prompt = prompts.TASK_GENERATION_SYSTEM_PROMPT.format(
+        zero_or_few_shot_patch=prompts.TASK_GENERATION_ZERO_OR_FEW_SHOT_PATCH[
+            prompt_type
+        ]["sys"],
+        response_json_format=prompts.TASK_GENERATION_RESPONSE_JSON_FORMAT,
     )
-    user_zero_or_few_shot_patch = TASK_GENERATION_ZERO_OR_FEW_SHOT_PATCH[prompt_type][
-        "user"
-    ]
+    user_zero_or_few_shot_patch = prompts.TASK_GENERATION_ZERO_OR_FEW_SHOT_PATCH[
+        prompt_type
+    ]["user"]
     if sample_tasks is not None:
         user_zero_or_few_shot_patch = user_zero_or_few_shot_patch.format(
             capability_sample_tasks=json.dumps(
@@ -56,7 +49,7 @@ def get_task_generation_prompt(
                 indent=4,
             ),
         )
-    user_prompt = TASK_GENERATION_USER_PROMPT.format(
+    user_prompt = prompts.TASK_GENERATION_USER_PROMPT.format(
         capability_name=capability.name,
         capability_description=capability.description,
         capability_domain=capability.domain,
@@ -232,13 +225,13 @@ def verify_solved_tasks(
     failed_tasks = []
     metadata = {}
 
-    sys_prompt = ANSWER_JUDGEMENT_SYSTEM_PROMPT.format(
+    sys_prompt = prompts.ANSWER_JUDGEMENT_SYSTEM_PROMPT.format(
         capability_domain=capability.domain,
     )
 
     for task in tasks:
         print(f"Verifying task {task['id']} ...")
-        user_prompt = ANSWER_JUDGEMENT_USER_PROMPT.format(
+        user_prompt = prompts.ANSWER_JUDGEMENT_USER_PROMPT.format(
             capability_name=capability.name,
             capability_domain=capability.domain,
             problem=task["problem"],

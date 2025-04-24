@@ -35,8 +35,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.capability import Capability, CapabilitySeedDataset, _import_from_path
+from src.utils import constants
 from src.utils.capability_utils import extract_and_parse_response, run_inspect_evals
-from src.utils.constants import BASE_INSPECT_EVALS_DIR
 
 
 # Define a capability seed dataset configuration and create an object
@@ -383,7 +383,7 @@ def test__create_inspect_file_default_judge():
         )
         capability = Capability(os.path.join(test_dir, capability_path))
         capability.name = f"test_{capability.name}"
-        inspect_path = os.path.join(BASE_INSPECT_EVALS_DIR, capability.name)
+        inspect_path = os.path.join(constants.BASE_INSPECT_EVALS_DIR, capability.name)
         os.makedirs(inspect_path)
         capability._create_inspect_file(
             path=inspect_path,
@@ -443,7 +443,7 @@ def test__create_inspect_file_w_judge():
         )
         capability = Capability(os.path.join(test_dir, capability_path))
         capability.name = f"test_{capability.name}"
-        inspect_path = os.path.join(BASE_INSPECT_EVALS_DIR, capability.name)
+        inspect_path = os.path.join(constants.BASE_INSPECT_EVALS_DIR, capability.name)
         os.makedirs(inspect_path)
         dummy_judge_llm_name = "openai/gpt-4o"
         dummy_judge_llm_gen_args = {

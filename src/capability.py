@@ -10,7 +10,7 @@ import torch
 from langsmith import tracing_context
 
 from src.model import Model
-from src.utils import constants
+from src.utils import constants, prompts, templates
 from src.utils.capability_utils import (
     parse_python_class_str,
     read_score_inspect_json,
@@ -24,12 +24,6 @@ from src.utils.data_utils import (
 )
 from src.utils.inspect_eval_utils import (
     parse_submission,
-)
-from src.utils.prompts import TASK_SOLVER_SYSTEM_PROMPT
-from src.utils.templates import (
-    INSPECT_EVALS_INIT_FILE_TEMPLATE,
-    INSPECT_EVALS_README_FILE_TEMPLATE,
-    INSPECT_EVALS_SCRIPT_FILE_TEMPLATE,
 )
 
 
@@ -483,7 +477,7 @@ class Capability:
         #  2. How to link this function with the Inspect Solver
         #   to be used in _evaluate_using_inspect()?
         print(f"Solving task {task['id']} ...")
-        sys_prompt = TASK_SOLVER_SYSTEM_PROMPT.format(
+        sys_prompt = prompts.TASK_SOLVER_SYSTEM_PROMPT.format(
             capability_name=self.name, capability_domain=self.domain
         )
         user_prompt = self.capability_repr_class.get_instructions(task)
@@ -600,12 +594,12 @@ class Capability:
 
         # Create __init__.py and README files
         # TODO: Add more details to the README file
-        init_file_content = INSPECT_EVALS_INIT_FILE_TEMPLATE.format(
+        init_file_content = templates.INSPECT_EVALS_INIT_FILE_TEMPLATE.format(
             capability_name=self.name,
         ).strip("\n")
         with open(os.path.join(path, "__init__.py"), "w") as f:
             f.write(init_file_content)
-        readme_file_content = INSPECT_EVALS_README_FILE_TEMPLATE.format(
+        readme_file_content = templates.INSPECT_EVALS_README_FILE_TEMPLATE.format(
             capability_name=self.name,
             capability_description=self.description,
         ).strip("\n")
@@ -661,7 +655,7 @@ class Capability:
         score_func_str = score_func_str.replace(
             "from .utils", f"from {self.name}.utils"
         )
-        script_file_content = INSPECT_EVALS_SCRIPT_FILE_TEMPLATE.format(
+        script_file_content = templates.INSPECT_EVALS_SCRIPT_FILE_TEMPLATE.format(
             capability_name=self.name,
             dataset_metadata_keys=json.dumps(dataset_metadata_keys),
             prompt_template=instruction_template,

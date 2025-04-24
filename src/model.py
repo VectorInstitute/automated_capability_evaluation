@@ -9,7 +9,7 @@ from langsmith import traceable
 from pydantic import SecretStr
 from ratelimit import limits, sleep_and_retry
 
-from src.utils.constants import VecInfStatus
+from src.utils import constants
 
 
 RATE_LIMIT = {
@@ -181,7 +181,7 @@ def get_local_model_url(model_name: str, **kwargs: Any) -> str:
     # TODO: Check if the model is already running?
     # TODO: What if the model is in pending state for a long time?
     # Wait for the model to be ready
-    vec_inf_status = VecInfStatus
+    vec_inf_status = constants.VecInfStatus
     status_command = ["vec-inf", "status", slurm_job_id, "--json-mode"]
     status = vec_inf_status.PENDING.value
     while status in [vec_inf_status.PENDING.value, vec_inf_status.LAUNCHING.value]:

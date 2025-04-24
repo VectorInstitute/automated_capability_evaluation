@@ -15,15 +15,8 @@ from src.generate_embeddings import (
     reduce_embeddings_dimensions,
 )
 from src.model import Model
-from src.utils import constants
+from src.utils import constants, prompts
 from src.utils.capability_utils import extract_and_parse_response
-from src.utils.prompts import (
-    CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT,
-    CAPABILITY_GENERATION_SYSTEM_PROMPT,
-    CAPABILITY_GENERATION_USER_PROMPT,
-    HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT,
-    HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT,
-)
 
 
 def _sample_seed_capabilities(
@@ -426,7 +419,7 @@ def generate_capability_areas(
     user_prompt = user_prompt.format(
         num_areas=num_areas,
         domain=domain,
-        response_json_format=CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT,
+        response_json_format=prompts.CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT,
     )
     response, metadata = scientist_llm.generate(
         sys_prompt=sys_prompt if sys_prompt else "",
@@ -525,7 +518,7 @@ def generate_capabilities(
             domain=domain,
             num_areas=kwargs["num_capability_areas"],
             scientist_llm=scientist_llm,
-            user_prompt=HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT,
+            user_prompt=prompts.HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT,
             scientist_llm_gen_cfg=scientist_llm_gen_cfg,
         )
         capability_areas = response["capability_areas"]
@@ -542,14 +535,14 @@ def generate_capabilities(
             prev_capabilities = _get_previous_capabilities(
                 capability_dir=base_capability_dir, capability_area=capability_area
             )
-            user_prompt = HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT.format(
+            user_prompt = prompts.HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT.format(
                 capability_area=capability_area,
             )
         else:
             prev_capabilities = _get_previous_capabilities(
                 capability_dir=base_capability_dir
             )
-            user_prompt = CAPABILITY_GENERATION_USER_PROMPT
+            user_prompt = prompts.CAPABILITY_GENERATION_USER_PROMPT
 
         # Add all seed capabilities to the list of prev_capabilities
         seed_capability_dir = os.path.join(
@@ -574,7 +567,7 @@ def generate_capabilities(
                     num_capabilities_left,
                 ),
                 scientist_llm=scientist_llm,
-                sys_prompt=CAPABILITY_GENERATION_SYSTEM_PROMPT,
+                sys_prompt=prompts.CAPABILITY_GENERATION_SYSTEM_PROMPT,
                 user_prompt=user_prompt,
                 num_seed_capabilities=num_seed_capabilities,
                 seed_capability_dir=seed_capability_dir,

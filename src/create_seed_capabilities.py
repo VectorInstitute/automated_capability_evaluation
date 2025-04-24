@@ -9,8 +9,7 @@ import hydra  # noqa: D100
 from omegaconf import DictConfig
 
 from capability import CapabilitySeedDataset
-from utils import constants
-from utils.templates import CAPABILITY_CLASS_TEMPLATE
+from utils import constants, templates
 
 
 def populate_seed_capability_dir(
@@ -79,7 +78,7 @@ def populate_seed_capability_dir(
     capability_tasks_dict = {
         f"{idx + 1}": task for idx, task in enumerate(capability_repr_tasks)
     }
-    capability_class_str = CAPABILITY_CLASS_TEMPLATE.format(
+    capability_class_str = templates.CAPABILITY_CLASS_TEMPLATE.format(
         capability_tasks_dict=json.dumps(capability_tasks_dict, indent=4),
         capability_instructions=capability_instructions,
         capability_score_func=capability_score_func,
