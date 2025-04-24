@@ -1,4 +1,5 @@
 import json  # noqa: D100
+import logging
 from typing import Any, Dict, List, Tuple
 
 from langsmith import tracing_context
@@ -7,6 +8,9 @@ from capability import Capability
 from model import Model
 from utils import prompts
 from utils.capability_utils import extract_and_parse_response
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_task_generation_prompt(
@@ -147,16 +151,12 @@ def generate_tasks_using_llm(
         },
     ):
         # Generate tasks
-        print(f"Generating {num_tasks} tasks for {capability.name} ...")
+        logger.info(f"Generating {num_tasks} tasks for {capability.name} ...")
         response, task_gen_metadata = scientist_llm.generate(
             sys_prompt=sys_prompt,
             user_prompt=user_prompt,
             generation_config=scientist_llm_gen_cfg_task_gen,
         )
-    # Print the output
-    print(f"Model: {scientist_llm.get_model_name()}")
-    print(f"Output:\n\n{response}\n\n")
-    print(f"Metadata: {task_gen_metadata}")
     parsed_response = extract_and_parse_response(response)
     new_tasks = parsed_response["parsed_response"]
 
@@ -179,8 +179,6 @@ def generate_tasks_using_llm(
         gen_cfg=scientist_llm_gen_cfg_task_solve,
         run_id=kwargs.get("run_id"),
     )
-    print(json.dumps(solved_tasks, indent=4))
-    print(task_solver_metadata)
 
     (successful_tasks, failed_tasks), task_judge_metadata = verify_solved_tasks(
         tasks=solved_tasks,
@@ -189,8 +187,9 @@ def generate_tasks_using_llm(
         gen_cfg=scientist_llm_gen_cfg_task_verify,
         run_id=kwargs.get("run_id"),
     )
-    print(f"{len(successful_tasks)}/{len(solved_tasks)} tasks passed the verification.")
-    print(task_judge_metadata)
+    logger.info(
+        f"{len(successful_tasks)}/{len(solved_tasks)} tasks passed the verification."
+    )
 
     capability.add_and_update_tasks(
         tasks=successful_tasks,
@@ -230,7 +229,7 @@ def verify_solved_tasks(
     )
 
     for task in tasks:
-        print(f"Verifying task {task['id']} ...")
+        logger.info(f"Verifying task {task['id']} ...")
         user_prompt = prompts.ANSWER_JUDGEMENT_USER_PROMPT.format(
             capability_name=capability.name,
             capability_domain=capability.domain,

@@ -1,4 +1,5 @@
 import json  # noqa: D100
+import logging
 import os
 import random
 import shutil
@@ -10,6 +11,9 @@ from omegaconf import DictConfig
 
 from capability import CapabilitySeedDataset
 from utils import constants, templates
+
+
+logger = logging.getLogger(__name__)
 
 
 def populate_seed_capability_dir(
@@ -240,7 +244,7 @@ def main(cfg: DictConfig) -> None:
                     capability_score_func=constants.MATHEMATICS_SCORE_FUNC.strip("\n"),
                     source_dataset=dataset.name,
                 )
-                print(
+                logger.info(
                     f"Created capability {capability_name} with {len(math_tasks['tasks'])} tasks."
                 )
         elif dataset.name == "gsm8k":
@@ -275,7 +279,9 @@ def main(cfg: DictConfig) -> None:
                 capability_score_func=constants.GSM8K_SCORE_FUNC.strip("\n"),
                 source_dataset=dataset.name,
             )
-            print(f"Created capability {capability_name} with {len(gsm_tasks)} tasks.")
+            logger.info(
+                f"Created capability {capability_name} with {len(gsm_tasks)} tasks."
+            )
 
 
 if __name__ == "__main__":

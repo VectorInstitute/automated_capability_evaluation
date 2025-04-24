@@ -1,4 +1,5 @@
-import os  # noqa: D100
+import logging  # noqa: D100
+import os
 
 import hydra
 from omegaconf import DictConfig
@@ -18,6 +19,9 @@ from utils import constants
 from utils.lbo_utils import get_lbo_train_set
 
 
+logger = logging.getLogger(__name__)
+
+
 def check_cfg(cfg: DictConfig) -> None:
     """
     Check configuration compatibility.
@@ -34,14 +38,13 @@ def check_cfg(cfg: DictConfig) -> None:
     ), (
         "The total number of capabilities to generate must be greater than or equal to the number of capabilities to generate per run."
     )
-    # log warning
     rem_c = (
         cfg.capabilities_cfg.num_gen_capabilities
         % cfg.capabilities_cfg.num_gen_capabilities_per_run
     )
     additional_c = cfg.capabilities_cfg.num_gen_capabilities_per_run - rem_c
     if rem_c != 0:
-        print(f"{additional_c} capabilities will be generated.")
+        logger.warning(f"{additional_c} capabilities will be generated.")
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
@@ -79,7 +82,7 @@ def main(cfg: DictConfig) -> None:
         run_id=run_id,
         trial_run=cfg.exp_cfg.trial_run,
     )
-    # print(capabilities)
+    # logger.info(capabilities)
 
     # TODO: Only used for testing, remove this block later ========================
     if cfg.exp_cfg.trial_run:
@@ -127,7 +130,7 @@ def main(cfg: DictConfig) -> None:
             min_train_size=cfg.lbo_cfg.min_train_size,
         )
         if num_lbo_runs > len(candidate_capabilities):
-            print(
+            logger.warning(
                 f"Warning: Number of LBO runs ({num_lbo_runs}) exceeds the number of "
                 + f"candidate capabilities ({len(candidate_capabilities)}). "
                 + f"Setting the number of LBO runs to {len(candidate_capabilities)}."
@@ -219,7 +222,7 @@ def main(cfg: DictConfig) -> None:
     #         candidate_capabilities.remove(new_capability)
 
     # new_capabilities = train_capabilities[-num_lbo_runs:]
-    # print(f"New capabilities: {new_capabilities}")
+    # logger.info(f"New capabilities: {new_capabilities}")
 
 
 if __name__ == "__main__":

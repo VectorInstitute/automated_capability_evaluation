@@ -1,4 +1,5 @@
 import json  # noqa: D100
+import logging
 import os
 
 import hydra  # noqa: D100
@@ -6,6 +7,9 @@ import numpy as np
 from omegaconf import DictConfig
 
 from utils.data_utils import copy_file, list_dir, read_json_file, write_json_file
+
+
+logger = logging.getLogger(__name__)
 
 
 def extract_math_capability_logs(
@@ -163,7 +167,7 @@ def main(cfg: DictConfig) -> None:
                         dest=os.path.join(out_dir, f"{capability_name}.json"),
                     )
 
-                print(
+                logger.info(
                     f"Extracted {subject_model_dir} result for {capability_name} capability."
                 )
 

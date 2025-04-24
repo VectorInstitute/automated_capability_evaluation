@@ -1,4 +1,5 @@
 import json  # noqa: D100
+import logging
 import os
 import random
 from typing import Any, Dict, List, Optional
@@ -17,6 +18,9 @@ from src.generate_embeddings import (
 from src.model import Model
 from src.utils import constants, prompts
 from src.utils.capability_utils import extract_and_parse_response
+
+
+logger = logging.getLogger(__name__)
 
 
 def _sample_seed_capabilities(
@@ -238,11 +242,6 @@ def generate_capabilities_using_llm(
             generation_config=scientist_llm_gen_cfg,
         )
 
-    # Print the output
-    print(f"Model: {scientist_llm.get_model_name()}")
-    print(f"Output:\n\n{response}\n\n")
-    print(f"Metadata: {metadata}")
-
     parsed_response = extract_and_parse_response(response)
     gen_capabilities = parsed_response["parsed_response"]
     if capability_area is not None:
@@ -427,11 +426,6 @@ def generate_capability_areas(
         generation_config=scientist_llm_gen_cfg,
     )
 
-    # Print the output
-    print(f"Model: {scientist_llm.get_model_name()}")
-    print(f"Output:\n\n{response}\n\n")
-    print(f"Metadata: {metadata}")
-
     parsed_response = extract_and_parse_response(response, has_thought=False)
     capability_areas = parsed_response["parsed_response"]
 
@@ -530,7 +524,7 @@ def generate_capabilities(
 
     for idx, capability_area in enumerate(capability_areas):
         if method == "hierarchical":
-            print(f"Generating capabilities for area: {capability_area}")
+            logger.info(f"Generating capabilities for area: {capability_area}")
             # Fetch previously generated capabilities, if any
             prev_capabilities = _get_previous_capabilities(
                 capability_dir=base_capability_dir, capability_area=capability_area
@@ -557,7 +551,7 @@ def generate_capabilities(
 
         num_capabilities_left = num_capabilities_per_area[idx]
         for run_id in range(num_runs[idx]):
-            print("Run ID:", run_id)
+            logger.info(f"Run ID: {run_id}")
             # Generate capabilities using the scientist LLM
 
             response = generate_capabilities_using_llm(

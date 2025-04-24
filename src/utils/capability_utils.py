@@ -5,6 +5,7 @@ It contains utility functions for capabilities.
 """
 
 import json
+import logging
 import os
 from typing import Any, Dict
 
@@ -21,6 +22,9 @@ CAPABILITY_SCORER_MAP = {
     "math": "expression_equivalence",
     "gsm8k": "match",
 }
+
+
+logger = logging.getLogger(__name__)
 
 
 def read_score_inspect_json(json_file: str) -> float:
@@ -98,7 +102,7 @@ def extract_and_parse_response(
                 response.split("THOUGHT:")[1].split(parse_kw)[0].strip().strip("\n")
             )
         except (IndexError, json.JSONDecodeError) as e:
-            print(f"Error parsing thought string: {e}")
+            logger.error(f"Error parsing thought string: {e}")
             raise
 
     try:
@@ -116,7 +120,7 @@ def extract_and_parse_response(
         else:
             raise ValueError(f"Unsupported response type: {response_type}")
     except (IndexError, json.JSONDecodeError) as e:
-        print(f"Error parsing capabilities json: {e}")
+        logger.error(f"Error parsing capabilities json: {e}")
         raise
 
     output: Dict[str, Any] = {}
@@ -169,7 +173,7 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
 
         Local function to enable tracing using langsmith.
         """
-        print(f"Running inspect evals for {path} capability using {model_name}")
+        logger.info(f"Running inspect evals for {path} capability using {model_name}")
         eval_log = inspect_eval(
             tasks=path,
             model=inspect_model_name,

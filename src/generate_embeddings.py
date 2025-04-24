@@ -1,4 +1,5 @@
-import os  # noqa: D100
+import logging  # noqa: D100
+import os
 from enum import Enum
 from typing import List, Set
 
@@ -9,6 +10,9 @@ import torch
 from langchain_openai import OpenAIEmbeddings
 from sklearn.manifold import TSNE
 from sklearn.metrics.pairwise import cosine_similarity
+
+
+logger = logging.getLogger(__name__)
 
 
 class EmbeddingModelName(Enum):
@@ -136,7 +140,7 @@ def reduce_embeddings_dimensions(
         # larger value either throws and error or is too big for the algorithm
         # to work properly.
         perplexity = len(embeddings) - 2
-        print(
+        logger.warning(
             f"Only {len(embeddings)} points are provided for t-SNE\
               perplexity is reduced to the number of points - 1."
         )

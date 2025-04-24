@@ -1,5 +1,6 @@
 import importlib  # noqa: D100
 import json
+import logging
 import os
 import shutil
 import sys
@@ -25,6 +26,9 @@ from src.utils.data_utils import (
 from src.utils.inspect_eval_utils import (
     parse_submission,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class CapabilitySeedDataset:
@@ -476,7 +480,7 @@ class Capability:
         #  1. Enable tool use
         #  2. How to link this function with the Inspect Solver
         #   to be used in _evaluate_using_inspect()?
-        print(f"Solving task {task['id']} ...")
+        logger.info(f"Solving task {task['id']} ...")
         sys_prompt = prompts.TASK_SOLVER_SYSTEM_PROMPT.format(
             capability_name=self.name, capability_domain=self.domain
         )
@@ -671,7 +675,7 @@ class Capability:
                 file_path=script_file_path,
             )
         except Exception as e:
-            print(f"Error in creating {script_file_path}: {e}")
+            logger.error(f"Error in creating {script_file_path}: {e}")
             raise e
 
     def _evaluate_using_inspect(self, subject_llm: Model, **kwargs: Any) -> None:

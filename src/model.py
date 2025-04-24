@@ -1,4 +1,5 @@
 import json  # noqa: D100
+import logging
 import os
 import subprocess
 import time
@@ -16,6 +17,9 @@ RATE_LIMIT = {
     "calls": int(os.environ.get("RATE_LIMIT_CALLS", 5)),
     "period": int(os.environ.get("RATE_LIMIT_PERIOD", 60)),
 }
+
+
+logger = logging.getLogger(__name__)
 
 
 class Model:
@@ -91,7 +95,7 @@ class Model:
                 "completion_tokens"
             ]
         except Exception as e:
-            print(f"Error generating text: {e}")
+            logger.error(f"Error generating text: {e}")
             raise e
 
         metadata = {"input_tokens": input_tokens, "output_tokens": output_tokens}
@@ -188,7 +192,7 @@ def get_local_model_url(model_name: str, **kwargs: Any) -> str:
         status_out = _run_command(status_command)
         status = status_out["model_status"]
         time.sleep(5)  # Wait for 5 seconds before checking again
-        print(f"Model status: {status}")
+        logger.debug(f"Model status: {status}")
     if status == vec_inf_status.FAILED.value:
         raise RuntimeError(f"Model launch failed: {status_out['failed_reason']}")
     if status == vec_inf_status.SHUTDOWN.value:
