@@ -7,7 +7,8 @@ It contains utility functions for capabilities.
 import json
 import logging
 import os
-from typing import Any, Dict
+from contextlib import contextmanager
+from typing import Any, Dict, Generator
 
 from inspect_ai import eval as inspect_eval
 from langsmith import traceable, tracing_context
@@ -250,3 +251,36 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
     logger.info(
         f"Task evaluation tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
     )
+
+
+@contextmanager
+def retry_context(
+    retry_attempts: int, logger: logging.Logger
+) -> Generator[None, None, None]:
+    """
+    Context manager to retry a block of code a specified number of times.
+
+    Args
+    ----
+        retry_attempts (int): The number of retry attempts.
+        logger (logging.Logger): The logger to use for logging.
+
+    Yields
+    ------
+        None
+    """
+    # Retry the block of code for a specified number of attempts
+    for attempt in range(retry_attempts):
+        try:
+            yield
+            break  # Exit the retry loop if successful
+        except SyntaxError as e:
+            # Only retry for a specific type of SyntaxError
+            # TODO: Can this be handled without retrying?
+            if "unterminated triple-quoted string literal" in str(e):
+                logger.warning(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == retry_attempts - 1:
+                    raise  # Re-raise the exception if all attempts fail
+            else:
+                logger.error(f"Unexpected error: {e}")
+                raise

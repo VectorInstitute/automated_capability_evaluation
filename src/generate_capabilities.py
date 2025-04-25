@@ -17,7 +17,7 @@ from src.generate_embeddings import (
 )
 from src.model import Model
 from src.utils import constants, prompts
-from src.utils.capability_utils import extract_and_parse_response
+from src.utils.capability_utils import extract_and_parse_response, retry_context
 
 
 logger = logging.getLogger(__name__)
@@ -219,39 +219,42 @@ def generate_capabilities_using_llm(
     )
 
     # Generate output using the model with specified generation arguments
-    with tracing_context(
-        enabled=True,
-        tags=["generate_capabilities_using_llm"],
-        metadata={
-            "ls_provider": scientist_llm.model_provider,
-            "ls_model_name": scientist_llm.get_model_name(with_provider=False),
-            "ls_model_type": "chat",
-            "exp_id": kwargs.get("run_id"),
-            "run_id": kwargs.get("local_run_id"),
-            "domain": domain,
-            "capability_area": capability_area,
-            "num_capabilities": num_capabilities,
-            "seed_capabilities": [elm.name for elm in seed_capabilities],
-            "prev_capabilities": [elm.name for elm in prev_capabilities],
-            **{f"ls_{k}": v for k, v in scientist_llm_gen_cfg.items()},
-        },
-    ):
-        response, metadata = scientist_llm.generate(
-            sys_prompt=sys_prompt,
-            user_prompt=user_prompt,
-            generation_config=scientist_llm_gen_cfg,
-        )
+    with retry_context(retry_attempts=3, logger=logger):
+        with tracing_context(
+            enabled=True,
+            tags=["generate_capabilities_using_llm"],
+            metadata={
+                "ls_provider": scientist_llm.model_provider,
+                "ls_model_name": scientist_llm.get_model_name(with_provider=False),
+                "ls_model_type": "chat",
+                "exp_id": kwargs.get("run_id"),
+                "run_id": kwargs.get("local_run_id"),
+                "domain": domain,
+                "capability_area": capability_area,
+                "num_capabilities": num_capabilities,
+                "seed_capabilities": [elm.name for elm in seed_capabilities],
+                "prev_capabilities": [elm.name for elm in prev_capabilities],
+                **{f"ls_{k}": v for k, v in scientist_llm_gen_cfg.items()},
+            },
+        ):
+            response, metadata = scientist_llm.generate(
+                sys_prompt=sys_prompt,
+                user_prompt=user_prompt,
+                generation_config=scientist_llm_gen_cfg,
+            )
 
-    parsed_response = extract_and_parse_response(response)
-    gen_capabilities = parsed_response["parsed_response"]
-    if capability_area is not None:
-        # Add the capability area to the generated capabilities
-        for capability in gen_capabilities:
-            capability["area"] = capability_area
-    gen_capabilities = [
-        Capability.from_dict(capability_dict=capability, base_dir=base_capability_dir)
-        for capability in gen_capabilities
-    ]
+        parsed_response = extract_and_parse_response(response)
+        gen_capabilities = parsed_response["parsed_response"]
+        if capability_area is not None:
+            # Add the capability area to the generated capabilities
+            for capability in gen_capabilities:
+                capability["area"] = capability_area
+        gen_capabilities = [
+            Capability.from_dict(
+                capability_dict=capability, base_dir=base_capability_dir
+            )
+            for capability in gen_capabilities
+        ]
 
     return {
         "capabilities": gen_capabilities,
