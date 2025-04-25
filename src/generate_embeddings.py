@@ -112,6 +112,7 @@ def reduce_embeddings_dimensions(
     ),
     normalize: bool = True,
     perplexity: int = 30,
+    seed: int = 42,
 ) -> List[torch.Tensor]:
     """
     Reduce the dimensionality of the given embeddings.
@@ -123,15 +124,16 @@ def reduce_embeddings_dimensions(
             dimensionality reduction technique to use.
         normalize (bool): Whether to normalize the reduced embeddings.
         perplexity (int): The perplexity parameter for t-SNE.
+        seed (int): The random seed for reproducibility.
 
     Returns
     -------
         List[torch.Tensor]: A list of reduced embeddings as PyTorch tensors.
     """
     # set torch random seed for reproducibility.
-    torch.manual_seed(42)
+    torch.manual_seed(seed)
     if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(42)
+        torch.cuda.manual_seed_all(seed)
 
     if len(embeddings) < perplexity:
         # Perplexity should always be smaller than the number of samples.
@@ -169,6 +171,7 @@ def visualize_embeddings(
     save_dir: str,
     plot_name: str,
     point_names: List[str] | None = None,
+    seed: int = 42,
 ) -> None:
     """
     Visualize the embeddings, and make sure they are 2D.
@@ -178,6 +181,7 @@ def visualize_embeddings(
         save_dir (str): The directory to save the plot.
         plot_name (str): The name of the plot file.
         point_names (List[str] | None): Optional names for each point in the plot.
+        seed (int): The random seed for reproducibility.
 
     Returns
     -------
@@ -189,6 +193,7 @@ def visualize_embeddings(
             embeddings,
             output_dimensions=2,
             dim_reduction_technique=DimensionalityReductionTechnique.TSNE,
+            seed=seed,
         )
     # If point names are provided, annotate each point with its name
     if point_names is not None:

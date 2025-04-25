@@ -5,18 +5,23 @@ scientist_llm:
     capability_generation:
       temperature: 0.7
       max_tokens: 64
+      seed: 42
     task_generation:
       temperature: 0.7
       max_tokens: 64
+      seed: 42
     task_solve:
       temperature: 0.7
       max_tokens: 64
+      seed: 42
     judge_llm:
       temperature: 1.0
       max_tokens: 64
+      seed: 42
     task_verify:
       temperature: 0.7
       max_tokens: 64
+      seed: 42
   local_launch_cfg:
     # Number of threads to use for local LLM
     max_num_seqs: 1
@@ -33,6 +38,7 @@ subject_llm:
   generation_cfg:
     temperature: 0.7
     max_tokens: 64
+    seed: 42
   local_launch_cfg:
     # Number of threads to use for local LLM
     max_num_seqs: 1
@@ -100,6 +106,7 @@ dimensionality_reduction_cfg:
 
 exp_cfg:
   # Set this flag to true to run test experiments during development
+  seed: 42
   trial_run: true
 
 defaults:

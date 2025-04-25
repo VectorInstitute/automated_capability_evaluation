@@ -268,6 +268,7 @@ def apply_dimensionality_reduction(
     dim_reduction_method: str,
     output_dimension_size: int,
     embedding_model_name: str,
+    seed: int = 42,
 ) -> None:  # noqa: D205
     """Apply dimensionality reduction to the capabilities.
 
@@ -289,6 +290,7 @@ def apply_dimensionality_reduction(
         output_dimension_size (int): The number of dimensions to reduce to.
         embedding_model_name (str): The name of the OpenAI embedding model used for
             generating the embeddings.
+        seed (int): The random seed for reproducibility.
 
     Returns
     -------
@@ -312,6 +314,7 @@ def apply_dimensionality_reduction(
         embeddings,
         output_dimensions=output_dimension_size,
         dim_reduction_technique=DimensionalityReductionTechnique(dim_reduction_method),
+        seed=seed,
     )
     # Set the reduced embeddings for each capability.
     for capability, reduced_embedding in zip(capabilities, reduced_embeddings):

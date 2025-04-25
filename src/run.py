@@ -114,6 +114,7 @@ def main(cfg: DictConfig) -> None:
     #     output_dimension_size=
     #     cfg.dimensionality_reduction_cfg.reduced_dimensionality_size,
     #     embedding_model_name=cfg.embedding_cfg.embedding_model,
+    #     seed=cfg.exp_cfg.seed,
     # )
 
     # Stage 2. Generate tasks and evaluate subject model on initial capabilities
@@ -125,6 +126,7 @@ def main(cfg: DictConfig) -> None:
             input_data=capabilities,
             train_frac=cfg.lbo_cfg.train_frac,
             min_train_size=cfg.lbo_cfg.min_train_size,
+            seed=cfg.exp_cfg.seed,
         )
         if num_lbo_runs > len(candidate_capabilities):
             logger.warning(
