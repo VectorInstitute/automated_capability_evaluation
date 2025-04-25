@@ -101,8 +101,9 @@ def extract_and_parse_response(
             thought_str = (
                 response.split("THOUGHT:")[1].split(parse_kw)[0].strip().strip("\n")
             )
-        except (IndexError, json.JSONDecodeError) as e:
+        except Exception as e:
             logger.error(f"Error parsing thought string: {e}")
+            logger.error(f"Response: {response}")
             raise
 
     try:
@@ -135,8 +136,9 @@ def extract_and_parse_response(
             )
         else:
             raise ValueError(f"Unsupported response type: {response_type}")
-    except json.JSONDecodeError as e:
+    except Exception as e:
         logger.error(f"Error parsing response json: {e}")
+        logger.error(f"Response: {response}")
         raise
 
     output: Dict[str, Any] = {}

@@ -107,7 +107,9 @@ class Capability:
         Returns a JSON string representation of the capability.
     """
 
-    def __init__(self, capability_dir: str) -> None:
+    def __init__(
+        self, capability_dir: str, score_dir_suffix: str | None = None
+    ) -> None:
         self.source_dir = capability_dir
         self._load_capability_json()
         self._load_capability_repr_class()
@@ -117,6 +119,8 @@ class Capability:
             if self.is_seed
             else constants.NON_SEED_CAPABILITIES_SCORE_DIR
         )
+        if score_dir_suffix:
+            self.score_dir = f"{self.score_dir}_{score_dir_suffix}"
         # The embedding_dict stores various embedding vector associated with
         # different models, encoders, or dimensionality reduction algorithms.
         # Key represents the name of the embedding model or the algorithm,
@@ -125,7 +129,12 @@ class Capability:
         self.embedding_dict: dict[str, torch.Tensor] = {}
 
     @classmethod
-    def from_dict(cls, capability_dict: Dict[str, Any], base_dir: str) -> "Capability":
+    def from_dict(
+        cls,
+        capability_dict: Dict[str, Any],
+        base_dir: str,
+        score_dir_suffix: str | None = None,
+    ) -> "Capability":
         """
         Create a Capability object from a dictionary.
 
@@ -190,7 +199,7 @@ class Capability:
         with open(os.path.join(c_dir, "capability.json"), "w") as f:
             json.dump(c_dict, f, indent=4)
 
-        return cls(c_dir)
+        return cls(capability_dir=c_dir, score_dir_suffix=score_dir_suffix)
 
     def _load_capability_json(self) -> None:
         with open(os.path.join(self.source_dir, "capability.json"), "r") as f:
@@ -528,7 +537,7 @@ class Capability:
         llm: Model,
         gen_cfg: Dict[str, Any],
         **kwargs: Any,
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    ) -> Tuple[Tuple[List[Dict[str, Any]], List[Dict[str, Any]]], Dict[str, Any]]:
         """
         Solve the tasks using the given LLM.
 
@@ -541,29 +550,65 @@ class Capability:
 
         Returns
         -------
-            Tuple[List[Dict[str, Any]], Dict[str, Any]]: A tuple containing a list of
-            dictionaries with the solved tasks and a dictionary with metadata
-            for each task.
+            Tuple[Tuple[List[Dict[str, Any]], List[Dict[str, Any]]], Dict[str, Any]]:
+                A tuple containing:
+                - a tuple of solved and unsolved tasks
+                - a dictionary with metadata for each task
         """
         solved_tasks = []
+        unsolved_tasks = []
         metadata = {}
+        task_solved = False
         for task in tasks:
-            answer, _metadata = self._solve_task(
-                task=task,
-                llm=llm,
-                gen_cfg=gen_cfg,
-                **kwargs,
-            )
-            solved_tasks.append(
-                {
-                    "id": task["id"],
-                    "problem": task["problem"],
-                    "answer": answer,
-                    "reasoning": _metadata["raw_response"],
-                }
-            )
-            metadata[task["id"]] = _metadata["api_metadata"]
-        return (solved_tasks, metadata)
+            try:
+                answer, _metadata = self._solve_task(
+                    task=task,
+                    llm=llm,
+                    gen_cfg=gen_cfg,
+                    **kwargs,
+                )
+            except Exception as e:
+                logger.warning(f"Error solving task {task['id']}: {e}")
+                task_solved = False
+                answer = constants.NO_ANSWER_STR
+                reasoning = str(e)
+                _metadata = {"api_metadata": {}}
+            else:
+                if answer == constants.NO_ANSWER_STR:
+                    logger.warning(
+                        f"Error solving task {task['id']}: 'ANSWER' keyword not found in the response or the answer is empty: {_metadata['raw_response']}"
+                    )
+                    task_solved = False
+                    answer = constants.NO_ANSWER_STR
+                    reasoning = _metadata["raw_response"]
+                else:
+                    task_solved = True
+                    reasoning = _metadata["raw_response"]
+            finally:
+                if task_solved:
+                    solved_tasks.append(
+                        {
+                            "id": task["id"],
+                            "problem": task["problem"],
+                            "answer": answer,
+                            "reasoning": reasoning,
+                        }
+                    )
+                else:
+                    unsolved_tasks.append(
+                        {
+                            "id": task["id"],
+                            "problem": task["problem"],
+                            "answer": answer,
+                            "reasoning": reasoning,
+                            "verification": {
+                                "verdict": "no",
+                                "reason": "unsolved",
+                            },
+                        }
+                    )
+                metadata[task["id"]] = _metadata["api_metadata"]
+        return (solved_tasks, unsolved_tasks), metadata
 
     def get_tasks(self) -> List[Dict[str, Any]]:
         """

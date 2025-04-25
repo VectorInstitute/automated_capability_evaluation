@@ -70,7 +70,7 @@ def main(cfg: DictConfig) -> None:
         num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
         scientist_llm=scientist_llm,
         num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
-        scientist_llm_gen_cfg=scientist_llm_gen_cfg.capability_generation,
+        scientist_llm_gen_cfg=dict(scientist_llm_gen_cfg.capability_generation),
         method=cfg.capabilities_cfg.method,
         num_capability_areas=cfg.capabilities_cfg.num_capability_areas,
         exclude_seed_capability_names=["grade_school_math_word_problems"],
@@ -164,10 +164,10 @@ def main(cfg: DictConfig) -> None:
             scientist_llm=scientist_llm,
             num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
             num_tasks_buffer=cfg.capabilities_cfg.num_gen_tasks_buffer,
-            scientist_llm_gen_cfg_task_gen=scientist_llm_gen_cfg.task_generation,
-            scientist_llm_gen_cfg_task_solve=scientist_llm_gen_cfg.task_solve,
-            scientist_llm_gen_cfg_task_verify=scientist_llm_gen_cfg.task_verify,
-            solve_sample_tasks=False,
+            scientist_llm_gen_cfg_task_gen=dict(scientist_llm_gen_cfg.task_generation),
+            scientist_llm_gen_cfg_task_solve=dict(scientist_llm_gen_cfg.task_solve),
+            scientist_llm_gen_cfg_task_verify=dict(scientist_llm_gen_cfg.task_verify),
+            solve_sample_tasks=True,  # TODO: Update this based on checkpointing
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
             run_id=run_id,
             tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
@@ -181,10 +181,10 @@ def main(cfg: DictConfig) -> None:
             run_id=run_id,
         )
 
-        # TODO: Only used for testing, remove this block later ==============
-        if cfg.exp_cfg.trial_run:
-            break
-        # ===================================================================
+        # # TODO: Only used for testing, remove this block later ==============
+        # if cfg.exp_cfg.trial_run:
+        #     break
+        # # ===================================================================
 
     # # Stage 3. Use LBO to generate new capabilities
     # for lbo_run_id in range(num_lbo_runs):
@@ -201,9 +201,10 @@ def main(cfg: DictConfig) -> None:
     #         scientist_llm=scientist_llm,
     #         num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
     #         num_tasks_buffer=cfg.capabilities_cfg.num_gen_tasks_buffer,
-    #         scientist_llm_gen_cfg_task_gen=scientist_llm_gen_cfg.task_generation,
-    #         scientist_llm_gen_cfg_task_solve=scientist_llm_gen_cfg.task_solve,
-    #         scientist_llm_gen_cfg_task_verify=scientist_llm_gen_cfg.task_verify,
+    #         scientist_llm_gen_cfg_task_gen=
+    #         dict(scientist_llm_gen_cfg.task_generation),
+    #         scientist_llm_gen_cfg_task_solve=dict(scientist_llm_gen_cfg.task_solve),
+    #         scientist_llm_gen_cfg_task_verify=dict(scientist_llm_gen_cfg.task_verify),
     #         solve_sample_tasks=False,
     #         few_shot=cfg.capabilities_cfg.task_gen_few_shot,
     #         run_id=run_id,

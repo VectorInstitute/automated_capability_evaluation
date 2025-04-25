@@ -61,7 +61,7 @@ capabilities_cfg:
   method: "hierarchical"
   # Number of seed capabilities to use for initial capability generation
   # Set to -1 to use all seed capabilities
-  num_seed_capabilities: 1
+  num_seed_capabilities: 2
   # Number of initial capabilities to generate using the scientist LLM
   num_gen_capabilities: 10
   # Number of capability areas to generate
@@ -109,7 +109,7 @@ dimensionality_reduction_cfg:
 
 exp_cfg:
   # Set this flag to true to run test experiments during development
-  seed: 42
+  seed: 37
   trial_run: true
 
 defaults:

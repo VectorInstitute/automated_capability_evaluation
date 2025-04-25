@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 from langsmith import tracing_context
-from tenacity import RetryError, Retrying, retry_if_exception_type, stop_after_attempt
+from tenacity import Retrying, retry_if_exception_type, stop_after_attempt
 
 from src.capability import Capability
 from src.generate_embeddings import (
@@ -227,12 +227,18 @@ def generate_capabilities_using_llm(
     try:
         # Retry the generation process if a SyntaxError occurs
         # Common errors:
-        # - SyntaxError: unterminated triple-quoted string literal
+        # - [ill-formatted python class]
+        #   - SyntaxError: unterminated triple-quoted string literal
+        # - [same capability name]
+        #   - FileExistsError: Capability directory already exists
         for attempt in Retrying(
             stop=stop_after_attempt(num_attempts),
-            retry=retry_if_exception_type(SyntaxError),
+            retry=retry_if_exception_type((SyntaxError, FileExistsError)),
+            reraise=True,
         ):
             with attempt:
+                # Update the seed for each attempt
+                scientist_llm_gen_cfg["seed"] += 1
                 with tracing_context(
                     enabled=True,
                     tags=["generate_capabilities_using_llm"],
@@ -266,15 +272,17 @@ def generate_capabilities_using_llm(
                         capability["area"] = capability_area
                 gen_capabilities = [
                     Capability.from_dict(
-                        capability_dict=capability, base_dir=base_capability_dir
+                        capability_dict=capability,
+                        base_dir=base_capability_dir,
+                        score_dir_suffix=(
+                            kwargs.get("run_id") if kwargs.get("trial_run") else None
+                        ),
                     )
                     for capability in gen_capabilities
                 ]
-    except RetryError as e:
-        logger.error(
-            f"Error generating capabilities after {num_attempts}: {e.last_attempt.result()}"
-        )
-        logger.debug(f"Response:\n{response}")
+    except Exception as e:
+        logger.error(f"Error generating capabilities: {e}")
+        logger.error(f"Response:\n{response}")
         raise e
 
     return {

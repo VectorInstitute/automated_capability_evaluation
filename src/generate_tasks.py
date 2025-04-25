@@ -3,7 +3,7 @@ import logging
 from typing import Any, Dict, List, Tuple
 
 from langsmith import tracing_context
-from tenacity import RetryError, Retrying, retry_if_exception_type, stop_after_attempt
+from tenacity import Retrying, retry_if_exception_type, stop_after_attempt
 
 from capability import Capability
 from model import Model
@@ -113,6 +113,7 @@ def generate_tasks_using_llm(
     sample_tasks = capability.get_repr_tasks()
 
     # Calculate the number of tasks to generate
+    target_num_tasks = num_tasks
     num_tasks = int(num_tasks * (1 + num_tasks_buffer))
 
     # Generate new tasks using the scientist LLM
@@ -134,8 +135,11 @@ def generate_tasks_using_llm(
         for attempt in Retrying(
             stop=stop_after_attempt(num_attempts),
             retry=retry_if_exception_type(json.decoder.JSONDecodeError),
+            reraise=True,
         ):
             with attempt:
+                # Update the seed for each attempt
+                scientist_llm_gen_cfg_task_gen["seed"] += 1
                 with tracing_context(
                     enabled=True,
                     tags=["generate_tasks_using_llm"],
@@ -162,11 +166,9 @@ def generate_tasks_using_llm(
                     )
                 parsed_response = extract_and_parse_response(response)
                 new_tasks = parsed_response["parsed_response"]
-    except RetryError as e:
-        logger.error(
-            f"Error generating tasks after {num_attempts}: {e.last_attempt.result()}"
-        )
-        logger.debug(f"Response:\n{response}")
+    except Exception as e:
+        logger.error(f"Error generating tasks: {e}")
+        logger.error(f"Response:\n{response}")
         raise e
 
     # Analyze tokens metadata for task problems generation
@@ -203,26 +205,29 @@ def generate_tasks_using_llm(
             # Remove the answer
             task.pop("answer", None)
         all_tasks = sample_tasks + all_tasks
-    solved_tasks, task_solver_metadata = capability.solve_tasks(
+    (solved_tasks, unsolved_tasks), task_solver_metadata = capability.solve_tasks(
         tasks=all_tasks,
         llm=scientist_llm,
         gen_cfg=scientist_llm_gen_cfg_task_solve,
         run_id=kwargs.get("run_id"),
     )
+    logger.info(f"{len(solved_tasks)}/{len(all_tasks)} tasks were solved successfully.")
 
     # Analyze tokens metadata for task solving
-    total_input_tokens = sum([v["input_tokens"] for v in task_solver_metadata.values()])
+    total_input_tokens = sum(
+        [v.get("input_tokens", 0) for v in task_solver_metadata.values()]
+    )
     total_output_tokens = sum(
-        [v["output_tokens"] for v in task_solver_metadata.values()]
+        [v.get("output_tokens", 0) for v in task_solver_metadata.values()]
     )
     tokens_summary = {
         "total_input_tokens": total_input_tokens,
         "total_output_tokens": total_output_tokens,
         "total_tokens": total_input_tokens + total_output_tokens,
-        "input_tokens_per_task": int(total_input_tokens / len(solved_tasks)),
-        "output_tokens_per_task": int(total_output_tokens / len(solved_tasks)),
+        "input_tokens_per_task": int(total_input_tokens / len(all_tasks)),
+        "output_tokens_per_task": int(total_output_tokens / len(all_tasks)),
         "total_tokens_per_task": int(
-            (total_input_tokens + total_output_tokens) / len(solved_tasks)
+            (total_input_tokens + total_output_tokens) / len(all_tasks)
         ),
     }
     logger.info(f"Task solving tokens summary:\n{json.dumps(tokens_summary, indent=4)}")
@@ -256,6 +261,15 @@ def generate_tasks_using_llm(
     logger.info(
         f"Task verification tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
     )
+
+    if len(successful_tasks) < target_num_tasks:
+        logger.warning(
+            f"Only {len(successful_tasks)} tasks were successfully solved and verified. "
+            f"Target number of tasks not reached: {target_num_tasks}. "
+            "It is recommended to increase the buffer."
+        )
+    # Failed tasks consist of both unsolved tasks and tasks which failed verification
+    failed_tasks = failed_tasks + unsolved_tasks
 
     capability.add_and_update_tasks(
         tasks=successful_tasks,
@@ -302,47 +316,61 @@ def verify_solved_tasks(
             problem=task["problem"],
             answer=task["answer"],
         )
-        with tracing_context(
-            enabled=True,
-            tags=["verify_solved_tasks"],
-            metadata={
-                "ls_provider": llm.model_provider,
-                "ls_model_name": llm.get_model_name(with_provider=False),
-                "ls_model_type": "chat",
-                "exp_id": kwargs.get("run_id"),
-                "capability_name": capability.name,
-                "domain": capability.domain,
-                "task_id": task["id"],
-                **{f"ls_{k}": v for k, v in gen_cfg.items()},
-            },
-        ):
-            response, _metadata = llm.generate(
-                sys_prompt=sys_prompt,
-                user_prompt=user_prompt,
-                generation_config=gen_cfg,
-            )
         try:
-            parsed_response = extract_and_parse_response(
-                response,
-                has_thought=True,
-                parse_kw="JUDGEMENT",
-                response_type="str_yes_no",
+            with tracing_context(
+                enabled=True,
+                tags=["verify_solved_tasks"],
+                metadata={
+                    "ls_provider": llm.model_provider,
+                    "ls_model_name": llm.get_model_name(with_provider=False),
+                    "ls_model_type": "chat",
+                    "exp_id": kwargs.get("run_id"),
+                    "capability_name": capability.name,
+                    "domain": capability.domain,
+                    "task_id": task["id"],
+                    **{f"ls_{k}": v for k, v in gen_cfg.items()},
+                },
+            ):
+                response, _metadata = llm.generate(
+                    sys_prompt=sys_prompt,
+                    user_prompt=user_prompt,
+                    generation_config=gen_cfg,
+                )
+        except Exception as e:
+            logger.warning(
+                f"Error verifying task {task['id']} for capability {capability.name}: {e}"
             )
-        except AssertionError as e:
-            # Tag as fail where the response is not "yes" or "no"
-            parsed_response = {
-                "parsed_response": "no",
-                "thought": str(e),
-            }
-        verdict_str = parsed_response["parsed_response"]
-        task["verification"] = {
-            "verdict": verdict_str,
-            "reason": parsed_response["thought"],
-        }
-        if verdict_str == "yes":
-            successful_tasks.append(task)
+            verdict_str = "no"
+            verdict_reason = f"Failed to verify task: {e}"
+            _metadata = {}
         else:
-            failed_tasks.append(task)
-        metadata[task["id"]] = _metadata
+            try:
+                parsed_response = extract_and_parse_response(
+                    response,
+                    has_thought=True,
+                    parse_kw="JUDGEMENT",
+                    response_type="str_yes_no",
+                )
+            except Exception as e:
+                # Tag as fail where the response is not "yes" or "no"
+                logger.warning(
+                    f"Error parsing response for task {task['id']} for capability {capability.name}: {e}"
+                )
+                parsed_response = {
+                    "parsed_response": "no",
+                    "thought": f"Failed to verify task: {e}",
+                }
+            verdict_str = parsed_response["parsed_response"]
+            verdict_reason = parsed_response["thought"]
+        finally:
+            task["verification"] = {
+                "verdict": verdict_str,
+                "reason": verdict_reason,
+            }
+            if verdict_str == "yes":
+                successful_tasks.append(task)
+            else:
+                failed_tasks.append(task)
+            metadata[task["id"]] = _metadata
 
     return (successful_tasks, failed_tasks), metadata
