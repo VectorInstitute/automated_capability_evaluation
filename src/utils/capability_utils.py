@@ -284,3 +284,6 @@ def retry_context(
             else:
                 logger.error(f"Unexpected error: {e}")
                 raise
+        finally:
+            # Ensure the generator is properly closed
+            pass
