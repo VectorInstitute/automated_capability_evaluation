@@ -166,6 +166,7 @@ def generate_tasks_using_llm(
         logger.error(
             f"Error generating tasks after {num_attempts}: {e.last_attempt.result()}"
         )
+        logger.debug(f"Response:\n{response}")
         raise e
 
     # Analyze tokens metadata for task problems generation

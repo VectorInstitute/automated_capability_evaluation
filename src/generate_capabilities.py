@@ -274,6 +274,7 @@ def generate_capabilities_using_llm(
         logger.error(
             f"Error generating capabilities after {num_attempts}: {e.last_attempt.result()}"
         )
+        logger.debug(f"Response:\n{response}")
         raise e
 
     return {
