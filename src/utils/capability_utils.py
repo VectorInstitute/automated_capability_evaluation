@@ -66,43 +66,67 @@ def parse_python_class_str(class_str: str) -> str:
     return class_str.split("```python\n")[1].split("\n```")[0].strip()
 
 
-def extract_and_parse_response(response: str) -> Dict[str, Any]:
+def extract_and_parse_response(
+    response: str,
+    has_thought: bool = True,
+    parse_kw: str = "RESPONSE JSON",
+    response_type: str = "json",
+) -> Dict[str, Any]:
     """
     Extract the thought string and response JSON data from the response string.
 
     Args
     ----
         response (str): The response string containing the thought and JSON data.
+        has_thought (bool): Whether the response contains a thought string.
+        parse_kw (str): The keyword to split the response string for JSON parsing.
+        response_type (str): The type of response to parse (default is "json").
 
     Returns
     -------
         Dict[str, Any]: A dictionary with two keys:
-            - "thought" (str): The extracted thought string.
-            - "parsed_response" (List[Any]): A list of parsed JSON objects.
+            - "thought" (str, optional): The extracted thought string if present.
+            - "parsed_response" (Union[List[Any], str]): The parsed response data.
 
     Raises
     ------
         ValueError: If there is an error parsing the thought or JSON data.
     """
-    try:
-        thought_str = (
-            response.split("THOUGHT:")[1].split("RESPONSE JSON")[0].strip().strip("\n")
-        )
-    except (IndexError, json.JSONDecodeError) as e:
-        print(f"Error parsing thought string: {e}")
-        raise
+    if has_thought:
+        try:
+            thought_str = (
+                response.split("THOUGHT:")[1].split(parse_kw)[0].strip().strip("\n")
+            )
+        except (IndexError, json.JSONDecodeError) as e:
+            print(f"Error parsing thought string: {e}")
+            raise
 
     try:
-        response_str = response.split("RESPONSE JSON:\n")[1].strip().strip("\n")
-        response_json = json.loads(response_str)
-        parsed_response = []
-        for _, v in response_json.items():
-            parsed_response.append(v)
+        response_str = response.split(f"{parse_kw}:\n")[1].strip().strip("\n")
+        if response_type == "json":
+            response_json = json.loads(response_str)
+            parsed_response_list = []
+            for _, v in response_json.items():
+                parsed_response_list.append(v)
+        elif response_type == "str_yes_no":
+            parsed_response_str = response_str.lower()
+            assert parsed_response_str in ["yes", "no"], (
+                f"Invalid response: {parsed_response_str}. Expected 'yes' or 'no'."
+            )
+        else:
+            raise ValueError(f"Unsupported response type: {response_type}")
     except (IndexError, json.JSONDecodeError) as e:
         print(f"Error parsing capabilities json: {e}")
         raise
 
-    return {"thought": thought_str, "parsed_response": parsed_response}
+    output: Dict[str, Any] = {}
+    output["thought"] = thought_str if has_thought else None
+    if response_type == "json":
+        output.update({"parsed_response": parsed_response_list})
+    elif response_type == "str_yes_no":
+        output.update({"parsed_response": parsed_response_str})
+
+    return output
 
 
 def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> None:
