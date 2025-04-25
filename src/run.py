@@ -79,7 +79,6 @@ def main(cfg: DictConfig) -> None:
         run_id=run_id,
         trial_run=cfg.exp_cfg.trial_run,
     )
-    # print(capabilities)
 
     # TODO: Only used for testing, remove this block later ========================
     if cfg.exp_cfg.trial_run:
