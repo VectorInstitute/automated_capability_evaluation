@@ -8,6 +8,7 @@ from generate_capabilities import (
     apply_dimensionality_reduction,
     filter_capabilities,
     generate_and_set_capabilities_embeddings,
+    generate_capabilities,
 )
 from generate_tasks import generate_tasks_using_llm
 
@@ -54,22 +55,30 @@ def main(cfg: DictConfig) -> None:
     check_cfg(cfg)
 
     run_id = f"{cfg.scientist_llm.name}_T{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
+    if cfg.capabilities_cfg.method == "hierarchical":
+        run_id += f"_A{cfg.capabilities_cfg.num_capability_areas}"
 
     # Initialize the scientist LLM model
-    scientist_llm = Model(cfg.scientist_llm.name)
+    scientist_llm = Model(
+        model_name=cfg.scientist_llm.name,
+        model_provider=cfg.scientist_llm.provider,
+    )
     scientist_llm_gen_cfg = cfg.scientist_llm.generation_cfg
 
-    # # Stage 1. Generate initial capabilities
-    # capabilities = generate_capabilities(
-    #     domain=cfg.capabilities_cfg.domain,
-    #     num_capabilities=cfg.capabilities_cfg.num_gen_capabilities,
-    #     num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
-    #     scientist_llm=scientist_llm,
-    #     num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
-    #     scientist_llm_gen_cfg=scientist_llm_gen_cfg.capability_generation,
-    #     run_id=run_id,
-    #     trial_run=cfg.exp_cfg.trial_run,
-    # )
+    # Stage 1. Generate initial capabilities
+    capabilities = generate_capabilities(
+        domain=cfg.capabilities_cfg.domain,
+        num_capabilities=cfg.capabilities_cfg.num_gen_capabilities,
+        num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
+        scientist_llm=scientist_llm,
+        num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
+        scientist_llm_gen_cfg=scientist_llm_gen_cfg.capability_generation,
+        method=cfg.capabilities_cfg.method,
+        num_capability_areas=cfg.capabilities_cfg.num_capability_areas,
+        exclude_seed_capability_names=["grade_school_math_word_problems"],
+        run_id=run_id,
+        trial_run=cfg.exp_cfg.trial_run,
+    )
 
     # TODO: Only used for testing, remove this block later ========================
     if cfg.exp_cfg.trial_run:
@@ -84,6 +93,7 @@ def main(cfg: DictConfig) -> None:
         # Fetch previously generated capabilities, if any
         capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
     # =============================================================================
+
     # Embed capabilities using openai embedding model
     generate_and_set_capabilities_embeddings(
         capabilities=capabilities,
@@ -129,7 +139,11 @@ def main(cfg: DictConfig) -> None:
         candidate_capabilities = None
 
     # Initialize the subject LLM model
-    subject_llm = Model(cfg.subject_llm.name)
+    subject_llm = Model(
+        model_name=cfg.subject_llm.name,
+        model_provider=cfg.subject_llm.provider,
+        **dict(cfg.subject_llm.local_launch_cfg),
+    )
     subject_llm_gen_cfg = dict(cfg.subject_llm.generation_cfg)
     subject_llm_gen_cfg.update(
         {
@@ -144,13 +158,20 @@ def main(cfg: DictConfig) -> None:
             capability=capability,
             scientist_llm=scientist_llm,
             num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
+            num_tasks_buffer=cfg.capabilities_cfg.num_gen_tasks_buffer,
             scientist_llm_gen_cfg_task_gen=scientist_llm_gen_cfg.task_generation,
             scientist_llm_gen_cfg_task_solve=scientist_llm_gen_cfg.task_solve,
-            solve_sample_tasks=True,
+            scientist_llm_gen_cfg_task_verify=scientist_llm_gen_cfg.task_verify,
+            solve_sample_tasks=False,
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
         )
         # Evaluate subject LLM on each capability
-        capability.evaluate([subject_llm], [subject_llm_gen_cfg])
+        capability.evaluate(
+            subject_llms=[subject_llm],
+            gen_args=[subject_llm_gen_cfg],
+            judge_llm=scientist_llm,  # Use scientist LLM as judge
+            judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
+        )
 
         # TODO: Only used for testing, remove this block later ==============
         if cfg.exp_cfg.trial_run:
@@ -179,7 +200,12 @@ def main(cfg: DictConfig) -> None:
     #         few_shot=cfg.capabilities_cfg.task_gen_few_shot,
     #     )
     #     # Evaluate subject LLM on new capability
-    #     new_capability.evaluate([subject_llm], [subject_llm_gen_cfg])
+    #     new_capability.evaluate(
+    #         subject_llms=[subject_llm],
+    #         gen_args=[subject_llm_gen_cfg],
+    #         judge_llm=scientist_llm, # Use scientist LLM as judge
+    #         judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
+    #     )
     #     # Add new capability to train capabilities list
     #     train_capabilities.append(new_capability)
     #     # Remove new capability from candidate capabilities

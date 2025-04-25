@@ -16,6 +16,7 @@ dependencies = [
     "inspect-ai>=0.3.80",
     "langchain_openai>=0.3.6",
     "langchain>=0.3.19",
+    "matplotlib>=3.10.0",
     "omegaconf>=2.3.0",
     "openai>=1.68.0",
     "ratelimit>=2.2.1",
@@ -26,6 +27,7 @@ dependencies = [
     "ruff (>=0.11.4,<0.12.0)",
     "scikit-learn (>=1.6.1,<2.0.0)",
     "seaborn (>=0.13.2,<0.14.0)",
+    "vec-inf>=0.5.0",
 ]
 
 [project.urls]
@@ -45,6 +47,7 @@ optional = true
 pytest = "^7.1.1"
 pre-commit = "^4.0.0"
 pytest-cov = "^3.0.0"
+pytest-mock = "^3.10.0"
 codecov = "^2.1.13"
 mypy = "^1.15.0"
 ruff = ">=0.11.4,<0.12.0"
@@ -133,8 +136,8 @@ ignore = [
 # Ignore import violations in all `__init__.py` files.
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401", "F403", "F811"]
-"tests/src/seed_capabilities/math/math_competition_algebra/capability.py" = ["D100", "D101", "D102"]
-"tests/src/capabilities_t2/math/math_mathematics_modeling_real_world/capability.py" = ["D100", "D101", "D102"]
+"tests/src/seed_capabilities/math/competition_math_algebra/capability.py" = ["D100", "D101", "D102"]
+"tests/src/capabilities_t2/math/competition_math_combinatorial_challenges/capability.py" = ["D100", "D101", "D102"]
 "src/run.py" = ["ERA001"]
 "src/lbo.py" = ["ERA001"]
 "src/utils/capability_utils.py" = ["ERA001"]

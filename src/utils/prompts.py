@@ -22,6 +22,23 @@ class Capability:
         # Throwing an exception will result in a score of 0.
         # ... implementation ...
 ```
+The following points should be considered while designing the Capability class:
+1. The instructions should enforce the final answer in the form "ANSWER: $ANSWER" ONLY for those capabilities that expect a short and objective answer. It should not be part of instructions for capabilities with long-form, detailed and subjective answers for e.g. explanations, proofs, essays, etc.
+2. If the instructions enforces the final answer in the form "ANSWER: $ANSWER", then the score function should first call a helper function to parse the submission string and extract the answer:
+```python
+def parse_submission(submission: str) -> str:
+    # Parse the submission string to extract the answer based on the "ANSWER" keyword.
+    # Return an empty string if no match is found.
+```
+3. The score function should use a helper function that uses LLM as a judge to score the submission:
+```python
+def evaluate_with_llm_judge(
+    submission: str,
+    target: str,
+) -> bool:
+    # Evaluate the submission using an LLM judge.
+```
+4. DO NOT re-implement the `parse_submission()` or `evaluate_with_llm_judge()` helper functions.
 
 Respond precisely in the following format, including the JSON start and end markers:
 
@@ -42,21 +59,50 @@ In <JSON>, provide a JSON response of the new capability with the following fiel
 
 All values in the JSON should be strings. Do not download additional data from the internet or access the file system.
 
-Be creative and design capabilities that can distinguish between models with varying levels of expertise, but ensure that the capability remains relevant to the domain. Also ensure that the proposed capabilities ARE DISTINCT compared to the previous capabilities. Previous seed capabilities will be provided in the same JSON format as above. Whereas, only capability names will be provided for previously generated capabilities.
+Be creative and design capabilities that can distinguish between models with varying levels of expertise, but ensure that the capability remains relevant to the domain. Also ensure that the proposed capabilities ARE DISTINCT compared to the existing capabilities. Names of all existing capabilities will be provided.
 
 Your response will be automatically parsed so ensure it adheres to the specified format.
 """  # noqa: D100
 
 CAPABILITY_GENERATION_USER_PROMPT = """
-Summary of previous capabilities from the {domain} domain is given below:
-Seed capabilities:
-{seed_capabilities}
+A sample capability JSON is provided below. The names of all existing capabilities are also provided.
 
-Previously generated capabilities:
+Sample capability:
+{sample_capability_json}
+
+Existing capability names:
 {prev_capabilities}
 
-Generate {num_gen_capabilities} new interesting capabilities within the {domain} domain.
+Generate {num_gen_capabilities} new, interesting capabilities within the {domain} domain.
 """
+
+HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT = """
+A sample capability JSON is provided below. The names of all existing capabilities are also provided.
+
+Sample capability:
+{{sample_capability_json}}
+
+Existing capability names:
+{{prev_capabilities}}
+
+Generate {{num_gen_capabilities}} new, interesting capabilities for the "{capability_area}" area within the {{domain}} domain.
+"""
+
+HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT = """
+You are an expert in designing capabilities to assess the abilities of large language models (LLMs). Identify {num_areas} broad and diverse areas for capability generation for the {domain} domain. Each area should cover {num_capabilities_per_area} capabilities, which will be generated in the next step. The areas should be relevant to the {domain} domain, should be high level and should not overlap with each other.
+
+Respond precisely in the following format:
+
+RESPONSE JSON:
+{response_json_format}
+"""
+
+CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT = """
+{
+    "area_0": <STR>,
+    "area_1": <STR>,
+    ...
+}""".strip("\n")
 
 TASK_GENERATION_SYSTEM_PROMPT = """
 You are an expert in designing tasks for a given capability. The name, description, {zero_or_few_shot_patch} for the capability will be provided. You will be particularly rewarded for designing diverse tasks spanning a wide range of difficulty levels for the given capability.
@@ -103,4 +149,28 @@ TASK_GENERATION_RESPONSE_JSON_FORMAT = """
 
 TASK_SOLVER_SYSTEM_PROMPT = """
 You are an expert in completing tasks for the {capability_name} capability in the {capability_domain} domain. Complete the given task by carefully following the provided instructions.
+"""
+
+ANSWER_JUDGEMENT_SYSTEM_PROMPT = """
+You are an expert in evaluating answers to problems for the {capability_domain} domain. Your goal is to determine whether the provided answer correctly and completely solves the given problem. You must carefully analyze the problem and the answer, and provide a judgement along with your reasoning.
+
+Respond precisely in the following format:
+
+THOUGHT: <THOUGHT>
+JUDGEMENT:
+<JUDGEMENT>
+
+In <THOUGHT>, briefly explain your reasoning process for evaluating the answer.
+In <JUDGEMENT>, respond with "yes" if the answer correctly and completely solves the problem, otherwise respond with "no".
+
+Be objective and thorough in your evaluation. Ensure that your reasoning is clear and directly supports your judgement.
+"""
+
+ANSWER_JUDGEMENT_USER_PROMPT = """
+Evaluate the following problem and answer for the {capability_name} capability in the {capability_domain} domain:
+
+Problem: {problem}
+Answer: {answer}
+
+Determine if the answer correctly and completely solves the problem. Provide your reasoning and judgement.
 """

@@ -1,7 +1,6 @@
 import importlib  # noqa: D100
 import json
 import os
-import re
 import shutil
 import sys
 from collections import defaultdict
@@ -21,6 +20,9 @@ from src.utils.data_utils import (
     load_data,
     path_exists,
     transfer_inspect_log_to_gcp,
+)
+from src.utils.inspect_eval_utils import (
+    parse_submission,
 )
 from src.utils.prompts import TASK_SOLVER_SYSTEM_PROMPT
 from src.utils.templates import (
@@ -151,6 +153,16 @@ class Capability:
             )
         os.makedirs(c_dir, exist_ok=False)
 
+        # Create capability utils file, which includes utils for evaluation
+        # Copy the contents of `utils/inspect_eval_utils.py` here
+        shutil.copyfile(
+            os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "utils/inspect_eval_utils.py",
+            ),
+            os.path.join(c_dir, "utils.py"),
+        )
+
         # Extract instructions and tasks from the capability python class
         python_class_str = parse_python_class_str(c_dict.pop("class"))
         with open(os.path.join(c_dir, "capability.py"), "w") as f:
@@ -171,6 +183,7 @@ class Capability:
                 "capability_name": c_dict.pop("name"),
                 "capability_description": c_dict.pop("description"),
                 "capability_domain": c_dict.pop("domain"),
+                "capability_area": c_dict.pop("area", None),
                 "capability_instructions": template_instructions,
                 "capability_data": initial_tasks,
             }
@@ -187,6 +200,7 @@ class Capability:
         self.description = _cfg["capability_description"]
         self.domain = _cfg["capability_domain"]
         self.instructions = _cfg["capability_instructions"]
+        self.area = _cfg.get("capability_area", None)
         # TODO: Store data is stored in json or elsewhere?
         self._data: List[Dict[str, Any]] = _cfg["capability_data"]
         # Check if the capability is a seed capability, use source_dataset as indicator
@@ -254,7 +268,11 @@ class Capability:
             )
         return repr_tasks
 
-    def add_and_update_tasks(self, tasks: List[Dict[str, Any]]) -> None:
+    def add_and_update_tasks(
+        self,
+        tasks: List[Dict[str, Any]],
+        failed_tasks: List[Dict[str, Any]] | None = None,
+    ) -> None:
         """
         Add and/or update tasks for the capability.
 
@@ -262,6 +280,9 @@ class Capability:
         ----
             tasks (List[Dict[str, Any]]): A list of dictionaries containing the tasks
             to be added. Each task dict consists of id, problem, and answer keys.
+            failed_tasks (List[Dict[str, Any]]): A list of dictionaries
+                containing the tasks that failed to be solved.
+                Each task dict consists of id, problem, and answer keys.
         """
         if not all(
             "id" in task and "problem" in task and "answer" in task for task in tasks
@@ -332,9 +353,17 @@ class Capability:
             "capability_name": self.name,
             "capability_description": self.description,
             "capability_domain": self.domain,
+            "capability_area": self.area,
             "capability_instructions": self.instructions,
             "capability_data": tasks_to_keep,
         }
+        # TODO: Handle edge cases for failed tasks
+        if failed_tasks:
+            c_dict.update(
+                {
+                    "capability_failed_data": failed_tasks,
+                }
+            )
         with open(os.path.join(self.source_dir, "capability.json"), "w") as f:
             json.dump(c_dict, f, indent=4)
 
@@ -366,6 +395,17 @@ class Capability:
         return json.dumps(self._to_dict(attribute_names), indent=4)
 
     def __str__(self) -> str:
+        """
+        Return a JSON string representation of the capability.
+
+        Returns
+        -------
+        str
+            A JSON string representation of the capability.
+        """
+        return self.to_json_str()
+
+    def __repr__(self) -> str:
         """
         Return a JSON string representation of the capability.
 
@@ -450,18 +490,18 @@ class Capability:
             user_prompt=user_prompt,
             generation_config=gen_cfg,
         )
-        # Extract answer from response
-        # Borrowed from:
-        # https://github.com/UKGovernmentBEIS/inspect_ai/blob/main/src/inspect_ai/_util/pattern.py#L3
+        # Parse for "ANSWER" keyword only if the score function
+        # uses the `parse_submission` function.
         # TODO:
-        # 1. Dynamically set pattern based on capability instructions
-        # 2. For some capabilities the reasoning is the answer and the actual answer
-        #   is only a final statement, how to handle this?
-        # 3. How to gracefully handle cases where tokens are insufficient
+        # 1. How to gracefully handle cases where tokens are insufficient
         #   and the answer is incomplete?
-        answer_pattern = r"(?i)ANSWER\s*:\s*([^\n]+)"
-        match = re.search(answer_pattern, response)
-        answer = match.group(1) if match else constants.NO_ANSWER_STR
+        if "parse_submission(submission)" in self.capability_repr_class_str:
+            answer = parse_submission(response)
+            # Handle case where no answer is found
+            if answer == "":
+                answer = constants.NO_ANSWER_STR
+        else:
+            answer = response
         metadata = {
             "raw_response": response,
             "api_metadata": metadata,
@@ -515,7 +555,12 @@ class Capability:
         """
         return self._data
 
-    def _create_inspect_file(self, path: str) -> None:
+    def _create_inspect_file(
+        self,
+        path: str,
+        judge_llm_name: str | None,
+        judge_llm_gen_args: Dict[str, Any] | None,
+    ) -> None:
         """
         Implement pipeline to evaluate the capability using the inspect framework.
 
@@ -546,7 +591,32 @@ class Capability:
             f.write(readme_file_content)
 
         # Create inspect evals script file
-        # TODO: How to handle more involved score functions?
+        # 1. Copy the helper functions in `utils/inspect_eval_utils.py`
+        # to local `utils.py file`
+        with open(
+            os.path.join(os.path.dirname(__file__), "utils", "inspect_eval_utils.py"),
+            "r",
+        ) as f:
+            utils_file_contents = f.read()
+        # Update judge LLM if provided
+        # NOTE: Judge LLM does not support local models (hosted using vector inference)
+        # TODO: Add support for local models? Not required,
+        # since we will rarely use open source LLMs as judge LLMs
+        if judge_llm_name is not None:
+            utils_file_contents = utils_file_contents.replace(
+                'INSPECT_JUDGE_LLM = "openai/gpt-4o-mini"',
+                f'INSPECT_JUDGE_LLM = "{judge_llm_name}"',
+            )
+        if judge_llm_gen_args is not None:
+            utils_file_contents = utils_file_contents.replace(
+                "INSPECT_JUDGE_LLM_GEN_CONFIG: Dict[str, Any] = {}",
+                f"INSPECT_JUDGE_LLM_GEN_CONFIG: Dict[str, Any] = {json.dumps(judge_llm_gen_args, indent=4)}",
+            )
+        # Write the modified content to the local utils.py file
+        with open(os.path.join(path, "utils.py"), "w") as f:
+            f.write(utils_file_contents)
+
+        # 2. Construct inspect evals script file
         # TODO: Do we need system prompt?
         instruction_template = self.capability_repr_class.get_instructions(
             {"problem": "{prompt}"}
@@ -560,6 +630,15 @@ class Capability:
         score_func_str = f"{score_func_prefix_new}{self.capability_repr_class_str.split(score_func_prefix)[1].replace((constants.TAB_W_SPACES + constants.TAB_W_SPACES), constants.TAB_W_SPACES)}".strip(
             "`"
         ).strip("\n")
+        # Add `await` while calling `evaluate_with_llm_judge`
+        score_func_str = score_func_str.replace(
+            "correct = evaluate_with_llm_judge",
+            "correct = await evaluate_with_llm_judge",
+        )
+        # Add source folder to the import path
+        score_func_str = score_func_str.replace(
+            "from .utils", f"from {self.name}.utils"
+        )
         script_file_content = INSPECT_EVALS_SCRIPT_FILE_TEMPLATE.format(
             capability_name=self.name,
             dataset_metadata_keys=json.dumps(dataset_metadata_keys),
@@ -570,10 +649,14 @@ class Capability:
         script_file_path = os.path.join(path, f"{self.name}.py")
         with open(script_file_path, "w") as f:
             f.write(script_file_content)
-        # TODO: Validate formatting of script file
-        _ = _import_from_path(
-            module_name=f"{self.name}_inspect_eval_script", file_path=script_file_path
-        )
+        try:
+            _ = _import_from_path(
+                module_name=f"{self.name}_inspect_eval_script",
+                file_path=script_file_path,
+            )
+        except Exception as e:
+            print(f"Error in creating {script_file_path}: {e}")
+            raise e
 
     def _evaluate_using_inspect(self, subject_llm: Model, **kwargs: Any) -> None:
         """
@@ -628,7 +711,11 @@ class Capability:
         shutil.rmtree(log_dir)
 
     def evaluate(
-        self, subject_llms: List[Model], gen_args: List[Dict[Any, Any]]
+        self,
+        subject_llms: List[Model],
+        gen_args: List[Dict[Any, Any]],
+        judge_llm: Model | None = None,
+        judge_llm_gen_args: Dict[str, Any] | None = None,
     ) -> None:
         """
         Evaluate the provided subject LLMs on the capability.
@@ -647,19 +734,32 @@ class Capability:
         inspect_path = os.path.join(constants.BASE_INSPECT_EVALS_DIR, self.name)
         if not os.path.exists(inspect_path):
             os.makedirs(inspect_path)
-            self._create_inspect_file(path=inspect_path)
+            self._create_inspect_file(
+                path=inspect_path,
+                judge_llm_name=judge_llm.get_model_name(with_provider=True)
+                if judge_llm
+                else None,
+                judge_llm_gen_args=judge_llm_gen_args,
+            )
 
         # Change dir to where inspect eval scrips are stored
-        # because inspect evals does not support non-relative paths
+        # because inspect evals does not support non-relative paths.
+        # Additionally, add this path to sys.path to enable imports
         cwd = os.getcwd()
         os.chdir(constants.BASE_INSPECT_EVALS_DIR)
+        sys.path.append(constants.BASE_INSPECT_EVALS_DIR)
         # TODO: Run asynchronosly
         for model_idx, model in enumerate(subject_llms):
             self._evaluate_using_inspect(
                 subject_llm=model,
+                judge_llm_name=judge_llm.get_model_name(with_provider=True)
+                if judge_llm
+                else None,
                 **gen_args[model_idx],
             )
         # Revert to original working dir after evaluation
+        # and remove the inspect evals path from sys.path
+        sys.path.remove(constants.BASE_INSPECT_EVALS_DIR)
         os.chdir(cwd)
 
 

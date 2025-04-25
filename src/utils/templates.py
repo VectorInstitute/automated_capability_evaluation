@@ -55,7 +55,7 @@ def {capability_name}() -> Task:
     """Inspect task implementing the {capability_name} capability."""
     return Task(
         dataset=json_dataset(
-            "dataset.jsonl",
+            "{capability_name}/dataset.jsonl",
             FieldSpec(
                 input="problem",
                 target="answer",
@@ -82,5 +82,7 @@ INSPECT_EVALS_README_FILE_TEMPLATE = """
 INSPECT_EVALS_INIT_FILE_TEMPLATE = """
 from .{capability_name} import {capability_name}
 
-__all__ = ["{capability_name}"]
+__all__ = [
+    "{capability_name}",
+]
 """

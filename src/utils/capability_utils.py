@@ -5,13 +5,16 @@ It contains utility functions for capabilities.
 """
 
 import json
+import os
 from typing import Any, Dict
 
 from inspect_ai import eval as inspect_eval
 from langsmith import traceable
 
 from src.model import Model
+from src.utils import constants
 from src.utils.data_utils import read_json_file
+from src.utils.inspect_eval_utils import INSPECT_JUDGE_LLM
 
 
 CAPABILITY_SCORER_MAP = {
@@ -63,43 +66,67 @@ def parse_python_class_str(class_str: str) -> str:
     return class_str.split("```python\n")[1].split("\n```")[0].strip()
 
 
-def extract_and_parse_response(response: str) -> Dict[str, Any]:
+def extract_and_parse_response(
+    response: str,
+    has_thought: bool = True,
+    parse_kw: str = "RESPONSE JSON",
+    response_type: str = "json",
+) -> Dict[str, Any]:
     """
     Extract the thought string and response JSON data from the response string.
 
     Args
     ----
         response (str): The response string containing the thought and JSON data.
+        has_thought (bool): Whether the response contains a thought string.
+        parse_kw (str): The keyword to split the response string for JSON parsing.
+        response_type (str): The type of response to parse (default is "json").
 
     Returns
     -------
         Dict[str, Any]: A dictionary with two keys:
-            - "thought" (str): The extracted thought string.
-            - "parsed_response" (List[Any]): A list of parsed JSON objects.
+            - "thought" (str, optional): The extracted thought string if present.
+            - "parsed_response" (Union[List[Any], str]): The parsed response data.
 
     Raises
     ------
         ValueError: If there is an error parsing the thought or JSON data.
     """
-    try:
-        thought_str = (
-            response.split("THOUGHT:")[1].split("RESPONSE JSON")[0].strip().strip("\n")
-        )
-    except (IndexError, json.JSONDecodeError) as e:
-        print(f"Error parsing thought string: {e}")
-        raise
+    if has_thought:
+        try:
+            thought_str = (
+                response.split("THOUGHT:")[1].split(parse_kw)[0].strip().strip("\n")
+            )
+        except (IndexError, json.JSONDecodeError) as e:
+            print(f"Error parsing thought string: {e}")
+            raise
 
     try:
-        response_str = response.split("RESPONSE JSON:\n")[1].strip().strip("\n")
-        response_json = json.loads(response_str)
-        parsed_response = []
-        for _, v in response_json.items():
-            parsed_response.append(v)
+        response_str = response.split(f"{parse_kw}:\n")[1].strip().strip("\n")
+        if response_type == "json":
+            response_json = json.loads(response_str)
+            parsed_response_list = []
+            for _, v in response_json.items():
+                parsed_response_list.append(v)
+        elif response_type == "str_yes_no":
+            parsed_response_str = response_str.lower()
+            assert parsed_response_str in ["yes", "no"], (
+                f"Invalid response: {parsed_response_str}. Expected 'yes' or 'no'."
+            )
+        else:
+            raise ValueError(f"Unsupported response type: {response_type}")
     except (IndexError, json.JSONDecodeError) as e:
         print(f"Error parsing capabilities json: {e}")
         raise
 
-    return {"thought": thought_str, "parsed_response": parsed_response}
+    output: Dict[str, Any] = {}
+    output["thought"] = thought_str if has_thought else None
+    if response_type == "json":
+        output.update({"parsed_response": parsed_response_list})
+    elif response_type == "str_yes_no":
+        output.update({"parsed_response": parsed_response_str})
+
+    return output
 
 
 def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> None:
@@ -121,9 +148,8 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
     -------
     None
     """
-    model_name = model.get_model_name(with_provider=True)
-
     # Create langsmith metadata
+    model_name = model.get_model_name(with_provider=True)
     ls_metadata = {
         "ls_provider": model.model_provider,
         "ls_model_name": model.get_model_name(with_provider=False),
@@ -144,25 +170,53 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
         print(f"Running inspect evals for {path} capability using {model_name}")
         eval_log = inspect_eval(
             tasks=path,
-            model=model_name,
+            model=inspect_model_name,
             log_dir=log_dir,
             log_format="json",
             **kwargs,
         )[0]
         # Return usage stats
-        eval_model_usage = eval_log.stats.model_usage[model_name]
-        usage_metadata = {
-            "input_tokens": eval_model_usage.input_tokens,
-            "output_tokens": eval_model_usage.output_tokens,
-            "total_tokens": eval_model_usage.total_tokens,
-            "reasoning_tokens": eval_model_usage.reasoning_tokens,
-        }
+        if inspect_model_name in eval_log.stats.model_usage:
+            eval_model_usage = eval_log.stats.model_usage[inspect_model_name]
+            # [IMP] TODO: How to track usage for judge llm?
+            usage_metadata = {
+                "input_tokens": eval_model_usage.input_tokens,
+                "output_tokens": eval_model_usage.output_tokens,
+                "total_tokens": eval_model_usage.total_tokens,
+                "reasoning_tokens": eval_model_usage.reasoning_tokens,
+                "judge_llm_usage": eval_log.stats.model_usage.get(judge_llm_name, None),
+            }
+        else:
+            usage_metadata = {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "reasoning_tokens": 0,
+                "judge_llm_usage": None,
+            }
         return {
             "inspect_eval_log": eval_log,
             "usage_metadata": usage_metadata,
         }
 
+    judge_llm_name = kwargs.pop("judge_llm_name", INSPECT_JUDGE_LLM)
+    if model.model_provider == "local":
+        # Set OPENAI_BASE_URL to local model URL and replace "local" with "openai"
+        # See: https://inspect.aisi.org.uk/providers.html#vllm-server
+        # TODO: How to ensure this doesn't affect other processes
+        # if running in parallel?
+        os.environ["OPENAI_BASE_URL"] = model.model_url
+        inspect_model_name = model_name.replace("local", "openai")
+    else:
+        inspect_model_name = model_name
+
     output = _run_inspect_evals()
+
+    if model.model_provider == "local":
+        # Reset OPENAI_BASE_URL to actual openai URL
+        os.environ["OPENAI_BASE_URL"] = os.getenv(
+            "ORIGINAL_OPENAI_BASE_URL", constants.DEFAULT_OPENAI_BASE_URL
+        )
 
     eval_log = output["inspect_eval_log"]
     if eval_log.status == "error":
