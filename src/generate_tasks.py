@@ -231,6 +231,7 @@ def generate_tasks_using_llm(
     }
     logger.info(f"Task solving tokens summary:\n{json.dumps(tokens_summary, indent=4)}")
 
+    # TODO: Include reasoning along with the answer in the prompt
     (successful_tasks, failed_tasks), task_judge_metadata = verify_solved_tasks(
         tasks=solved_tasks,
         capability=capability,
@@ -270,6 +271,8 @@ def generate_tasks_using_llm(
     # Failed tasks consist of both unsolved tasks and tasks which failed verification
     failed_tasks = failed_tasks + unsolved_tasks
 
+    # TODO: Handle scenario when representative tasks are not solved
+    #   or fail verification
     capability.add_and_update_tasks(
         tasks=successful_tasks,
         failed_tasks=failed_tasks if failed_tasks else None,

@@ -308,10 +308,12 @@ def generate_capabilities_using_llm(
         logger.error(f"Response:\n{response}")
         raise e
 
-    logger.info(f"Generated {len(gen_capabilities)} capabilities:\n{gen_capabilities}")
+    logger.info(
+        f"Generated {len(gen_capabilities_clean)} capabilities:\n{gen_capabilities_clean}"
+    )
 
     return {
-        "capabilities": gen_capabilities,
+        "capabilities": gen_capabilities_clean,
         "metadata": {
             "model": scientist_llm.get_model_name(),
             "thought": parsed_response["thought"],
