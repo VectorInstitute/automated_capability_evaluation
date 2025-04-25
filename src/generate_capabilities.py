@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 from langsmith import tracing_context
+from tenacity import RetryError, Retrying, retry_if_exception_type, stop_after_attempt
 
 from src.capability import Capability
 from src.generate_embeddings import (
@@ -17,7 +18,7 @@ from src.generate_embeddings import (
 )
 from src.model import Model
 from src.utils import constants, prompts
-from src.utils.capability_utils import extract_and_parse_response, retry_context
+from src.utils.capability_utils import extract_and_parse_response
 
 
 logger = logging.getLogger(__name__)
@@ -204,6 +205,7 @@ def generate_capabilities_using_llm(
         num_seed_capabilities=num_seed_capabilities,
         include_capability_names=include_seed_capability_names,
         exclude_capability_names=exclude_seed_capability_names,
+        random_seed=int(kwargs.get("seed", constants.DEFAULT_RANDOM_SEED)),
     )
     # Get capability JSON strings (without scores)
     seed_capabilities_repr = [
@@ -219,42 +221,60 @@ def generate_capabilities_using_llm(
     )
 
     # Generate output using the model with specified generation arguments
-    with retry_context(retry_attempts=3, logger=logger):
-        with tracing_context(
-            enabled=True,
-            tags=["generate_capabilities_using_llm"],
-            metadata={
-                "ls_provider": scientist_llm.model_provider,
-                "ls_model_name": scientist_llm.get_model_name(with_provider=False),
-                "ls_model_type": "chat",
-                "exp_id": kwargs.get("run_id"),
-                "run_id": kwargs.get("local_run_id"),
-                "domain": domain,
-                "capability_area": capability_area,
-                "num_capabilities": num_capabilities,
-                "seed_capabilities": [elm.name for elm in seed_capabilities],
-                "prev_capabilities": [elm.name for elm in prev_capabilities],
-                **{f"ls_{k}": v for k, v in scientist_llm_gen_cfg.items()},
-            },
+    num_attempts = kwargs.get(
+        "retry_attempts", constants.DEFAULT_CAPABILITY_GENERATION_RETRY_ATTEMPTS
+    )
+    try:
+        # Retry the generation process if a SyntaxError occurs
+        # Common errors:
+        # - SyntaxError: unterminated triple-quoted string literal
+        for attempt in Retrying(
+            stop=stop_after_attempt(num_attempts),
+            retry=retry_if_exception_type(SyntaxError),
         ):
-            response, metadata = scientist_llm.generate(
-                sys_prompt=sys_prompt,
-                user_prompt=user_prompt,
-                generation_config=scientist_llm_gen_cfg,
-            )
+            with attempt:
+                with tracing_context(
+                    enabled=True,
+                    tags=["generate_capabilities_using_llm"],
+                    metadata={
+                        "ls_provider": scientist_llm.model_provider,
+                        "ls_model_name": scientist_llm.get_model_name(
+                            with_provider=False
+                        ),
+                        "ls_model_type": "chat",
+                        "exp_id": kwargs.get("run_id"),
+                        "run_id": kwargs.get("local_run_id"),
+                        "domain": domain,
+                        "capability_area": capability_area,
+                        "num_capabilities": num_capabilities,
+                        "seed_capabilities": [elm.name for elm in seed_capabilities],
+                        "prev_capabilities": [elm.name for elm in prev_capabilities],
+                        **{f"ls_{k}": v for k, v in scientist_llm_gen_cfg.items()},
+                    },
+                ):
+                    response, metadata = scientist_llm.generate(
+                        sys_prompt=sys_prompt,
+                        user_prompt=user_prompt,
+                        generation_config=scientist_llm_gen_cfg,
+                    )
 
-        parsed_response = extract_and_parse_response(response)
-        gen_capabilities = parsed_response["parsed_response"]
-        if capability_area is not None:
-            # Add the capability area to the generated capabilities
-            for capability in gen_capabilities:
-                capability["area"] = capability_area
-        gen_capabilities = [
-            Capability.from_dict(
-                capability_dict=capability, base_dir=base_capability_dir
-            )
-            for capability in gen_capabilities
-        ]
+                parsed_response = extract_and_parse_response(response)
+                gen_capabilities = parsed_response["parsed_response"]
+                if capability_area is not None:
+                    # Add the capability area to the generated capabilities
+                    for capability in gen_capabilities:
+                        capability["area"] = capability_area
+                gen_capabilities = [
+                    Capability.from_dict(
+                        capability_dict=capability, base_dir=base_capability_dir
+                    )
+                    for capability in gen_capabilities
+                ]
+    except RetryError as e:
+        logger.error(
+            f"Error generating capabilities after {num_attempts}: {e.last_attempt.result()}"
+        )
+        raise e
 
     return {
         "capabilities": gen_capabilities,
@@ -576,6 +596,7 @@ def generate_capabilities(
             _sample_seed_capabilities(
                 seed_capability_dir=seed_capability_dir,
                 num_seed_capabilities=-1,
+                random_seed=int(kwargs.get("seed", constants.DEFAULT_RANDOM_SEED)),
             )
         )
 

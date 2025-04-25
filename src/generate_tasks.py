@@ -3,10 +3,11 @@ import logging
 from typing import Any, Dict, List, Tuple
 
 from langsmith import tracing_context
+from tenacity import RetryError, Retrying, retry_if_exception_type, stop_after_attempt
 
 from capability import Capability
 from model import Model
-from utils import prompts
+from utils import constants, prompts
 from utils.capability_utils import extract_and_parse_response
 
 
@@ -120,29 +121,52 @@ def generate_tasks_using_llm(
         num_gen_tasks=num_tasks,
         sample_tasks=sample_tasks if kwargs.get("few_shot", True) else None,
     )
-    with tracing_context(
-        enabled=True,
-        tags=["generate_tasks_using_llm"],
-        metadata={
-            "ls_provider": scientist_llm.model_provider,
-            "ls_model_name": scientist_llm.get_model_name(with_provider=False),
-            "ls_model_type": "chat",
-            "exp_id": kwargs.get("run_id"),
-            "capability_name": capability.name,
-            "domain": capability.domain,
-            "num_tasks": num_tasks,
-            **{f"ls_{k}": v for k, v in scientist_llm_gen_cfg_task_gen.items()},
-        },
-    ):
-        # Generate tasks
-        logger.info(f"Generating {num_tasks} tasks for {capability.name} ...")
-        response, task_gen_metadata = scientist_llm.generate(
-            sys_prompt=sys_prompt,
-            user_prompt=user_prompt,
-            generation_config=scientist_llm_gen_cfg_task_gen,
+
+    # Generate tasks
+    logger.info(f"Generating {num_tasks} tasks for {capability.name} ...")
+    num_attempts = kwargs.get(
+        "task_gen_retry_attempts", constants.DEFAULT_TASK_GENERATION_RETRY_ATTEMPTS
+    )
+    try:
+        # Retry the generation process if a JSONDecodeError occurs
+        # Common errors:
+        # - json.decoder.JSONDecodeError: Invalid \escape: line 3 column 133
+        for attempt in Retrying(
+            stop=stop_after_attempt(num_attempts),
+            retry=retry_if_exception_type(json.decoder.JSONDecodeError),
+        ):
+            with attempt:
+                with tracing_context(
+                    enabled=True,
+                    tags=["generate_tasks_using_llm"],
+                    metadata={
+                        "ls_provider": scientist_llm.model_provider,
+                        "ls_model_name": scientist_llm.get_model_name(
+                            with_provider=False
+                        ),
+                        "ls_model_type": "chat",
+                        "exp_id": kwargs.get("run_id"),
+                        "capability_name": capability.name,
+                        "domain": capability.domain,
+                        "num_tasks": num_tasks,
+                        **{
+                            f"ls_{k}": v
+                            for k, v in scientist_llm_gen_cfg_task_gen.items()
+                        },
+                    },
+                ):
+                    response, task_gen_metadata = scientist_llm.generate(
+                        sys_prompt=sys_prompt,
+                        user_prompt=user_prompt,
+                        generation_config=scientist_llm_gen_cfg_task_gen,
+                    )
+                parsed_response = extract_and_parse_response(response)
+                new_tasks = parsed_response["parsed_response"]
+    except RetryError as e:
+        logger.error(
+            f"Error generating tasks after {num_attempts}: {e.last_attempt.result()}"
         )
-    parsed_response = extract_and_parse_response(response)
-    new_tasks = parsed_response["parsed_response"]
+        raise e
 
     # Analyze tokens metadata for task problems generation
     tokens_summary = {

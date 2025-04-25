@@ -76,6 +76,8 @@ def main(cfg: DictConfig) -> None:
         exclude_seed_capability_names=["grade_school_math_word_problems"],
         run_id=run_id,
         trial_run=cfg.exp_cfg.trial_run,
+        seed=cfg.exp_cfg.seed,
+        retry_attempts=cfg.capabilities_cfg.capabilities_gen_retry_attempts,
     )
     logger.info(capabilities)
 
@@ -168,6 +170,7 @@ def main(cfg: DictConfig) -> None:
             solve_sample_tasks=False,
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
             run_id=run_id,
+            task_gen_retry_attempts=cfg.capabilities_cfg.task_gen_retry_attempts,
         )
         # Evaluate subject LLM on each capability
         capability.evaluate(
@@ -196,14 +199,15 @@ def main(cfg: DictConfig) -> None:
     #     generate_tasks_using_llm(
     #         capability=new_capability,
     #         scientist_llm=scientist_llm,
-    #         sys_prompt=TASK_GENERATION_SYSTEM_PROMPT,
-    #         user_prompt=TASK_GENERATION_USER_PROMPT,
     #         num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
+    #         num_tasks_buffer=cfg.capabilities_cfg.num_gen_tasks_buffer,
     #         scientist_llm_gen_cfg_task_gen=scientist_llm_gen_cfg.task_generation,
     #         scientist_llm_gen_cfg_task_solve=scientist_llm_gen_cfg.task_solve,
-    #         solve_sample_tasks=True,
+    #         scientist_llm_gen_cfg_task_verify=scientist_llm_gen_cfg.task_verify,
+    #         solve_sample_tasks=False,
     #         few_shot=cfg.capabilities_cfg.task_gen_few_shot,
     #         run_id=run_id,
+    #         task_gen_retry_attempts=cfg.capabilities_cfg.task_gen_retry_attempts,
     #     )
     #     # Evaluate subject LLM on new capability
     #     new_capability.evaluate(
