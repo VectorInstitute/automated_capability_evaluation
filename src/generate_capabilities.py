@@ -391,6 +391,7 @@ def filter_capabilities(
 def generate_capability_areas(
     domain: str,
     num_areas: int,
+    num_capabilities_per_area: int,
     scientist_llm: Model,
     user_prompt: str,
     scientist_llm_gen_cfg: Dict[str, Any],
@@ -404,6 +405,7 @@ def generate_capability_areas(
     ----
         domain (str): The domain name.
         num_areas (int): The number of capability areas to generate.
+        num_capabilities_per_area (int): The number of capabilities per area.
         scientist_llm (Model): The scientist LLM model.
         user_prompt (str): The user prompt for generating capability areas.
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
@@ -419,6 +421,7 @@ def generate_capability_areas(
     # Generate output using the model with specified generation arguments
     user_prompt = user_prompt.format(
         num_areas=num_areas,
+        num_capabilities_per_area=num_capabilities_per_area,
         domain=domain,
         response_json_format=prompts.CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT,
     )
@@ -527,6 +530,7 @@ def generate_capabilities(
         response = generate_capability_areas(
             domain=domain,
             num_areas=kwargs["num_capability_areas"],
+            num_capabilities_per_area=num_capabilities_per_area[0],
             scientist_llm=scientist_llm,
             user_prompt=prompts.HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT,
             scientist_llm_gen_cfg=scientist_llm_gen_cfg,

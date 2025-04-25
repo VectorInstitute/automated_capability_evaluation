@@ -89,7 +89,7 @@ Generate {{num_gen_capabilities}} new, interesting capabilities for the "{capabi
 """
 
 HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT = """
-You are an expert in designing capabilities to assess the abilities of large language models (LLMs). Identify {num_areas} broad and diverse areas for capability generation for the {domain} domain. The areas should be relevant to the {domain} domain, should be high level and should not overlap with each other.
+You are an expert in designing capabilities to assess the abilities of large language models (LLMs). Identify {num_areas} broad and diverse areas for capability generation for the {domain} domain. Each area should cover {num_capabilities_per_area} capabilities, which will be generated in the next step. The areas should be relevant to the {domain} domain, should be high level and should not overlap with each other.
 
 Respond precisely in the following format:
 
