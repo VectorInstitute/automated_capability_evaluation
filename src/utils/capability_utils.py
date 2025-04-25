@@ -4,7 +4,6 @@ The capability_utils module for the automatic_benchmark_generation project.
 It contains utility functions for capabilities.
 """
 
-import collections
 import json
 import os
 from typing import Any, Dict

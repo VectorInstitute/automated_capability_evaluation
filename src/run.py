@@ -111,7 +111,7 @@ def main(cfg: DictConfig) -> None:
     apply_dimensionality_reduction(
         filtered_capabilities,
         dim_reduction_method=cfg.dimensionality_reduction_cfg.reduce_dimensionality_method,
-        output_dimensions=cfg.dimensionality_reduction_cfg.reduced_dimensionality_size,
+        output_dimension_size=cfg.dimensionality_reduction_cfg.reduced_dimensionality_size,
         embedding_model_name=cfg.embedding_cfg.embedding_model,
     )
 

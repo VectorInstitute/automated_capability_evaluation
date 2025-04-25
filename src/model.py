@@ -12,8 +12,8 @@ from src.utils.constants import VecInfStatus
 
 
 RATE_LIMIT = {
-    "calls": int(os.environ.get("RATE_LIMIT_CALLS", 5)),
-    "period": int(os.environ.get("RATE_LIMIT_PERIOD", 60)),
+    "calls": int(os.environ.get("RATE_LIMIT_CALLS", "5")),
+    "period": int(os.environ.get("RATE_LIMIT_PERIOD", "60")),
 }
 
 
