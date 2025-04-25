@@ -28,11 +28,11 @@ scientist_llm:
     time: "01:00:00"
 
 subject_llm:
-  name: Meta-Llama-3.1-8B-Instruct
-  provider: local
+  name: gpt-4o-mini
+  provider: openai
   generation_cfg:
     temperature: 0.7
-    max_tokens: 512
+    max_tokens: 64
   local_launch_cfg:
     # Number of threads to use for local LLM
     max_num_seqs: 1
@@ -57,9 +57,9 @@ capabilities_cfg:
   # Set to -1 to use all seed capabilities
   num_seed_capabilities: 1
   # Number of initial capabilities to generate using the scientist LLM
-  num_gen_capabilities: 2
+  num_gen_capabilities: 1
   # Number of capability areas to generate
-  num_capability_areas: 2
+  num_capability_areas: 1
   # Number of initial capabilities to generate per run
   num_gen_capabilities_per_run: 1
   # Number of tasks to generate for each capability
