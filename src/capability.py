@@ -783,7 +783,7 @@ class Capability:
                 if judge_llm
                 else None,
                 **gen_args[model_idx],
-                **kwargs,
+                run_id=kwargs.get("run_id"),
             )
         # Revert to original working dir after evaluation
         # and remove the inspect evals path from sys.path

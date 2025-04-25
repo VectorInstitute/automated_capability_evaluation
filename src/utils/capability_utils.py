@@ -120,7 +120,7 @@ def extract_and_parse_response(
         else:
             raise ValueError(f"Unsupported response type: {response_type}")
     except (IndexError, json.JSONDecodeError) as e:
-        logger.error(f"Error parsing capabilities json: {e}")
+        logger.error(f"Error parsing response json: {e}")
         raise
 
     output: Dict[str, Any] = {}
@@ -158,7 +158,7 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
         "ls_provider": model.model_provider,
         "ls_model_name": model.get_model_name(with_provider=False),
         "ls_model_type": "chat",
-        "exp_id": kwargs.get("run_id"),
+        "exp_id": kwargs.pop("run_id", None),
         "capability_name": path,
         "log_dir": log_dir,
     }
