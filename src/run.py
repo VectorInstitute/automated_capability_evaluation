@@ -1,11 +1,9 @@
 import logging  # noqa: D100
-import os
 
 import hydra
 from omegaconf import DictConfig
 
 from generate_capabilities import (
-    _get_previous_capabilities,
     apply_dimensionality_reduction,
     filter_capabilities,
     generate_and_set_capabilities_embeddings,
@@ -15,7 +13,6 @@ from generate_tasks import generate_tasks_using_llm
 
 # from lbo import generate_new_capability
 from model import Model
-from utils import constants
 from utils.lbo_utils import get_lbo_train_set
 
 
@@ -69,6 +66,7 @@ def main(cfg: DictConfig) -> None:
     scientist_llm_gen_cfg = cfg.scientist_llm.generation_cfg
 
     # Stage 1. Generate initial capabilities
+    logger.info("Starting capability generation ...")
     capabilities = generate_capabilities(
         domain=cfg.capabilities_cfg.domain,
         num_capabilities=cfg.capabilities_cfg.num_gen_capabilities,
@@ -82,21 +80,21 @@ def main(cfg: DictConfig) -> None:
         run_id=run_id,
         trial_run=cfg.exp_cfg.trial_run,
     )
-    # logger.info(capabilities)
+    logger.info(capabilities)
 
-    # TODO: Only used for testing, remove this block later ========================
-    if cfg.exp_cfg.trial_run:
-        # Set the base capability directory
-        base_capability_dir = os.path.join(
-            constants.BASE_ARTIFACTS_DIR,
-            f"capabilities_{run_id}",
-            cfg.capabilities_cfg.domain,
-        )
-        os.makedirs(base_capability_dir, exist_ok=True)
+    # # TODO: Only used for testing, remove this block later ========================
+    # if cfg.exp_cfg.trial_run:
+    #     # Set the base capability directory
+    #     base_capability_dir = os.path.join(
+    #         constants.BASE_ARTIFACTS_DIR,
+    #         f"capabilities_{run_id}",
+    #         cfg.capabilities_cfg.domain,
+    #     )
+    #     os.makedirs(base_capability_dir, exist_ok=True)
 
-        # Fetch previously generated capabilities, if any
-        capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
-    # =============================================================================
+    #     # Fetch previously generated capabilities, if any
+    #     capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
+    # # =============================================================================
 
     # Embed capabilities using openai embedding model
     generate_and_set_capabilities_embeddings(
