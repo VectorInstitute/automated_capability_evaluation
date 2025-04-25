@@ -170,7 +170,7 @@ def main(cfg: DictConfig) -> None:
             solve_sample_tasks=False,
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
             run_id=run_id,
-            task_gen_retry_attempts=cfg.capabilities_cfg.task_gen_retry_attempts,
+            tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
         )
         # Evaluate subject LLM on each capability
         capability.evaluate(
@@ -207,7 +207,7 @@ def main(cfg: DictConfig) -> None:
     #         solve_sample_tasks=False,
     #         few_shot=cfg.capabilities_cfg.task_gen_few_shot,
     #         run_id=run_id,
-    #         task_gen_retry_attempts=cfg.capabilities_cfg.task_gen_retry_attempts,
+    #         tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
     #     )
     #     # Evaluate subject LLM on new capability
     #     new_capability.evaluate(

@@ -125,7 +125,7 @@ def generate_tasks_using_llm(
     # Generate tasks
     logger.info(f"Generating {num_tasks} tasks for {capability.name} ...")
     num_attempts = kwargs.get(
-        "task_gen_retry_attempts", constants.DEFAULT_TASK_GENERATION_RETRY_ATTEMPTS
+        "tasks_gen_retry_attempts", constants.DEFAULT_TASK_GENERATION_RETRY_ATTEMPTS
     )
     try:
         # Retry the generation process if a JSONDecodeError occurs

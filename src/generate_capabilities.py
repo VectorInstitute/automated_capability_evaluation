@@ -444,6 +444,7 @@ def generate_capability_areas(
         Dict[str, Any]: A dictionary containing the generated capability areas
         and metadata about the generation process.
     """
+    logger.info(f"Generating {num_areas} capability areas ...")
     # Generate output using the model with specified generation arguments
     user_prompt = user_prompt.format(
         num_areas=num_areas,
@@ -472,6 +473,10 @@ def generate_capability_areas(
 
     parsed_response = extract_and_parse_response(response, has_thought=False)
     capability_areas = parsed_response["parsed_response"]
+
+    logger.info(
+        f"Capability areas generation tokens summary:\n{json.dumps(metadata, indent=4)}"
+    )
 
     return {
         "capability_areas": capability_areas,
