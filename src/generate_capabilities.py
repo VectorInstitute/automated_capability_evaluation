@@ -483,6 +483,7 @@ def generate_capabilities(
             names to include in the generation process.
         exclude_seed_capability_names (List[str] | None): A list of seed capability
             names to exclude from the generation process.
+        **kwargs (Any): Additional keyword arguments.
 
     Returns
     -------
@@ -529,8 +530,12 @@ def generate_capabilities(
             scientist_llm=scientist_llm,
             user_prompt=prompts.HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT,
             scientist_llm_gen_cfg=scientist_llm_gen_cfg,
+            **kwargs,
         )
         capability_areas = response["capability_areas"]
+        # Select only the specified number of capability areas
+        # even if more are generated
+        capability_areas = capability_areas[:num_capability_areas]
     else:
         num_capabilities_per_area = [num_capabilities]
         num_runs = [int(np.ceil(num_capabilities / num_capabilities_per_run))]
