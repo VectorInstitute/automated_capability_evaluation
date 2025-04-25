@@ -2,11 +2,12 @@ import json  # noqa: D100
 import logging
 import os
 import random
+import shutil
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 from langsmith import tracing_context
-from tenacity import Retrying, retry_if_exception_type, stop_after_attempt
+from tenacity import Retrying, stop_after_attempt
 
 from src.capability import Capability
 from src.generate_embeddings import (
@@ -225,15 +226,12 @@ def generate_capabilities_using_llm(
         "retry_attempts", constants.DEFAULT_CAPABILITY_GENERATION_RETRY_ATTEMPTS
     )
     try:
-        # Retry the generation process if a SyntaxError occurs
+        # Retry the generation process if an error occurs
         # Common errors:
         # - [ill-formatted python class]
         #   - SyntaxError: unterminated triple-quoted string literal
-        # - [same capability name]
-        #   - FileExistsError: Capability directory already exists
         for attempt in Retrying(
             stop=stop_after_attempt(num_attempts),
-            retry=retry_if_exception_type((SyntaxError, FileExistsError)),
             reraise=True,
         ):
             with attempt:
@@ -270,20 +268,47 @@ def generate_capabilities_using_llm(
                     # Add the capability area to the generated capabilities
                     for capability in gen_capabilities:
                         capability["area"] = capability_area
-                gen_capabilities = [
-                    Capability.from_dict(
-                        capability_dict=capability,
-                        base_dir=base_capability_dir,
-                        score_dir_suffix=(
-                            kwargs.get("run_id") if kwargs.get("trial_run") else None
-                        ),
+                gen_capabilities_clean = []
+                for capability in gen_capabilities:
+                    try:
+                        capability_obj = Capability.from_dict(
+                            capability_dict=capability,
+                            base_dir=base_capability_dir,
+                            score_dir_suffix=(
+                                kwargs.get("run_id")
+                                if kwargs.get("trial_run")
+                                else None
+                            ),
+                        )
+                    except Exception as e:
+                        # TODO: Handle different exceptions separately?
+                        # 1. Same name as existing capability
+                        # 2. “problem” replaced with “riddle” or some other keyword
+                        #   leads to KeyError
+                        # 3. Ill-formatted `capability.py` file due to missing quotes
+                        logger.warning(
+                            f"Error creating capability object {capability['name']}, hence skipping it: {e}"
+                        )
+                        # Delete the capability directory if it exists
+                        capability_dir = os.path.join(
+                            base_capability_dir, capability["name"]
+                        )
+                        if os.path.exists(capability_dir):
+                            shutil.rmtree(capability_dir)
+                        # Skip this capability
+                        continue
+                    else:
+                        gen_capabilities_clean.append(capability_obj)
+                if len(gen_capabilities_clean) != len(gen_capabilities):
+                    logger.warning(
+                        f"Only {len(gen_capabilities_clean)} capabilities were created out of {len(gen_capabilities)} generated capabilities."
                     )
-                    for capability in gen_capabilities
-                ]
     except Exception as e:
         logger.error(f"Error generating capabilities: {e}")
         logger.error(f"Response:\n{response}")
         raise e
+
+    logger.info(f"Generated {len(gen_capabilities)} capabilities:\n{gen_capabilities}")
 
     return {
         "capabilities": gen_capabilities,

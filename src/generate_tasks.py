@@ -3,7 +3,7 @@ import logging
 from typing import Any, Dict, List, Tuple
 
 from langsmith import tracing_context
-from tenacity import Retrying, retry_if_exception_type, stop_after_attempt
+from tenacity import Retrying, stop_after_attempt
 
 from capability import Capability
 from model import Model
@@ -129,12 +129,11 @@ def generate_tasks_using_llm(
         "tasks_gen_retry_attempts", constants.DEFAULT_TASK_GENERATION_RETRY_ATTEMPTS
     )
     try:
-        # Retry the generation process if a JSONDecodeError occurs
+        # Retry the generation process if an error occurs
         # Common errors:
         # - json.decoder.JSONDecodeError: Invalid \escape: line 3 column 133
         for attempt in Retrying(
             stop=stop_after_attempt(num_attempts),
-            retry=retry_if_exception_type(json.decoder.JSONDecodeError),
             reraise=True,
         ):
             with attempt:

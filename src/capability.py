@@ -400,7 +400,16 @@ class Capability:
         str
             A JSON string representation of the capability.
         """
-        return json.dumps(self._to_dict(attribute_names), indent=4)
+        if (
+            attribute_names
+            and len(attribute_names) == 1
+            and attribute_names[0] == "name"
+        ):
+            # If only the name is requested, return the name directly
+            repr_str = self.name
+        else:
+            repr_str = json.dumps(self._to_dict(attribute_names), indent=4)
+        return str(repr_str)
 
     def __str__(self) -> str:
         """
@@ -415,14 +424,14 @@ class Capability:
 
     def __repr__(self) -> str:
         """
-        Return a JSON string representation of the capability.
+        Return the name of the capability.
 
         Returns
         -------
         str
-            A JSON string representation of the capability.
+            Name of the capability.
         """
-        return self.to_json_str()
+        return self.to_json_str(attribute_names=["name"])
 
     def set_embedding(
         self, embedding_name: str, embedding_tensor: torch.Tensor
