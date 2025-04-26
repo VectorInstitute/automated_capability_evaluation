@@ -314,7 +314,7 @@ def verify_solved_tasks(
     async def _verify_task(
         task: Dict[str, Any],
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        logger.info(f"Verifying task {task['id']} ...")
+        logger.info(f"[{capability.name}] Verifying task {task['id']} ...")
         user_prompt = prompts.ANSWER_JUDGEMENT_USER_PROMPT.format(
             capability_name=capability.name,
             capability_domain=capability.domain,

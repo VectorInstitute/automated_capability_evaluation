@@ -499,7 +499,7 @@ class Capability:
         #  1. Enable tool use
         #  2. How to link this function with the Inspect Solver
         #   to be used in _evaluate_using_inspect()?
-        logger.info(f"Solving task {task['id']} ...")
+        logger.info(f"[{self.name}] Solving task {task['id']} ...")
         sys_prompt = prompts.TASK_SOLVER_SYSTEM_PROMPT.format(
             capability_name=self.name, capability_domain=self.domain
         )
