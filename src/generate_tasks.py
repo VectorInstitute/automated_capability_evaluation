@@ -216,7 +216,9 @@ def generate_tasks_using_llm(
             "concurrency_task_solver", constants.DEFAULT_TASK_SOLVER_CONCURRENCY
         ),
     )
-    logger.info(f"{len(solved_tasks)}/{len(all_tasks)} tasks were solved successfully.")
+    logger.info(
+        f"[{capability.name}] {len(solved_tasks)}/{len(all_tasks)} tasks were solved successfully."
+    )
 
     # Analyze tokens metadata for task solving
     total_input_tokens = sum(
@@ -235,7 +237,9 @@ def generate_tasks_using_llm(
             (total_input_tokens + total_output_tokens) / len(all_tasks)
         ),
     }
-    logger.info(f"Task solving tokens summary:\n{json.dumps(tokens_summary, indent=4)}")
+    logger.info(
+        f"[{capability.name}] Task solving tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
+    )
 
     # TODO: Include reasoning along with the answer in the prompt
     (successful_tasks, failed_tasks), task_judge_metadata = verify_solved_tasks(
@@ -249,7 +253,7 @@ def generate_tasks_using_llm(
         ),
     )
     logger.info(
-        f"{len(successful_tasks)}/{len(solved_tasks)} tasks passed the verification."
+        f"[{capability.name}] {len(successful_tasks)}/{len(solved_tasks)} tasks passed the verification."
     )
 
     # Analyze tokens metadata for task verification
@@ -268,7 +272,7 @@ def generate_tasks_using_llm(
         ),
     }
     logger.info(
-        f"Task verification tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
+        f"[{capability.name}] Task verification tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
     )
 
     if len(successful_tasks) < target_num_tasks:

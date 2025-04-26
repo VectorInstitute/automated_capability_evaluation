@@ -266,5 +266,5 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
         "total_tokens_per_task": usage_metadata["total_tokens"] / len(eval_log.samples),
     }
     logger.info(
-        f"Task evaluation tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
+        f"[{path}] Task evaluation tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
     )
