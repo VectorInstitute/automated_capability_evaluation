@@ -194,7 +194,9 @@ def generate_tasks_using_llm(
 
     # Solve task and generate answers
     # Set starting ID for new tasks
-    start_id = max([elm["id"] for elm in capability.get_tasks(include_failed=True)]) + 1
+    start_id = (
+        max([int(elm["id"]) for elm in capability.get_tasks(include_failed=True)]) + 1
+    )
     all_tasks = [
         {"id": str(start_id + idx), "problem": new_tasks[idx]}
         for idx in range(len(new_tasks))
