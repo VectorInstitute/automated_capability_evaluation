@@ -212,6 +212,7 @@ class Capability:
         self.area = _cfg.get("capability_area", None)
         # TODO: Store data is stored in json or elsewhere?
         self._data: List[Dict[str, Any]] = _cfg["capability_data"]
+        self._failed_data: List[Dict[str, Any]] = _cfg.get("capability_failed_data", [])
         # Check if the capability is a seed capability, use source_dataset as indicator
         self.is_seed = "source_dataset" in _cfg
 
@@ -638,15 +639,22 @@ class Capability:
 
         return (solved_tasks, unsolved_tasks), metadata
 
-    def get_tasks(self) -> List[Dict[str, Any]]:
+    def get_tasks(self, include_failed: bool = False) -> List[Dict[str, Any]]:
         """
         Get the existing tasks for the capability.
+
+        Args
+        ----
+            include_failed (bool): If True, include failed tasks in the result.
 
         Returns
         -------
             List[Dict[str, Any]]: A list of dictionaries containing the tasks.
         """
-        return self._data
+        tasks = self._data
+        if include_failed:
+            tasks += self._failed_data
+        return tasks
 
     def _create_inspect_file(
         self,
