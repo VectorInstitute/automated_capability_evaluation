@@ -64,9 +64,13 @@ def main(cfg: DictConfig) -> None:
 
     # Stage 1. Generate initial capabilities
     logger.info("Starting capability generation ...")
+    target_num_capabilities = cfg.capabilities_cfg.num_gen_capabilities
+    num_capabilities = int(
+        target_num_capabilities * (1 + cfg.capabilities_cfg.num_gen_capabilities_buffer)
+    )
     capabilities = generate_capabilities(
         domain=cfg.capabilities_cfg.domain,
-        num_capabilities=cfg.capabilities_cfg.num_gen_capabilities,
+        num_capabilities=num_capabilities,
         num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
         scientist_llm=scientist_llm,
         num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
@@ -79,6 +83,12 @@ def main(cfg: DictConfig) -> None:
         seed=cfg.exp_cfg.seed,
         retry_attempts=cfg.capabilities_cfg.capabilities_gen_retry_attempts,
     )
+    if len(capabilities) < target_num_capabilities:
+        logger.warning(
+            f"Only {len(capabilities)} capabilities were created. "
+            f"Target number of capabilities not reached: {target_num_capabilities}. "
+            "It is recommended to increase the buffer."
+        )
     logger.info(capabilities)
 
     # # TODO: Only used for testing, remove this block later ========================
