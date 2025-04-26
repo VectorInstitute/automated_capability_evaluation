@@ -27,7 +27,7 @@ GSM8K_SCORE_FUNC = f"""def score(t: dict, submission: str) -> float | None:\n{TA
 
 DATASET_NAME_MAP = {
     "mathematics": "competition_math",
-    "gsm8k": "grade_school_math_word_problems",
+    "gsm8k": "word_problems",
 }
 
 

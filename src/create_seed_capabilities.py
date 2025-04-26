@@ -201,7 +201,7 @@ def main(cfg: DictConfig) -> None:
             capabilities: Dict[str, Dict[str, Any]] = defaultdict()
             for task in dataset._data:
                 subject = task["type"].lower()
-                capability_name = f"{constants.DATASET_NAME_MAP[dataset.name]}_{'_'.join(subject.split(' '))}"
+                capability_name = f"{'_'.join(subject.split(' '))}"
                 if capability_name not in capabilities:
                     capabilities[capability_name] = defaultdict()
                     capabilities[capability_name]["type"] = subject
