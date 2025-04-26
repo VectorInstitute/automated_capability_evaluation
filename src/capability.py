@@ -1,4 +1,5 @@
-import importlib  # noqa: D100
+import asyncio  # noqa: D100
+import importlib
 import json
 import logging
 import os
@@ -473,7 +474,7 @@ class Capability:
 
         return self.embedding_dict[embedding_name]
 
-    def _solve_task(
+    async def _solve_task(
         self, task: Dict[str, Any], llm: Model, gen_cfg: Dict[str, Any], **kwargs: Any
     ) -> Tuple[str, Dict[str, Any]]:
         """
@@ -517,7 +518,7 @@ class Capability:
                 **{f"ls_{k}": v for k, v in gen_cfg.items()},
             },
         ):
-            response, metadata = llm.generate(
+            response, metadata = await llm.async_generate(
                 sys_prompt=sys_prompt,
                 user_prompt=user_prompt,
                 generation_config=gen_cfg,
@@ -567,10 +568,12 @@ class Capability:
         solved_tasks = []
         unsolved_tasks = []
         metadata = {}
-        task_solved = False
-        for task in tasks:
+
+        async def _solve_task_async(
+            task: Dict[str, Any],
+        ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
             try:
-                answer, _metadata = self._solve_task(
+                answer, _metadata = await self._solve_task(
                     task=task,
                     llm=llm,
                     gen_cfg=gen_cfg,
@@ -594,29 +597,35 @@ class Capability:
                     task_solved = True
                     reasoning = _metadata["raw_response"]
             finally:
+                processed_task = {
+                    "id": task["id"],
+                    "problem": task["problem"],
+                    "answer": answer,
+                    "reasoning": reasoning,
+                    "solved": task_solved,
+                }
+                if not task_solved:
+                    processed_task["verification"] = {
+                        "verdict": "no",
+                        "reason": "unsolved",
+                    }
+            return processed_task, _metadata["api_metadata"]
+
+        async def _solve_all_tasks() -> None:
+            results = await asyncio.gather(
+                *(_solve_task_async(task) for task in tasks),
+            )
+            for result in results:
+                processed_task, _metadata = result
+                task_solved = processed_task.pop("solved")
                 if task_solved:
-                    solved_tasks.append(
-                        {
-                            "id": task["id"],
-                            "problem": task["problem"],
-                            "answer": answer,
-                            "reasoning": reasoning,
-                        }
-                    )
+                    solved_tasks.append(processed_task)
                 else:
-                    unsolved_tasks.append(
-                        {
-                            "id": task["id"],
-                            "problem": task["problem"],
-                            "answer": answer,
-                            "reasoning": reasoning,
-                            "verification": {
-                                "verdict": "no",
-                                "reason": "unsolved",
-                            },
-                        }
-                    )
-                metadata[task["id"]] = _metadata["api_metadata"]
+                    unsolved_tasks.append(processed_task)
+                metadata[processed_task["id"]] = _metadata
+
+        asyncio.run(_solve_all_tasks())
+
         return (solved_tasks, unsolved_tasks), metadata
 
     def get_tasks(self) -> List[Dict[str, Any]]:

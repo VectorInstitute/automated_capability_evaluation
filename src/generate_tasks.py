@@ -1,4 +1,5 @@
-import json  # noqa: D100
+import asyncio  # noqa: D100
+import json
 import logging
 from typing import Any, Dict, List, Tuple
 
@@ -310,7 +311,9 @@ def verify_solved_tasks(
         capability_domain=capability.domain,
     )
 
-    for task in tasks:
+    async def _verify_task(
+        task: Dict[str, Any],
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         logger.info(f"Verifying task {task['id']} ...")
         user_prompt = prompts.ANSWER_JUDGEMENT_USER_PROMPT.format(
             capability_name=capability.name,
@@ -333,7 +336,7 @@ def verify_solved_tasks(
                     **{f"ls_{k}": v for k, v in gen_cfg.items()},
                 },
             ):
-                response, _metadata = llm.generate(
+                response, _metadata = await llm.async_generate(
                     sys_prompt=sys_prompt,
                     user_prompt=user_prompt,
                     generation_config=gen_cfg,
@@ -354,7 +357,6 @@ def verify_solved_tasks(
                     response_type="str_yes_no",
                 )
             except Exception as e:
-                # Tag as fail where the response is not "yes" or "no"
                 logger.warning(
                     f"Error parsing response for task {task['id']} for capability {capability.name}: {e}"
                 )
@@ -369,10 +371,20 @@ def verify_solved_tasks(
                 "verdict": verdict_str,
                 "reason": verdict_reason,
             }
-            if verdict_str == "yes":
+        return task, _metadata
+
+    async def _verify_all_tasks() -> None:
+        results = await asyncio.gather(
+            *(_verify_task(task) for task in tasks),
+        )
+        for result in results:
+            task, _metadata = result
+            if task["verification"]["verdict"] == "yes":
                 successful_tasks.append(task)
             else:
                 failed_tasks.append(task)
             metadata[task["id"]] = _metadata
+
+    asyncio.run(_verify_all_tasks())
 
     return (successful_tasks, failed_tasks), metadata

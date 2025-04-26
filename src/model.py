@@ -101,6 +101,55 @@ class Model:
         metadata = {"input_tokens": input_tokens, "output_tokens": output_tokens}
         return generated_text, metadata
 
+    @sleep_and_retry  # type: ignore
+    @limits(**RATE_LIMIT)  # type: ignore
+    @traceable
+    async def async_generate(
+        self, sys_prompt: str, user_prompt: str, generation_config: Dict[str, Any]
+    ) -> Tuple[str | None, Dict[str, int | Any]]:
+        """
+        Generate text based on the given system and user prompts using the LLM (Async).
+
+        Args
+        ----
+            sys_prompt (str): The system prompt for the model.
+            user_prompt (str): The user prompt for the model.
+            generation_config (Dict[str, Any]): A dictionary containing generation
+                configuration parameters.
+
+        Returns
+        -------
+            Tuple[str | None, Dict[str, int | Any]]: A tuple containing the
+                generated text and metadata.
+            - str | None: The generated text.
+            - Dict[str, int | Any]: Metadata including input and output token counts.
+        """
+        messages = self._get_input_messages(
+            sys_prompt=sys_prompt, user_prompt=user_prompt
+        )
+        generation_config = dict(generation_config)
+        try:
+            if "o1" in self.model_name:
+                # Set temperature to 1 for o1
+                generation_config.update({"temperature": 1})
+            if "o3-mini" in self.model_name:
+                # Remove temperature for o3-mini
+                _ = generation_config.pop("temperature", None)
+            chatopenai_response = await self.llm.ainvoke(messages, **generation_config)
+            generated_text = str(chatopenai_response.content)
+            input_tokens = chatopenai_response.response_metadata["token_usage"][
+                "prompt_tokens"
+            ]
+            output_tokens = chatopenai_response.response_metadata["token_usage"][
+                "completion_tokens"
+            ]
+        except Exception as e:
+            logger.error(f"Error generating text: {e}")
+            raise e
+
+        metadata = {"input_tokens": input_tokens, "output_tokens": output_tokens}
+        return generated_text, metadata
+
     def get_model_name(self, with_provider: bool = False) -> str:
         """
         Get the name of the model.
