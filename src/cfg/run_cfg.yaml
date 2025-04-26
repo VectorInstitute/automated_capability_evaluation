@@ -84,6 +84,9 @@ capabilities_cfg:
   # Concurrency for task solving and verification
   concurrency_task_solver: 5
   concurrency_task_verifier: 5
+  concurrency_task_eval: 5
+  # Inspect evals config
+  inspect_eval_score_display: false
 
 lbo_cfg:
   # Number of capabilities to generate using LBO

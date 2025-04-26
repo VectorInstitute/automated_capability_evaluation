@@ -865,6 +865,10 @@ class Capability:
                 else None,
                 **gen_args[model_idx],
                 run_id=kwargs.get("run_id"),
+                max_samples=kwargs.get(
+                    "concurrency_task_eval", constants.DEFAULT_TASK_EVAL_CONCURRENCY
+                ),
+                score_display=kwargs.get("inspect_eval_score_display", False),
             )
         # Revert to original working dir after evaluation
         # and remove the inspect evals path from sys.path
