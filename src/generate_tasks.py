@@ -210,6 +210,9 @@ def generate_tasks_using_llm(
         llm=scientist_llm,
         gen_cfg=scientist_llm_gen_cfg_task_solve,
         run_id=kwargs.get("run_id"),
+        concurrency=kwargs.get(
+            "concurrency_task_solver", constants.DEFAULT_TASK_SOLVER_CONCURRENCY
+        ),
     )
     logger.info(f"{len(solved_tasks)}/{len(all_tasks)} tasks were solved successfully.")
 
@@ -239,6 +242,9 @@ def generate_tasks_using_llm(
         llm=scientist_llm,
         gen_cfg=scientist_llm_gen_cfg_task_verify,
         run_id=kwargs.get("run_id"),
+        concurrency=kwargs.get(
+            "concurrency_task_verifier", constants.DEFAULT_TASK_VERIFIER_CONCURRENCY
+        ),
     )
     logger.info(
         f"{len(successful_tasks)}/{len(solved_tasks)} tasks passed the verification."
@@ -373,9 +379,17 @@ def verify_solved_tasks(
             }
         return task, _metadata
 
-    async def _verify_all_tasks() -> None:
+    async def _verify_all_tasks(concurrency_limit: int) -> None:
+        semaphore = asyncio.Semaphore(concurrency_limit)
+
+        async def _limited_verify_task(
+            task: Dict[str, Any],
+        ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+            async with semaphore:
+                return await _verify_task(task)
+
         results = await asyncio.gather(
-            *(_verify_task(task) for task in tasks),
+            *(_limited_verify_task(task) for task in tasks),
         )
         for result in results:
             task, _metadata = result
@@ -385,6 +399,8 @@ def verify_solved_tasks(
                 failed_tasks.append(task)
             metadata[task["id"]] = _metadata
 
-    asyncio.run(_verify_all_tasks())
+    asyncio.run(
+        _verify_all_tasks(kwargs.get("concurrency", constants.DEFAULT_CONCURRENCY))
+    )
 
     return (successful_tasks, failed_tasks), metadata

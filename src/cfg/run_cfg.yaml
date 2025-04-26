@@ -69,7 +69,7 @@ capabilities_cfg:
   # Number of initial capabilities to generate per run
   num_gen_capabilities_per_run: 2
   # Number of tasks to generate for each capability
-  num_gen_tasks_per_capability: 2
+  num_gen_tasks_per_capability: 10
   # Buffer for task generation
   num_gen_tasks_buffer: 0.2
   # Set this flag to true to use representative tasks
@@ -81,6 +81,9 @@ capabilities_cfg:
   # Number of retries for each run of capability generation
   capabilities_gen_retry_attempts: 3
   tasks_gen_retry_attempts: 3
+  # Concurrency for task solving and verification
+  concurrency_task_solver: 5
+  concurrency_task_verifier: 5
 
 lbo_cfg:
   # Number of capabilities to generate using LBO

@@ -611,9 +611,17 @@ class Capability:
                     }
             return processed_task, _metadata["api_metadata"]
 
-        async def _solve_all_tasks() -> None:
+        async def _solve_all_tasks(concurrency_limit: int) -> None:
+            semaphore = asyncio.Semaphore(concurrency_limit)
+
+            async def _semaphore_wrapper(
+                task: Dict[str, Any],
+            ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+                async with semaphore:
+                    return await _solve_task_async(task)
+
             results = await asyncio.gather(
-                *(_solve_task_async(task) for task in tasks),
+                *(_semaphore_wrapper(task) for task in tasks),
             )
             for result in results:
                 processed_task, _metadata = result
@@ -624,7 +632,9 @@ class Capability:
                     unsolved_tasks.append(processed_task)
                 metadata[processed_task["id"]] = _metadata
 
-        asyncio.run(_solve_all_tasks())
+        asyncio.run(
+            _solve_all_tasks(kwargs.get("concurrency", constants.DEFAULT_CONCURRENCY))
+        )
 
         return (solved_tasks, unsolved_tasks), metadata
 
