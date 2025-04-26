@@ -93,6 +93,7 @@ def main(cfg: DictConfig) -> None:
 
     #     # Fetch previously generated capabilities, if any
     #     capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
+    #     logger.info(capabilities)
     # # =============================================================================
 
     # # Embed capabilities using openai embedding model
@@ -171,6 +172,8 @@ def main(cfg: DictConfig) -> None:
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
             run_id=run_id,
             tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
+            concurrency_task_solver=cfg.capabilities_cfg.concurrency_task_solver,
+            concurrency_task_verifier=cfg.capabilities_cfg.concurrency_task_verifier,
         )
         # Evaluate subject LLM on each capability
         capability.evaluate(
@@ -179,6 +182,7 @@ def main(cfg: DictConfig) -> None:
             judge_llm=scientist_llm,  # Use scientist LLM as judge
             judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
             run_id=run_id,
+            concurrency_task_eval=cfg.capabilities_cfg.concurrency_task_eval,
         )
 
         # # TODO: Only used for testing, remove this block later ==============
