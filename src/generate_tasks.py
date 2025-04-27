@@ -287,8 +287,10 @@ def generate_tasks_using_llm(
     # TODO: Handle scenario when representative tasks are not solved
     #   or fail verification
     capability.add_and_update_tasks(
-        tasks=successful_tasks,
-        failed_tasks=failed_tasks if failed_tasks else None,
+        tasks=sorted(successful_tasks, key=lambda x: int(x["id"])),
+        failed_tasks=sorted(failed_tasks, key=lambda x: int(x["id"]))
+        if failed_tasks
+        else None,
     )
 
 
