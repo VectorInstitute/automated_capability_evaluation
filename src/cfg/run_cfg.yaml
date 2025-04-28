@@ -4,7 +4,7 @@ scientist_llm:
   generation_cfg:
     capability_generation:
       temperature: 0.7
-      max_tokens: 4096
+      max_tokens: 8192
       seed: 42
     task_generation:
       temperature: 0.7
@@ -63,13 +63,13 @@ capabilities_cfg:
   # Set to -1 to use all seed capabilities
   num_seed_capabilities: 1
   # Number of initial capabilities to generate using the scientist LLM
-  num_gen_capabilities: 10
+  num_gen_capabilities: 20
   # Buffer for capability generation
   num_gen_capabilities_buffer: 0.2
   # Number of capability areas to generate
-  num_capability_areas: 2
+  num_capability_areas: 5
   # Number of initial capabilities to generate per run
-  num_gen_capabilities_per_run: 2
+  num_gen_capabilities_per_run: 3
   # Number of tasks to generate for each capability
   num_gen_tasks_per_capability: 5
   # Buffer for task generation

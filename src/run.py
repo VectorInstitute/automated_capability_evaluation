@@ -2,18 +2,20 @@ import logging  # noqa: D100
 import os
 
 import hydra
+
+# from lbo import generate_new_capability
+from lbo_utils import get_lbo_train_set
 from omegaconf import DictConfig
 
 from generate_capabilities import (
     generate_capabilities,
     get_previous_capabilities,
 )
-from generate_tasks import generate_tasks_using_llm
-
-# from lbo import generate_new_capability
+from generate_tasks import (
+    generate_tasks_using_llm,
+)
 from model import Model
 from utils import constants
-from utils.lbo_utils import get_lbo_train_set
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +43,7 @@ def check_cfg(cfg: DictConfig) -> None:
     )
     additional_c = cfg.capabilities_cfg.num_gen_capabilities_per_run - rem_c
     if rem_c != 0:
-        logger.warning(f"{additional_c} capabilities will be generated.")
+        logger.warning(f"{additional_c} additional capabilities might be generated.")
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
@@ -203,10 +205,10 @@ def main(cfg: DictConfig) -> None:
             concurrency_task_eval=cfg.capabilities_cfg.concurrency_task_eval,
         )
 
-        # # TODO: Only used for testing, remove this block later ==============
-        # if cfg.exp_cfg.trial_run:
-        #     break
-        # # ===================================================================
+    # # TODO: Only used for testing, remove this block later ==============
+    # if cfg.exp_cfg.trial_run:
+    #     break
+    # # ===================================================================
 
     # # Stage 3. Use LBO to generate new capabilities
     # for lbo_run_id in range(num_lbo_runs):
