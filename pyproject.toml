@@ -131,6 +131,8 @@ ignore = [
     "PLR2004", # Replace magic number with named constant
     "PLR0913", # Too many arguments
     "COM812", # Missing trailing comma
+    "PLR0915", # Too many statements
+    "PLR0912", # Too many branches
 ]
 
 # Ignore import violations in all `__init__.py` files.

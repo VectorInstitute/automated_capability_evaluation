@@ -1,15 +1,20 @@
-import importlib  # noqa: D100
+import asyncio  # noqa: D100
+import importlib
 import json
+import logging
 import os
+import random
 import shutil
 import sys
 from collections import defaultdict
+from enum import Enum
 from typing import Any, Dict, List, Tuple
 
 import torch
+from langsmith import tracing_context
 
 from src.model import Model
-from src.utils import constants
+from src.utils import constants, prompts, templates
 from src.utils.capability_utils import (
     parse_python_class_str,
     read_score_inspect_json,
@@ -24,12 +29,34 @@ from src.utils.data_utils import (
 from src.utils.inspect_eval_utils import (
     parse_submission,
 )
-from src.utils.prompts import TASK_SOLVER_SYSTEM_PROMPT
-from src.utils.templates import (
-    INSPECT_EVALS_INIT_FILE_TEMPLATE,
-    INSPECT_EVALS_README_FILE_TEMPLATE,
-    INSPECT_EVALS_SCRIPT_FILE_TEMPLATE,
-)
+
+
+logger = logging.getLogger(__name__)
+
+
+class CapabilityState(Enum):
+    """
+    Enum representing the state of a capability.
+
+    Attributes
+    ----------
+    INITIALIZED : str
+        The capability is initialized.
+    TASK_GENERATION_FAILED : str
+        The capability task generation failed.
+    TASK_GENERATION_PARTIALLY_COMPLETED : str
+        The capability task generation is partially completed.
+        Some tasks are created but the target number of tasks is not met.
+    TASK_GENERATION_COMPLETED : str
+        The capability task generation is completed.
+    """
+
+    INITIALIZED = constants.C_STATE_INITIALIZED_STR
+    TASK_GENERATION_FAILED = constants.C_STATE_TASK_GENERATION_FAILED_STR
+    TASK_GENERATION_PARTIALLY_COMPLETED = (
+        constants.C_STATE_TASK_GENERATION_PARTIALLY_COMPLETED_STR
+    )
+    TASK_GENERATION_COMPLETED = constants.C_STATE_TASK_GENERATION_COMPLETED_STR
 
 
 class CapabilitySeedDataset:
@@ -108,16 +135,29 @@ class Capability:
         Returns a JSON string representation of the capability.
     """
 
-    def __init__(self, capability_dir: str) -> None:
+    def __init__(
+        self,
+        capability_dir: str,
+        score_dir_suffix: str | None = None,
+        state: str | None = None,
+    ) -> None:
         self.source_dir = capability_dir
         self._load_capability_json()
         self._load_capability_repr_class()
+
+        # Set/load the capability state
+        if state:
+            self.set_state(state)
+        else:
+            _ = self.get_state()
 
         self.score_dir = (
             constants.SEED_CAPABILITIES_SCORE_DIR
             if self.is_seed
             else constants.NON_SEED_CAPABILITIES_SCORE_DIR
         )
+        if score_dir_suffix:
+            self.score_dir = f"{self.score_dir}_{score_dir_suffix}"
         # The embedding_dict stores various embedding vector associated with
         # different models, encoders, or dimensionality reduction algorithms.
         # Key represents the name of the embedding model or the algorithm,
@@ -126,7 +166,12 @@ class Capability:
         self.embedding_dict: dict[str, torch.Tensor] = {}
 
     @classmethod
-    def from_dict(cls, capability_dict: Dict[str, Any], base_dir: str) -> "Capability":
+    def from_dict(
+        cls,
+        capability_dict: Dict[str, Any],
+        base_dir: str,
+        score_dir_suffix: str | None = None,
+    ) -> "Capability":
         """
         Create a Capability object from a dictionary.
 
@@ -191,7 +236,11 @@ class Capability:
         with open(os.path.join(c_dir, "capability.json"), "w") as f:
             json.dump(c_dict, f, indent=4)
 
-        return cls(c_dir)
+        return cls(
+            capability_dir=c_dir,
+            score_dir_suffix=score_dir_suffix,
+            state=constants.C_STATE_INITIALIZED_STR,
+        )
 
     def _load_capability_json(self) -> None:
         with open(os.path.join(self.source_dir, "capability.json"), "r") as f:
@@ -203,6 +252,7 @@ class Capability:
         self.area = _cfg.get("capability_area", None)
         # TODO: Store data is stored in json or elsewhere?
         self._data: List[Dict[str, Any]] = _cfg["capability_data"]
+        self._failed_data: List[Dict[str, Any]] = _cfg.get("capability_failed_data", [])
         # Check if the capability is a seed capability, use source_dataset as indicator
         self.is_seed = "source_dataset" in _cfg
 
@@ -224,6 +274,50 @@ class Capability:
         self.capability_repr_class_str = (
             f"```python{newline}{capability_repr_class_str.strip(newline)}{newline}```"
         )
+
+    def set_state(self, state_str: str, **kwargs: Any) -> None:
+        """
+        Set the state of the capability.
+
+        Args
+        ----
+            state_str (str): The state to set.
+            **kwargs (Any): Additional arguments for setting the state.
+        """
+        self._state = CapabilityState(state_str)
+        _state_dict = {
+            "state": self._state.value,
+        }
+        if self._state in [
+            CapabilityState.TASK_GENERATION_FAILED,
+            CapabilityState.TASK_GENERATION_PARTIALLY_COMPLETED,
+        ]:
+            assert "reason" in kwargs, (
+                f"Error setting state to {state_str}: Reason for task generation failure or partial completion is required."
+            )
+            _state_dict.update(
+                {
+                    "reason": kwargs["reason"],
+                }
+            )
+        # Write the state dictionary to a `_state.json` file
+        with open(os.path.join(self.source_dir, "_state.json"), "w") as f:
+            json.dump(_state_dict, f, indent=4)
+
+    def get_state(self) -> CapabilityState:
+        """
+        Get the current state of the capability.
+
+        Returns
+        -------
+            CapabilityState: The current state of the capability.
+        """
+        if not hasattr(self, "_state"):
+            # Load the state from the `_state.json` file
+            with open(os.path.join(self.source_dir, "_state.json"), "r") as f:
+                _state_dict = json.load(f)
+            self._state = CapabilityState(_state_dict["state"])
+        return self._state
 
     def load_scores(self, scores_dir: str | None = None) -> Dict[str, float]:
         """
@@ -272,6 +366,7 @@ class Capability:
         self,
         tasks: List[Dict[str, Any]],
         failed_tasks: List[Dict[str, Any]] | None = None,
+        seed: int = 42,
     ) -> None:
         """
         Add and/or update tasks for the capability.
@@ -284,6 +379,8 @@ class Capability:
                 containing the tasks that failed to be solved.
                 Each task dict consists of id, problem, and answer keys.
         """
+        random.seed(seed)
+
         if not all(
             "id" in task and "problem" in task and "answer" in task for task in tasks
         ):
@@ -292,8 +389,14 @@ class Capability:
             )
 
         existing_tasks = self.get_tasks()
+        existing_failed_tasks = [
+            task
+            for task in self.get_tasks(include_failed=True)
+            if task.get("verification", {"verdict": "yes"})["verdict"] == "no"
+        ]
         existing_task_ids = [task["id"] for task in existing_tasks]
         new_task_ids = [task["id"] for task in tasks]
+        failed_tasks = failed_tasks or []
         # Keep new task for overlapping tasks
         # TODO: Add `overwrite` flag to update existing tasks
         tasks_to_keep = [
@@ -306,22 +409,57 @@ class Capability:
         tasks_to_keep.sort(key=lambda x: x["id"])
 
         # Check if the new task list consists of representative tasks
+        # or any of the representative tasks are in the failed task list
         # If yes, update the capability class python file
-        repr_tasks = [
+        updated_repr_tasks = [
             task
             for task in tasks
             if task["id"] in self.capability_repr_class.repr_tasks()
         ]
-        if repr_tasks:
-            partial_repr_task_ids = [task["id"] for task in repr_tasks]
-            missing_repr_tasks = {
+        updated_repr_task_ids = [task["id"] for task in updated_repr_tasks]
+        failed_repr_tasks = [
+            task
+            for task in failed_tasks
+            if task["id"] in self.capability_repr_class.repr_tasks()
+        ]
+        failed_repr_task_ids = [task["id"] for task in failed_repr_tasks]
+        if failed_repr_tasks:
+            # Remove failed representative tasks from the task list
+            tasks_to_keep = [
+                task for task in tasks_to_keep if task["id"] not in failed_repr_task_ids
+            ]
+            # Sample new tasks to replace the failed representative tasks
+            non_repr_tasks = [
+                task
+                for task in tasks_to_keep
+                if task["id"] not in self.capability_repr_class.repr_tasks()
+            ]
+            if len(non_repr_tasks) < len(failed_repr_tasks):
+                logger.warning(
+                    f"[{self.name}] Not enough non-representative tasks ({len(non_repr_tasks)}) to replace the failed representative tasks. "
+                    f"Number of representative tasks is reduced by {len(failed_repr_tasks)}."
+                )
+                new_repr_tasks = []
+            else:
+                new_repr_tasks = random.sample(non_repr_tasks, len(failed_repr_tasks))
+        update_repr_tasks = updated_repr_tasks or failed_repr_tasks
+        if update_repr_tasks:
+            repr_tasks = updated_repr_tasks
+            repr_tasks_to_keep = {
                 k: v
                 for k, v in self.capability_repr_class.repr_tasks().items()
-                if k not in partial_repr_task_ids
+                if k not in (updated_repr_task_ids + failed_repr_task_ids)
             }
-            for task_id, task_data in missing_repr_tasks.items():
+            for task_id, task_data in repr_tasks_to_keep.items():
                 repr_tasks.append({"id": task_id, **task_data})
+            if failed_repr_tasks:
+                repr_tasks += new_repr_tasks
             repr_tasks.sort(key=lambda x: x["id"])
+            # Keep only problem and answer keys
+            repr_tasks = [
+                {k: v for k, v in task.items() if k in ["id", "problem", "answer"]}
+                for task in repr_tasks
+            ]
             # Update the capability class python file
             # Extract str which contains the repr_tasks dictionary
             # TODO: Since these are hardcoded, update when the format changes
@@ -361,7 +499,7 @@ class Capability:
         if failed_tasks:
             c_dict.update(
                 {
-                    "capability_failed_data": failed_tasks,
+                    "capability_failed_data": existing_failed_tasks + failed_tasks,
                 }
             )
         with open(os.path.join(self.source_dir, "capability.json"), "w") as f:
@@ -392,7 +530,16 @@ class Capability:
         str
             A JSON string representation of the capability.
         """
-        return json.dumps(self._to_dict(attribute_names), indent=4)
+        if (
+            attribute_names
+            and len(attribute_names) == 1
+            and attribute_names[0] == "name"
+        ):
+            # If only the name is requested, return the name directly
+            repr_str = self.name
+        else:
+            repr_str = json.dumps(self._to_dict(attribute_names), indent=4)
+        return str(repr_str)
 
     def __str__(self) -> str:
         """
@@ -407,14 +554,14 @@ class Capability:
 
     def __repr__(self) -> str:
         """
-        Return a JSON string representation of the capability.
+        Return the name of the capability.
 
         Returns
         -------
         str
-            A JSON string representation of the capability.
+            Name of the capability.
         """
-        return self.to_json_str()
+        return self.to_json_str(attribute_names=["name"])
 
     def set_embedding(
         self, embedding_name: str, embedding_tensor: torch.Tensor
@@ -456,8 +603,8 @@ class Capability:
 
         return self.embedding_dict[embedding_name]
 
-    def _solve_task(
-        self, task: Dict[str, Any], llm: Model, gen_cfg: Dict[str, Any]
+    async def _solve_task(
+        self, task: Dict[str, Any], llm: Model, gen_cfg: Dict[str, Any], **kwargs: Any
     ) -> Tuple[str, Dict[str, Any]]:
         """
         Solve the task using the given LLM.
@@ -468,6 +615,7 @@ class Capability:
             and the problem to solve.
             llm (Model): The LLM to use for solving the task.
             gen_cfg (Dict[str, Any]): The generation configuration for the LLM.
+            **kwargs: Additional arguments for the LLM.
 
         Returns
         -------
@@ -480,16 +628,30 @@ class Capability:
         #  1. Enable tool use
         #  2. How to link this function with the Inspect Solver
         #   to be used in _evaluate_using_inspect()?
-        print(f"Solving task {task['id']} ...")
-        sys_prompt = TASK_SOLVER_SYSTEM_PROMPT.format(
+        logger.info(f"[{self.name}] Solving task {task['id']} ...")
+        sys_prompt = prompts.TASK_SOLVER_SYSTEM_PROMPT.format(
             capability_name=self.name, capability_domain=self.domain
         )
         user_prompt = self.capability_repr_class.get_instructions(task)
-        response, metadata = llm.generate(
-            sys_prompt=sys_prompt,
-            user_prompt=user_prompt,
-            generation_config=gen_cfg,
-        )
+        with tracing_context(
+            enabled=True,
+            tags=["_solve_task"],
+            metadata={
+                "ls_provider": llm.model_provider,
+                "ls_model_name": llm.get_model_name(with_provider=False),
+                "ls_model_type": "chat",
+                "exp_id": kwargs.get("run_id"),
+                "capability_name": self.name,
+                "domain": self.domain,
+                "task_id": task["id"],
+                **{f"ls_{k}": v for k, v in gen_cfg.items()},
+            },
+        ):
+            response, metadata = await llm.async_generate(
+                sys_prompt=sys_prompt,
+                user_prompt=user_prompt,
+                generation_config=gen_cfg,
+            )
         # Parse for "ANSWER" keyword only if the score function
         # uses the `parse_submission` function.
         # TODO:
@@ -509,8 +671,12 @@ class Capability:
         return (answer, metadata)
 
     def solve_tasks(
-        self, tasks: List[Dict[str, Any]], llm: Model, gen_cfg: Dict[str, Any]
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        self,
+        tasks: List[Dict[str, Any]],
+        llm: Model,
+        gen_cfg: Dict[str, Any],
+        **kwargs: Any,
+    ) -> Tuple[Tuple[List[Dict[str, Any]], List[Dict[str, Any]]], Dict[str, Any]]:
         """
         Solve the tasks using the given LLM.
 
@@ -519,41 +685,104 @@ class Capability:
             tasks (List[Dict[str, Any]]): The list of tasks to solve.
             llm (Model): The LLM to use for solving the tasks.
             gen_cfg (Dict[str, Any]): The generation configuration for the LLM.
+            **kwargs: Additional arguments for the LLM.
 
         Returns
         -------
-            Tuple[List[Dict[str, Any]], Dict[str, Any]]: A tuple containing a list of
-            dictionaries with the solved tasks and a dictionary with metadata
-            for each task.
+            Tuple[Tuple[List[Dict[str, Any]], List[Dict[str, Any]]], Dict[str, Any]]:
+                A tuple containing:
+                - a tuple of solved and unsolved tasks
+                - a dictionary with metadata for each task
         """
         solved_tasks = []
+        unsolved_tasks = []
         metadata = {}
-        for task in tasks:
-            answer, _metadata = self._solve_task(
-                task=task,
-                llm=llm,
-                gen_cfg=gen_cfg,
-            )
-            solved_tasks.append(
-                {
+
+        async def _solve_task_async(
+            task: Dict[str, Any],
+        ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+            try:
+                answer, _metadata = await self._solve_task(
+                    task=task,
+                    llm=llm,
+                    gen_cfg=gen_cfg,
+                    **kwargs,
+                )
+            except Exception as e:
+                logger.warning(f"[{self.name}] Error solving task {task['id']}: {e}")
+                task_solved = False
+                answer = constants.NO_ANSWER_STR
+                reasoning = str(e)
+                _metadata = {"api_metadata": {}}
+            else:
+                if answer == constants.NO_ANSWER_STR:
+                    logger.warning(
+                        f"[{self.name}] Error solving task {task['id']}: 'ANSWER' keyword not found in the response or the answer is empty:\n{_metadata['raw_response']}"
+                    )
+                    task_solved = False
+                    answer = constants.NO_ANSWER_STR
+                    reasoning = _metadata["raw_response"]
+                else:
+                    task_solved = True
+                    reasoning = _metadata["raw_response"]
+            finally:
+                processed_task = {
                     "id": task["id"],
                     "problem": task["problem"],
                     "answer": answer,
-                    "reasoning": _metadata["raw_response"],
+                    "reasoning": reasoning,
+                    "solved": task_solved,
                 }
-            )
-            metadata[task["id"]] = _metadata["api_metadata"]
-        return (solved_tasks, metadata)
+                if not task_solved:
+                    processed_task["verification"] = {
+                        "verdict": "no",
+                        "reason": "unsolved",
+                    }
+            return processed_task, _metadata["api_metadata"]
 
-    def get_tasks(self) -> List[Dict[str, Any]]:
+        async def _solve_all_tasks(concurrency_limit: int) -> None:
+            semaphore = asyncio.Semaphore(concurrency_limit)
+
+            async def _limited_solve_task_async(
+                task: Dict[str, Any],
+            ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+                async with semaphore:
+                    return await _solve_task_async(task)
+
+            results = await asyncio.gather(
+                *(_limited_solve_task_async(task) for task in tasks),
+            )
+            for result in results:
+                processed_task, _metadata = result
+                task_solved = processed_task.pop("solved")
+                if task_solved:
+                    solved_tasks.append(processed_task)
+                else:
+                    unsolved_tasks.append(processed_task)
+                metadata[processed_task["id"]] = _metadata
+
+        asyncio.run(
+            _solve_all_tasks(kwargs.get("concurrency", constants.DEFAULT_CONCURRENCY))
+        )
+
+        return (solved_tasks, unsolved_tasks), metadata
+
+    def get_tasks(self, include_failed: bool = False) -> List[Dict[str, Any]]:
         """
         Get the existing tasks for the capability.
+
+        Args
+        ----
+            include_failed (bool): If True, include failed tasks in the result.
 
         Returns
         -------
             List[Dict[str, Any]]: A list of dictionaries containing the tasks.
         """
-        return self._data
+        tasks = self._data
+        if include_failed:
+            tasks += self._failed_data
+        return tasks
 
     def _create_inspect_file(
         self,
@@ -578,12 +807,12 @@ class Capability:
 
         # Create __init__.py and README files
         # TODO: Add more details to the README file
-        init_file_content = INSPECT_EVALS_INIT_FILE_TEMPLATE.format(
+        init_file_content = templates.INSPECT_EVALS_INIT_FILE_TEMPLATE.format(
             capability_name=self.name,
         ).strip("\n")
         with open(os.path.join(path, "__init__.py"), "w") as f:
             f.write(init_file_content)
-        readme_file_content = INSPECT_EVALS_README_FILE_TEMPLATE.format(
+        readme_file_content = templates.INSPECT_EVALS_README_FILE_TEMPLATE.format(
             capability_name=self.name,
             capability_description=self.description,
         ).strip("\n")
@@ -636,10 +865,16 @@ class Capability:
             "correct = await evaluate_with_llm_judge",
         )
         # Add source folder to the import path
-        score_func_str = score_func_str.replace(
-            "from .utils", f"from {self.name}.utils"
-        )
-        script_file_content = INSPECT_EVALS_SCRIPT_FILE_TEMPLATE.format(
+        if "from utils" in score_func_str:
+            # scientist LLM sometimes forgets to add the "."
+            score_func_str = score_func_str.replace(
+                "from utils", f"from {self.name}.utils"
+            )
+        elif "from .utils" in score_func_str:
+            score_func_str = score_func_str.replace(
+                "from .utils", f"from {self.name}.utils"
+            )
+        script_file_content = templates.INSPECT_EVALS_SCRIPT_FILE_TEMPLATE.format(
             capability_name=self.name,
             dataset_metadata_keys=json.dumps(dataset_metadata_keys),
             prompt_template=instruction_template,
@@ -655,7 +890,7 @@ class Capability:
                 file_path=script_file_path,
             )
         except Exception as e:
-            print(f"Error in creating {script_file_path}: {e}")
+            logger.error(f"[{self.name}] Error creating {script_file_path}: {repr(e)}")
             raise e
 
     def _evaluate_using_inspect(self, subject_llm: Model, **kwargs: Any) -> None:
@@ -716,6 +951,7 @@ class Capability:
         gen_args: List[Dict[Any, Any]],
         judge_llm: Model | None = None,
         judge_llm_gen_args: Dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> None:
         """
         Evaluate the provided subject LLMs on the capability.
@@ -726,6 +962,12 @@ class Capability:
             The list of LLMs to use for evaluation.
         gen_args : List[Dict[Any, Any]]
             The list of generation configurations corresponding to each LLM.
+        judge_llm : Model | None
+            The judge LLM to use for evaluation. If None, no judge LLM is used.
+        judge_llm_gen_args : Dict[str, Any] | None
+            The generation configuration for the judge LLM. If None, defaults are used.
+        **kwargs : Any
+            Additional arguments for the evaluation.
         """
         assert len(subject_llms) == len(gen_args), (
             "Each subject LLM must have a corresponding generation config."
@@ -756,6 +998,11 @@ class Capability:
                 if judge_llm
                 else None,
                 **gen_args[model_idx],
+                run_id=kwargs.get("run_id"),
+                max_samples=kwargs.get(
+                    "concurrency_task_eval", constants.DEFAULT_TASK_EVAL_CONCURRENCY
+                ),
+                score_display=kwargs.get("inspect_eval_score_display", False),
             )
         # Revert to original working dir after evaluation
         # and remove the inspect evals path from sys.path

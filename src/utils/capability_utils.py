@@ -5,11 +5,12 @@ It contains utility functions for capabilities.
 """
 
 import json
+import logging
 import os
 from typing import Any, Dict
 
 from inspect_ai import eval as inspect_eval
-from langsmith import traceable
+from langsmith import traceable, tracing_context
 
 from src.model import Model
 from src.utils import constants
@@ -21,6 +22,9 @@ CAPABILITY_SCORER_MAP = {
     "math": "expression_equivalence",
     "gsm8k": "match",
 }
+
+
+logger = logging.getLogger(__name__)
 
 
 def read_score_inspect_json(json_file: str) -> float:
@@ -97,12 +101,31 @@ def extract_and_parse_response(
             thought_str = (
                 response.split("THOUGHT:")[1].split(parse_kw)[0].strip().strip("\n")
             )
-        except (IndexError, json.JSONDecodeError) as e:
-            print(f"Error parsing thought string: {e}")
+        except Exception as e:
+            logger.error(f"Error parsing thought string: {repr(e)}")
+            logger.error(f"Response: {response}")
             raise
 
     try:
-        response_str = response.split(f"{parse_kw}:\n")[1].strip().strip("\n")
+        try:
+            response_str = response.split(f"{parse_kw}:")[1].strip().strip("\n")
+        except IndexError as e:
+            if "list index out of range" in str(e):
+                # Handle case where parse_kw is not found
+                logger.warning(
+                    f"Parse keyword '{parse_kw}' not found in response. "
+                    "Assuming the entire response is the JSON data starting with '```json' and ending in '```'."
+                )
+                response_str = (
+                    "{"
+                    + response.split("```json\n{")[1].split("}\n```")[0].strip()
+                    + "}"
+                )
+            else:
+                logger.error(
+                    f"Parse keyword '{parse_kw}' not found in response: {repr(e)}"
+                )
+                raise
         if response_type == "json":
             response_json = json.loads(response_str)
             parsed_response_list = []
@@ -115,8 +138,9 @@ def extract_and_parse_response(
             )
         else:
             raise ValueError(f"Unsupported response type: {response_type}")
-    except (IndexError, json.JSONDecodeError) as e:
-        print(f"Error parsing capabilities json: {e}")
+    except Exception as e:
+        logger.error(f"Error parsing response json: {repr(e)}")
+        logger.error(f"Response: {response}")
         raise
 
     output: Dict[str, Any] = {}
@@ -150,16 +174,18 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
     """
     # Create langsmith metadata
     model_name = model.get_model_name(with_provider=True)
-    ls_metadata = {
+    ls_metadata: Dict[str, Any] = {
         "ls_provider": model.model_provider,
         "ls_model_name": model.get_model_name(with_provider=False),
         "ls_model_type": "chat",
+        "exp_id": kwargs.pop("run_id", None),
+        "capability_name": path,
+        "log_dir": log_dir,
     }
     ls_metadata.update({f"ls_{k}": v for k, v in kwargs.items()})
 
     @traceable(
         run_type="llm",
-        metadata=ls_metadata,
     )
     def _run_inspect_evals() -> Dict[str, Any]:
         """
@@ -167,7 +193,7 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
 
         Local function to enable tracing using langsmith.
         """
-        print(f"Running inspect evals for {path} capability using {model_name}")
+        logger.info(f"Running inspect evals for {path} capability using {model_name}")
         eval_log = inspect_eval(
             tasks=path,
             model=inspect_model_name,
@@ -210,7 +236,12 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
     else:
         inspect_model_name = model_name
 
-    output = _run_inspect_evals()
+    with tracing_context(
+        enabled=True,
+        tags=["run_inspect_evals"],
+        metadata=ls_metadata,
+    ):
+        output = _run_inspect_evals()
 
     if model.model_provider == "local":
         # Reset OPENAI_BASE_URL to actual openai URL
@@ -224,3 +255,18 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
         raise ValueError(
             f"Error running inspect evals for {path} capability using {model_name}: {eval_log.error}"
         )
+
+    # Analyze tokens metadata for evaluation
+    usage_metadata = output["usage_metadata"]
+    tokens_summary = {
+        "total_input_tokens": usage_metadata["input_tokens"],
+        "total_output_tokens": usage_metadata["output_tokens"],
+        "total_tokens": usage_metadata["total_tokens"],
+        "input_tokens_per_task": usage_metadata["input_tokens"] / len(eval_log.samples),
+        "output_tokens_per_task": usage_metadata["output_tokens"]
+        / len(eval_log.samples),
+        "total_tokens_per_task": usage_metadata["total_tokens"] / len(eval_log.samples),
+    }
+    logger.info(
+        f"[{path}] Task evaluation tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
+    )
