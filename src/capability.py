@@ -392,7 +392,7 @@ class Capability:
         existing_failed_tasks = [
             task
             for task in self.get_tasks(include_failed=True)
-            if task["verification"]["verdict"] == "no"
+            if task.get("verification", {"verdict": "yes"})["verdict"] == "no"
         ]
         existing_task_ids = [task["id"] for task in existing_tasks]
         new_task_ids = [task["id"] for task in tasks]
