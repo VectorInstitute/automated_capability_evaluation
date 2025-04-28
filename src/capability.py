@@ -3,6 +3,7 @@ import importlib
 import json
 import logging
 import os
+import random
 import shutil
 import sys
 from collections import defaultdict
@@ -365,6 +366,7 @@ class Capability:
         self,
         tasks: List[Dict[str, Any]],
         failed_tasks: List[Dict[str, Any]] | None = None,
+        seed: int = 42,
     ) -> None:
         """
         Add and/or update tasks for the capability.
@@ -377,6 +379,8 @@ class Capability:
                 containing the tasks that failed to be solved.
                 Each task dict consists of id, problem, and answer keys.
         """
+        random.seed(seed)
+
         if not all(
             "id" in task and "problem" in task and "answer" in task for task in tasks
         ):
@@ -385,8 +389,14 @@ class Capability:
             )
 
         existing_tasks = self.get_tasks()
+        existing_failed_tasks = [
+            task
+            for task in self.get_tasks(include_failed=True)
+            if task["verification"]["verdict"] == "no"
+        ]
         existing_task_ids = [task["id"] for task in existing_tasks]
         new_task_ids = [task["id"] for task in tasks]
+        failed_tasks = failed_tasks if failed_tasks else []
         # Keep new task for overlapping tasks
         # TODO: Add `overwrite` flag to update existing tasks
         tasks_to_keep = [
@@ -399,22 +409,53 @@ class Capability:
         tasks_to_keep.sort(key=lambda x: x["id"])
 
         # Check if the new task list consists of representative tasks
+        # or any of the representative tasks are in the failed task list
         # If yes, update the capability class python file
-        repr_tasks = [
+        updated_repr_tasks = [
             task
             for task in tasks
             if task["id"] in self.capability_repr_class.repr_tasks()
         ]
-        if repr_tasks:
-            partial_repr_task_ids = [task["id"] for task in repr_tasks]
-            missing_repr_tasks = {
+        updated_repr_task_ids = [task["id"] for task in updated_repr_tasks]
+        failed_repr_tasks = [
+            task
+            for task in failed_tasks
+            if task["id"] in self.capability_repr_class.repr_tasks()
+        ]
+        failed_repr_task_ids = [task["id"] for task in failed_repr_tasks]
+        if failed_repr_tasks:
+            # Sample new tasks to replace the failed representative tasks
+            non_repr_tasks = [
+                task
+                for task in tasks_to_keep
+                if task["id"] not in self.capability_repr_class.repr_tasks()
+            ]
+            if len(non_repr_tasks) < len(failed_repr_tasks):
+                logger.warning(
+                    f"Not enough non-representative tasks ({len(non_repr_tasks)}) to replace the failed representative tasks. "
+                    f"Number of representative tasks is reduced by {len(failed_repr_tasks)}."
+                )
+                new_repr_tasks = []
+            else:
+                new_repr_tasks = random.sample(non_repr_tasks, len(failed_repr_tasks))
+        update_repr_tasks = updated_repr_tasks or failed_repr_tasks
+        if update_repr_tasks:
+            repr_tasks = updated_repr_tasks
+            repr_tasks_to_keep = {
                 k: v
                 for k, v in self.capability_repr_class.repr_tasks().items()
-                if k not in partial_repr_task_ids
+                if k not in (updated_repr_task_ids + failed_repr_task_ids)
             }
-            for task_id, task_data in missing_repr_tasks.items():
+            for task_id, task_data in repr_tasks_to_keep.items():
                 repr_tasks.append({"id": task_id, **task_data})
+            if failed_repr_tasks:
+                repr_tasks += new_repr_tasks
             repr_tasks.sort(key=lambda x: x["id"])
+            # Keep only problem and answer keys
+            repr_tasks = [
+                {k: v for k, v in task.items() if k in ["id", "problem", "answer"]}
+                for task in repr_tasks
+            ]
             # Update the capability class python file
             # Extract str which contains the repr_tasks dictionary
             # TODO: Since these are hardcoded, update when the format changes
@@ -454,7 +495,7 @@ class Capability:
         if failed_tasks:
             c_dict.update(
                 {
-                    "capability_failed_data": failed_tasks,
+                    "capability_failed_data": existing_failed_tasks + failed_tasks,
                 }
             )
         with open(os.path.join(self.source_dir, "capability.json"), "w") as f:

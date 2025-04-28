@@ -90,7 +90,8 @@ def is_task_generation_required(
     """
     task_gen_required = True
     if (
-        capability.get_state() == CapabilityState.TASK_GENERATION_PARTIALLY_COMPLETED
+        capability.get_state().name
+        == CapabilityState.TASK_GENERATION_PARTIALLY_COMPLETED.name
         and not regenerate_if_partially_completed
         and not regenerate
     ):
@@ -100,7 +101,7 @@ def is_task_generation_required(
         )
         task_gen_required = False
     elif (
-        capability.get_state() == CapabilityState.TASK_GENERATION_COMPLETED
+        capability.get_state().name == CapabilityState.TASK_GENERATION_COMPLETED.name
         and not regenerate
     ):
         logger.warning(
@@ -354,6 +355,7 @@ def generate_tasks_using_llm(
         failed_tasks=sorted(failed_tasks, key=lambda x: int(x["id"]))
         if failed_tasks
         else None,
+        seed=kwargs.get("seed", constants.DEFAULT_RANDOM_SEED),
     )
 
     if len(successful_tasks) < target_num_tasks:
