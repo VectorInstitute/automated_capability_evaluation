@@ -41,6 +41,7 @@ def test_apply_dim_reduction_tsne(mock_capabilities):
         dim_reduction_method=dimensionality_reduction_method,
         output_dimension_size=output_dimensions,
         embedding_model_name="text-embedding-3-small",
+        tsne_perplexity=2,
     )
 
     # Verify that the dim reduction output is set for each capability

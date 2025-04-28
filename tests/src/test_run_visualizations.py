@@ -3,15 +3,16 @@ import os
 from typing import List
 
 import pytest  # noqa: D100
-import torch
 
 from src.capability import Capability
+from src.generate_capabilities import (
+    generate_capability_heatmap,
+    plot_hierarchical_capability_2d_embeddings,
+)
 from src.generate_embeddings import (
     EmbeddingGenerator,
     EmbeddingModelName,
-    hierarchical_2d_visualization,
     reduce_embeddings_dimensions,
-    save_embedding_heatmap,
 )
 
 
@@ -52,19 +53,19 @@ def mock_capabilities():
     """
 
     class MockCapability(Capability):
-        def __init__(self, name, description, group_name):
+        def __init__(self, name, description, area):
             self.name = name
             self.description = description
-            self.group_name = group_name
+            self.area = area
             self.embedding_dict = {}
 
     with open(MANUAL_CAPABILITIES_PATH, "r") as file:
         capabilities_data = json.load(file)
 
     capabilities = []
-    for group_name, capability_group in capabilities_data.items():
+    for area, capability_group in capabilities_data.items():
         for name, description in capability_group.items():
-            capabilities.append(MockCapability(name, description, group_name))
+            capabilities.append(MockCapability(name, description, area))
 
     embedding_generator = EmbeddingGenerator(
         model_name=EmbeddingModelName(EMBEDDING_MODEL_NAME),
@@ -106,9 +107,10 @@ def mock_capabilities():
 
 
 def call_visualize(
-    points_by_group: dict[str, List[torch.Tensor]],
+    mock_capabilities: List[Capability],
+    reduced_embedding_name: str,
     plot_name: str,
-    point_ids: dict[str, List[int]] | None = None,
+    show_point_ids: bool,
 ) -> None:
     """
     Call the visualization function and check if the plot is saved.
@@ -117,10 +119,6 @@ def call_visualize(
     directory. If not, it calls the visualization function to generate
     the plot and save it.
 
-    Args:
-        embeddings (List[torch.Tensor]): capability embeddings to be visualized.
-        group_names (List[str]): the class or group name of each capability.
-        plot_name (str): name of the plot to be saved.
     """
     test_dir = os.path.dirname(os.path.abspath(__file__))
     save_dir = os.path.join(test_dir, "visualizations")
@@ -130,40 +128,45 @@ def call_visualize(
         assert True
     else:
         try:
-            hierarchical_2d_visualization(
-                points_by_group=points_by_group,
-                save_dir=save_dir,
+            plot_hierarchical_capability_2d_embeddings(
+                capabilities=mock_capabilities,
+                dim_reduction_method=reduced_embedding_name,
                 plot_name=plot_name,
-                point_ids=point_ids,
+                save_dir=save_dir,
+                show_point_ids=show_point_ids,
             )
         except Exception as e:
             pytest.fail(f"Visualization failed with error: {e}")
 
 
-def test_reduce_and_visualize_name_embeddings(
+def test_tsne_reduce_and_visualize_name_embeddings(
     mock_capabilities: List[Capability],
 ) -> None:
-    """Apply dimensionality reduction on name embeddings and visualize them."""
+    """Apply dimensionality reduction to name embeddings and visualize them."""
     name_embeddings = [
         capability.get_embedding("name_embedding") for capability in mock_capabilities
     ]
-    group_names = [capability.group_name for capability in mock_capabilities]
-
     reduced_embeddings = reduce_embeddings_dimensions(
         embeddings=name_embeddings, output_dimensions=2, perplexity=PERPLEXITY
     )
-    # Populate points_by_group
-    points_by_group = {}
-    for idx in range(len(reduced_embeddings)):
-        embedding_group = group_names[idx]
-        if embedding_group not in points_by_group:
-            points_by_group[embedding_group] = []
-        points_by_group[embedding_group].append(reduced_embeddings[idx])
 
-    call_visualize(points_by_group=points_by_group, plot_name="name_embedding_plot")
+    # Set reduced dimensions for each capability
+    reduced_embedding_name = "name_embedding_tsne_reduced"
+    for idx in range(len(mock_capabilities)):
+        mock_capabilities[idx].set_embedding(
+            embedding_name=reduced_embedding_name,
+            embedding_tensor=reduced_embeddings[idx],
+        )
+
+    call_visualize(
+        mock_capabilities=mock_capabilities,
+        reduced_embedding_name=reduced_embedding_name,
+        plot_name="name_embedding_plot",
+        show_point_ids=False,
+    )
 
 
-def test_reduce_and_visualize_name_description_embeddings(
+def test_tsne_reduce_and_visualize_name_description_embeddings(
     mock_capabilities: List[Capability],
 ) -> None:
     """Reduce and visualize name_description embeddings."""
@@ -171,63 +174,58 @@ def test_reduce_and_visualize_name_description_embeddings(
         capability.get_embedding("name_description_embedding")
         for capability in mock_capabilities
     ]
-    group_names = [capability.group_name for capability in mock_capabilities]
     reduced_embeddings = reduce_embeddings_dimensions(
         embeddings=name_description_embeddings,
         output_dimensions=2,
         perplexity=PERPLEXITY,
     )
-    # Populate points_by_group
-    points_by_group = {}
-    point_ids = {}
-    for idx in range(len(reduced_embeddings)):
-        embedding_group = group_names[idx]
-        if embedding_group not in points_by_group:
-            points_by_group[embedding_group] = []
-            point_ids[embedding_group] = []
-        points_by_group[embedding_group].append(reduced_embeddings[idx])
-        point_ids[embedding_group].append(idx)
+    # Set reduced dimensions for each capability
+    reduced_embedding_name = "name_description_embedding_tsne_reduced"
+    for idx in range(len(mock_capabilities)):
+        mock_capabilities[idx].set_embedding(
+            embedding_name=reduced_embedding_name,
+            embedding_tensor=reduced_embeddings[idx],
+        )
 
     call_visualize(
-        points_by_group=points_by_group,
+        mock_capabilities=mock_capabilities,
+        reduced_embedding_name=reduced_embedding_name,
         plot_name="name_description_embedding_plot",
-        point_ids=point_ids,
+        show_point_ids=True,
     )
 
 
-def test_reduce_and_visualize_json_embeddings(
+def test_tsne_reduce_and_visualize_json_embeddings(
     mock_capabilities: List[Capability],
 ) -> None:
     """Reduce and visualize JSON representation embeddings."""
     json_embeddings = [
         capability.get_embedding("json_embedding") for capability in mock_capabilities
     ]
-    group_names = [capability.group_name for capability in mock_capabilities]
     reduced_embeddings = reduce_embeddings_dimensions(
         embeddings=json_embeddings, output_dimensions=2, perplexity=PERPLEXITY
     )
-    # Populate points_by_group
-    points_by_group = {}
-    for idx in range(len(reduced_embeddings)):
-        embedding_group = group_names[idx]
-        if embedding_group not in points_by_group:
-            points_by_group[embedding_group] = []
-        points_by_group[embedding_group].append(reduced_embeddings[idx])
+    # Set reduced dimensions for each capability
+    reduced_embedding_name = "json_embedding_tsne_reduced"
+    for idx in range(len(mock_capabilities)):
+        mock_capabilities[idx].set_embedding(
+            embedding_name=reduced_embedding_name,
+            embedding_tensor=reduced_embeddings[idx],
+        )
 
-    call_visualize(points_by_group=points_by_group, plot_name="json_embedding_plot")
+    call_visualize(
+        mock_capabilities=mock_capabilities,
+        reduced_embedding_name=reduced_embedding_name,
+        plot_name="json_embedding_plot",
+        show_point_ids=False,
+    )
 
 
-def test_visualize_name_description_heatmap(
+def test_generate_capability_heatmap(
     mock_capabilities: List[Capability],
 ) -> None:
     """Visualize name_description openai embedding heatmap."""
-    name_description_embeddings = [
-        capability.get_embedding("name_description_embedding")
-        for capability in mock_capabilities
-    ]
-
     plot_name = "heatmap_plot"
-
     test_dir = os.path.dirname(os.path.abspath(__file__))
     save_dir = os.path.join(test_dir, "visualizations")
     os.makedirs(save_dir, exist_ok=True)
@@ -236,11 +234,12 @@ def test_visualize_name_description_heatmap(
         assert True
     else:
         try:
-            save_embedding_heatmap(
-                embeddings=name_description_embeddings,
-                save_dir=save_dir,
+            generate_capability_heatmap(
+                capabilities=mock_capabilities,
+                embedding_model_name="name_description_embedding",
                 plot_name=plot_name,
-                num_groups=4,
+                save_dir=save_dir,
+                add_squares=True,
             )
         except Exception as e:
             pytest.fail(f"Visualization failed with error: {e}")

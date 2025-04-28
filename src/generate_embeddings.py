@@ -7,6 +7,7 @@ import numpy as np
 import seaborn as sns
 import torch
 from langchain_openai import OpenAIEmbeddings
+from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from sklearn.manifold import TSNE
 from sklearn.metrics.pairwise import cosine_similarity
@@ -130,20 +131,20 @@ def reduce_embeddings_dimensions(
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(42)
 
-    if len(embeddings) < perplexity:
-        # Perplexity should always be smaller than the number of samples.
-        # If the number of samples is smaller than the default perplexity
-        # value, we set the perplexity to the number of samples - 2 since a
-        # larger value either throws and error or is too big for the algorithm
-        # to work properly.
-        perplexity = len(embeddings) - 2
+    if dim_reduction_technique == DimensionalityReductionTechnique.CUT_EMBEDDING:
+        reduced_embeddings = [embedding[:output_dimensions] for embedding in embeddings]
+    elif dim_reduction_technique == DimensionalityReductionTechnique.TSNE:
+        if len(embeddings) < perplexity:
+            # Perplexity should always be smaller than the number of samples.
+            # If the number of samples is smaller than the default perplexity
+            # value, we set the perplexity to the number of samples - 2 since a
+            # larger value either throws and error or is too big for the algorithm
+            # to work properly.
+            perplexity = len(embeddings) - 2
         print(
             f"Only {len(embeddings)} points are provided for t-SNE\
               perplexity is reduced to the number of points - 1."
         )
-    if dim_reduction_technique == DimensionalityReductionTechnique.CUT_EMBEDDING:
-        reduced_embeddings = [embedding[:output_dimensions] for embedding in embeddings]
-    elif dim_reduction_technique == DimensionalityReductionTechnique.TSNE:
         # Convert embeddings to numpy array because that is what t-SNE expects.
         np_embeddings = np.array(embeddings)
         tsne = TSNE(
@@ -282,48 +283,54 @@ def visualize_embeddings(
 
 
 def hierarchical_2d_visualization(
-    points_by_group: dict[str, List[torch.Tensor]],
+    embeddings_by_area: dict[str, List[torch.Tensor]],
     save_dir: str,
     plot_name: str,
-    point_ids: dict[str, List[int]] | None = None,
+    points_area_name_ids: dict[str, dict[str, int]] | None = None,
 ) -> None:
-    """Visualize 2D points grouped by labels using a scatter plot.
+    """Visualize 2D points grouped by their area.
 
     Args:
-        points_by_group (dict[str, List[torch.Tensor]]): A dictionary where
-            keys are labels or groups and values are lists of 2D points (as tensors).
+        embeddings_by_area (dict[str, List[torch.Tensor]]): A dictionary where
+            keys are areas and values are lists of 2D points (as tensors).
         save_dir (str): The directory to save the plot.
         plot_name (str): The name of the plot file.
+        points_area_name_ids (dict[str, dict[str, int]] | None): Optional dictionary
+            mapping area names to dictionaries of point names and their IDs.
+
     """
     # Assert that all points are 2D
     assert all(
         point.ndimension() == 1 and point.size(0) == 2
-        for points in points_by_group.values()
+        for points in embeddings_by_area.values()
         for point in points
     ), "All points must be 2D tensors for visualization."
 
-    colors = sns.color_palette("husl", len(points_by_group))
+    plt.figure(figsize=(12, 8))
+    colors = sns.color_palette("husl", len(embeddings_by_area))
 
-    for i, (label, points) in enumerate(points_by_group.items()):
-        ids = point_ids.get(label) if point_ids else None
+    for i, (area, points) in enumerate(embeddings_by_area.items()):
         points_tensor = torch.stack(points)  # Shape: (N, 2)
         x = points_tensor[:, 0].numpy()
         y = points_tensor[:, 1].numpy()
-        plt.scatter(x, y, label=label, color=colors[i], alpha=0.6, edgecolor="k", s=50)
+        plt.scatter(x, y, label=area, color=colors[i], alpha=0.6, edgecolor="k", s=90)
 
-        # Write point IDs on each point
-        if ids:
-            for j, (x_coord, y_coord) in enumerate(zip(x, y)):
-                plt.text(
-                    x_coord,
-                    y_coord,
-                    str(ids[j]),
-                    fontsize=6,
-                    ha="center",
-                    va="center",
-                    color="black",
-                    bbox={"facecolor": "white", "alpha": 0.7, "edgecolor": "none"},
-                )
+        # Write point IDs on each point.
+        if points_area_name_ids is not None:
+            area_points = points_area_name_ids.get(area)
+            if area_points is not None:
+                ids = list(area_points.values())
+                for j, (x_coord, y_coord) in enumerate(zip(x, y)):
+                    plt.text(
+                        x_coord,
+                        y_coord,
+                        str(ids[j]),
+                        fontsize=7,
+                        ha="center",
+                        va="center",
+                        color="black",
+                        bbox={"facecolor": "none", "edgecolor": "none"},
+                    )
 
         # Compute cluster center to place label
         center_x = x.mean()
@@ -331,7 +338,7 @@ def hierarchical_2d_visualization(
         plt.text(
             center_x,
             center_y,
-            label,
+            area,
             fontsize=8,
             weight="normal",
             bbox={"facecolor": colors[i], "alpha": 0.6, "edgecolor": "none"},
@@ -340,6 +347,24 @@ def hierarchical_2d_visualization(
             color="white",
         )
 
+    # If point names are provided, create a legend with names and IDs
+    if points_area_name_ids:
+        legend_handles = []
+        for color_id, (_, names_ids) in enumerate(points_area_name_ids.items()):
+            color = colors[color_id]
+            for name, point_id in names_ids.items():
+                label = f"{point_id}: {name}"
+                handle = Line2D(
+                    [], [], marker="o", color=color, linestyle="None", label=label
+                )
+                legend_handles.append(handle)
+
+        plt.legend(
+            handles=legend_handles,
+            loc="center left",
+            bbox_to_anchor=(1, 0.5),
+            fontsize=8,
+        )
     plt.title("Hierarchical 2D Embedding Visualization")
     plt.xlabel("Dim 1")
     plt.ylabel("Dim 2")
@@ -354,45 +379,110 @@ def hierarchical_2d_visualization(
 
 
 def save_embedding_heatmap(
-    embeddings: List[torch.Tensor],
+    embeddings_by_area: dict[str, List[torch.Tensor]],
+    capability_names_by_area: dict[str, List[str]],
     save_dir: str,
     plot_name: str,
-    num_groups: int | None = None,
+    add_squares: bool,
 ) -> None:
     """Generate and save a heatmap of cosine similarity between embeddings.
 
     This function computes the cosine similarity between a list of
     embeddings and generates a heatmap to visualize the similarity
-    matrix. If num_groups is provided, it highlights the squares
-    along the diagonal corresponding to the number of groups.
+    matrix. If add_squares is True, it highlights the squares
+    along the diagonal corresponding to each area.
     Args:
-        embeddings (List[torch.Tensor]): A list of embedding tensors.
+        embeddings_by_area (dict[str, List[torch.Tensor]]): A dictionary where
+            keys are area names and values are lists of embeddings.
+        capability_names_by_area (dict[str, List[str]]): A dictionary where
+            keys are area names and values are lists of capability names.
         save_dir (str): The directory to save the plot.
         plot_name (str): The name of the plot file.
-        num_groups (int | None): Number of groups to highlight in the heatmap.
+        add_squares (bool): Whether to add squares around each area's section.
     """
-    similarity_matrix = cosine_similarity(embeddings)
-    plt.figure(figsize=(10, 8))
+    embeddings = []
+    all_capability_names = []
+    square_start_indices = {}
+    current_idx = 0
+
+    # Process each area to create embedding list and track indices
+    for area, tensors in embeddings_by_area.items():
+        square_start_indices[area] = current_idx
+        embeddings.extend(tensors)
+
+        # Get names for this area and add them to all_capability_names
+        if area in capability_names_by_area:
+            names = capability_names_by_area[area]
+            all_capability_names.extend(names)
+        else:
+            # Use default names if not provided
+            names = [f"{area}_{i}" for i in range(len(tensors))]
+            all_capability_names.extend(names)
+
+        current_idx += len(tensors)
+
+    similarity_matrix = cosine_similarity(
+        [embedding.numpy() for embedding in embeddings]
+    )
+
+    # Calculate figure size based on number of labels
+    # to make sure that there's enough space for the text and annotations
+    n_elements = len(all_capability_names)
+    fig_width = max(12, n_elements * 0.8)
+    fig_height = max(10, n_elements * 0.7)
+
+    plt.figure(figsize=(fig_width, fig_height))
+
+    # Assign font size for annotations based on number of elements
+    annot_fontsize = max(7, min(10, 200 / n_elements))
+
     ax = sns.heatmap(
         similarity_matrix,
         annot=True,
+        fmt=".2f",
         cmap="Blues",
         vmin=0,
         vmax=1,
-        xticklabels=True,
-        yticklabels=True,
+        xticklabels=all_capability_names,
+        yticklabels=all_capability_names,
+        annot_kws={"size": annot_fontsize},
+        cbar_kws={"shrink": 0.7},
     )
-    # If num_groups is provided, highlight the squares along the diagonal
-    # Highlight num_groups x num_groups squares.
-    if num_groups:
-        num_elements = similarity_matrix.shape[0]
-        for i in range(0, num_elements, num_groups):
-            if i + num_groups <= num_elements:
+
+    # Set X labels and rotate 45 degrees for better visibility
+    ax.set_xticklabels(
+        all_capability_names,
+        rotation=45,
+        ha="right",
+        fontsize=max(8, min(10, 250 / n_elements)),
+    )
+
+    # Set Y labels horizontal
+    ax.set_yticklabels(
+        all_capability_names,
+        rotation=0,  # Horizontal text
+        ha="right",
+        fontsize=max(8, min(10, 250 / n_elements)),
+    )
+
+    plt.title("Embedding Similarity Heatmap", fontsize=14)
+
+    # tight layout to maximize use of space
+    plt.tight_layout()
+
+    if add_squares:
+        # Adding rectangles around each area's section
+        # based in square_start_indices that are set
+        # when processing each area
+        for area, tensors in embeddings_by_area.items():
+            start_idx = square_start_indices[area]
+            size = len(tensors)
+            if size > 0:
                 ax.add_patch(
                     Rectangle(
-                        (i, i),
-                        num_groups,
-                        num_groups,
+                        (start_idx, start_idx),
+                        size,
+                        size,
                         fill=False,
                         edgecolor="red",
                         lw=2,
@@ -400,9 +490,10 @@ def save_embedding_heatmap(
                     )
                 )
 
-    plt.tight_layout()
     # Ensure the save directory exists
     os.makedirs(save_dir, exist_ok=True)
     save_path = os.path.join(save_dir, f"{plot_name}.pdf")
-    plt.savefig(save_path, format="pdf")
+
+    # Save with extra padding to avoid cutoff
+    plt.savefig(save_path, format="pdf", bbox_inches="tight", pad_inches=0.5)
     plt.close()

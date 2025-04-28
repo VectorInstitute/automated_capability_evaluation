@@ -100,7 +100,7 @@ class Capability:
         Loads the capability configuration from a JSON file.
     _load_capability_repr_class() -> None
         Loads the capability representation class from a Python file.
-    _to_dict() -> Dict[str, Any]
+    to_dict() -> Dict[str, Any]
         Converts the capability attributes to a dictionary.
     to_json_str() -> str
         Converts the capability to a JSON string.
@@ -371,7 +371,20 @@ class Capability:
         self._load_capability_json()
         self._load_capability_repr_class()
 
-    def _to_dict(self, attribute_names: List[str] | None = None) -> Dict[str, Any]:
+    def to_dict(self, attribute_names: List[str] | None = None) -> Dict[str, Any]:
+        """
+        Return a dictionary of the capability attributes.
+
+        Args:
+            attribute_names (List[str] | None, optional): the list of attribute
+            names requested. If none, return a set of default attributes.
+            Defaults to None.
+
+        Returns
+        -------
+            Dict[str, Any]: a dictionary representation of the capability
+                based on the requested attribute names or a default set of attributes.
+        """
         if attribute_names is None:
             return {
                 "name": self.name,
@@ -383,6 +396,22 @@ class Capability:
             attr: getattr(self, attr) for attr in attribute_names if hasattr(self, attr)
         }
 
+    def get_attribute(self, attribute_name: str) -> Any:
+        """
+        Get the value of a specific attribute of the capability.
+
+        Args
+        ----
+            attribute_name (str): The name of the attribute to retrieve.
+
+        Returns
+        -------
+            Any: The value of the specified attribute.
+        """
+        if not hasattr(self, attribute_name):
+            raise AttributeError(f"Attribute {attribute_name} not found in capability.")
+        return getattr(self, attribute_name)
+
     def to_json_str(self, attribute_names: List[str] | None = None) -> str:
         """
         Convert the capability to a JSON string.
@@ -392,7 +421,7 @@ class Capability:
         str
             A JSON string representation of the capability.
         """
-        return json.dumps(self._to_dict(attribute_names), indent=4)
+        return json.dumps(self.to_dict(attribute_names), indent=4)
 
     def __str__(self) -> str:
         """
