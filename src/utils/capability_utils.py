@@ -102,13 +102,13 @@ def extract_and_parse_response(
                 response.split("THOUGHT:")[1].split(parse_kw)[0].strip().strip("\n")
             )
         except Exception as e:
-            logger.error(f"Error parsing thought string: {e}")
+            logger.error(f"Error parsing thought string: {repr(e)}")
             logger.error(f"Response: {response}")
             raise
 
     try:
         try:
-            response_str = response.split(f"{parse_kw}:\n")[1].strip().strip("\n")
+            response_str = response.split(f"{parse_kw}:")[1].strip().strip("\n")
         except IndexError as e:
             if "list index out of range" in str(e):
                 # Handle case where parse_kw is not found
@@ -122,7 +122,9 @@ def extract_and_parse_response(
                     + "}"
                 )
             else:
-                logger.error(f"Parse keyword '{parse_kw}' not found in response: {e}")
+                logger.error(
+                    f"Parse keyword '{parse_kw}' not found in response: {repr(e)}"
+                )
                 raise
         if response_type == "json":
             response_json = json.loads(response_str)
@@ -137,7 +139,7 @@ def extract_and_parse_response(
         else:
             raise ValueError(f"Unsupported response type: {response_type}")
     except Exception as e:
-        logger.error(f"Error parsing response json: {e}")
+        logger.error(f"Error parsing response json: {repr(e)}")
         logger.error(f"Response: {response}")
         raise
 
