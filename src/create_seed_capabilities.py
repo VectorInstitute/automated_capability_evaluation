@@ -90,7 +90,7 @@ def populate_seed_capability_dir(
     with open(os.path.join(capability_dir, "capability.py"), "w") as f:
         f.write(capability_class_str)
 
-    # Create _state.json file with task generation completed tate
+    # Create _state.json file with task generation completed state
     with open(
         os.path.join(capability_dir, "_state.json"),
         "w",
