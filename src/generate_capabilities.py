@@ -264,8 +264,27 @@ def generate_capabilities_using_llm(
 
                 parsed_response = extract_and_parse_response(response)
                 gen_capabilities = parsed_response["parsed_response"]
-                gen_capabilities_clean = []
+                # Convert JSON string to dict if needed
+                gen_capabilities_dict = []
                 for capability in gen_capabilities:
+                    if isinstance(capability, dict):
+                        capability_dict = capability
+                    elif isinstance(capability, str):
+                        try:
+                            capability_dict = json.loads(capability)
+                        except json.JSONDecodeError as e:
+                            logger.warning(
+                                f"Error decoding JSON string: {capability}: {repr(e)}"
+                            )
+                            continue
+                    else:
+                        logger.warning(
+                            f"Invalid capability format: {capability}. Expected str or dict."
+                        )
+                        continue
+                    gen_capabilities_dict.append(capability_dict)
+                gen_capabilities_clean = []
+                for capability in gen_capabilities_dict:
                     try:
                         if capability_area is not None:
                             # Add the capability area to the generated capabilities

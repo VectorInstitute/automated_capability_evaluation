@@ -359,9 +359,11 @@ def generate_tasks_using_llm(
     )
 
     if len(successful_tasks) < target_num_tasks:
-        warning_msg = f"[{capability.name}] Only {len(successful_tasks)} tasks were successfully solved and verified. "
-        f"Target number of tasks not reached: {target_num_tasks}. "
-        "It is recommended to increase the buffer."
+        warning_msg = (
+            f"[{capability.name}] Only {len(successful_tasks)} tasks were successfully solved and verified. "
+            + f"Target number of tasks not reached: {target_num_tasks}. "
+            + "It is recommended to increase the buffer."
+        )
         logger.warning(warning_msg)
         capability.set_state(
             state_str=constants.C_STATE_TASK_GENERATION_PARTIALLY_COMPLETED_STR,

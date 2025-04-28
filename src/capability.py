@@ -436,7 +436,7 @@ class Capability:
             ]
             if len(non_repr_tasks) < len(failed_repr_tasks):
                 logger.warning(
-                    f"Not enough non-representative tasks ({len(non_repr_tasks)}) to replace the failed representative tasks. "
+                    f"[{self.name}] Not enough non-representative tasks ({len(non_repr_tasks)}) to replace the failed representative tasks. "
                     f"Number of representative tasks is reduced by {len(failed_repr_tasks)}."
                 )
                 new_repr_tasks = []
@@ -709,7 +709,7 @@ class Capability:
                     **kwargs,
                 )
             except Exception as e:
-                logger.warning(f"Error solving task {task['id']}: {e}")
+                logger.warning(f"[{self.name}] Error solving task {task['id']}: {e}")
                 task_solved = False
                 answer = constants.NO_ANSWER_STR
                 reasoning = str(e)
@@ -717,7 +717,7 @@ class Capability:
             else:
                 if answer == constants.NO_ANSWER_STR:
                     logger.warning(
-                        f"Error solving task {task['id']}: 'ANSWER' keyword not found in the response or the answer is empty:\n{_metadata['raw_response']}"
+                        f"[{self.name}] Error solving task {task['id']}: 'ANSWER' keyword not found in the response or the answer is empty:\n{_metadata['raw_response']}"
                     )
                     task_solved = False
                     answer = constants.NO_ANSWER_STR
@@ -890,7 +890,7 @@ class Capability:
                 file_path=script_file_path,
             )
         except Exception as e:
-            logger.error(f"Error in creating {script_file_path}: {e}")
+            logger.error(f"[{self.name}] Error creating {script_file_path}: {repr(e)}")
             raise e
 
     def _evaluate_using_inspect(self, subject_llm: Model, **kwargs: Any) -> None:

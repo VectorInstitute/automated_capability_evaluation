@@ -1,5 +1,5 @@
 scientist_llm:
-  name: gpt-4o-mini
+  name: o3-mini
   provider: openai
   generation_cfg:
     capability_generation:
@@ -61,7 +61,7 @@ capabilities_cfg:
   method: "hierarchical"
   # Number of seed capabilities to use for initial capability generation
   # Set to -1 to use all seed capabilities
-  num_seed_capabilities: 2
+  num_seed_capabilities: 1
   # Number of initial capabilities to generate using the scientist LLM
   num_gen_capabilities: 10
   # Buffer for capability generation
