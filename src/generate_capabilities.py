@@ -264,13 +264,12 @@ def generate_capabilities_using_llm(
 
                 parsed_response = extract_and_parse_response(response)
                 gen_capabilities = parsed_response["parsed_response"]
-                if capability_area is not None:
-                    # Add the capability area to the generated capabilities
-                    for capability in gen_capabilities:
-                        capability["area"] = capability_area
                 gen_capabilities_clean = []
                 for capability in gen_capabilities:
                     try:
+                        if capability_area is not None:
+                            # Add the capability area to the generated capabilities
+                            capability["area"] = capability_area
                         capability_obj = Capability.from_dict(
                             capability_dict=capability,
                             base_dir=base_capability_dir,
