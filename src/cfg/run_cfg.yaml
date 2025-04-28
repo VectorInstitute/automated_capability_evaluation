@@ -71,7 +71,7 @@ capabilities_cfg:
   # Number of initial capabilities to generate per run
   num_gen_capabilities_per_run: 2
   # Number of tasks to generate for each capability
-  num_gen_tasks_per_capability: 2
+  num_gen_tasks_per_capability: 5
   # Buffer for task generation
   num_gen_tasks_buffer: 0.2
   # Set this flag to true to use representative tasks
@@ -79,14 +79,14 @@ capabilities_cfg:
   task_gen_few_shot: true
   # Number of tasks to evaluate for each capability
   # Set to -1 to evaluate all tasks
-  num_eval_tasks_per_capability: 5
+  num_eval_tasks_per_capability: 10
   # Number of retries for each run of capability generation
   capabilities_gen_retry_attempts: 3
   tasks_gen_retry_attempts: 3
   # Concurrency for task solving and verification
-  concurrency_task_solver: 5
-  concurrency_task_verifier: 5
-  concurrency_task_eval: 5
+  concurrency_task_solver: 10
+  concurrency_task_verifier: 10
+  concurrency_task_eval: 10
   # Inspect evals config
   inspect_eval_score_display: false
 

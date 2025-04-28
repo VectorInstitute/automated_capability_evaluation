@@ -1,15 +1,18 @@
 import logging  # noqa: D100
+import os
 
 import hydra
 from omegaconf import DictConfig
 
 from generate_capabilities import (
     generate_capabilities,
+    get_previous_capabilities,
 )
 from generate_tasks import generate_tasks_using_llm
 
 # from lbo import generate_new_capability
 from model import Model
+from utils import constants
 from utils.lbo_utils import get_lbo_train_set
 
 
@@ -51,9 +54,10 @@ def main(cfg: DictConfig) -> None:
     """
     check_cfg(cfg)
 
-    run_id = f"{cfg.scientist_llm.name}_T{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
+    run_id = f"{cfg.scientist_llm.name}_C{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
     if cfg.capabilities_cfg.method == "hierarchical":
         run_id += f"_A{cfg.capabilities_cfg.num_capability_areas}"
+    run_id += f"_T{cfg.capabilities_cfg.num_gen_tasks_per_capability}"
 
     # Initialize the scientist LLM model
     scientist_llm = Model(
@@ -63,48 +67,51 @@ def main(cfg: DictConfig) -> None:
     scientist_llm_gen_cfg = cfg.scientist_llm.generation_cfg
 
     # Stage 1. Generate initial capabilities
-    logger.info("Starting capability generation ...")
+    # Set the base capability directory
+    base_capability_dir = os.path.join(
+        constants.BASE_ARTIFACTS_DIR,
+        f"capabilities_{run_id}",
+        cfg.capabilities_cfg.domain,
+    )
     target_num_capabilities = cfg.capabilities_cfg.num_gen_capabilities
-    num_capabilities = int(
-        target_num_capabilities * (1 + cfg.capabilities_cfg.num_gen_capabilities_buffer)
-    )
-    capabilities = generate_capabilities(
-        domain=cfg.capabilities_cfg.domain,
-        num_capabilities=num_capabilities,
-        num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
-        scientist_llm=scientist_llm,
-        num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
-        scientist_llm_gen_cfg=dict(scientist_llm_gen_cfg.capability_generation),
-        method=cfg.capabilities_cfg.method,
-        num_capability_areas=cfg.capabilities_cfg.num_capability_areas,
-        exclude_seed_capability_names=["grade_school_math_word_problems"],
-        run_id=run_id,
-        trial_run=cfg.exp_cfg.trial_run,
-        seed=cfg.exp_cfg.seed,
-        retry_attempts=cfg.capabilities_cfg.capabilities_gen_retry_attempts,
-    )
+    if os.path.exists(base_capability_dir):
+        # Fetch previously generated capabilities
+        logger.info(
+            f"Base capability directory already exists: {base_capability_dir}. "
+            "Fetching previously generated capabilities."
+        )
+        capabilities = get_previous_capabilities(capability_dir=base_capability_dir)
+    else:
+        os.makedirs(base_capability_dir, exist_ok=False)
+        logger.info("Starting capability generation ...")
+        num_capabilities = int(
+            target_num_capabilities
+            * (1 + cfg.capabilities_cfg.num_gen_capabilities_buffer)
+        )
+        capabilities = generate_capabilities(
+            domain=cfg.capabilities_cfg.domain,
+            num_capabilities=num_capabilities,
+            num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
+            base_capability_dir=base_capability_dir,
+            scientist_llm=scientist_llm,
+            num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
+            scientist_llm_gen_cfg=dict(scientist_llm_gen_cfg.capability_generation),
+            method=cfg.capabilities_cfg.method,
+            num_capability_areas=cfg.capabilities_cfg.num_capability_areas,
+            exclude_seed_capability_names=["grade_school_math_word_problems"],
+            run_id=run_id,
+            trial_run=cfg.exp_cfg.trial_run,
+            seed=cfg.exp_cfg.seed,
+            retry_attempts=cfg.capabilities_cfg.capabilities_gen_retry_attempts,
+        )
+    capabilities = sorted(capabilities, key=lambda x: x.name)
+    logger.info(f"Capability names:\n{capabilities}")
     if len(capabilities) < target_num_capabilities:
         logger.warning(
             f"Only {len(capabilities)} capabilities were created. "
             f"Target number of capabilities not reached: {target_num_capabilities}. "
             "It is recommended to increase the buffer."
         )
-    logger.info(capabilities)
-
-    # # TODO: Only used for testing, remove this block later ========================
-    # if cfg.exp_cfg.trial_run:
-    #     # Set the base capability directory
-    #     base_capability_dir = os.path.join(
-    #         constants.BASE_ARTIFACTS_DIR,
-    #         f"capabilities_{run_id}",
-    #         cfg.capabilities_cfg.domain,
-    #     )
-    #     os.makedirs(base_capability_dir, exist_ok=True)
-
-    #     # Fetch previously generated capabilities, if any
-    #     capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
-    #     logger.info(capabilities)
-    # # =============================================================================
 
     # # Embed capabilities using openai embedding model
     # generate_and_set_capabilities_embeddings(
@@ -143,7 +150,7 @@ def main(cfg: DictConfig) -> None:
         )
         if num_lbo_runs > len(candidate_capabilities):
             logger.warning(
-                f"Warning: Number of LBO runs ({num_lbo_runs}) exceeds the number of "
+                f"Number of LBO runs ({num_lbo_runs}) exceeds the number of "
                 + f"candidate capabilities ({len(candidate_capabilities)}). "
                 + f"Setting the number of LBO runs to {len(candidate_capabilities)}."
             )
@@ -184,6 +191,7 @@ def main(cfg: DictConfig) -> None:
             tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
             concurrency_task_solver=cfg.capabilities_cfg.concurrency_task_solver,
             concurrency_task_verifier=cfg.capabilities_cfg.concurrency_task_verifier,
+            seed=cfg.exp_cfg.seed,
         )
         # Evaluate subject LLM on each capability
         capability.evaluate(
