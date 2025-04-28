@@ -865,9 +865,15 @@ class Capability:
             "correct = await evaluate_with_llm_judge",
         )
         # Add source folder to the import path
-        score_func_str = score_func_str.replace(
-            "from .utils", f"from {self.name}.utils"
-        )
+        if "from utils" in score_func_str:
+            # scientist LLM sometimes forgets to add the "."
+            score_func_str = score_func_str.replace(
+                "from utils", f"from {self.name}.utils"
+            )
+        elif "from .utils" in score_func_str:
+            score_func_str = score_func_str.replace(
+                "from .utils", f"from {self.name}.utils"
+            )
         script_file_content = templates.INSPECT_EVALS_SCRIPT_FILE_TEMPLATE.format(
             capability_name=self.name,
             dataset_metadata_keys=json.dumps(dataset_metadata_keys),
