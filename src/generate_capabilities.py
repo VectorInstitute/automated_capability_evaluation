@@ -105,7 +105,7 @@ def _sample_seed_capabilities(
     return sampled_seed_capabilities
 
 
-def _get_previous_capabilities(
+def get_previous_capabilities(
     capability_dir: str,
     capability_area: str | None = None,
 ) -> List[Capability]:
@@ -514,6 +514,13 @@ def generate_capability_areas(
         f"Capability areas generation tokens summary:\n{json.dumps(metadata, indent=4)}"
     )
 
+    if len(capability_areas) > num_areas:
+        logger.warning(
+            f"Generated {len(capability_areas)} capability areas, but only {num_areas} are needed. "
+            + "Truncating the list to the required number."
+        )
+        capability_areas = capability_areas[:num_areas]
+
     return {
         "capability_areas": capability_areas,
         "metadata": {
@@ -527,6 +534,7 @@ def generate_capabilities(
     domain: str,
     num_capabilities: int,
     num_capabilities_per_run: int,
+    base_capability_dir: str,
     scientist_llm: Model,
     num_seed_capabilities: int,
     scientist_llm_gen_cfg: Dict[str, Any],
@@ -543,6 +551,8 @@ def generate_capabilities(
         domain (str): The domain name.
         num_capabilities (int): The number of capabilities to generate.
         num_capabilities_per_run (int): The number of capabilities to generate per run.
+        base_capability_dir (str): The base directory to store
+            the generated capabilities for the specified domain.
         scientist_llm (Model): The scientist LLM model.
         num_seed_capabilities (int): The number of seed capabilities to use.
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
@@ -561,17 +571,6 @@ def generate_capabilities(
     """
     gen_capabilities = []
     run_metadata = []
-
-    # Set the base capability directory
-    if "trial_run" in kwargs:
-        base_capability_dir = os.path.join(
-            constants.BASE_ARTIFACTS_DIR, f"capabilities_{kwargs['run_id']}", domain
-        )
-        os.makedirs(base_capability_dir, exist_ok=True)
-    else:
-        base_capability_dir = os.path.join(
-            constants.BASE_ARTIFACTS_DIR, "capabilities", domain
-        )
 
     if method == "hierarchical":
         assert "num_capability_areas" in kwargs, (
@@ -617,14 +616,14 @@ def generate_capabilities(
         if method == "hierarchical":
             logger.info(f"Generating capabilities for area: {capability_area}")
             # Fetch previously generated capabilities, if any
-            prev_capabilities = _get_previous_capabilities(
+            prev_capabilities = get_previous_capabilities(
                 capability_dir=base_capability_dir, capability_area=capability_area
             )
             user_prompt = prompts.HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT.format(
                 capability_area=capability_area,
             )
         else:
-            prev_capabilities = _get_previous_capabilities(
+            prev_capabilities = get_previous_capabilities(
                 capability_dir=base_capability_dir
             )
             user_prompt = prompts.CAPABILITY_GENERATION_USER_PROMPT

@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Tuple
 from langsmith import tracing_context
 from tenacity import Retrying, stop_after_attempt
 
-from capability import Capability
+from capability import Capability, CapabilityState
 from model import Model
 from utils import constants, prompts
 from utils.capability_utils import extract_and_parse_response
@@ -65,6 +65,51 @@ def get_task_generation_prompt(
     return sys_prompt, user_prompt
 
 
+def is_task_generation_required(
+    capability: Capability,
+    target_num_tasks: int,
+    regenerate: bool = False,
+    regenerate_if_partially_completed: bool = False,
+) -> bool:
+    """
+    Check if task generation is required based on the capability state.
+
+    Args
+    ----
+        capability (Capability): The capability to check.
+        target_num_tasks (int): The target number of tasks.
+        regenerate (bool, optional): Whether to regenerate tasks.
+            Defaults to False.
+        regenerate_if_partially_completed (bool, optional): Whether to
+            regenerate tasks if the task generation is partially completed.
+            Defaults to False.
+
+    Returns
+    -------
+        bool: True if task generation is required, False otherwise.
+    """
+    task_gen_required = True
+    if (
+        capability.state == CapabilityState.TASK_GENERATION_PARTIALLY_COMPLETED
+        and not regenerate_if_partially_completed
+        and not regenerate
+    ):
+        logger.warning(
+            f"[{capability.name}] Task generation is partially completed with {len(capability.get_tasks())}/{target_num_tasks} tasks. "
+            "In order to regenerate all tasks, set either 'regenerate_if_partially_completed' or 'regenerate' to True."
+        )
+        task_gen_required = False
+    elif (
+        capability.state == CapabilityState.TASK_GENERATION_COMPLETED and not regenerate
+    ):
+        logger.warning(
+            f"[{capability.name}] Task generation is already completed with {len(capability.get_tasks())}/{target_num_tasks} tasks. "
+            "In order to regenerate all tasks, set 'regenerate' to True."
+        )
+        task_gen_required = False
+    return task_gen_required
+
+
 def generate_tasks_using_llm(
     capability: Capability,
     scientist_llm: Model,
@@ -74,6 +119,8 @@ def generate_tasks_using_llm(
     scientist_llm_gen_cfg_task_solve: Dict[str, Any],
     scientist_llm_gen_cfg_task_verify: Dict[str, Any],
     solve_sample_tasks: bool = False,
+    regenerate: bool = False,
+    regenerate_if_partially_completed: bool = False,
     **kwargs: Any,
 ) -> None:
     """
@@ -97,6 +144,10 @@ def generate_tasks_using_llm(
         scientist_llm_gen_cfg_task_verify (Dict[str, Any]): The generation configuration
             for verifying tasks using the scientist LLM.
         solve_sample_tasks (bool, optional): Whether to solve sample tasks.
+        regenerate (bool, optional): Whether to regenerate tasks.
+        regenerate_if_partially_completed (bool, optional): Whether to
+            regenerate tasks if the task generation is partially complete
+            (not reached target number of tasks).
         **kwargs (Any): Additional arguments for task generation.
     """
     # TODO: Implement Approach 2 (low priority)
@@ -109,22 +160,31 @@ def generate_tasks_using_llm(
     #   b. using a group of (less capable) models to judge and
     #      then selecting the majority answer
 
-    # Generate task problems
-    # Extract sample tasks from representative tasks
-    sample_tasks = capability.get_repr_tasks()
-
     # Calculate the number of tasks to generate
     target_num_tasks = num_tasks
     num_tasks = int(num_tasks * (1 + num_tasks_buffer))
 
-    # Generate new tasks using the scientist LLM
+    # Check if the capability is in a state that allows task generation
+    if not is_task_generation_required(
+        capability=capability,
+        target_num_tasks=target_num_tasks,
+        regenerate=regenerate,
+        regenerate_if_partially_completed=regenerate_if_partially_completed,
+    ):
+        logger.warning(f"[{capability.name}] Skipping task generation.")
+        return
+
+    # Generate task problems
+    # Extract sample tasks from representative tasks
+    sample_tasks = capability.get_repr_tasks()
+
+    # Fetch prompts for task generation
     sys_prompt, user_prompt = get_task_generation_prompt(
         capability=capability,
         num_gen_tasks=num_tasks,
         sample_tasks=sample_tasks if kwargs.get("few_shot", True) else None,
     )
-
-    # Generate tasks
+    # Generate new tasks
     logger.info(f"Generating {num_tasks} tasks for {capability.name} ...")
     num_attempts = kwargs.get(
         "tasks_gen_retry_attempts", constants.DEFAULT_TASK_GENERATION_RETRY_ATTEMPTS
@@ -167,8 +227,16 @@ def generate_tasks_using_llm(
                 parsed_response = extract_and_parse_response(response)
                 new_tasks = parsed_response["parsed_response"]
     except Exception as e:
-        logger.error(f"Error generating tasks: {e}")
-        logger.error(f"Response:\n{response}")
+        error_msg = (
+            f"Error generating tasks for capability {capability.name}: {repr(e)}"
+        )
+        logger.error(error_msg)
+        logger.error(f"[{capability.name}] Response:\n{response}")
+        # Set capability state to task generation failed
+        capability.set_state(
+            state_str=constants.C_STATE_TASK_GENERATION_FAILED_STR,
+            reason=error_msg,
+        )
         raise e
 
     # Analyze tokens metadata for task problems generation
@@ -189,7 +257,7 @@ def generate_tasks_using_llm(
         ),
     }
     logger.info(
-        f"Task problems generation tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
+        f"[{capability.name}] Task problems generation tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
     )
 
     # Solve task and generate answers
@@ -275,12 +343,6 @@ def generate_tasks_using_llm(
         f"[{capability.name}] Task verification tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
     )
 
-    if len(successful_tasks) < target_num_tasks:
-        logger.warning(
-            f"Only {len(successful_tasks)} tasks were successfully solved and verified. "
-            f"Target number of tasks not reached: {target_num_tasks}. "
-            "It is recommended to increase the buffer."
-        )
     # Failed tasks consist of both unsolved tasks and tasks which failed verification
     failed_tasks = failed_tasks + unsolved_tasks
 
@@ -292,6 +354,23 @@ def generate_tasks_using_llm(
         if failed_tasks
         else None,
     )
+
+    if len(successful_tasks) < target_num_tasks:
+        warning_msg = f"[{capability.name}] Only {len(successful_tasks)} tasks were successfully solved and verified. "
+        f"Target number of tasks not reached: {target_num_tasks}. "
+        "It is recommended to increase the buffer."
+        logger.warning(warning_msg)
+        capability.set_state(
+            state_str=constants.C_STATE_TASK_GENERATION_PARTIALLY_COMPLETED_STR,
+            reason=warning_msg,
+        )
+    else:
+        logger.info(
+            f"[{capability.name}] {len(successful_tasks)}/{len(all_tasks)} tasks were successfully solved and verified."
+        )
+        capability.set_state(
+            state_str=constants.C_STATE_TASK_GENERATION_COMPLETED_STR,
+        )
 
 
 def verify_solved_tasks(
@@ -357,10 +436,10 @@ def verify_solved_tasks(
                 )
         except Exception as e:
             logger.warning(
-                f"Error verifying task {task['id']} for capability {capability.name}: {e}"
+                f"[{capability.name}] Error verifying task {task['id']}: {repr(e)}"
             )
             verdict_str = "no"
-            verdict_reason = f"Failed to verify task: {e}"
+            verdict_reason = f"Failed to verify task: {repr(e)}"
             _metadata = {}
         else:
             try:
@@ -372,11 +451,11 @@ def verify_solved_tasks(
                 )
             except Exception as e:
                 logger.warning(
-                    f"Error parsing response for task {task['id']} for capability {capability.name}: {e}"
+                    f"[{capability.name}] Error parsing response for task {task['id']}: {repr(e)}"
                 )
                 parsed_response = {
                     "parsed_response": "no",
-                    "thought": f"Failed to verify task: {e}",
+                    "thought": f"Failed to verify task: {repr(e)}",
                 }
             verdict_str = parsed_response["parsed_response"]
             verdict_reason = parsed_response["thought"]

@@ -90,6 +90,19 @@ def populate_seed_capability_dir(
     with open(os.path.join(capability_dir, "capability.py"), "w") as f:
         f.write(capability_class_str)
 
+    # Create _state.json file with task generation completed tate
+    with open(
+        os.path.join(capability_dir, "_state.json"),
+        "w",
+    ) as f:
+        json.dump(
+            {
+                "state": constants.C_STATE_TASK_GENERATION_COMPLETED_STR,
+            },
+            f,
+            indent=4,
+        )
+
 
 # Next 2 functions borrowed from: https://github.com/UKGovernmentBEIS/inspect_evals/blob/main/src/inspect_evals/mathematics/utils.py#L398C1-L441C18
 def remove_boxed(s: str) -> str:
@@ -222,14 +235,17 @@ def main(cfg: DictConfig) -> None:
                     subject=subject, problem='{t["problem"]}'
                 )
 
-                capability_repr_tasks = random.sample(
-                    math_tasks["tasks"],
-                    dataset._cfg["data_args"]["num_repr_tasks"],
-                )
+                # Create task IDs
+                tasks = []
+                for task_id, task in enumerate(math_tasks["tasks"]):
+                    task["id"] = task_id + 1
+                    tasks.append(task)
+
+                # Create representative tasks by selecting the tasks in order
                 # Only keep problem and answer
                 capability_repr_tasks = [
                     {"problem": s["problem"], "answer": s["answer"]}
-                    for s in capability_repr_tasks
+                    for s in tasks[: dataset._cfg["data_args"]["num_repr_tasks"]]
                 ]
 
                 populate_seed_capability_dir(
@@ -238,7 +254,7 @@ def main(cfg: DictConfig) -> None:
                     capability_description=capability_desc,
                     capability_domain=dataset.domain,
                     capability_subject=subject,
-                    capability_data=math_tasks["tasks"],
+                    capability_data=tasks,
                     capability_repr_tasks=capability_repr_tasks,
                     capability_instructions=capability_instructions,
                     capability_score_func=constants.MATHEMATICS_SCORE_FUNC.strip("\n"),
@@ -249,23 +265,24 @@ def main(cfg: DictConfig) -> None:
                 )
         elif dataset.name == "gsm8k":
             capability_name = f"{constants.DATASET_NAME_MAP[dataset.name]}"
+            # Create task IDs, answers and replace "question" with "problem"
             gsm_tasks = []
-            for task in dataset._data:
+            for task_id, task in enumerate(dataset._data):
+                task["id"] = task_id + 1
+                task["problem"] = task.pop("question")
                 task["solution"] = task["answer"]
                 task["answer"] = task["answer"].split("####").pop().strip()
                 gsm_tasks.append(task)
 
             capability_instructions = dataset.instructions.format(
-                problem='{t["question"]}'
+                problem='{t["problem"]}'
             )
 
-            capability_repr_tasks = random.sample(
-                gsm_tasks, dataset._cfg["data_args"]["num_repr_tasks"]
-            )
-            # Only keep question and answer
+            # Create representative tasks by selecting the tasks in order
+            # Only keep problem and answer
             capability_repr_tasks = [
-                {"question": s["question"], "answer": s["answer"]}
-                for s in capability_repr_tasks
+                {"problem": s["problem"], "answer": s["answer"]}
+                for s in tasks[: dataset._cfg["data_args"]["num_repr_tasks"]]
             ]
 
             populate_seed_capability_dir(

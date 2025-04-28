@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 from collections import defaultdict
+from enum import Enum
 from typing import Any, Dict, List, Tuple
 
 import torch
@@ -30,6 +31,31 @@ from src.utils.inspect_eval_utils import (
 
 
 logger = logging.getLogger(__name__)
+
+
+class CapabilityState(Enum):
+    """
+    Enum representing the state of a capability.
+
+    Attributes
+    ----------
+    INITIALIZED : str
+        The capability is initialized.
+    TASK_GENERATION_FAILED : str
+        The capability task generation failed.
+    TASK_GENERATION_PARTIALLY_COMPLETED : str
+        The capability task generation is partially completed.
+        Some tasks are created but the target number of tasks is not met.
+    TASK_GENERATION_COMPLETED : str
+        The capability task generation is completed.
+    """
+
+    INITIALIZED = constants.C_STATE_INITIALIZED_STR
+    TASK_GENERATION_FAILED = constants.C_STATE_TASK_GENERATION_FAILED_STR
+    TASK_GENERATION_PARTIALLY_COMPLETED = (
+        constants.C_STATE_TASK_GENERATION_PARTIALLY_COMPLETED_STR
+    )
+    TASK_GENERATION_COMPLETED = constants.C_STATE_TASK_GENERATION_COMPLETED_STR
 
 
 class CapabilitySeedDataset:
@@ -109,11 +135,20 @@ class Capability:
     """
 
     def __init__(
-        self, capability_dir: str, score_dir_suffix: str | None = None
+        self,
+        capability_dir: str,
+        score_dir_suffix: str | None = None,
+        state: str | None = None,
     ) -> None:
         self.source_dir = capability_dir
         self._load_capability_json()
         self._load_capability_repr_class()
+
+        # Set/load the capability state
+        if state:
+            self.set_state(state)
+        else:
+            _ = self.get_state()
 
         self.score_dir = (
             constants.SEED_CAPABILITIES_SCORE_DIR
@@ -200,7 +235,11 @@ class Capability:
         with open(os.path.join(c_dir, "capability.json"), "w") as f:
             json.dump(c_dict, f, indent=4)
 
-        return cls(capability_dir=c_dir, score_dir_suffix=score_dir_suffix)
+        return cls(
+            capability_dir=c_dir,
+            score_dir_suffix=score_dir_suffix,
+            state=constants.C_STATE_INITIALIZED_STR,
+        )
 
     def _load_capability_json(self) -> None:
         with open(os.path.join(self.source_dir, "capability.json"), "r") as f:
@@ -234,6 +273,50 @@ class Capability:
         self.capability_repr_class_str = (
             f"```python{newline}{capability_repr_class_str.strip(newline)}{newline}```"
         )
+
+    def set_state(self, state_str: str, **kwargs: Any) -> None:
+        """
+        Set the state of the capability.
+
+        Args
+        ----
+            state_str (str): The state to set.
+            **kwargs (Any): Additional arguments for setting the state.
+        """
+        self._state = CapabilityState(state_str)
+        _state_dict = {
+            "state": self._state.value,
+        }
+        if self._state in [
+            CapabilityState.TASK_GENERATION_FAILED,
+            CapabilityState.TASK_GENERATION_PARTIALLY_COMPLETED,
+        ]:
+            assert "reason" in kwargs, (
+                f"Error setting state to {state_str}: Reason for task generation failure or partial completion is required."
+            )
+            _state_dict.update(
+                {
+                    "reason": kwargs["reason"],
+                }
+            )
+        # Write the state dictionary to a `_state.json` file
+        with open(os.path.join(self.source_dir, "_state.json"), "w") as f:
+            json.dump(_state_dict, f, indent=4)
+
+    def get_state(self) -> CapabilityState:
+        """
+        Get the current state of the capability.
+
+        Returns
+        -------
+            CapabilityState: The current state of the capability.
+        """
+        if not hasattr(self, "_state"):
+            # Load the state from the `_state.json` file
+            with open(os.path.join(self.source_dir, "_state.json"), "r") as f:
+                _state_dict = json.load(f)
+            self._state = CapabilityState(_state_dict["state"])
+        return self._state
 
     def load_scores(self, scores_dir: str | None = None) -> Dict[str, float]:
         """
@@ -589,7 +672,7 @@ class Capability:
             else:
                 if answer == constants.NO_ANSWER_STR:
                     logger.warning(
-                        f"Error solving task {task['id']}: 'ANSWER' keyword not found in the response or the answer is empty: {_metadata['raw_response']}"
+                        f"Error solving task {task['id']}: 'ANSWER' keyword not found in the response or the answer is empty:\n{_metadata['raw_response']}"
                     )
                     task_solved = False
                     answer = constants.NO_ANSWER_STR
@@ -615,14 +698,14 @@ class Capability:
         async def _solve_all_tasks(concurrency_limit: int) -> None:
             semaphore = asyncio.Semaphore(concurrency_limit)
 
-            async def _semaphore_wrapper(
+            async def _limited_solve_task_async(
                 task: Dict[str, Any],
             ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
                 async with semaphore:
                     return await _solve_task_async(task)
 
             results = await asyncio.gather(
-                *(_semaphore_wrapper(task) for task in tasks),
+                *(_limited_solve_task_async(task) for task in tasks),
             )
             for result in results:
                 processed_task, _metadata = result

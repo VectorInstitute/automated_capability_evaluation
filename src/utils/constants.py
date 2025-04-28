@@ -34,6 +34,12 @@ DATASET_NAME_MAP = {
 NO_ANSWER_STR = "NO_ANSWER"
 
 
+C_STATE_INITIALIZED_STR = "initialized"
+C_STATE_TASK_GENERATION_FAILED_STR = "task_generation_failed"
+C_STATE_TASK_GENERATION_PARTIALLY_COMPLETED_STR = "task_generation_partially_completed"
+C_STATE_TASK_GENERATION_COMPLETED_STR = "task_generation_completed"
+
+
 class VecInfStatus(Enum):
     """Enum class for vector inference status."""
 
