@@ -396,7 +396,7 @@ class Capability:
         ]
         existing_task_ids = [task["id"] for task in existing_tasks]
         new_task_ids = [task["id"] for task in tasks]
-        failed_tasks = failed_tasks if failed_tasks else []
+        failed_tasks = failed_tasks or []
         # Keep new task for overlapping tasks
         # TODO: Add `overwrite` flag to update existing tasks
         tasks_to_keep = [
