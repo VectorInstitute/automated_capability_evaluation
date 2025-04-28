@@ -57,7 +57,7 @@ In <JSON>, provide a JSON response of the new capability with the following fiel
 - "domain": The domain to which the capability belongs to (e.g., math, physics, etc.).
 - "class": The fully implemented Python code for the Capability class. This should be easily human-readable.
 
-All values in the JSON should be strings. Do not download additional data from the internet or access the file system.
+Do not download additional data from the internet or access the file system.
 
 Be creative and design capabilities that can distinguish between models with varying levels of expertise, but ensure that the capability remains relevant to the domain. Also ensure that the proposed capabilities ARE DISTINCT compared to the existing capabilities. Names of all existing capabilities will be provided.
 

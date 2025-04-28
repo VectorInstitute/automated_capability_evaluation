@@ -1,22 +1,27 @@
 scientist_llm:
-  name: gpt-4o-mini
+  name: o3-mini
   provider: openai
   generation_cfg:
     capability_generation:
       temperature: 0.7
-      max_tokens: 64
+      max_tokens: 4096
+      seed: 42
     task_generation:
       temperature: 0.7
-      max_tokens: 64
+      max_tokens: 4096
+      seed: 42
     task_solve:
       temperature: 0.7
-      max_tokens: 64
+      max_tokens: 2048
+      seed: 42
     judge_llm:
       temperature: 1.0
-      max_tokens: 64
+      max_tokens: 2048
+      seed: 42
     task_verify:
       temperature: 0.7
-      max_tokens: 64
+      max_tokens: 2048
+      seed: 42
   local_launch_cfg:
     # Number of threads to use for local LLM
     max_num_seqs: 1
@@ -28,11 +33,12 @@ scientist_llm:
     time: "01:00:00"
 
 subject_llm:
-  name: Meta-Llama-3.1-8B-Instruct
-  provider: local
+  name: gpt-4o-mini
+  provider: openai
   generation_cfg:
     temperature: 0.7
-    max_tokens: 512
+    max_tokens: 2048
+    seed: 42
   local_launch_cfg:
     # Number of threads to use for local LLM
     max_num_seqs: 1
@@ -57,13 +63,15 @@ capabilities_cfg:
   # Set to -1 to use all seed capabilities
   num_seed_capabilities: 1
   # Number of initial capabilities to generate using the scientist LLM
-  num_gen_capabilities: 2
+  num_gen_capabilities: 10
+  # Buffer for capability generation
+  num_gen_capabilities_buffer: 0.2
   # Number of capability areas to generate
   num_capability_areas: 2
   # Number of initial capabilities to generate per run
-  num_gen_capabilities_per_run: 1
+  num_gen_capabilities_per_run: 2
   # Number of tasks to generate for each capability
-  num_gen_tasks_per_capability: 1
+  num_gen_tasks_per_capability: 5
   # Buffer for task generation
   num_gen_tasks_buffer: 0.2
   # Set this flag to true to use representative tasks
@@ -71,7 +79,16 @@ capabilities_cfg:
   task_gen_few_shot: true
   # Number of tasks to evaluate for each capability
   # Set to -1 to evaluate all tasks
-  num_eval_tasks_per_capability: 1
+  num_eval_tasks_per_capability: 10
+  # Number of retries for each run of capability generation
+  capabilities_gen_retry_attempts: 3
+  tasks_gen_retry_attempts: 3
+  # Concurrency for task solving and verification
+  concurrency_task_solver: 10
+  concurrency_task_verifier: 10
+  concurrency_task_eval: 10
+  # Inspect evals config
+  inspect_eval_score_display: false
 
 lbo_cfg:
   # Number of capabilities to generate using LBO
@@ -100,6 +117,7 @@ dimensionality_reduction_cfg:
 
 exp_cfg:
   # Set this flag to true to run test experiments during development
+  seed: 37
   trial_run: true
 
 defaults:

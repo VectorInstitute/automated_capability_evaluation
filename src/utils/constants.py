@@ -27,11 +27,17 @@ GSM8K_SCORE_FUNC = f"""def score(t: dict, submission: str) -> float | None:\n{TA
 
 DATASET_NAME_MAP = {
     "mathematics": "competition_math",
-    "gsm8k": "grade_school_math_word_problems",
+    "gsm8k": "word_problems",
 }
 
 
 NO_ANSWER_STR = "NO_ANSWER"
+
+
+C_STATE_INITIALIZED_STR = "initialized"
+C_STATE_TASK_GENERATION_FAILED_STR = "task_generation_failed"
+C_STATE_TASK_GENERATION_PARTIALLY_COMPLETED_STR = "task_generation_partially_completed"
+C_STATE_TASK_GENERATION_COMPLETED_STR = "task_generation_completed"
 
 
 class VecInfStatus(Enum):
@@ -46,3 +52,13 @@ class VecInfStatus(Enum):
 
 
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
+
+DEFAULT_CAPABILITY_GENERATION_RETRY_ATTEMPTS = 3
+DEFAULT_TASK_GENERATION_RETRY_ATTEMPTS = 3
+
+DEFAULT_RANDOM_SEED = 42
+
+DEFAULT_CONCURRENCY = 5
+DEFAULT_TASK_SOLVER_CONCURRENCY = 5
+DEFAULT_TASK_VERIFIER_CONCURRENCY = 5
+DEFAULT_TASK_EVAL_CONCURRENCY = 5

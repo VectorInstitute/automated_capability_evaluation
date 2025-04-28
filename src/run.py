@@ -1,14 +1,12 @@
-import os  # noqa: D100
+import logging  # noqa: D100
+import os
 
 import hydra
 from omegaconf import DictConfig
 
 from generate_capabilities import (
-    _get_previous_capabilities,
-    apply_dimensionality_reduction,
-    filter_capabilities,
-    generate_and_set_capabilities_embeddings,
     generate_capabilities,
+    get_previous_capabilities,
 )
 from generate_tasks import generate_tasks_using_llm
 
@@ -16,6 +14,9 @@ from generate_tasks import generate_tasks_using_llm
 from model import Model
 from utils import constants
 from utils.lbo_utils import get_lbo_train_set
+
+
+logger = logging.getLogger(__name__)
 
 
 def check_cfg(cfg: DictConfig) -> None:
@@ -34,14 +35,13 @@ def check_cfg(cfg: DictConfig) -> None:
     ), (
         "The total number of capabilities to generate must be greater than or equal to the number of capabilities to generate per run."
     )
-    # log warning
     rem_c = (
         cfg.capabilities_cfg.num_gen_capabilities
         % cfg.capabilities_cfg.num_gen_capabilities_per_run
     )
     additional_c = cfg.capabilities_cfg.num_gen_capabilities_per_run - rem_c
     if rem_c != 0:
-        print(f"{additional_c} capabilities will be generated.")
+        logger.warning(f"{additional_c} capabilities will be generated.")
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
@@ -54,9 +54,10 @@ def main(cfg: DictConfig) -> None:
     """
     check_cfg(cfg)
 
-    run_id = f"{cfg.scientist_llm.name}_T{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
+    run_id = f"{cfg.scientist_llm.name}_C{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
     if cfg.capabilities_cfg.method == "hierarchical":
         run_id += f"_A{cfg.capabilities_cfg.num_capability_areas}"
+    run_id += f"_T{cfg.capabilities_cfg.num_gen_tasks_per_capability}"
 
     # Initialize the scientist LLM model
     scientist_llm = Model(
@@ -66,54 +67,75 @@ def main(cfg: DictConfig) -> None:
     scientist_llm_gen_cfg = cfg.scientist_llm.generation_cfg
 
     # Stage 1. Generate initial capabilities
-    capabilities = generate_capabilities(
-        domain=cfg.capabilities_cfg.domain,
-        num_capabilities=cfg.capabilities_cfg.num_gen_capabilities,
-        num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
-        scientist_llm=scientist_llm,
-        num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
-        scientist_llm_gen_cfg=scientist_llm_gen_cfg.capability_generation,
-        method=cfg.capabilities_cfg.method,
-        num_capability_areas=cfg.capabilities_cfg.num_capability_areas,
-        exclude_seed_capability_names=["grade_school_math_word_problems"],
-        run_id=run_id,
-        trial_run=cfg.exp_cfg.trial_run,
+    # Set the base capability directory
+    base_capability_dir = os.path.join(
+        constants.BASE_ARTIFACTS_DIR,
+        f"capabilities_{run_id}",
+        cfg.capabilities_cfg.domain,
     )
-
-    # TODO: Only used for testing, remove this block later ========================
-    if cfg.exp_cfg.trial_run:
-        # Set the base capability directory
-        base_capability_dir = os.path.join(
-            constants.BASE_ARTIFACTS_DIR,
-            f"capabilities_{run_id}",
-            cfg.capabilities_cfg.domain,
+    target_num_capabilities = cfg.capabilities_cfg.num_gen_capabilities
+    if os.path.exists(base_capability_dir):
+        # Fetch previously generated capabilities
+        logger.info(
+            f"Base capability directory already exists: {base_capability_dir}. "
+            "Fetching previously generated capabilities."
         )
-        os.makedirs(base_capability_dir, exist_ok=True)
+        capabilities = get_previous_capabilities(capability_dir=base_capability_dir)
+    else:
+        os.makedirs(base_capability_dir, exist_ok=False)
+        logger.info("Starting capability generation ...")
+        num_capabilities = int(
+            target_num_capabilities
+            * (1 + cfg.capabilities_cfg.num_gen_capabilities_buffer)
+        )
+        capabilities = generate_capabilities(
+            domain=cfg.capabilities_cfg.domain,
+            num_capabilities=num_capabilities,
+            num_capabilities_per_run=cfg.capabilities_cfg.num_gen_capabilities_per_run,
+            base_capability_dir=base_capability_dir,
+            scientist_llm=scientist_llm,
+            num_seed_capabilities=cfg.capabilities_cfg.num_seed_capabilities,
+            scientist_llm_gen_cfg=dict(scientist_llm_gen_cfg.capability_generation),
+            method=cfg.capabilities_cfg.method,
+            num_capability_areas=cfg.capabilities_cfg.num_capability_areas,
+            exclude_seed_capability_names=["word_problems"],
+            run_id=run_id,
+            trial_run=cfg.exp_cfg.trial_run,
+            seed=cfg.exp_cfg.seed,
+            retry_attempts=cfg.capabilities_cfg.capabilities_gen_retry_attempts,
+        )
+    capabilities = sorted(capabilities, key=lambda x: x.name)
+    logger.info(f"Capability names:\n{capabilities}")
+    if len(capabilities) < target_num_capabilities:
+        logger.warning(
+            f"Only {len(capabilities)} capabilities were created. "
+            f"Target number of capabilities not reached: {target_num_capabilities}. "
+            "It is recommended to increase the buffer."
+        )
 
-        # Fetch previously generated capabilities, if any
-        capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
-    # =============================================================================
-
-    # Embed capabilities using openai embedding model
-    generate_and_set_capabilities_embeddings(
-        capabilities=capabilities,
-        embedding_model_name=cfg.embedding_cfg.embedding_model,
-        embed_dimensions=cfg.embedding_cfg.embedding_size,
-    )
-    # Filter capabilities based on their embeddings
-    filtered_capabilities = filter_capabilities(
-        capabilities,
-        embedding_model_name=cfg.embedding_cfg.embedding_model,
-        similarity_threshold=cfg.embedding_cfg.filtering_similarity_threshold,
-    )
-    # Reduce the dimensionality of capability embeddings generated by the
-    # embedding model.
-    apply_dimensionality_reduction(
-        filtered_capabilities,
-        dim_reduction_method=cfg.dimensionality_reduction_cfg.reduce_dimensionality_method,
-        output_dimension_size=cfg.dimensionality_reduction_cfg.reduced_dimensionality_size,
-        embedding_model_name=cfg.embedding_cfg.embedding_model,
-    )
+    # # Embed capabilities using openai embedding model
+    # generate_and_set_capabilities_embeddings(
+    #     capabilities=capabilities,
+    #     embedding_model_name=cfg.embedding_cfg.embedding_model,
+    #     embed_dimensions=cfg.embedding_cfg.embedding_size,
+    # )
+    # # Filter capabilities based on their embeddings
+    # filtered_capabilities = filter_capabilities(
+    #     capabilities,
+    #     embedding_model_name=cfg.embedding_cfg.embedding_model,
+    #     similarity_threshold=cfg.embedding_cfg.filtering_similarity_threshold,
+    # )
+    # # Reduce the dimensionality of capability embeddings generated by the
+    # # embedding model.
+    # apply_dimensionality_reduction(
+    #     filtered_capabilities,
+    #     dim_reduction_method=
+    #     cfg.dimensionality_reduction_cfg.reduce_dimensionality_method,
+    #     output_dimension_size=
+    #     cfg.dimensionality_reduction_cfg.reduced_dimensionality_size,
+    #     embedding_model_name=cfg.embedding_cfg.embedding_model,
+    #     seed=cfg.exp_cfg.seed,
+    # )
 
     # Stage 2. Generate tasks and evaluate subject model on initial capabilities
     num_lbo_runs = cfg.lbo_cfg.num_lbo_runs
@@ -124,10 +146,11 @@ def main(cfg: DictConfig) -> None:
             input_data=capabilities,
             train_frac=cfg.lbo_cfg.train_frac,
             min_train_size=cfg.lbo_cfg.min_train_size,
+            seed=cfg.exp_cfg.seed,
         )
         if num_lbo_runs > len(candidate_capabilities):
-            print(
-                f"Warning: Number of LBO runs ({num_lbo_runs}) exceeds the number of "
+            logger.warning(
+                f"Number of LBO runs ({num_lbo_runs}) exceeds the number of "
                 + f"candidate capabilities ({len(candidate_capabilities)}). "
                 + f"Setting the number of LBO runs to {len(candidate_capabilities)}."
             )
@@ -159,11 +182,16 @@ def main(cfg: DictConfig) -> None:
             scientist_llm=scientist_llm,
             num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
             num_tasks_buffer=cfg.capabilities_cfg.num_gen_tasks_buffer,
-            scientist_llm_gen_cfg_task_gen=scientist_llm_gen_cfg.task_generation,
-            scientist_llm_gen_cfg_task_solve=scientist_llm_gen_cfg.task_solve,
-            scientist_llm_gen_cfg_task_verify=scientist_llm_gen_cfg.task_verify,
-            solve_sample_tasks=False,
+            scientist_llm_gen_cfg_task_gen=dict(scientist_llm_gen_cfg.task_generation),
+            scientist_llm_gen_cfg_task_solve=dict(scientist_llm_gen_cfg.task_solve),
+            scientist_llm_gen_cfg_task_verify=dict(scientist_llm_gen_cfg.task_verify),
+            solve_sample_tasks=True,  # TODO: Update this based on checkpointing
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
+            run_id=run_id,
+            tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
+            concurrency_task_solver=cfg.capabilities_cfg.concurrency_task_solver,
+            concurrency_task_verifier=cfg.capabilities_cfg.concurrency_task_verifier,
+            seed=cfg.exp_cfg.seed,
         )
         # Evaluate subject LLM on each capability
         capability.evaluate(
@@ -171,12 +199,14 @@ def main(cfg: DictConfig) -> None:
             gen_args=[subject_llm_gen_cfg],
             judge_llm=scientist_llm,  # Use scientist LLM as judge
             judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
+            run_id=run_id,
+            concurrency_task_eval=cfg.capabilities_cfg.concurrency_task_eval,
         )
 
-        # TODO: Only used for testing, remove this block later ==============
-        if cfg.exp_cfg.trial_run:
-            break
-        # ===================================================================
+        # # TODO: Only used for testing, remove this block later ==============
+        # if cfg.exp_cfg.trial_run:
+        #     break
+        # # ===================================================================
 
     # # Stage 3. Use LBO to generate new capabilities
     # for lbo_run_id in range(num_lbo_runs):
@@ -191,13 +221,16 @@ def main(cfg: DictConfig) -> None:
     #     generate_tasks_using_llm(
     #         capability=new_capability,
     #         scientist_llm=scientist_llm,
-    #         sys_prompt=TASK_GENERATION_SYSTEM_PROMPT,
-    #         user_prompt=TASK_GENERATION_USER_PROMPT,
     #         num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
-    #         scientist_llm_gen_cfg_task_gen=scientist_llm_gen_cfg.task_generation,
-    #         scientist_llm_gen_cfg_task_solve=scientist_llm_gen_cfg.task_solve,
-    #         solve_sample_tasks=True,
+    #         num_tasks_buffer=cfg.capabilities_cfg.num_gen_tasks_buffer,
+    #         scientist_llm_gen_cfg_task_gen=
+    #         dict(scientist_llm_gen_cfg.task_generation),
+    #         scientist_llm_gen_cfg_task_solve=dict(scientist_llm_gen_cfg.task_solve),
+    #         scientist_llm_gen_cfg_task_verify=dict(scientist_llm_gen_cfg.task_verify),
+    #         solve_sample_tasks=False,
     #         few_shot=cfg.capabilities_cfg.task_gen_few_shot,
+    #         run_id=run_id,
+    #         tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
     #     )
     #     # Evaluate subject LLM on new capability
     #     new_capability.evaluate(
@@ -205,6 +238,7 @@ def main(cfg: DictConfig) -> None:
     #         gen_args=[subject_llm_gen_cfg],
     #         judge_llm=scientist_llm, # Use scientist LLM as judge
     #         judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
+    #         run_id=run_id,
     #     )
     #     # Add new capability to train capabilities list
     #     train_capabilities.append(new_capability)
@@ -214,7 +248,7 @@ def main(cfg: DictConfig) -> None:
     #         candidate_capabilities.remove(new_capability)
 
     # new_capabilities = train_capabilities[-num_lbo_runs:]
-    # print(f"New capabilities: {new_capabilities}")
+    # logger.info(f"New capabilities: {new_capabilities}")
 
 
 if __name__ == "__main__":

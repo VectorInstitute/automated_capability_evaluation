@@ -1,20 +1,25 @@
 import json  # noqa: D100
+import logging
 import os
 import subprocess
 import time
 from typing import Any, Dict, List, Tuple
 
 from langchain_openai import ChatOpenAI
+from langsmith import traceable
 from pydantic import SecretStr
 from ratelimit import limits, sleep_and_retry
 
-from src.utils.constants import VecInfStatus
+from src.utils import constants
 
 
 RATE_LIMIT = {
     "calls": int(os.environ.get("RATE_LIMIT_CALLS", "5")),
     "period": int(os.environ.get("RATE_LIMIT_PERIOD", "60")),
 }
+
+
+logger = logging.getLogger(__name__)
 
 
 class Model:
@@ -49,6 +54,7 @@ class Model:
 
     @sleep_and_retry  # type: ignore
     @limits(**RATE_LIMIT)  # type: ignore
+    @traceable
     def generate(
         self, sys_prompt: str, user_prompt: str, generation_config: Dict[str, Any]
     ) -> Tuple[str | None, Dict[str, int | Any]]:
@@ -89,7 +95,56 @@ class Model:
                 "completion_tokens"
             ]
         except Exception as e:
-            print(f"Error generating text: {e}")
+            logger.error(f"Error generating text: {e}")
+            raise e
+
+        metadata = {"input_tokens": input_tokens, "output_tokens": output_tokens}
+        return generated_text, metadata
+
+    @sleep_and_retry  # type: ignore
+    @limits(**RATE_LIMIT)  # type: ignore
+    @traceable
+    async def async_generate(
+        self, sys_prompt: str, user_prompt: str, generation_config: Dict[str, Any]
+    ) -> Tuple[str | None, Dict[str, int | Any]]:
+        """
+        Generate text based on the given system and user prompts using the LLM (Async).
+
+        Args
+        ----
+            sys_prompt (str): The system prompt for the model.
+            user_prompt (str): The user prompt for the model.
+            generation_config (Dict[str, Any]): A dictionary containing generation
+                configuration parameters.
+
+        Returns
+        -------
+            Tuple[str | None, Dict[str, int | Any]]: A tuple containing the
+                generated text and metadata.
+            - str | None: The generated text.
+            - Dict[str, int | Any]: Metadata including input and output token counts.
+        """
+        messages = self._get_input_messages(
+            sys_prompt=sys_prompt, user_prompt=user_prompt
+        )
+        generation_config = dict(generation_config)
+        try:
+            if "o1" in self.model_name:
+                # Set temperature to 1 for o1
+                generation_config.update({"temperature": 1})
+            if "o3-mini" in self.model_name:
+                # Remove temperature for o3-mini
+                _ = generation_config.pop("temperature", None)
+            chatopenai_response = await self.llm.ainvoke(messages, **generation_config)
+            generated_text = str(chatopenai_response.content)
+            input_tokens = chatopenai_response.response_metadata["token_usage"][
+                "prompt_tokens"
+            ]
+            output_tokens = chatopenai_response.response_metadata["token_usage"][
+                "completion_tokens"
+            ]
+        except Exception as e:
+            logger.error(f"Error generating text: {e}")
             raise e
 
         metadata = {"input_tokens": input_tokens, "output_tokens": output_tokens}
@@ -179,14 +234,14 @@ def get_local_model_url(model_name: str, **kwargs: Any) -> str:
     # TODO: Check if the model is already running?
     # TODO: What if the model is in pending state for a long time?
     # Wait for the model to be ready
-    vec_inf_status = VecInfStatus
+    vec_inf_status = constants.VecInfStatus
     status_command = ["vec-inf", "status", slurm_job_id, "--json-mode"]
     status = vec_inf_status.PENDING.value
     while status in [vec_inf_status.PENDING.value, vec_inf_status.LAUNCHING.value]:
         status_out = _run_command(status_command)
         status = status_out["model_status"]
         time.sleep(5)  # Wait for 5 seconds before checking again
-        print(f"Model status: {status}")
+        logger.debug(f"Model status: {status}")
     if status == vec_inf_status.FAILED.value:
         raise RuntimeError(f"Model launch failed: {status_out['failed_reason']}")
     if status == vec_inf_status.SHUTDOWN.value:

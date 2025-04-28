@@ -43,7 +43,7 @@ def parse_submission(submission: str) -> str:
         str: The extracted answer from the submission, or an empty string
             if no match is found.
     """
-    answer_pattern = r"(?i)ANSWER\s*:\s*([^\n]+)"
+    answer_pattern = r"ANSWER\s*:\s*([^\n]+)"
     match = re.search(answer_pattern, submission)
     return match.group(1) if match else ""
 

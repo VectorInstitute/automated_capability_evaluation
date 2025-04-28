@@ -1,9 +1,13 @@
 import json  # noqa: D100
+import logging
 import os
 import random
+import shutil
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+from langsmith import tracing_context
+from tenacity import Retrying, stop_after_attempt
 import torch
 
 from src.capability import Capability
@@ -17,15 +21,11 @@ from src.generate_embeddings import (
     save_embedding_heatmap,
 )
 from src.model import Model
-from src.utils import constants
+from src.utils import constants, prompts
 from src.utils.capability_utils import extract_and_parse_response
-from src.utils.prompts import (
-    CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT,
-    CAPABILITY_GENERATION_SYSTEM_PROMPT,
-    CAPABILITY_GENERATION_USER_PROMPT,
-    HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT,
-    HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT,
-)
+
+
+logger = logging.getLogger(__name__)
 
 
 def _sample_seed_capabilities(
@@ -108,7 +108,7 @@ def _sample_seed_capabilities(
     return sampled_seed_capabilities
 
 
-def _get_previous_capabilities(
+def get_previous_capabilities(
     capability_dir: str,
     capability_area: str | None = None,
 ) -> List[Capability]:
@@ -209,6 +209,7 @@ def generate_capabilities_using_llm(
         num_seed_capabilities=num_seed_capabilities,
         include_capability_names=include_seed_capability_names,
         exclude_capability_names=exclude_seed_capability_names,
+        random_seed=int(kwargs.get("seed", constants.DEFAULT_RANDOM_SEED)),
     )
     # Get capability JSON strings (without scores)
     seed_capabilities_repr = [
@@ -224,30 +225,116 @@ def generate_capabilities_using_llm(
     )
 
     # Generate output using the model with specified generation arguments
-    response, metadata = scientist_llm.generate(
-        sys_prompt=sys_prompt,
-        user_prompt=user_prompt,
-        generation_config=scientist_llm_gen_cfg,
+    num_attempts = kwargs.get(
+        "retry_attempts", constants.DEFAULT_CAPABILITY_GENERATION_RETRY_ATTEMPTS
+    )
+    try:
+        # Retry the generation process if an error occurs
+        # Common errors:
+        # - [ill-formatted python class]
+        #   - SyntaxError: unterminated triple-quoted string literal
+        for attempt in Retrying(
+            stop=stop_after_attempt(num_attempts),
+            reraise=True,
+        ):
+            with attempt:
+                # Update the seed for each attempt
+                scientist_llm_gen_cfg["seed"] += 1
+                with tracing_context(
+                    enabled=True,
+                    tags=["generate_capabilities_using_llm"],
+                    metadata={
+                        "ls_provider": scientist_llm.model_provider,
+                        "ls_model_name": scientist_llm.get_model_name(
+                            with_provider=False
+                        ),
+                        "ls_model_type": "chat",
+                        "exp_id": kwargs.get("run_id"),
+                        "run_id": kwargs.get("local_run_id"),
+                        "domain": domain,
+                        "capability_area": capability_area,
+                        "num_capabilities": num_capabilities,
+                        "seed_capabilities": [elm.name for elm in seed_capabilities],
+                        "prev_capabilities": [elm.name for elm in prev_capabilities],
+                        **{f"ls_{k}": v for k, v in scientist_llm_gen_cfg.items()},
+                    },
+                ):
+                    response, metadata = scientist_llm.generate(
+                        sys_prompt=sys_prompt,
+                        user_prompt=user_prompt,
+                        generation_config=scientist_llm_gen_cfg,
+                    )
+
+                parsed_response = extract_and_parse_response(response)
+                gen_capabilities = parsed_response["parsed_response"]
+                # Convert JSON string to dict if needed
+                gen_capabilities_dict = []
+                for capability in gen_capabilities:
+                    if isinstance(capability, dict):
+                        capability_dict = capability
+                    elif isinstance(capability, str):
+                        try:
+                            capability_dict = json.loads(capability)
+                        except json.JSONDecodeError as e:
+                            logger.warning(
+                                f"Error decoding JSON string: {capability}: {repr(e)}"
+                            )
+                            continue
+                    else:
+                        logger.warning(
+                            f"Invalid capability format: {capability}. Expected str or dict."
+                        )
+                        continue
+                    gen_capabilities_dict.append(capability_dict)
+                gen_capabilities_clean = []
+                for capability in gen_capabilities_dict:
+                    try:
+                        if capability_area is not None:
+                            # Add the capability area to the generated capabilities
+                            capability["area"] = capability_area
+                        capability_obj = Capability.from_dict(
+                            capability_dict=capability,
+                            base_dir=base_capability_dir,
+                            score_dir_suffix=(
+                                kwargs.get("run_id")
+                                if kwargs.get("trial_run")
+                                else None
+                            ),
+                        )
+                    except Exception as e:
+                        # TODO: Handle different exceptions separately?
+                        # 1. Same name as existing capability
+                        # 2. “problem” replaced with “riddle” or some other keyword
+                        #   leads to KeyError
+                        # 3. Ill-formatted `capability.py` file due to missing quotes
+                        logger.warning(
+                            f"Error creating capability object {capability['name']}, hence skipping it: {e}"
+                        )
+                        # Delete the capability directory if it exists
+                        capability_dir = os.path.join(
+                            base_capability_dir, capability["name"]
+                        )
+                        if os.path.exists(capability_dir):
+                            shutil.rmtree(capability_dir)
+                        # Skip this capability
+                        continue
+                    else:
+                        gen_capabilities_clean.append(capability_obj)
+                if len(gen_capabilities_clean) != len(gen_capabilities):
+                    logger.warning(
+                        f"Only {len(gen_capabilities_clean)} capabilities were created out of {len(gen_capabilities)} generated capabilities."
+                    )
+    except Exception as e:
+        logger.error(f"Error generating capabilities: {e}")
+        logger.error(f"Response:\n{response}")
+        raise e
+
+    logger.info(
+        f"Generated {len(gen_capabilities_clean)} capabilities:\n{gen_capabilities_clean}"
     )
 
-    # Print the output
-    print(f"Model: {scientist_llm.get_model_name()}")
-    print(f"Output:\n\n{response}\n\n")
-    print(f"Metadata: {metadata}")
-
-    parsed_response = extract_and_parse_response(response)
-    gen_capabilities = parsed_response["parsed_response"]
-    if capability_area is not None:
-        # Add the capability area to the generated capabilities
-        for capability in gen_capabilities:
-            capability["area"] = capability_area
-    gen_capabilities = [
-        Capability.from_dict(capability_dict=capability, base_dir=base_capability_dir)
-        for capability in gen_capabilities
-    ]
-
     return {
-        "capabilities": gen_capabilities,
+        "capabilities": gen_capabilities_clean,
         "metadata": {
             "model": scientist_llm.get_model_name(),
             "thought": parsed_response["thought"],
@@ -355,7 +442,6 @@ def apply_dimensionality_reduction(
     dim_reduction_method: str,
     output_dimension_size: int,
     embedding_model_name: str,
-    tsne_perplexity: int,
 ) -> None:  # noqa: D205
     """Apply dimensionality reduction to the capabilities.
 
@@ -377,6 +463,7 @@ def apply_dimensionality_reduction(
         output_dimension_size (int): The number of dimensions to reduce to.
         embedding_model_name (str): The name of the OpenAI embedding model used for
             generating the embeddings.
+        seed (int): The random seed for reproducibility.
 
     Returns
     -------
@@ -400,7 +487,6 @@ def apply_dimensionality_reduction(
         embeddings,
         output_dimensions=output_dimension_size,
         dim_reduction_technique=DimensionalityReductionTechnique(dim_reduction_method),
-        perplexity=tsne_perplexity,
     )
     # Set the reduced embeddings for each capability.
     for capability, reduced_embedding in zip(capabilities, reduced_embeddings):
@@ -485,6 +571,7 @@ def generate_capability_areas(
     user_prompt: str,
     scientist_llm_gen_cfg: Dict[str, Any],
     sys_prompt: str | None = None,
+    **kwargs: Any,
 ) -> Dict[str, Any]:
     """
     Generate capability areas for the specified domain.
@@ -499,32 +586,53 @@ def generate_capability_areas(
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
             for the scientist LLM.
         sys_prompt (str | None): The system prompt for the scientist LLM.
+        **kwargs (Any): Additional keyword arguments.
 
     Returns
     -------
         Dict[str, Any]: A dictionary containing the generated capability areas
         and metadata about the generation process.
     """
+    logger.info(f"Generating {num_areas} capability areas ...")
     # Generate output using the model with specified generation arguments
     user_prompt = user_prompt.format(
         num_areas=num_areas,
         num_capabilities_per_area=num_capabilities_per_area,
         domain=domain,
-        response_json_format=CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT,
+        response_json_format=prompts.CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT,
     )
-    response, metadata = scientist_llm.generate(
-        sys_prompt=sys_prompt if sys_prompt else "",
-        user_prompt=user_prompt,
-        generation_config=scientist_llm_gen_cfg,
-    )
-
-    # Print the output
-    print(f"Model: {scientist_llm.get_model_name()}")
-    print(f"Output:\n\n{response}\n\n")
-    print(f"Metadata: {metadata}")
+    with tracing_context(
+        enabled=True,
+        tags=["generate_capability_areas"],
+        metadata={
+            "ls_provider": scientist_llm.model_provider,
+            "ls_model_name": scientist_llm.get_model_name(with_provider=False),
+            "ls_model_type": "chat",
+            "exp_id": kwargs.get("run_id"),
+            "domain": domain,
+            "num_areas": num_areas,
+            **{f"ls_{k}": v for k, v in scientist_llm_gen_cfg.items()},
+        },
+    ):
+        response, metadata = scientist_llm.generate(
+            sys_prompt=sys_prompt if sys_prompt else "",
+            user_prompt=user_prompt,
+            generation_config=scientist_llm_gen_cfg,
+        )
 
     parsed_response = extract_and_parse_response(response, has_thought=False)
     capability_areas = parsed_response["parsed_response"]
+
+    logger.info(
+        f"Capability areas generation tokens summary:\n{json.dumps(metadata, indent=4)}"
+    )
+
+    if len(capability_areas) > num_areas:
+        logger.warning(
+            f"Generated {len(capability_areas)} capability areas, but only {num_areas} are needed. "
+            + "Truncating the list to the required number."
+        )
+        capability_areas = capability_areas[:num_areas]
 
     return {
         "capability_areas": capability_areas,
@@ -539,6 +647,7 @@ def generate_capabilities(
     domain: str,
     num_capabilities: int,
     num_capabilities_per_run: int,
+    base_capability_dir: str,
     scientist_llm: Model,
     num_seed_capabilities: int,
     scientist_llm_gen_cfg: Dict[str, Any],
@@ -555,6 +664,8 @@ def generate_capabilities(
         domain (str): The domain name.
         num_capabilities (int): The number of capabilities to generate.
         num_capabilities_per_run (int): The number of capabilities to generate per run.
+        base_capability_dir (str): The base directory to store
+            the generated capabilities for the specified domain.
         scientist_llm (Model): The scientist LLM model.
         num_seed_capabilities (int): The number of seed capabilities to use.
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
@@ -565,6 +676,7 @@ def generate_capabilities(
             names to include in the generation process.
         exclude_seed_capability_names (List[str] | None): A list of seed capability
             names to exclude from the generation process.
+        **kwargs (Any): Additional keyword arguments.
 
     Returns
     -------
@@ -572,17 +684,6 @@ def generate_capabilities(
     """
     gen_capabilities = []
     run_metadata = []
-
-    # Set the base capability directory
-    if "trial_run" in kwargs:
-        base_capability_dir = os.path.join(
-            constants.BASE_ARTIFACTS_DIR, f"capabilities_{kwargs['run_id']}", domain
-        )
-        os.makedirs(base_capability_dir, exist_ok=True)
-    else:
-        base_capability_dir = os.path.join(
-            constants.BASE_ARTIFACTS_DIR, "capabilities", domain
-        )
 
     if method == "hierarchical":
         assert "num_capability_areas" in kwargs, (
@@ -610,10 +711,14 @@ def generate_capabilities(
             num_areas=kwargs["num_capability_areas"],
             num_capabilities_per_area=num_capabilities_per_area[0],
             scientist_llm=scientist_llm,
-            user_prompt=HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT,
+            user_prompt=prompts.HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT,
             scientist_llm_gen_cfg=scientist_llm_gen_cfg,
+            **kwargs,
         )
         capability_areas = response["capability_areas"]
+        # Select only the specified number of capability areas
+        # even if more are generated
+        capability_areas = capability_areas[:num_capability_areas]
     else:
         num_capabilities_per_area = [num_capabilities]
         num_runs = [int(np.ceil(num_capabilities / num_capabilities_per_run))]
@@ -622,19 +727,19 @@ def generate_capabilities(
 
     for idx, capability_area in enumerate(capability_areas):
         if method == "hierarchical":
-            print(f"Generating capabilities for area: {capability_area}")
+            logger.info(f"Generating capabilities for area: {capability_area}")
             # Fetch previously generated capabilities, if any
-            prev_capabilities = _get_previous_capabilities(
+            prev_capabilities = get_previous_capabilities(
                 capability_dir=base_capability_dir, capability_area=capability_area
             )
-            user_prompt = HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT.format(
+            user_prompt = prompts.HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT.format(
                 capability_area=capability_area,
             )
         else:
-            prev_capabilities = _get_previous_capabilities(
+            prev_capabilities = get_previous_capabilities(
                 capability_dir=base_capability_dir
             )
-            user_prompt = CAPABILITY_GENERATION_USER_PROMPT
+            user_prompt = prompts.CAPABILITY_GENERATION_USER_PROMPT
 
         # Add all seed capabilities to the list of prev_capabilities
         seed_capability_dir = os.path.join(
@@ -644,12 +749,13 @@ def generate_capabilities(
             _sample_seed_capabilities(
                 seed_capability_dir=seed_capability_dir,
                 num_seed_capabilities=-1,
+                random_seed=int(kwargs.get("seed", constants.DEFAULT_RANDOM_SEED)),
             )
         )
 
         num_capabilities_left = num_capabilities_per_area[idx]
         for run_id in range(num_runs[idx]):
-            print("Run ID:", run_id)
+            logger.info(f"Run ID: {run_id}")
             # Generate capabilities using the scientist LLM
 
             response = generate_capabilities_using_llm(
@@ -659,7 +765,7 @@ def generate_capabilities(
                     num_capabilities_left,
                 ),
                 scientist_llm=scientist_llm,
-                sys_prompt=CAPABILITY_GENERATION_SYSTEM_PROMPT,
+                sys_prompt=prompts.CAPABILITY_GENERATION_SYSTEM_PROMPT,
                 user_prompt=user_prompt,
                 num_seed_capabilities=num_seed_capabilities,
                 seed_capability_dir=seed_capability_dir,
@@ -669,6 +775,7 @@ def generate_capabilities(
                 include_seed_capability_names=include_seed_capability_names,
                 exclude_seed_capability_names=exclude_seed_capability_names,
                 capability_area=capability_area if method == "hierarchical" else None,
+                local_run_id=run_id,
                 **kwargs,
             )
             gen_capabilities.extend(response["capabilities"])
@@ -677,5 +784,31 @@ def generate_capabilities(
 
             # Update the list of previously generated capabilities
             prev_capabilities.extend(response["capabilities"])
+
+    # Analyze tokens metadata for capability generation
+    total_input_tokens = sum([m["api_metadata"]["input_tokens"] for m in run_metadata])
+    total_output_tokens = sum(
+        [m["api_metadata"]["output_tokens"] for m in run_metadata]
+    )
+    tokens_summary = {
+        "total_input_tokens": total_input_tokens,
+        "total_output_tokens": total_output_tokens,
+        "total_tokens": total_input_tokens + total_output_tokens,
+        "input_tokens_per_run": int(total_input_tokens / sum(num_runs)),
+        "output_tokens_per_run": int(total_output_tokens / sum(num_runs)),
+        "total_tokens_per_run": int(
+            (total_input_tokens + total_output_tokens) / sum(num_runs)
+        ),
+        "input_tokens_per_capability": int(total_input_tokens / len(gen_capabilities)),
+        "output_tokens_per_capability": int(
+            total_output_tokens / len(gen_capabilities)
+        ),
+        "total_tokens_per_capability": int(
+            (total_input_tokens + total_output_tokens) / len(gen_capabilities)
+        ),
+    }
+    logger.info(
+        f"Capability generation tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
+    )
 
     return gen_capabilities
