@@ -98,7 +98,7 @@ def main(cfg: DictConfig) -> None:
             scientist_llm_gen_cfg=dict(scientist_llm_gen_cfg.capability_generation),
             method=cfg.capabilities_cfg.method,
             num_capability_areas=cfg.capabilities_cfg.num_capability_areas,
-            exclude_seed_capability_names=["grade_school_math_word_problems"],
+            exclude_seed_capability_names=["word_problems"],
             run_id=run_id,
             trial_run=cfg.exp_cfg.trial_run,
             seed=cfg.exp_cfg.seed,
