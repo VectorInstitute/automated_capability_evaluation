@@ -90,7 +90,7 @@ def is_task_generation_required(
     """
     task_gen_required = True
     if (
-        capability.state == CapabilityState.TASK_GENERATION_PARTIALLY_COMPLETED
+        capability.get_state() == CapabilityState.TASK_GENERATION_PARTIALLY_COMPLETED
         and not regenerate_if_partially_completed
         and not regenerate
     ):
@@ -100,7 +100,8 @@ def is_task_generation_required(
         )
         task_gen_required = False
     elif (
-        capability.state == CapabilityState.TASK_GENERATION_COMPLETED and not regenerate
+        capability.get_state() == CapabilityState.TASK_GENERATION_COMPLETED
+        and not regenerate
     ):
         logger.warning(
             f"[{capability.name}] Task generation is already completed with {len(capability.get_tasks())}/{target_num_tasks} tasks. "
