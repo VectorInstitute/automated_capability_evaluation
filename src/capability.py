@@ -424,6 +424,10 @@ class Capability:
         ]
         failed_repr_task_ids = [task["id"] for task in failed_repr_tasks]
         if failed_repr_tasks:
+            # Remove failed representative tasks from the task list
+            tasks_to_keep = [
+                task for task in tasks_to_keep if task["id"] not in failed_repr_task_ids
+            ]
             # Sample new tasks to replace the failed representative tasks
             non_repr_tasks = [
                 task
