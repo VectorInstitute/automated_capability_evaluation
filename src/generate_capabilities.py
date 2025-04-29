@@ -542,9 +542,11 @@ def generate_capability_areas(
     if len(capability_areas) > num_areas:
         logger.warning(
             f"Generated {len(capability_areas)} capability areas, but only {num_areas} are needed. "
-            + "Truncating the list to the required number."
+            + f"Keeping the first {num_areas} areas."
         )
         capability_areas = capability_areas[:num_areas]
+
+    logger.info(f"Generated capability areas:\n{capability_areas}")
 
     return {
         "capability_areas": capability_areas,
