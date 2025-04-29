@@ -12,11 +12,11 @@ import hydra
 from omegaconf import DictConfig
 
 from src.generate_capabilities import (
-    _get_previous_capabilities,
     apply_dimensionality_reduction,
     filter_capabilities,
     generate_and_set_capabilities_embeddings,
     generate_capability_heatmap,
+    get_previous_capabilities,
     plot_hierarchical_capability_2d_embeddings,
 )
 
@@ -40,7 +40,7 @@ def main(cfg: DictConfig) -> None:
     os.makedirs(base_capability_dir, exist_ok=True)
 
     # Fetch previously generated capabilities
-    capabilities = _get_previous_capabilities(capability_dir=base_capability_dir)
+    capabilities = get_previous_capabilities(capability_dir=base_capability_dir)
     # Assert that the capabilities list is not empty
     print(f"Loaded {len(capabilities)} capabilities from {base_capability_dir}")
     assert capabilities, "No capabilities found in the specified directory."

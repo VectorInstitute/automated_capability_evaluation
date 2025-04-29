@@ -147,10 +147,10 @@ def reduce_embeddings_dimensions(
             # larger value either throws and error or is too big for the algorithm
             # to work properly.
             perplexity = len(embeddings) - 2
-        logger.warning(
-            f"Only {len(embeddings)} points are provided for t-SNE\
-              perplexity is reduced to the number of points - 1."
-        )
+            logger.warning(
+                f"Only {len(embeddings)} points are provided for t-SNE\
+                perplexity is reduced to the number of points - 2."
+            )
         # Convert embeddings to numpy array because that is what t-SNE expects.
         np_embeddings = np.array(embeddings)
         tsne = TSNE(
@@ -393,6 +393,8 @@ def save_embedding_heatmap(
     save_dir: str,
     plot_name: str,
     add_squares: bool,
+    annot_fontsize: int = 14,
+    tick_fontsize: int = 16,
 ) -> None:
     """Generate and save a heatmap of cosine similarity between embeddings.
 
@@ -437,13 +439,10 @@ def save_embedding_heatmap(
     # Calculate figure size based on number of labels
     # to make sure that there's enough space for the text and annotations
     n_elements = len(all_capability_names)
-    fig_width = max(12, n_elements * 0.8)
+    fig_width = max(12, n_elements * 0.9)
     fig_height = max(10, n_elements * 0.7)
 
     plt.figure(figsize=(fig_width, fig_height))
-
-    # Assign font size for annotations based on number of elements
-    annot_fontsize = max(7, min(10, 200 / n_elements))
 
     ax = sns.heatmap(
         similarity_matrix,
@@ -463,7 +462,7 @@ def save_embedding_heatmap(
         all_capability_names,
         rotation=45,
         ha="right",
-        fontsize=max(8, min(10, 250 / n_elements)),
+        fontsize=tick_fontsize,
     )
 
     # Set Y labels horizontal
@@ -471,13 +470,13 @@ def save_embedding_heatmap(
         all_capability_names,
         rotation=0,  # Horizontal text
         ha="right",
-        fontsize=max(8, min(10, 250 / n_elements)),
+        fontsize=tick_fontsize,
     )
 
-    plt.title("Embedding Similarity Heatmap", fontsize=14)
+    plt.title("Embedding Similarity Heatmap", fontsize=24)
 
     # tight layout to maximize use of space
-    plt.tight_layout()
+    plt.tight_layout(pad=1.0)
 
     if add_squares:
         # Adding rectangles around each area's section
@@ -504,5 +503,5 @@ def save_embedding_heatmap(
     save_path = os.path.join(save_dir, f"{plot_name}.pdf")
 
     # Save with extra padding to avoid cutoff
-    plt.savefig(save_path, format="pdf", bbox_inches="tight", pad_inches=0.5)
+    plt.savefig(save_path, format="pdf", bbox_inches="tight", pad_inches=0.8)
     plt.close()

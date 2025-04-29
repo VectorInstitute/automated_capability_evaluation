@@ -567,7 +567,7 @@ class Capability:
             # If only the name is requested, return the name directly
             repr_str = self.name
         else:
-            repr_str = json.dumps(self._to_dict(attribute_names), indent=4)
+            repr_str = json.dumps(self.to_dict(attribute_names), indent=4)
         return str(repr_str)
 
     def __str__(self) -> str:

@@ -6,9 +6,9 @@ import shutil
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+import torch
 from langsmith import tracing_context
 from tenacity import Retrying, stop_after_attempt
-import torch
 
 from src.capability import Capability
 from src.generate_embeddings import (
@@ -442,6 +442,7 @@ def apply_dimensionality_reduction(
     dim_reduction_method: str,
     output_dimension_size: int,
     embedding_model_name: str,
+    tsne_perplexity: int,
 ) -> None:  # noqa: D205
     """Apply dimensionality reduction to the capabilities.
 
@@ -487,6 +488,7 @@ def apply_dimensionality_reduction(
         embeddings,
         output_dimensions=output_dimension_size,
         dim_reduction_technique=DimensionalityReductionTechnique(dim_reduction_method),
+        perplexity=tsne_perplexity,
     )
     # Set the reduced embeddings for each capability.
     for capability, reduced_embedding in zip(capabilities, reduced_embeddings):
