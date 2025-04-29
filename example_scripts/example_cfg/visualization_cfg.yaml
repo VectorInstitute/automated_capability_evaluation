@@ -17,7 +17,7 @@ dimensionality_reduction_cfg:
   tsne_perplexity: 8 # Choose this hyperparameter based on the number of capabilities you have.
 
 embedding_visualization_cfg:
-  save_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/visualizations
+  save_dir: /fs01/projects/aieng/public/ace/artifacts/visualizations
   plot_name: "tsne_plot"
   show_point_ids: true # Set to true when plotting a small number of capabilities.
 

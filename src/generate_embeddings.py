@@ -410,6 +410,8 @@ def save_embedding_heatmap(
         save_dir (str): The directory to save the plot.
         plot_name (str): The name of the plot file.
         add_squares (bool): Whether to add squares around each area's section.
+        annot_fontsize (int, optional): Font size for the annotations inside cells.
+        tick_fontsize (int, optional): Font size for axis tick labels. Default is 16.
     """
     embeddings = []
     all_capability_names = []
