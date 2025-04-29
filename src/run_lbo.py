@@ -1,0 +1,139 @@
+"""Script to discover new capabilities using LBO."""
+
+import logging
+import os
+
+import hydra
+from omegaconf import DictConfig
+
+from generate_capabilities import (
+    get_previous_capabilities,
+)
+from generate_tasks import (
+    generate_tasks_using_llm,
+)
+from lbo import generate_new_capability
+from model import Model
+from utils import constants
+from utils.data_utils import check_cfg, get_run_id
+from utils.lbo_utils import get_lbo_train_set
+
+
+@hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
+def main(cfg: DictConfig) -> None:
+    """
+    Discover new capabilities using LBO.
+
+    Args:
+        cfg (DictConfig): Configuration for the model.
+    """
+    check_cfg(cfg)
+    run_id = get_run_id(cfg)
+
+    # Set the base capability directory
+    base_capability_dir = os.path.join(
+        constants.BASE_ARTIFACTS_DIR,
+        f"capabilities_{run_id}",
+        cfg.capabilities_cfg.domain,
+    )
+    # Read the capabilities from the base directory
+    capabilities = get_previous_capabilities(
+        capability_dir=base_capability_dir,
+    )
+
+    num_lbo_runs = cfg.lbo_cfg.num_lbo_runs
+    if cfg.lbo_cfg.pipeline_id == "no_discovery":
+        # For pipeline 1 (pipeline_id=="no_discovery"), the set of
+        # generated capabilities are split into two sets
+        # TODO: Split uniformly across area for hierarchical capabilities
+        train_capabilities, candidate_capabilities = get_lbo_train_set(
+            input_data=capabilities,
+            train_frac=cfg.lbo_cfg.train_frac,
+            min_train_size=cfg.lbo_cfg.min_train_size,
+            seed=cfg.exp_cfg.seed,
+        )
+        if num_lbo_runs > len(candidate_capabilities):
+            logger.warning(
+                f"Number of LBO runs ({num_lbo_runs}) exceeds the number of "
+                + f"candidate capabilities ({len(candidate_capabilities)}). "
+                + f"Setting the number of LBO runs to {len(candidate_capabilities)}."
+            )
+            num_lbo_runs = len(candidate_capabilities)
+    elif cfg.lbo_cfg.pipeline_id == "discover_new":
+        # For pipeline 2 (pipeline_id=="discover_new"), use all generated capabilities
+        # for training
+        train_capabilities = capabilities
+        candidate_capabilities = None
+
+        # Initialize the scientist LLM model for task generation and evaluation
+        scientist_llm = Model(
+            model_name=cfg.scientist_llm.name,
+            model_provider=cfg.scientist_llm.provider,
+        )
+        scientist_llm_gen_cfg = cfg.scientist_llm.generation_cfg
+        # Initialize the subject LLM model for task evaluation
+        subject_llm = Model(
+            model_name=cfg.subject_llm.name,
+            model_provider=cfg.subject_llm.provider,
+            **dict(cfg.subject_llm.local_launch_cfg),
+        )
+        subject_llm_gen_cfg = dict(cfg.subject_llm.generation_cfg)
+        subject_llm_gen_cfg.update(
+            {
+                "limit": cfg.capabilities_cfg.num_eval_tasks_per_capability,
+            }
+        )
+
+    # Use LBO to generate new capabilities
+    for lbo_run_id in range(num_lbo_runs):
+        new_capability = generate_new_capability(
+            capabilities=train_capabilities,
+            subject_llm_name=cfg.subject_llm.name,
+            capabilities_pool=candidate_capabilities,
+            pipeline_id=cfg.lbo_cfg.pipeline_id,
+            lbo_run_id=lbo_run_id,
+        )
+        if cfg.lbo_cfg.pipeline_id == "discover_new":
+            # Generate tasks and run capability evaluation only for
+            # new generated capabilities
+            generate_tasks_using_llm(
+                capability=new_capability,
+                scientist_llm=scientist_llm,
+                num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
+                num_tasks_buffer=cfg.capabilities_cfg.num_gen_tasks_buffer,
+                scientist_llm_gen_cfg_task_gen=dict(
+                    scientist_llm_gen_cfg.task_generation
+                ),
+                scientist_llm_gen_cfg_task_solve=dict(scientist_llm_gen_cfg.task_solve),
+                scientist_llm_gen_cfg_task_verify=dict(
+                    scientist_llm_gen_cfg.task_verify
+                ),
+                solve_sample_tasks=True,  # TODO: Update this based on checkpointing
+                few_shot=cfg.capabilities_cfg.task_gen_few_shot,
+                run_id=run_id,
+                tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
+                concurrency_task_solver=cfg.capabilities_cfg.concurrency_task_solver,
+                concurrency_task_verifier=cfg.capabilities_cfg.concurrency_task_verifier,
+                seed=cfg.exp_cfg.seed,
+            )
+            new_capability.evaluate(
+                subject_llms=[subject_llm],
+                gen_args=[subject_llm_gen_cfg],
+                judge_llm=scientist_llm,  # Use scientist LLM as judge
+                judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
+                run_id=run_id,
+            )
+        # Add new capability to train capabilities list
+        train_capabilities.append(new_capability)
+        if cfg.lbo_cfg.pipeline_id == "no_discovery":
+            # Remove selected capability from candidate capabilities
+            candidate_capabilities.remove(new_capability)
+
+    new_capabilities = train_capabilities[-num_lbo_runs:]
+    logger.info(f"New capabilities: {new_capabilities}")
+
+
+if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
+
+    main()

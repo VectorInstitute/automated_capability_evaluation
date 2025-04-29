@@ -94,7 +94,7 @@ lbo_cfg:
   # Number of capabilities to generate using LBO
   num_lbo_runs: 1
   # Type of LBO pipeline to use
-  pipeline_id: "discover_new" # "nearest_neighbor" or "discover_new"
+  pipeline_id: "no_discovery" # "no_discovery" or "discover_new"
   # Train args for 'nearest_neighbor' pipeline
   train_frac: 0.5
   min_train_size: 10
