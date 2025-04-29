@@ -42,6 +42,8 @@ class CapabilityState(Enum):
     ----------
     INITIALIZED : str
         The capability is initialized.
+    FILTERED_OUT : str
+        The capability is filtered out.
     TASK_GENERATION_FAILED : str
         The capability task generation failed.
     TASK_GENERATION_PARTIALLY_COMPLETED : str
@@ -52,6 +54,7 @@ class CapabilityState(Enum):
     """
 
     INITIALIZED = constants.C_STATE_INITIALIZED_STR
+    FILTERED_OUT = constants.C_STATE_FILTERED_OUT_STR
     TASK_GENERATION_FAILED = constants.C_STATE_TASK_GENERATION_FAILED_STR
     TASK_GENERATION_PARTIALLY_COMPLETED = (
         constants.C_STATE_TASK_GENERATION_PARTIALLY_COMPLETED_STR

@@ -35,6 +35,7 @@ NO_ANSWER_STR = "NO_ANSWER"
 
 
 C_STATE_INITIALIZED_STR = "initialized"
+C_STATE_FILTERED_OUT_STR = "filtered_out"
 C_STATE_TASK_GENERATION_FAILED_STR = "task_generation_failed"
 C_STATE_TASK_GENERATION_PARTIALLY_COMPLETED_STR = "task_generation_partially_completed"
 C_STATE_TASK_GENERATION_COMPLETED_STR = "task_generation_completed"

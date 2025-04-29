@@ -465,6 +465,13 @@ def filter_capabilities(
         capability.get_embedding(embedding_model_name) for capability in capabilities
     ]
     remaining_indices = filter_embeddings(embeddings, similarity_threshold)
+    # Update state of filtered capabilities
+    for capability in (
+        cap for i, cap in enumerate(capabilities) if i not in remaining_indices
+    ):
+        capability.set_state(
+            constants.C_STATE_FILTERED_OUT_STR,
+        )
     return [capabilities[i] for i in remaining_indices]
 
 

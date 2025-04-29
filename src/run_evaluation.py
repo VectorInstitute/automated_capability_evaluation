@@ -22,7 +22,7 @@ def main(cfg: DictConfig) -> None:
     Args:
         cfg (DictConfig): Configuration for the model.
     """
-    check_cfg(cfg)
+    check_cfg(cfg, logger)
     run_id = get_run_id(cfg)
 
     # Set the base capability directory
