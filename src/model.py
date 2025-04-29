@@ -83,8 +83,8 @@ class Model:
             if "o1" in self.model_name:
                 # Set temperature to 1 for o1
                 generation_config.update({"temperature": 1})
-            if "o3-mini" in self.model_name:
-                # Remove temperature for o3-mini
+            if any(model in self.model_name for model in ["o3-mini", "o3", "o4-mini"]):
+                # Remove temperature for o3-mini, o3, o4-mini
                 _ = generation_config.pop("temperature", None)
             chatopenai_response = self.llm.invoke(messages, **generation_config)
             generated_text = str(chatopenai_response.content)
@@ -132,8 +132,8 @@ class Model:
             if "o1" in self.model_name:
                 # Set temperature to 1 for o1
                 generation_config.update({"temperature": 1})
-            if "o3-mini" in self.model_name:
-                # Remove temperature for o3-mini
+            if any(model in self.model_name for model in ["o3-mini", "o3", "o4-mini"]):
+                # Remove temperature for o3-mini, o3, o4-mini
                 _ = generation_config.pop("temperature", None)
             chatopenai_response = await self.llm.ainvoke(messages, **generation_config)
             generated_text = str(chatopenai_response.content)
