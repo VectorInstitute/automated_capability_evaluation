@@ -261,8 +261,11 @@ def get_run_id(cfg: DictConfig) -> str:
     -------
         str: The generated run ID.
     """
-    run_id = f"{cfg.scientist_llm.name}_C{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
-    if cfg.capabilities_cfg.method == "hierarchical":
-        run_id += f"_A{cfg.capabilities_cfg.num_capability_areas}"
-    run_id += f"_T{cfg.capabilities_cfg.num_gen_tasks_per_capability}"
+    if cfg.exp_cfg.exp_id:
+        run_id = str(cfg.exp_cfg.exp_id)
+    else:
+        run_id = f"{cfg.scientist_llm.name}_C{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
+        if cfg.capabilities_cfg.method == "hierarchical":
+            run_id += f"_A{cfg.capabilities_cfg.num_capability_areas}"
+        run_id += f"_T{cfg.capabilities_cfg.num_gen_tasks_per_capability}"
     return run_id
