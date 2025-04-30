@@ -238,7 +238,7 @@ def main(cfg: DictConfig) -> None:
                 # Create task IDs
                 tasks = []
                 for task_id, task in enumerate(math_tasks["tasks"]):
-                    task["id"] = task_id + 1
+                    task["id"] = str(task_id + 1)
                     tasks.append(task)
 
                 # Create representative tasks by selecting the tasks in order
@@ -268,7 +268,7 @@ def main(cfg: DictConfig) -> None:
             # Create task IDs, answers and replace "question" with "problem"
             gsm_tasks = []
             for task_id, task in enumerate(dataset._data):
-                task["id"] = task_id + 1
+                task["id"] = str(task_id + 1)
                 task["problem"] = task.pop("question")
                 task["solution"] = task["answer"]
                 task["answer"] = task["answer"].split("####").pop().strip()
