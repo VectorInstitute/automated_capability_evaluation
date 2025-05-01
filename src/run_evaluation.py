@@ -34,7 +34,10 @@ def main(cfg: DictConfig) -> None:
     # Read the capabilities from the base directory
     capabilities = get_previous_capabilities(
         capability_dir=base_capability_dir,
+        score_dir_suffix=run_id,
     )
+    capabilities = sorted(capabilities, key=lambda x: x.name)
+    logger.info(f"Capability names:\n{capabilities}")
 
     # Initialize the scientist LLM model to be used as a judge
     scientist_llm = Model(
