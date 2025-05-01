@@ -108,6 +108,7 @@ def _sample_seed_capabilities(
 def get_previous_capabilities(
     capability_dir: str,
     capability_area: str | None = None,
+    **kwargs: Any,
 ) -> List[Capability]:
     """
     Get the previously generated capabilities for the specified domain.
@@ -117,6 +118,8 @@ def get_previous_capabilities(
     Args
     ----
         capability_dir (str): The directory containing the generated capabilities.
+        capability_area (str | None): The capability area to filter by.
+        **kwargs (Any): Additional keyword arguments.
 
     Returns
     -------
@@ -124,7 +127,10 @@ def get_previous_capabilities(
     """
     prev_capabilities = []
     for capability_path in os.listdir(capability_dir):
-        capability = Capability(os.path.join(capability_dir, capability_path))
+        capability = Capability(
+            capability_dir=os.path.join(capability_dir, capability_path),
+            score_dir_suffix=kwargs.get("score_dir_suffix"),
+        )
         if capability_area is not None and capability.area != capability_area:
             continue
         prev_capabilities.append(capability)
