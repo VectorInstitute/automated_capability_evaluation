@@ -989,17 +989,21 @@ class Capability:
             "Each subject LLM must have a corresponding generation config."
         )
         try:
-            # Create inspect script if evaluating for the first time
+            # Create inspect script
             inspect_path = os.path.join(constants.BASE_INSPECT_EVALS_DIR, self.name)
-            if not os.path.exists(inspect_path):
-                os.makedirs(inspect_path)
-                self._create_inspect_file(
-                    path=inspect_path,
-                    judge_llm_name=judge_llm.get_model_name(with_provider=True)
-                    if judge_llm
-                    else None,
-                    judge_llm_gen_args=judge_llm_gen_args,
-                )
+            if os.path.exists(inspect_path):
+                # Recreating the inspect file to avoid an unknown path error
+                # TODO: Resolve the unknown path error?
+                # Remove existing inspect path to avoid conflicts
+                shutil.rmtree(inspect_path)
+            os.makedirs(inspect_path)
+            self._create_inspect_file(
+                path=inspect_path,
+                judge_llm_name=judge_llm.get_model_name(with_provider=True)
+                if judge_llm
+                else None,
+                judge_llm_gen_args=judge_llm_gen_args,
+            )
         except Exception as e:
             logger.error(
                 f"[{self.name}] Error creating inspect evals script: {repr(e)}"
