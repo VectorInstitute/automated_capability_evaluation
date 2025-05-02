@@ -322,7 +322,12 @@ class Capability:
             self._state = CapabilityState(_state_dict["state"])
         return self._state
 
-    def load_scores(self, scores_dir: str | None = None) -> Dict[str, float]:
+    def load_scores(
+        self,
+        scores_dir: str | None = None,
+        num_tasks: int = -1,
+        seed: int = constants.DEFAULT_RANDOM_SEED,
+    ) -> Dict[str, Any]:
         """
         Load scores from JSON files in the specified directory.
 
@@ -336,13 +341,19 @@ class Capability:
             the values are the scores.
         """
         scores_dir = scores_dir if scores_dir else self.score_dir
-        scores_dict = defaultdict(float)
+        scores_dict: defaultdict[str, dict[str, Any]] = defaultdict(dict)
         for model in list_dir(scores_dir):
-            scores_file = os.path.join(
-                scores_dir, model, self.domain, f"{self.name}.json"
+            scores_file_dir = os.path.join(
+                scores_dir,
+                model,
+                self.domain,
+                self.name,
             )
+            scores_file = os.path.join(scores_file_dir, list_dir(scores_file_dir)[0])
             if path_exists(scores_file):
-                scores_dict[model] = read_score_inspect_json(scores_file)
+                scores_dict[model] = read_score_inspect_json(
+                    scores_file, num_tasks=num_tasks, seed=seed
+                )
         return scores_dict
 
     def get_repr_tasks(self) -> List[Dict[str, Any]]:

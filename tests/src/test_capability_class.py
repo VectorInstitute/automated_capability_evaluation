@@ -67,8 +67,14 @@ capability_cfg = {
     "path": "seed_capabilities/math/competition_math_algebra",
     "scores_path": "seed_capabilities_scores",
     "scores": {
-        "c4ai-command-r-plus": 0.34288121314237574,
-        "gpt-4o": 0.8289806234203876,
+        "c4ai-command-r-plus": {
+            "mean": 0.0,
+            "std_err": 0.0,
+        },
+        "gpt-4o": {
+            "mean": 0.5,
+            "std_err": 0.5,
+        },
     },
 }
 test_dir = os.path.dirname(os.path.abspath(__file__))
@@ -185,7 +191,8 @@ def test_capability_load_scores():
     assert len(scores_dict) == len(capability_cfg["scores"])
     for model, score in capability_cfg["scores"].items():
         assert model in scores_dict
-        assert scores_dict[model] == score
+        assert scores_dict[model]["mean"] == score["mean"]
+        assert scores_dict[model]["std_err"] == score["std_err"]
 
 
 def test_create_capability_from_dict():

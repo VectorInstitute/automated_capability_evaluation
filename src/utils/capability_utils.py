@@ -7,9 +7,12 @@ It contains utility functions for capabilities.
 import json
 import logging
 import os
-from typing import Any, Dict
+import random
+from typing import Any, Dict, List, Tuple
 
+import numpy as np
 from inspect_ai import eval as inspect_eval
+from inspect_ai.scorer import CORRECT
 from langsmith import traceable, tracing_context
 
 from src.model import Model
@@ -27,7 +30,9 @@ CAPABILITY_SCORER_MAP = {
 logger = logging.getLogger(__name__)
 
 
-def read_score_inspect_json(json_file: str) -> float:
+def read_score_inspect_json(
+    json_file: str, num_tasks: int = -1, seed: int = constants.DEFAULT_RANDOM_SEED
+) -> Dict[str, float]:
     """
     Read a JSON file containing scores.
 
@@ -38,7 +43,10 @@ def read_score_inspect_json(json_file: str) -> float:
     -------
         float: The score value.
     """
+    random.seed(seed)
+
     scores = read_json_file(json_file)
+    all_tasks = scores["samples"]
 
     def clean_name(x: str) -> str:
         return x.split("/")[-1]
@@ -48,11 +56,63 @@ def read_score_inspect_json(json_file: str) -> float:
         if "master_task" in scores["eval"]
         else clean_name(scores["eval"]["task"])
     )
-    scorer_name = CAPABILITY_SCORER_MAP.get(capability_name, "match")
-    scores = [elm for elm in scores["results"]["scores"] if elm["name"] == scorer_name][
-        0
-    ]
-    return float(scores["metrics"]["accuracy"]["value"])
+    scorer_name = CAPABILITY_SCORER_MAP.get(
+        capability_name, constants.DEFAULT_INSPECT_SCORER_NAME
+    )
+
+    if num_tasks == -1:
+        num_tasks = len(all_tasks)
+    elif num_tasks == 0:
+        logger.warning(
+            f"[{capability_name}] Number of tasks for scoring is zero. Using all tasks for scoring."
+        )
+        num_tasks = len(all_tasks)
+    elif num_tasks > len(all_tasks):
+        logger.warning(
+            f"[{capability_name}] Number of tasks ({num_tasks}) for scoring is greater than or equal to total existing tasks ({len(all_tasks)}). Using all tasks for scoring."
+        )
+        num_tasks = len(all_tasks)
+
+    # Select num_tasks at random for scoring
+    selected_tasks = random.sample(all_tasks, num_tasks)
+    # Get mean and std error for selected tasks
+    mean, std_err = get_inspect_score(selected_tasks, scorer_name)
+
+    return {"mean": float(mean), "std_err": float(std_err)}
+
+
+def get_inspect_score(
+    tasks: List[Dict[str, Any]], scorer_name: str
+) -> Tuple[float, float]:
+    """
+    Get the inspect score for a list of tasks.
+
+    Args
+    ----
+        tasks (List[Dict[str, Any]]): The list of tasks to score.
+        score_func (str): The scoring function to use.
+
+    Returns
+    -------
+        float: The inspect score.
+    """
+    if not tasks:
+        return (0.0, 0.0)
+
+    n = len(tasks)
+    scores = [int(elm["scores"][scorer_name]["value"] == CORRECT) for elm in tasks]
+
+    # Calculate the mean score
+    score_mean = np.mean(scores)
+
+    # Calculate the standard error
+    # Borrowed from: https://github.com/UKGovernmentBEIS/inspect_ai/blob/76266abac6b84fca380226691d60eccf0fd6e0ca/src/inspect_ai/scorer/_metrics/std.py#L114C5-L129C43
+    if (n - 1) < 1:
+        score_std_err = 0.0
+    score_std = np.std(scores, ddof=1)
+    score_std_err = score_std / np.sqrt(n)
+
+    return (float(score_mean), float(score_std_err))
 
 
 def parse_python_class_str(class_str: str) -> str:
