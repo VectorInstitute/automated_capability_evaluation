@@ -100,7 +100,13 @@ def get_inspect_score(
         return (0.0, 0.0)
 
     n = len(tasks)
-    scores = [int(elm["scores"][scorer_name]["value"] == CORRECT) for elm in tasks]
+    scores = []
+    for task_id, task in enumerate(tasks):
+        try:
+            scores.append(int(task["scores"][scorer_name]["value"] == CORRECT))
+        except Exception as e:
+            logger.warning(f"Error obtaining score for task {task_id}: {repr(e)}")
+            scores.append(0)
 
     # Calculate the mean score
     score_mean = np.mean(scores)
