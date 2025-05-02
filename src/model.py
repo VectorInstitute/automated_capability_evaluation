@@ -228,6 +228,7 @@ def get_local_model_url(model_name: str, **kwargs: Any) -> str:
                 launch_command.append(f"--{c_arg}")
         else:
             launch_command.append(f"--{c_arg}={value}")
+    logger.info(f"Launching local model with command: {' '.join(launch_command)}")
     launch_out = _run_command(launch_command)
     slurm_job_id = launch_out["slurm_job_id"]
 
