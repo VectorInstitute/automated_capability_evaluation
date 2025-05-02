@@ -3,16 +3,18 @@ import os
 from typing import List
 
 import pytest  # noqa: D100
+import torch
 
 from src.capability import Capability
+from src.dimensionality_reduction import DimensionalityReductionMethod
 from src.generate_capabilities import (
+    apply_dimensionality_reduction,
     generate_capability_heatmap,
     plot_hierarchical_capability_2d_embeddings,
 )
 from src.generate_embeddings import (
     EmbeddingGenerator,
     EmbeddingModelName,
-    reduce_embeddings_dimensions,
 )
 
 
@@ -30,7 +32,7 @@ pytestmark = pytest.mark.skipif(
 
 EMBEDDING_MODEL_NAME = "text-embedding-3-small"
 EMBED_DIMENSIONS = 512
-PERPLEXITY = 8
+PERPLEXITY = 5
 test_dir = os.path.dirname(os.path.abspath(__file__))
 MANUAL_CAPABILITIES_PATH = os.path.join(test_dir, "resources/manual_capabilities.json")
 
@@ -143,25 +145,19 @@ def test_tsne_reduce_and_visualize_name_embeddings(
     mock_capabilities: List[Capability],
 ) -> None:
     """Apply dimensionality reduction to name embeddings and visualize them."""
-    name_embeddings = [
-        capability.get_embedding("name_embedding") for capability in mock_capabilities
-    ]
-    reduced_embeddings = reduce_embeddings_dimensions(
-        embeddings=name_embeddings, output_dimensions=2, perplexity=PERPLEXITY
+    apply_dimensionality_reduction(
+        mock_capabilities,
+        dim_reduction_method_name="t-sne",
+        output_dimension_size=2,
+        embedding_model_name="name_embedding",
+        tsne_perplexity=PERPLEXITY,
+        normalize_output=False,
     )
-
-    # Set reduced dimensions for each capability
-    reduced_embedding_name = "name_embedding_tsne_reduced"
-    for idx in range(len(mock_capabilities)):
-        mock_capabilities[idx].set_embedding(
-            embedding_name=reduced_embedding_name,
-            embedding_tensor=reduced_embeddings[idx],
-        )
 
     call_visualize(
         mock_capabilities=mock_capabilities,
-        reduced_embedding_name=reduced_embedding_name,
-        plot_name="name_embedding_plot",
+        reduced_embedding_name="t-sne",
+        plot_name="tsne_name_embedding_plot",
         show_point_ids=False,
     )
 
@@ -170,27 +166,40 @@ def test_tsne_reduce_and_visualize_name_description_embeddings(
     mock_capabilities: List[Capability],
 ) -> None:
     """Reduce and visualize name_description embeddings."""
-    name_description_embeddings = [
-        capability.get_embedding("name_description_embedding")
-        for capability in mock_capabilities
-    ]
-    reduced_embeddings = reduce_embeddings_dimensions(
-        embeddings=name_description_embeddings,
-        output_dimensions=2,
-        perplexity=PERPLEXITY,
+    apply_dimensionality_reduction(
+        mock_capabilities,
+        dim_reduction_method_name="t-sne",
+        output_dimension_size=2,
+        embedding_model_name="name_description_embedding",
+        tsne_perplexity=PERPLEXITY,
+        normalize_output=False,
     )
-    # Set reduced dimensions for each capability
-    reduced_embedding_name = "name_description_embedding_tsne_reduced"
-    for idx in range(len(mock_capabilities)):
-        mock_capabilities[idx].set_embedding(
-            embedding_name=reduced_embedding_name,
-            embedding_tensor=reduced_embeddings[idx],
-        )
 
     call_visualize(
         mock_capabilities=mock_capabilities,
-        reduced_embedding_name=reduced_embedding_name,
-        plot_name="name_description_embedding_plot",
+        reduced_embedding_name="t-sne",
+        plot_name="tsne_name_description_embedding_plot",
+        show_point_ids=True,
+    )
+
+
+def test_normalized_tsne_reduce_and_visualize_name_description_embeddings(
+    mock_capabilities: List[Capability],
+) -> None:
+    """Reduce and visualize name_description embeddings."""
+    apply_dimensionality_reduction(
+        mock_capabilities,
+        dim_reduction_method_name="t-sne",
+        output_dimension_size=2,
+        embedding_model_name="name_description_embedding",
+        tsne_perplexity=PERPLEXITY,
+        normalize_output=True,
+    )
+
+    call_visualize(
+        mock_capabilities=mock_capabilities,
+        reduced_embedding_name="t-sne",
+        plot_name="normalized_tsne_name_description_embedding_plot",
         show_point_ids=True,
     )
 
@@ -199,24 +208,19 @@ def test_tsne_reduce_and_visualize_json_embeddings(
     mock_capabilities: List[Capability],
 ) -> None:
     """Reduce and visualize JSON representation embeddings."""
-    json_embeddings = [
-        capability.get_embedding("json_embedding") for capability in mock_capabilities
-    ]
-    reduced_embeddings = reduce_embeddings_dimensions(
-        embeddings=json_embeddings, output_dimensions=2, perplexity=PERPLEXITY
+    apply_dimensionality_reduction(
+        mock_capabilities,
+        dim_reduction_method_name="t-sne",
+        output_dimension_size=2,
+        embedding_model_name="json_embedding",
+        tsne_perplexity=PERPLEXITY,
+        normalize_output=False,
     )
-    # Set reduced dimensions for each capability
-    reduced_embedding_name = "json_embedding_tsne_reduced"
-    for idx in range(len(mock_capabilities)):
-        mock_capabilities[idx].set_embedding(
-            embedding_name=reduced_embedding_name,
-            embedding_tensor=reduced_embeddings[idx],
-        )
 
     call_visualize(
         mock_capabilities=mock_capabilities,
-        reduced_embedding_name=reduced_embedding_name,
-        plot_name="json_embedding_plot",
+        reduced_embedding_name="t-sne",
+        plot_name="tsne_json_embedding_plot",
         show_point_ids=False,
     )
 
@@ -243,3 +247,37 @@ def test_generate_capability_heatmap(
             )
         except Exception as e:
             pytest.fail(f"Visualization failed with error: {e}")
+
+
+def test_pca_test_train(mock_capabilities: List[Capability]) -> None:
+    """Test PCA dimensionality reduction and visualization."""
+    # Test that PCA transformation is deterministic by ensuring the same embeddings
+    # produce identical reduced embeddings when transformed multiple times with
+    # the same model.
+    pca = DimensionalityReductionMethod.from_name(
+        method_name="pca",
+        output_dimension_size=2,
+        random_seed=42,
+        normalize_output=False,
+    )
+    embeddings = [
+        cap.get_embedding(embedding_name="name_description_embedding")
+        for cap in mock_capabilities
+    ]
+    reduced_embeddings = pca.fit_transform(embeddings)
+    test_reduced_embeddings = pca.transform_new_points(embeddings)
+    assert all(
+        torch.equal(a, b) for a, b in zip(reduced_embeddings, test_reduced_embeddings)
+    )
+
+    # Set the reduced embeddings for each capability.
+    for capability, reduced_embedding in zip(mock_capabilities, reduced_embeddings):
+        capability.set_embedding(
+            embedding_name="pca", embedding_tensor=reduced_embedding
+        )
+    call_visualize(
+        mock_capabilities=mock_capabilities,
+        reduced_embedding_name="pca",
+        plot_name="pca_name_description_embedding_plot",
+        show_point_ids=True,
+    )

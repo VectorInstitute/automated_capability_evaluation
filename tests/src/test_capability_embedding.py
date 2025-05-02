@@ -38,7 +38,7 @@ def test_apply_dim_reduction_tsne(mock_capabilities):
     # Call the function
     apply_dimensionality_reduction(
         capabilities=mock_capabilities,
-        dim_reduction_method=dimensionality_reduction_method,
+        dim_reduction_method_name=dimensionality_reduction_method,
         output_dimension_size=output_dimensions,
         embedding_model_name="text-embedding-3-small",
         tsne_perplexity=2,
@@ -63,3 +63,36 @@ def test_apply_dim_reduction_tsne(mock_capabilities):
     assert torch.isclose(
         encoded_tensor, capability_0.get_embedding(dimensionality_reduction_method)
     ).all()
+
+
+def test_apply_dim_reduction_pca(mock_capabilities):
+    """Test the apply_dimensionality_reduction function For the PCA method."""
+    dimensionality_reduction_method = "pca"
+    output_dimensions = 2
+    embedding_model_name = "text-embedding-3-small"
+
+    for capability in mock_capabilities:
+        capability.set_embedding(
+            embedding_model_name,
+            capability.embedding,
+        )
+
+    apply_dimensionality_reduction(
+        capabilities=mock_capabilities,
+        dim_reduction_method_name=dimensionality_reduction_method,
+        output_dimension_size=output_dimensions,
+        embedding_model_name="text-embedding-3-small",
+    )
+
+    # Verify that the dim reduction output is set for each capability
+    for capability in mock_capabilities:
+        assert dimensionality_reduction_method in capability.embedding_dict, (
+            f"Encoder output for {dimensionality_reduction_method} not set for capability {capability.name}."
+        )
+        reduced_embedding = capability.get_embedding(dimensionality_reduction_method)
+        assert isinstance(reduced_embedding, torch.Tensor), (
+            f"Reduced embedding for {capability.name} is not a torch.Tensor."
+        )
+        assert reduced_embedding.shape[0] == output_dimensions, (
+            f"Reduced embedding for {capability.name} does not have the correct dimensions."
+        )

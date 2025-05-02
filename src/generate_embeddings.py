@@ -10,7 +10,6 @@ import torch
 from langchain_openai import OpenAIEmbeddings
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
-from sklearn.manifold import TSNE
 from sklearn.metrics.pairwise import cosine_similarity
 
 
@@ -22,37 +21,6 @@ class EmbeddingModelName(Enum):
 
     text_embedding_3_small = "text-embedding-3-small"
     text_embedding_3_large = "text-embedding-3-large"
-
-
-class DimensionalityReductionTechnique(Enum):
-    """Enum for dimensionality reduction techniques."""
-
-    TSNE = "t-sne"
-    CUT_EMBEDDING = "cut-embedding"
-
-
-def normalize_l2(tensors: List[torch.Tensor]) -> List[torch.Tensor]:
-    """
-    Normalize a list of PyTorch tensors using L2 norm.
-
-    Args:
-        tensors (List[torch.Tensor]): List of input tensors.
-
-    Returns
-    -------
-        List[torch.Tensor]: List of L2-normalized tensors.
-    """
-    normalized_tensors = []
-    for x in tensors:
-        # If x is 1D
-        if x.ndimension() == 1:
-            norm = torch.norm(x, p=2)
-            normalized_tensors.append(x if norm == 0 else x / norm)
-        # If x is 2D or higher
-        else:
-            norm = torch.norm(x, p=2, dim=1, keepdim=True)
-            normalized_tensors.append(torch.where(norm == 0, x, x / norm))
-    return normalized_tensors
 
 
 class EmbeddingGenerator:
@@ -104,68 +72,6 @@ class EmbeddingGenerator:
         """
         output_float_list = self.embedding_model.embed_documents(texts)
         return [torch.tensor(vec) for vec in output_float_list]
-
-
-def reduce_embeddings_dimensions(
-    embeddings: List[torch.Tensor],
-    output_dimensions: int,
-    dim_reduction_technique: DimensionalityReductionTechnique = (
-        DimensionalityReductionTechnique.TSNE
-    ),
-    normalize: bool = True,
-    perplexity: int = 30,
-    seed: int = 42,
-) -> List[torch.Tensor]:
-    """
-    Reduce the dimensionality of the given embeddings.
-
-    Args:
-        embeddings (List[torch.Tensor]): A list of embeddings to reduce.
-        output_dimensions (int): The number of dimensions to reduce to.
-        dim_reduction_technique (DimensionalityReductionTechnique): The
-            dimensionality reduction technique to use.
-        normalize (bool): Whether to normalize the reduced embeddings.
-        perplexity (int): The perplexity parameter for t-SNE.
-        seed (int): The random seed for reproducibility.
-
-    Returns
-    -------
-        List[torch.Tensor]: A list of reduced embeddings as PyTorch tensors.
-    """
-    # set torch random seed for reproducibility.
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-
-    if dim_reduction_technique == DimensionalityReductionTechnique.CUT_EMBEDDING:
-        reduced_embeddings = [embedding[:output_dimensions] for embedding in embeddings]
-    elif dim_reduction_technique == DimensionalityReductionTechnique.TSNE:
-        if len(embeddings) < perplexity:
-            # Perplexity should always be smaller than the number of samples.
-            # If the number of samples is smaller than the default perplexity
-            # value, we set the perplexity to the number of samples - 2 since a
-            # larger value either throws and error or is too big for the algorithm
-            # to work properly.
-            perplexity = len(embeddings) - 2
-            logger.warning(
-                f"Only {len(embeddings)} points are provided for t-SNE\
-                perplexity is reduced to the number of points - 2."
-            )
-        # Convert embeddings to numpy array because that is what t-SNE expects.
-        np_embeddings = np.array(embeddings)
-        tsne = TSNE(
-            n_components=output_dimensions, perplexity=perplexity, random_state=42
-        )
-        # The output of t-SNE is a numpy array, so we need to convert it back to
-        # a list of tensors.
-        reduced_embeddings = [
-            torch.Tensor(e) for e in tsne.fit_transform(np_embeddings)
-        ]
-
-    if normalize:
-        reduced_embeddings = normalize_l2(reduced_embeddings)
-
-    return reduced_embeddings
 
 
 def filter_embeddings(
@@ -230,7 +136,6 @@ def visualize_embeddings(
     save_dir: str,
     plot_name: str,
     point_names: List[str] | None = None,
-    seed: int = 42,
 ) -> None:
     """
     Visualize the embeddings, and make sure they are 2D.
@@ -246,14 +151,9 @@ def visualize_embeddings(
     -------
         None
     """
-    # Check if the embeddings are already 2D
-    if embeddings[0].ndimension() > 1 and embeddings[0].size(1) > 2:
-        embeddings = reduce_embeddings_dimensions(
-            embeddings,
-            output_dimensions=2,
-            dim_reduction_technique=DimensionalityReductionTechnique.TSNE,
-            seed=seed,
-        )
+    assert all(point.size(0) == 2 for point in embeddings), (
+        "All points must be 2D tensors for visualization."
+    )
     # If point names are provided, annotate each point with its name
     if point_names is not None:
         assert len(point_names) == len(embeddings), (
@@ -322,7 +222,8 @@ def hierarchical_2d_visualization(
         points_tensor = torch.stack(points)  # Shape: (N, 2)
         x = points_tensor[:, 0].numpy()
         y = points_tensor[:, 1].numpy()
-        plt.scatter(x, y, label=area, color=colors[i], alpha=0.6, edgecolor="k", s=90)
+        point_color = "red" if area == "test" else colors[i]
+        plt.scatter(x, y, label=area, color=point_color, alpha=0.6, edgecolor="k", s=90)
 
         # Write point IDs on each point.
         if points_area_name_ids is not None:
@@ -342,27 +243,32 @@ def hierarchical_2d_visualization(
                     )
 
         # Compute cluster center to place label
-        center_x = x.mean()
-        center_y = y.mean()
-        plt.text(
-            center_x,
-            center_y,
-            area,
-            fontsize=8,
-            weight="normal",
-            bbox={"facecolor": colors[i], "alpha": 0.6, "edgecolor": "none"},
-            ha="center",
-            va="center",
-            color="white",
-        )
+        if area != "test":  # Skip the label for the test area
+            center_x = x.mean()
+            center_y = y.mean()
+            plt.text(
+                center_x,
+                center_y,
+                area,
+                fontsize=8,
+                weight="normal",
+                bbox={"facecolor": colors[i], "alpha": 0.6, "edgecolor": "none"},
+                ha="center",
+                va="center",
+                color="white",
+            )
 
     # If point names are provided, create a legend with names and IDs
     if points_area_name_ids:
         legend_handles = []
-        for color_id, (_, names_ids) in enumerate(points_area_name_ids.items()):
+        for color_id, (area, names_ids) in enumerate(points_area_name_ids.items()):
             color = colors[color_id]
             for name, point_id in names_ids.items():
-                label = f"{point_id}: {name}"
+                if area == "test":
+                    color = "red"  # Use red for test points
+                    label = f"{point_id}: {name} (test)"
+                else:
+                    label = f"{point_id}: {name}"
                 handle = Line2D(
                     [], [], marker="o", color=color, linestyle="None", label=label
                 )
@@ -374,7 +280,7 @@ def hierarchical_2d_visualization(
             bbox_to_anchor=(1, 0.5),
             fontsize=8,
         )
-    plt.title("Hierarchical 2D Embedding Visualization")
+    plt.title(f"{plot_name} Visualization")
     plt.xlabel("Dim 1")
     plt.ylabel("Dim 2")
     plt.axis("equal")
