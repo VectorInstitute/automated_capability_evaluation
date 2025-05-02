@@ -89,7 +89,7 @@ def extract_math_capability_logs(
     logs.update({"reductions": logs_reductions})
 
     # Write to output file
-    out_file_name = f"{out_dir}/{capability_name}.json"
+    out_file_name = os.path.join(out_dir, capability_name, f"{capability_name}.json")
     write_json_file(file_path=out_file_name, data=logs)
 
 
