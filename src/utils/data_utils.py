@@ -234,16 +234,14 @@ def check_cfg(cfg: DictConfig, logger: logging.Logger) -> None:
     """
     assert cfg.capabilities_cfg.num_gen_capabilities > 0
     assert cfg.capabilities_cfg.num_gen_capabilities_per_run > 0
-    assert (
+    num_capabilities = int(
         cfg.capabilities_cfg.num_gen_capabilities
-        >= cfg.capabilities_cfg.num_gen_capabilities_per_run
-    ), (
+        * (1 + cfg.capabilities_cfg.num_gen_capabilities_buffer)
+    )
+    assert num_capabilities >= cfg.capabilities_cfg.num_gen_capabilities_per_run, (
         "The total number of capabilities to generate must be greater than or equal to the number of capabilities to generate per run."
     )
-    rem_c = (
-        cfg.capabilities_cfg.num_gen_capabilities
-        % cfg.capabilities_cfg.num_gen_capabilities_per_run
-    )
+    rem_c = num_capabilities % cfg.capabilities_cfg.num_gen_capabilities_per_run
     additional_c = cfg.capabilities_cfg.num_gen_capabilities_per_run - rem_c
     if rem_c != 0:
         logger.warning(f"{additional_c} additional capabilities might be generated.")
