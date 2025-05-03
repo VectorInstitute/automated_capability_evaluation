@@ -8,6 +8,9 @@ class Capability:
     def repr_tasks() -> dict[str, dict]:
         # Returns a mapping from task ids to arbitrary data that is specific to each capability.
         # Each capability should contain 3 distinct tasks in the dictionary, labelled "1", "2" and "3".
+        # Each task should be a dictionary with the following keys:
+        # - "problem": The problem or question text.
+        # - "answer": The expected answer to the problem.
         # ... implementation ...
 
     @staticmethod
