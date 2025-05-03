@@ -298,11 +298,7 @@ def generate_capabilities_using_llm(
                         capability_obj = Capability.from_dict(
                             capability_dict=capability,
                             base_dir=base_capability_dir,
-                            score_dir_suffix=(
-                                kwargs.get("run_id")
-                                if kwargs.get("trial_run")
-                                else None
-                            ),
+                            score_dir_suffix=(kwargs.get("run_id")),
                         )
                     except Exception as e:
                         # TODO: Handle different exceptions separately?
