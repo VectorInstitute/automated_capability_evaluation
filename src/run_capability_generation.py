@@ -32,6 +32,7 @@ def main(cfg: DictConfig) -> None:
     """
     check_cfg(cfg, logger)
     run_id = get_run_id(cfg)
+    logger.info(f"Run ID: {run_id}")
 
     # Initialize the scientist LLM model
     scientist_llm = Model(
@@ -79,7 +80,7 @@ def main(cfg: DictConfig) -> None:
             retry_attempts=cfg.capabilities_cfg.capabilities_gen_retry_attempts,
         )
     capabilities = sorted(capabilities, key=lambda x: x.name)
-    logger.info(f"Capability names:\n{capabilities}")
+    logger.info(f"Capability names ({len(capabilities)}):\n{capabilities}")
     if len(capabilities) < target_num_capabilities:
         logger.warning(
             f"Only {len(capabilities)} capabilities were created. "
@@ -104,7 +105,7 @@ def main(cfg: DictConfig) -> None:
     )
 
     # TODO: Run this asynchronosly
-    for capability in capabilities:
+    for capability in filtered_capabilities:
         # Generate tasks for each capability
         generate_tasks_using_llm(
             capability=capability,
@@ -122,10 +123,6 @@ def main(cfg: DictConfig) -> None:
             concurrency_task_verifier=cfg.capabilities_cfg.concurrency_task_verifier,
             seed=cfg.exp_cfg.seed,
         )
-        # TODO: Only used for testing, remove this block later ==============
-        if cfg.exp_cfg.trial_run:
-            break
-        # ===================================================================
 
 
 if __name__ == "__main__":

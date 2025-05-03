@@ -468,12 +468,17 @@ def filter_capabilities(
     ]
     remaining_indices = filter_embeddings(embeddings, similarity_threshold)
     # Update state of filtered capabilities
+    filtered_out_capabilities = []
     for capability in (
         cap for i, cap in enumerate(capabilities) if i not in remaining_indices
     ):
         capability.set_state(
             constants.C_STATE_FILTERED_OUT_STR,
         )
+        filtered_out_capabilities.append(capability)
+    logger.info(
+        f"Filtered out {len(filtered_out_capabilities)} capabilities:\n{filtered_out_capabilities}"
+    )
     return [capabilities[i] for i in remaining_indices]
 
 
