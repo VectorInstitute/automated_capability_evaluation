@@ -1,6 +1,6 @@
 # The capabilities directory should contain the LLM generated capability files.
 capabilities_cfg:
-  saved_capabilities_dir: /fs01/projects/aieng/public/ace/artifacts/capabilities_gpt-4o-mini_T20_R4_A5
+  saved_capabilities_dir: /fs01/projects/aieng/public/ace/artifacts/capabilities_o3-mini_C20_R3_A5_T5
   domain: math
 
 embedding_cfg:
@@ -8,22 +8,24 @@ embedding_cfg:
   embedding_model: "text-embedding-3-small" # "text-embedding-3-small" or "text-embedding-3-large"
   embedding_size: 512
   # The cosine similarity threshold for filtering capabilities based on their embeddings.
-  filtering_similarity_threshold: 0.85
+  filtering_similarity_threshold: 0.9
 
 dimensionality_reduction_cfg:
   # Dimensionality reduction method generates the low dimensional encodings.
-  reduce_dimensionality_method: "t-sne" # "t-sne" or "cut-embedding".
+  reduce_dimensionality_method: "pca" # "t-sne" or "pca".
   reduced_dimensionality_size: 2
+  # The following parameter will be used only if you are using t-SNE.
   tsne_perplexity: 8 # Choose this hyperparameter based on the number of capabilities you have.
+  normalize_output: False
 
 embedding_visualization_cfg:
   save_dir: /fs01/projects/aieng/public/ace/artifacts/visualizations
-  plot_name: "tsne_plot"
+  plot_name: "Non-normalized PCA Embeddings"
   show_point_ids: true # Set to true when plotting a small number of capabilities.
 
 heatmap_cfg:
   save_dir: /fs01/projects/aieng/public/ace/artifacts/visualizations
-  plot_name: "heatmap"
+  plot_name: "embedding_heatmap"
   add_squares: true
 
 defaults:

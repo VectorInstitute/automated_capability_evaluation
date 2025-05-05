@@ -7,12 +7,11 @@ import torch
 from openai import AuthenticationError
 from sklearn.metrics.pairwise import cosine_similarity
 
+from src.dimensionality_reduction import DimensionalityReductionMethod
 from src.generate_embeddings import (
-    DimensionalityReductionTechnique,
     EmbeddingGenerator,
     EmbeddingModelName,
     filter_embeddings,
-    reduce_embeddings_dimensions,
     visualize_embeddings,
 )
 
@@ -24,9 +23,10 @@ os.environ["OPENAI_API_KEY"] = DUMMY_OPENAI_API_KEY
 EMBEDDING_SIZE = 256
 
 # Set random seed for reproducibility
+random_seed = 42
 if torch.cuda.is_available():
-    torch.cuda.manual_seed_all(42)
-torch.manual_seed(42)
+    torch.cuda.manual_seed_all(random_seed)
+torch.manual_seed(random_seed)
 
 
 # API key error code vars
@@ -201,12 +201,15 @@ def test_dimensionality_reduction_tsne(embeddings: List[torch.Tensor]):
     # Reduce the dimensionality of the embeddings to 2.
     # Perplexity must be less than n_samples. Because we only have 3 samples here,
     # we need to decrease the t-SNE's perplexity parameter. This value is 30 by default.
-    reduced_embeddings = reduce_embeddings_dimensions(
-        embeddings,
-        output_dimensions=2,
-        dim_reduction_technique=DimensionalityReductionTechnique.TSNE,
-        perplexity=1,
+    dim_reduction = DimensionalityReductionMethod.from_name(
+        "t-sne",
+        2,
+        random_seed=random_seed,
+        normalize_output=True,
+        tsne_perplexity=1,
     )
+    # fit_transform() the dimensionality reduction module on the embeddings.
+    reduced_embeddings = dim_reduction.fit_transform(embeddings)
 
     # Check that the reduced embeddings have the correct shape.
     assert len(reduced_embeddings) == len(embeddings)
@@ -237,11 +240,15 @@ def test_dimensionality_reduction_cut_embedding(embeddings: List[torch.Tensor]):
     # should still be meaningful.
 
     # Reduce the dimensionality of the embeddings to 2 by just cutting them.
-    reduced_embeddings = reduce_embeddings_dimensions(
-        embeddings,
-        output_dimensions=2,
-        dim_reduction_technique=DimensionalityReductionTechnique.CUT_EMBEDDING,
+    dim_reduction = DimensionalityReductionMethod.from_name(
+        "cut-embeddings",
+        2,
+        random_seed=random_seed,
+        normalize_output=True,
     )
+    # fit_transform() the dimensionality reduction module on the embeddings.
+    reduced_embeddings = dim_reduction.fit_transform(embeddings)
+
     # Check that the reduced embeddings have the correct shape.
     assert len(reduced_embeddings) == len(embeddings)
     assert len(reduced_embeddings[0]) == 2
@@ -259,6 +266,30 @@ def test_dimensionality_reduction_cut_embedding(embeddings: List[torch.Tensor]):
     # The value of capability_0_1_cosine_similarity ia 0.999399141746954
     # The value of capability_0_2_cosine_similarity is 0.9849190137857736
     assert capability_0_1_cosine_similarity > capability_0_2_cosine_similarity
+
+
+@skip_test_embedding
+def test_dimensionality_reduction_pca(embeddings: List[torch.Tensor]):
+    """Test the dimensionality reduction of the embeddings using PCA."""
+    # Reduce the dimensionality of the embeddings to 2.
+    dim_reduction = DimensionalityReductionMethod.from_name(
+        "pca",
+        2,
+        random_seed=random_seed,
+        normalize_output=True,
+    )
+    # fit_transform() the dimensionality reduction module on the embeddings.
+    reduced_embeddings = dim_reduction.fit_transform(embeddings)
+
+    # Check that the reduced embeddings have the correct shape.
+    assert len(reduced_embeddings) == len(embeddings)
+    assert len(reduced_embeddings[0]) == 2
+
+    # Try reducing the dimensionality of a new point.
+    test_point = torch.randn(EMBEDDING_SIZE)
+    reduced_test_point = dim_reduction.transform_new_points([test_point])
+    assert len(reduced_test_point) == 1
+    assert len(reduced_test_point[0]) == 2
 
 
 @skip_test_embedding
