@@ -42,6 +42,11 @@ def main(cfg: DictConfig) -> None:
     # Select the capabilities to evaluate
     capabilities = select_complete_capabilities(
         capabilities=capabilities,
+        strict=False,
+        num_tasks_lower_bound=int(
+            cfg.capabilities_cfg.num_gen_tasks_per_capability
+            * (1 - cfg.capabilities_cfg.num_gen_tasks_buffer)
+        ),
     )
     capabilities = sorted(capabilities, key=lambda x: x.name)
     logger.info(f"Selected capability names:\n{capabilities}")
@@ -75,6 +80,9 @@ def main(cfg: DictConfig) -> None:
             run_id=run_id,
             concurrency_task_eval=cfg.capabilities_cfg.concurrency_task_eval,
         )
+        if cfg.exp_cfg.trial_run:
+            logger.info("Trial run completed, exiting after one capability.")
+            break
 
 
 if __name__ == "__main__":
