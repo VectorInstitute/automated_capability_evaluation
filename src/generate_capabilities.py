@@ -930,6 +930,8 @@ def generate_new_capability(
 
 def select_complete_capabilities(
     capabilities: List[Capability],
+    strict: bool = True,
+    num_tasks_lower_bound: int = 0,
 ) -> List[Capability]:
     """
     Select and summarize the generated capabilities with a specific state.
@@ -958,12 +960,17 @@ def select_complete_capabilities(
         # Keep only capabilities with TASK_GENERATION_COMPLETED state
         if cap_state == constants.C_STATE_TASK_GENERATION_COMPLETED_STR:
             keep_capabilities.append(capability)
+        elif not strict and len(capability.get_tasks()) >= num_tasks_lower_bound:
+            # If strict is False, keep capabilities with at least
+            # num_tasks_lower_bound tasks
+            keep_capabilities.append(capability)
 
     logger.info(
         f"Capability generation summary:\n{json.dumps(cap_state_count, indent=4)}"
     )
     logger.info(
         f"Selected {len(keep_capabilities)} capabilities with state {constants.C_STATE_TASK_GENERATION_COMPLETED_STR}"
+        + (f"or with at least {num_tasks_lower_bound} tasks" if not strict else "")
     )
 
     return keep_capabilities
