@@ -33,19 +33,21 @@ scientist_llm:
     time: "01:00:00"
 
 subject_llm:
-  name: Meta-Llama-3.1-70B-Instruct
-  provider: local
+  name: gemini-2.5-pro-preview-05-06
+  provider: google
   generation_cfg:
     temperature: 0.7
     max_tokens: 2048
     seed: 42
   local_launch_cfg:
     # Number of threads to use for local LLM
-    max_num_seqs: 25
+    max_num_seqs: 50
     # Type of GPU to use for local LLM
     partition: "a40"
     # QoS for local LLM
     qos: "m2"
+    # # Account for local LLM
+    # account: "deadline"
     # Time limit for local LLM
     time: "01:00:00"
 
@@ -79,14 +81,14 @@ capabilities_cfg:
   task_gen_few_shot: true
   # Number of tasks to evaluate for each capability
   # Set to -1 to evaluate all tasks
-  num_eval_tasks_per_capability: 1
+  num_eval_tasks_per_capability: -1
   # Number of retries for each run of capability generation
   capabilities_gen_retry_attempts: 3
   tasks_gen_retry_attempts: 3
   # Concurrency for task solving and verification
-  concurrency_task_solver: 25
-  concurrency_task_verifier: 25
-  concurrency_task_eval: 25
+  concurrency_task_solver: 50
+  concurrency_task_verifier: 50
+  concurrency_task_eval: 50
   # # Inspect evals config
   # inspect_eval_log_samples: false
   # inspect_eval_log_realtime: false
