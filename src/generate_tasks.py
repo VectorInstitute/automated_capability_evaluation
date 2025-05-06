@@ -243,7 +243,7 @@ def generate_tasks_using_llm(
             state_str=constants.C_STATE_TASK_GENERATION_FAILED_STR,
             reason=error_msg,
         )
-        raise e
+        return
 
     # Analyze tokens metadata for task problems generation
     tokens_summary = {
