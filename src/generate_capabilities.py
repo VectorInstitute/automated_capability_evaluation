@@ -3,6 +3,7 @@ import logging
 import os
 import random
 import shutil
+from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -925,3 +926,44 @@ def generate_new_capability(
             **kwargs,
         )
     return response["capability"]
+
+
+def select_complete_capabilities(
+    capabilities: List[Capability],
+) -> List[Capability]:
+    """
+    Select and summarize the generated capabilities with a specific state.
+
+    This function filters the capabilities to include only those with the
+    state `TASK_GENERATION_COMPLETED` and provides a summary of the states
+    of all capabilities.
+
+    Args
+    ----
+        capabilities (List[Capability]): The list of generated capabilities.
+
+    Returns
+    -------
+        List[Capability]: A list of capabilities with the state
+        `TASK_GENERATION_COMPLETED`.
+    """
+    keep_capabilities = []
+    cap_state_count: Dict[str, int] = defaultdict(int)
+
+    for capability in capabilities:
+        # Get the state of the capability
+        cap_state = capability.get_state().value
+        cap_state_count[cap_state] += 1
+
+        # Keep only capabilities with TASK_GENERATION_COMPLETED state
+        if cap_state == constants.C_STATE_TASK_GENERATION_COMPLETED_STR:
+            keep_capabilities.append(capability)
+
+    logger.info(
+        f"Capability generation summary:\n{json.dumps(cap_state_count, indent=4)}"
+    )
+    logger.info(
+        f"Selected {len(keep_capabilities)} capabilities with state {constants.C_STATE_TASK_GENERATION_COMPLETED_STR}"
+    )
+
+    return keep_capabilities

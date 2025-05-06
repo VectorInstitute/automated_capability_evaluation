@@ -8,6 +8,7 @@ from omegaconf import DictConfig
 
 from generate_capabilities import (
     get_previous_capabilities,
+    select_complete_capabilities,
 )
 from model import Model
 from utils import constants
@@ -37,7 +38,13 @@ def main(cfg: DictConfig) -> None:
         score_dir_suffix=run_id,
     )
     capabilities = sorted(capabilities, key=lambda x: x.name)
-    logger.info(f"Capability names:\n{capabilities}")
+    logger.info(f"ALl capability names:\n{capabilities}")
+    # Select the capabilities to evaluate
+    capabilities = select_complete_capabilities(
+        capabilities=capabilities,
+    )
+    capabilities = sorted(capabilities, key=lambda x: x.name)
+    logger.info(f"Selected capability names:\n{capabilities}")
 
     # Initialize the scientist LLM model to be used as a judge
     scientist_llm = Model(
