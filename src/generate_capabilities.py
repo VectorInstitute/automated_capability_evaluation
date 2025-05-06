@@ -739,14 +739,19 @@ def score_based_capability_discovery(
     prev_capabilities: List[Capability],
     domain: str,
     base_capability_dir: str,
-    scientist_llm: Model,
     user_prompt: str,
+    scientist_llm: Model,
     scientist_llm_gen_cfg: Dict[str, Any],
     subject_llm_name: str,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """
     Generate new capabilities based on existing ones using the scientist LLM.
+
+    This function leverages the scores of previously generated capabilities
+    to guide the generation of new capabilities. It uses the scientist LLM
+    to generate a new capability based on existing capability and their
+    associated scores.
 
     Args
     ----
@@ -755,8 +760,8 @@ def score_based_capability_discovery(
         domain (str): The domain name.
         base_capability_dir (str): The base directory to store the
             generated capabilities.
-        scientist_llm (Model): The scientist LLM model.
         user_prompt (str): The user prompt for generating new capabilities.
+        scientist_llm (Model): The scientist LLM model.
         scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
             for the scientist LLM.
         subject_llm_name (str): The name of the subject LLM used for scoring.
@@ -863,6 +868,7 @@ def score_based_capability_discovery(
         raise e
 
     logger.info(f"Generated capability: {gen_capability_obj}")
+    logger.info(f"Capability generation tokens summary\n{metadata}")
 
     return {
         "capability": gen_capability_obj,
@@ -872,3 +878,50 @@ def score_based_capability_discovery(
             "api_metadata": metadata,
         },
     }
+
+
+def generate_new_capability(
+    capabilities: List[Capability],
+    subject_llm_name: str,
+    pipeline_id: str,
+    domain: str,
+    base_capability_dir: str,
+    scientist_llm: Model,
+    scientist_llm_gen_cfg: Dict[str, Any],
+    capabilities_pool: List[Capability] | None = None,
+    **kwargs: Any,
+) -> Any:
+    """
+    Generate a new capability.
+
+    Args
+    ----
+        capabilities (List[Capability]): The list of existing capabilities.
+        subject_llm_name (str): The subject LLM model name.
+        capabilities_pool (List[Capability], optional): The list of existing
+            capabilities without subject model scores, used as a search space
+            for the generated capability representation
+            (only for pipeline_id="nearest_neighbour").
+
+    Returns
+    -------
+        Capability: The generated capability.
+    """
+    if pipeline_id == "no_discovery":
+        # TODO: Implement no discovery pipeline
+        raise NotImplementedError("No discovery pipeline is not implemented.")
+    if pipeline_id == "discover_new_llm":
+        # Set the base capability directory for new capability
+        new_base_capability_dir = f"{base_capability_dir}_{pipeline_id}"
+        # Generate a new capability using the scientist LLM
+        response = score_based_capability_discovery(
+            prev_capabilities=capabilities,
+            domain=domain,
+            base_capability_dir=new_base_capability_dir,
+            scientist_llm=scientist_llm,
+            scientist_llm_gen_cfg=scientist_llm_gen_cfg,
+            user_prompt=prompts.SCORE_BASED_NEW_CAPABILITY_DISCOVERY_USER_PROMPT,
+            subject_llm_name=subject_llm_name,
+            **kwargs,
+        )
+    return response["capability"]
