@@ -970,7 +970,7 @@ def select_complete_capabilities(
     )
     logger.info(
         f"Selected {len(keep_capabilities)} capabilities with state {constants.C_STATE_TASK_GENERATION_COMPLETED_STR}"
-        + (f"or with at least {num_tasks_lower_bound} tasks" if not strict else "")
+        + (f" or with at least {num_tasks_lower_bound} tasks" if not strict else "")
     )
 
     return keep_capabilities
