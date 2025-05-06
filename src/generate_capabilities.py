@@ -733,3 +733,142 @@ def generate_capabilities(
     )
 
     return gen_capabilities
+
+
+def score_based_capability_discovery(
+    prev_capabilities: List[Capability],
+    domain: str,
+    base_capability_dir: str,
+    scientist_llm: Model,
+    user_prompt: str,
+    scientist_llm_gen_cfg: Dict[str, Any],
+    subject_llm_name: str,
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    """
+    Generate new capabilities based on existing ones using the scientist LLM.
+
+    Args
+    ----
+        prev_capabilities (List[Capability]): The list of previously
+            generated capabilities.
+        domain (str): The domain name.
+        base_capability_dir (str): The base directory to store the
+            generated capabilities.
+        scientist_llm (Model): The scientist LLM model.
+        user_prompt (str): The user prompt for generating new capabilities.
+        scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
+            for the scientist LLM.
+        subject_llm_name (str): The name of the subject LLM used for scoring.
+        **kwargs (Any): Additional keyword arguments.
+
+    Returns
+    -------
+        Dict[str, Any]: A dictionary containing the newly discovered capability
+        and metadata about the generation process.
+    """
+    random.seed(int(kwargs.get("seed", constants.DEFAULT_RANDOM_SEED)))
+
+    # Get capability names with scores
+    capability_score_dict = {}
+    for capability in prev_capabilities:
+        score_dict = capability.load_scores()
+        if subject_llm_name not in score_dict:
+            logger.error(
+                f"Capability {capability.name} does not have a score for {subject_llm_name}. Evaluate the capability first."
+            )
+        capability_score_dict[capability.name] = score_dict[subject_llm_name]["mean"]
+
+    # Randomly sample a capability from the existing capabilities
+    sample_capability = random.choice(prev_capabilities)
+
+    # Build the user prompt
+    user_prompt = user_prompt.format(
+        sample_capability_json=sample_capability.to_json_str(),
+        prev_capabilities_and_scores=json.dumps(capability_score_dict, indent=4),
+        domain=domain,
+    )
+
+    # Generate output using the model with specified generation arguments
+    num_attempts = kwargs.get(
+        "retry_attempts", constants.DEFAULT_CAPABILITY_GENERATION_RETRY_ATTEMPTS
+    )
+    try:
+        # Retry the generation process if an error occurs
+        # Common errors:
+        # - [ill-formatted python class]
+        #   - SyntaxError: unterminated triple-quoted string literal
+        for attempt in Retrying(
+            stop=stop_after_attempt(num_attempts),
+            reraise=True,
+        ):
+            with attempt:
+                # Update the seed for each attempt
+                scientist_llm_gen_cfg["seed"] += 1
+                with tracing_context(
+                    enabled=True,
+                    tags=["score_based_capability_discovery"],
+                    metadata={
+                        "ls_provider": scientist_llm.model_provider,
+                        "ls_model_name": scientist_llm.get_model_name(
+                            with_provider=False
+                        ),
+                        "ls_model_type": "chat",
+                        "exp_id": kwargs.get("run_id"),
+                        "domain": domain,
+                        "subject_llm_name": subject_llm_name,
+                        "prev_capabilities": [elm.name for elm in prev_capabilities],
+                        **{f"ls_{k}": v for k, v in scientist_llm_gen_cfg.items()},
+                    },
+                ):
+                    response, metadata = scientist_llm.generate(
+                        sys_prompt=prompts.CAPABILITY_GENERATION_SYSTEM_PROMPT,
+                        user_prompt=user_prompt,
+                        generation_config=scientist_llm_gen_cfg,
+                    )
+
+                parsed_response = extract_and_parse_response(response)
+                # Fetch the first capability from the response if multiple are generated
+                gen_capability = parsed_response["parsed_response"][:1]
+                # Convert JSON string to dict if needed
+                if isinstance(gen_capability, dict):
+                    gen_capability_dict = gen_capability
+                elif isinstance(gen_capability, str):
+                    gen_capability_dict = json.loads(gen_capability)
+                else:
+                    raise ValueError(
+                        f"Invalid capability format: {gen_capability}. Expected str or dict."
+                    )
+                # Load the capability object
+                try:
+                    gen_capability_obj = Capability.from_dict(
+                        capability_dict=gen_capability_dict,
+                        base_dir=base_capability_dir,
+                        score_dir_suffix=(kwargs.get("run_id")),
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Error creating capability object {gen_capability_dict['name']}: {repr(e)}"
+                    )
+                    # Delete the capability directory if it exists
+                    capability_dir = os.path.join(
+                        base_capability_dir, gen_capability_dict["name"]
+                    )
+                    if os.path.exists(capability_dir):
+                        shutil.rmtree(capability_dir)
+                    raise e
+    except Exception as e:
+        logger.error(f"Error generating capability: {e}")
+        logger.error(f"Response:\n{response}")
+        raise e
+
+    logger.info(f"Generated capability: {gen_capability_obj}")
+
+    return {
+        "capability": gen_capability_obj,
+        "metadata": {
+            "model": scientist_llm.get_model_name(),
+            "thought": parsed_response["thought"],
+            "api_metadata": metadata,
+        },
+    }
