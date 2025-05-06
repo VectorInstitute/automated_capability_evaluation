@@ -942,6 +942,15 @@ class Capability:
             self.domain,
             self.name,
         )
+        # Skip evaluation if the GCP log directory already exists
+        gcp_log_dir = log_dir.replace(
+            constants.BASE_ARTIFACTS_DIR, constants.GCP_BASE_ARTIFACTS_DIR
+        )
+        if path_exists(gcp_log_dir):
+            logger.warning(
+                f"[{self.name}] GCP log directory already exists: {gcp_log_dir}. Skipping evaluation."
+            )
+            return
         os.makedirs(log_dir, exist_ok=True)
 
         run_inspect_evals(
@@ -954,9 +963,7 @@ class Capability:
         # Transfer the logs to the GCP bucket
         transfer_inspect_log_to_gcp(
             src_dir=log_dir,
-            gcp_dir=log_dir.replace(
-                constants.BASE_ARTIFACTS_DIR, constants.GCP_BASE_ARTIFACTS_DIR
-            ),
+            gcp_dir=gcp_log_dir,
         )
         # Remove the local logs
         shutil.rmtree(log_dir)
