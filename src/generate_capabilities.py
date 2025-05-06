@@ -110,6 +110,7 @@ def _sample_seed_capabilities(
 def get_previous_capabilities(
     capability_dir: str,
     capability_area: str | None = None,
+    **kwargs: Any,
 ) -> List[Capability]:
     """
     Get the previously generated capabilities for the specified domain.
@@ -119,6 +120,8 @@ def get_previous_capabilities(
     Args
     ----
         capability_dir (str): The directory containing the generated capabilities.
+        capability_area (str | None): The capability area to filter by.
+        **kwargs (Any): Additional keyword arguments.
 
     Returns
     -------
@@ -126,7 +129,10 @@ def get_previous_capabilities(
     """
     prev_capabilities = []
     for capability_path in os.listdir(capability_dir):
-        capability = Capability(os.path.join(capability_dir, capability_path))
+        capability = Capability(
+            capability_dir=os.path.join(capability_dir, capability_path),
+            score_dir_suffix=kwargs.get("score_dir_suffix"),
+        )
         if capability_area is not None and capability.area != capability_area:
             continue
         prev_capabilities.append(capability)
@@ -294,11 +300,7 @@ def generate_capabilities_using_llm(
                         capability_obj = Capability.from_dict(
                             capability_dict=capability,
                             base_dir=base_capability_dir,
-                            score_dir_suffix=(
-                                kwargs.get("run_id")
-                                if kwargs.get("trial_run")
-                                else None
-                            ),
+                            score_dir_suffix=(kwargs.get("run_id")),
                         )
                     except Exception as e:
                         # TODO: Handle different exceptions separately?
@@ -601,6 +603,18 @@ def filter_capabilities(
         capability.get_embedding(embedding_model_name) for capability in capabilities
     ]
     remaining_indices = filter_embeddings(embeddings, similarity_threshold)
+    # Update state of filtered capabilities
+    filtered_out_capabilities = []
+    for capability in (
+        cap for i, cap in enumerate(capabilities) if i not in remaining_indices
+    ):
+        capability.set_state(
+            constants.C_STATE_FILTERED_OUT_STR,
+        )
+        filtered_out_capabilities.append(capability)
+    logger.info(
+        f"Filtered out {len(filtered_out_capabilities)} capabilities:\n{filtered_out_capabilities}"
+    )
     return [capabilities[i] for i in remaining_indices]
 
 
@@ -671,9 +685,11 @@ def generate_capability_areas(
     if len(capability_areas) > num_areas:
         logger.warning(
             f"Generated {len(capability_areas)} capability areas, but only {num_areas} are needed. "
-            + "Truncating the list to the required number."
+            + f"Keeping the first {num_areas} areas."
         )
         capability_areas = capability_areas[:num_areas]
+
+    logger.info(f"Generated capability areas:\n{capability_areas}")
 
     return {
         "capability_areas": capability_areas,

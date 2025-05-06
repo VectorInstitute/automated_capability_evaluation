@@ -1,14 +1,14 @@
 scientist_llm:
-  name: o3-mini
+  name: o4-mini
   provider: openai
   generation_cfg:
     capability_generation:
       temperature: 0.7
-      max_tokens: 4096
+      max_tokens: 16384
       seed: 42
     task_generation:
       temperature: 0.7
-      max_tokens: 4096
+      max_tokens: 32768
       seed: 42
     task_solve:
       temperature: 0.7
@@ -33,15 +33,15 @@ scientist_llm:
     time: "01:00:00"
 
 subject_llm:
-  name: gpt-4o-mini
-  provider: openai
+  name: Meta-Llama-3.1-70B-Instruct
+  provider: local
   generation_cfg:
     temperature: 0.7
     max_tokens: 2048
     seed: 42
   local_launch_cfg:
     # Number of threads to use for local LLM
-    max_num_seqs: 1
+    max_num_seqs: 25
     # Type of GPU to use for local LLM
     partition: "a40"
     # QoS for local LLM
@@ -63,15 +63,15 @@ capabilities_cfg:
   # Set to -1 to use all seed capabilities
   num_seed_capabilities: 1
   # Number of initial capabilities to generate using the scientist LLM
-  num_gen_capabilities: 10
+  num_gen_capabilities: 100
   # Buffer for capability generation
   num_gen_capabilities_buffer: 0.2
   # Number of capability areas to generate
-  num_capability_areas: 2
+  num_capability_areas: 10
   # Number of initial capabilities to generate per run
-  num_gen_capabilities_per_run: 2
+  num_gen_capabilities_per_run: 5
   # Number of tasks to generate for each capability
-  num_gen_tasks_per_capability: 5
+  num_gen_tasks_per_capability: 100
   # Buffer for task generation
   num_gen_tasks_buffer: 0.2
   # Set this flag to true to use representative tasks
@@ -79,22 +79,26 @@ capabilities_cfg:
   task_gen_few_shot: true
   # Number of tasks to evaluate for each capability
   # Set to -1 to evaluate all tasks
-  num_eval_tasks_per_capability: 10
+  num_eval_tasks_per_capability: 1
   # Number of retries for each run of capability generation
   capabilities_gen_retry_attempts: 3
   tasks_gen_retry_attempts: 3
   # Concurrency for task solving and verification
-  concurrency_task_solver: 10
-  concurrency_task_verifier: 10
-  concurrency_task_eval: 10
-  # Inspect evals config
-  inspect_eval_score_display: false
+  concurrency_task_solver: 25
+  concurrency_task_verifier: 25
+  concurrency_task_eval: 25
+  # # Inspect evals config
+  # inspect_eval_log_samples: false
+  # inspect_eval_log_realtime: false
+  # inspect_eval_score: false
+  # inspect_eval_score_display: false
+
 
 lbo_cfg:
   # Number of capabilities to generate using LBO
   num_lbo_runs: 1
   # Type of LBO pipeline to use
-  pipeline_id: "discover_new" # "nearest_neighbor" or "discover_new"
+  pipeline_id: "no_discovery" # "no_discovery" or "discover_new"
   # Train args for 'nearest_neighbor' pipeline
   train_frac: 0.5
   min_train_size: 10
@@ -118,7 +122,8 @@ dimensionality_reduction_cfg:
 exp_cfg:
   # Set this flag to true to run test experiments during development
   seed: 37
-  trial_run: true
+  trial_run: false
+  exp_id:
 
 defaults:
   - _self_

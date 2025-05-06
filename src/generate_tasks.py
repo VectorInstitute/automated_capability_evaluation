@@ -89,7 +89,11 @@ def is_task_generation_required(
         bool: True if task generation is required, False otherwise.
     """
     task_gen_required = True
-    if (
+    if capability.get_state().name == CapabilityState.FILTERED_OUT.name:
+        logger.warning(
+            f"Capability {capability.name} is filtered out. Hence, skipping task generation."
+        )
+    elif (
         capability.get_state().name
         == CapabilityState.TASK_GENERATION_PARTIALLY_COMPLETED.name
         and not regenerate_if_partially_completed

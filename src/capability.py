@@ -42,6 +42,8 @@ class CapabilityState(Enum):
     ----------
     INITIALIZED : str
         The capability is initialized.
+    FILTERED_OUT : str
+        The capability is filtered out.
     TASK_GENERATION_FAILED : str
         The capability task generation failed.
     TASK_GENERATION_PARTIALLY_COMPLETED : str
@@ -52,6 +54,7 @@ class CapabilityState(Enum):
     """
 
     INITIALIZED = constants.C_STATE_INITIALIZED_STR
+    FILTERED_OUT = constants.C_STATE_FILTERED_OUT_STR
     TASK_GENERATION_FAILED = constants.C_STATE_TASK_GENERATION_FAILED_STR
     TASK_GENERATION_PARTIALLY_COMPLETED = (
         constants.C_STATE_TASK_GENERATION_PARTIALLY_COMPLETED_STR
@@ -319,7 +322,12 @@ class Capability:
             self._state = CapabilityState(_state_dict["state"])
         return self._state
 
-    def load_scores(self, scores_dir: str | None = None) -> Dict[str, float]:
+    def load_scores(
+        self,
+        scores_dir: str | None = None,
+        num_tasks: int = -1,
+        seed: int = constants.DEFAULT_RANDOM_SEED,
+    ) -> Dict[str, Any]:
         """
         Load scores from JSON files in the specified directory.
 
@@ -333,13 +341,19 @@ class Capability:
             the values are the scores.
         """
         scores_dir = scores_dir if scores_dir else self.score_dir
-        scores_dict = defaultdict(float)
+        scores_dict: defaultdict[str, dict[str, Any]] = defaultdict(dict)
         for model in list_dir(scores_dir):
-            scores_file = os.path.join(
-                scores_dir, model, self.domain, f"{self.name}.json"
+            scores_file_dir = os.path.join(
+                scores_dir,
+                model,
+                self.domain,
+                self.name,
             )
+            scores_file = os.path.join(scores_file_dir, list_dir(scores_file_dir)[0])
             if path_exists(scores_file):
-                scores_dict[model] = read_score_inspect_json(scores_file)
+                scores_dict[model] = read_score_inspect_json(
+                    scores_file, num_tasks=num_tasks, seed=seed
+                )
         return scores_dict
 
     def get_repr_tasks(self) -> List[Dict[str, Any]]:
@@ -919,7 +933,9 @@ class Capability:
                 file_path=script_file_path,
             )
         except Exception as e:
-            logger.error(f"[{self.name}] Error creating {script_file_path}: {repr(e)}")
+            logger.error(
+                f"[{self.name}] Unable to import {script_file_path}: {repr(e)}"
+            )
             raise e
 
     def _evaluate_using_inspect(self, subject_llm: Model, **kwargs: Any) -> None:
@@ -1001,9 +1017,14 @@ class Capability:
         assert len(subject_llms) == len(gen_args), (
             "Each subject LLM must have a corresponding generation config."
         )
-        # Create inspect script if evaluating for the first time
-        inspect_path = os.path.join(constants.BASE_INSPECT_EVALS_DIR, self.name)
-        if not os.path.exists(inspect_path):
+        try:
+            # Create inspect script
+            inspect_path = os.path.join(constants.BASE_INSPECT_EVALS_DIR, self.name)
+            if os.path.exists(inspect_path):
+                # Recreating the inspect file to avoid an unknown path error
+                # TODO: Resolve the unknown path error?
+                # Remove existing inspect path to avoid conflicts
+                shutil.rmtree(inspect_path)
             os.makedirs(inspect_path)
             self._create_inspect_file(
                 path=inspect_path,
@@ -1012,6 +1033,11 @@ class Capability:
                 else None,
                 judge_llm_gen_args=judge_llm_gen_args,
             )
+        except Exception as e:
+            logger.error(
+                f"[{self.name}] Error creating inspect evals script: {repr(e)}"
+            )
+            raise e
 
         # Change dir to where inspect eval scrips are stored
         # because inspect evals does not support non-relative paths.
@@ -1021,18 +1047,26 @@ class Capability:
         sys.path.append(constants.BASE_INSPECT_EVALS_DIR)
         # TODO: Run asynchronosly
         for model_idx, model in enumerate(subject_llms):
-            self._evaluate_using_inspect(
-                subject_llm=model,
-                judge_llm_name=judge_llm.get_model_name(with_provider=True)
-                if judge_llm
-                else None,
-                **gen_args[model_idx],
-                run_id=kwargs.get("run_id"),
-                max_samples=kwargs.get(
-                    "concurrency_task_eval", constants.DEFAULT_TASK_EVAL_CONCURRENCY
-                ),
-                score_display=kwargs.get("inspect_eval_score_display", False),
-            )
+            try:
+                self._evaluate_using_inspect(
+                    subject_llm=model,
+                    judge_llm_name=judge_llm.get_model_name(with_provider=True)
+                    if judge_llm
+                    else None,
+                    **gen_args[model_idx],
+                    run_id=kwargs.get("run_id"),
+                    max_samples=kwargs.get(
+                        "concurrency_task_eval", constants.DEFAULT_TASK_EVAL_CONCURRENCY
+                    ),
+                )
+            except Exception as e:
+                logger.error(
+                    f"Error evaluating {model.get_model_name()} on capability {self.name}: {repr(e)}"
+                )
+                logger.warning(
+                    f"Inspect evals failed for capability {self.name} using {model.get_model_name()}."
+                )
+                continue
         # Revert to original working dir after evaluation
         # and remove the inspect evals path from sys.path
         sys.path.remove(constants.BASE_INSPECT_EVALS_DIR)

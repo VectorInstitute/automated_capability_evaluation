@@ -8,6 +8,9 @@ class Capability:
     def repr_tasks() -> dict[str, dict]:
         # Returns a mapping from task ids to arbitrary data that is specific to each capability.
         # Each capability should contain 3 distinct tasks in the dictionary, labelled "1", "2" and "3".
+        # Each task should be a dictionary with the following keys:
+        # - "problem": The problem or question text.
+        # - "answer": The expected answer to the problem.
         # ... implementation ...
 
     @staticmethod
@@ -116,7 +119,8 @@ RESPONSE JSON:
 In <THOUGHT>, briefly think and reason about what kind of tasks you want to propose.
 In <STR>, provide a string containing the task text.
 
-Be careful to make sure that all proposed tasks are unique. Also ensure that all tasks are within the scope of the given capability. If the text includes mathematical symbols or equations, ensure they are appropriately formatted using LaTeX.
+Be careful to make sure that all proposed tasks are unique. Also ensure that all tasks are within the scope of the given capability.
+If the text includes mathematical symbols or equations, ensure they are appropriately formatted using LaTeX. Ensure the single backlash "\\" included in a LateX string is escaped as "\\\\". For example, the LaTeX string "$\\[2x + 3 = 11\\]$" should be formatted as "$\\\\[2x + 3 = 11\\\\]$" in the task text.
 
 Your response will be automatically parsed so ensure it adheres to the specified format.
 """

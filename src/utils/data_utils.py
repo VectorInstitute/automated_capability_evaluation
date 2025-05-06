@@ -5,6 +5,7 @@ It contains utility functions for loading datasets.
 """
 
 import json
+import logging
 import os
 import shutil
 from typing import Any, Dict
@@ -14,6 +15,7 @@ from datasets import (
     load_dataset,  # noqa: D100
 )
 from google.cloud import storage
+from omegaconf import DictConfig
 
 
 def load_data(
@@ -219,3 +221,49 @@ def transfer_inspect_log_to_gcp(src_dir: str, gcp_dir: str) -> None:
     src_path = os.path.join(src_dir, src_file)
     dest_path = os.path.join(gcp_dir, src_file)
     copy_file(src_path, dest_path)
+
+
+def check_cfg(cfg: DictConfig, logger: logging.Logger) -> None:
+    """
+    Check configuration compatibility.
+
+    Args
+    ----
+        cfg (DictConfig): The provided configuration.
+        logger (logging.Logger): The logger instance to log messages.
+    """
+    assert cfg.capabilities_cfg.num_gen_capabilities > 0
+    assert cfg.capabilities_cfg.num_gen_capabilities_per_run > 0
+    num_capabilities = int(
+        cfg.capabilities_cfg.num_gen_capabilities
+        * (1 + cfg.capabilities_cfg.num_gen_capabilities_buffer)
+    )
+    assert num_capabilities >= cfg.capabilities_cfg.num_gen_capabilities_per_run, (
+        "The total number of capabilities to generate must be greater than or equal to the number of capabilities to generate per run."
+    )
+    rem_c = num_capabilities % cfg.capabilities_cfg.num_gen_capabilities_per_run
+    additional_c = cfg.capabilities_cfg.num_gen_capabilities_per_run - rem_c
+    if rem_c != 0:
+        logger.warning(f"{additional_c} additional capabilities might be generated.")
+
+
+def get_run_id(cfg: DictConfig) -> str:
+    """
+    Generate a unique run ID based on the configuration.
+
+    Args
+    ----
+        cfg (DictConfig): The provided configuration.
+
+    Returns
+    -------
+        str: The generated run ID.
+    """
+    if cfg.exp_cfg.exp_id:
+        run_id = str(cfg.exp_cfg.exp_id)
+    else:
+        run_id = f"{cfg.scientist_llm.name}_C{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
+        if cfg.capabilities_cfg.method == "hierarchical":
+            run_id += f"_A{cfg.capabilities_cfg.num_capability_areas}"
+        run_id += f"_T{cfg.capabilities_cfg.num_gen_tasks_per_capability}"
+    return run_id
