@@ -60,21 +60,20 @@ def main(cfg: DictConfig) -> None:
     capabilities = sorted(capabilities, key=lambda x: x.name)
     logger.info(f"Selected capability names:\n{capabilities}")
 
-    # Reduce the dimensionality of all capability embeddings
-    dim_reduction_method_name = (
-        cfg.dimensionality_reduction_cfg.reduce_dimensionality_method
-    )
-    dim_reduction_model = apply_dimensionality_reduction(
-        capabilities=capabilities,
-        dim_reduction_method_name=dim_reduction_method_name,
-        output_dimension_size=cfg.dimensionality_reduction_cfg.reduced_dimensionality_size,
-        embedding_model_name=cfg.embedding_cfg.embedding_model,
-        random_seed=cfg.exp_cfg.seed,
-    )
-
     num_lbo_runs = cfg.lbo_cfg.num_lbo_runs
     if cfg.lbo_cfg.pipeline_id == "no_discovery":
-        # For pipeline 1 (pipeline_id=="no_discovery"), the set of
+        # Reduce the dimensionality of all capability embeddings
+        dim_reduction_method_name = (
+            cfg.dimensionality_reduction_cfg.no_discovery_reduced_dimensionality_method
+        )
+        _ = apply_dimensionality_reduction(
+            capabilities=capabilities,
+            dim_reduction_method_name=dim_reduction_method_name,
+            output_dimension_size=cfg.dimensionality_reduction_cfg.no_discovery_reduced_dimensionality_size,
+            embedding_model_name=cfg.embedding_cfg.embedding_model,
+            random_seed=cfg.exp_cfg.seed,
+        )
+        # For pipeline_id=="no_discovery", the set of
         # generated capabilities are split into two sets
         train_capabilities, candidate_capabilities = get_lbo_train_set(
             input_data=capabilities,
@@ -100,6 +99,18 @@ def main(cfg: DictConfig) -> None:
         )
 
     elif "discover_new" in cfg.lbo_cfg.pipeline_id:
+        # Reduce the dimensionality of all capability embeddings
+        dim_reduction_method_name = (
+            cfg.dimensionality_reduction_cfg.discover_new_reduced_dimensionality_method
+        )
+        dim_reduction_model = apply_dimensionality_reduction(
+            capabilities=capabilities,
+            dim_reduction_method_name=dim_reduction_method_name,
+            output_dimension_size=cfg.dimensionality_reduction_cfg.discover_new_reduced_dimensionality_size,
+            embedding_model_name=cfg.embedding_cfg.embedding_model,
+            random_seed=cfg.exp_cfg.seed,
+        )
+
         # Initialize the scientist LLM model for new capabilities'
         # task generation, solving, verification and evaluation (as judge)
         scientist_llm = Model(
