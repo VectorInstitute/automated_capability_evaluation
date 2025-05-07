@@ -8,7 +8,9 @@ from omegaconf import DictConfig
 
 from generate_capabilities import (
     apply_dimensionality_reduction,
+    apply_dimensionality_reduction_to_test_capabilities,
     capability_satisfies_criterion,
+    generate_and_set_capabilities_embeddings,
     get_previous_capabilities,
     knn_based_capability_discovery,
     score_based_capability_discovery,
@@ -60,6 +62,13 @@ def main(cfg: DictConfig) -> None:
     capabilities = sorted(capabilities, key=lambda x: x.name)
     logger.info(f"Selected capability names:\n{capabilities}")
 
+    # Embed capabilities using openai embedding model
+    generate_and_set_capabilities_embeddings(
+        capabilities=capabilities,
+        embedding_model_name=cfg.embedding_cfg.embedding_model,
+        embed_dimensions=cfg.embedding_cfg.embedding_size,
+    )
+
     num_lbo_runs = cfg.lbo_cfg.num_lbo_runs
     if cfg.lbo_cfg.pipeline_id == "no_discovery":
         # Reduce the dimensionality of all capability embeddings
@@ -81,6 +90,9 @@ def main(cfg: DictConfig) -> None:
             min_train_size=cfg.lbo_cfg.min_train_size,
             stratified=cfg.capabilities_cfg.method == "hierarchical",
             seed=cfg.exp_cfg.seed,
+        )
+        logger.info(
+            f"Train capabilities ({len(train_capabilities)}):\n{train_capabilities}"
         )
         if num_lbo_runs > len(candidate_capabilities):
             logger.warning(
@@ -261,20 +273,27 @@ def main(cfg: DictConfig) -> None:
 
             if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
                 # Prepare the new capability for LBO
-                # Get original embedding
-                new_capability_encoding = new_capability.get_embedding(
-                    cfg.embedding_cfg.embedding_model
+                # Embed the new capability using the same embedding model
+                generate_and_set_capabilities_embeddings(
+                    capabilities=[new_capability],
+                    embedding_model_name=cfg.embedding_cfg.embedding_model,
+                    embed_dimensions=cfg.embedding_cfg.embedding_size,
                 )
                 # Apply dimensionality reduction
-                new_capability_encoding = dim_reduction_model.transform_new_points(
-                    new_embeddings=[new_capability_encoding]
-                )[0]
+                apply_dimensionality_reduction_to_test_capabilities(
+                    capabilities=[new_capability],
+                    dim_reduction_method=dim_reduction_model,
+                    embedding_model_name=cfg.embedding_cfg.embedding_model,
+                )
                 # Get subject LLM score
                 new_capability_score = new_capability.load_scores()[
                     subject_llm.get_name()
                 ]["mean"]
                 # Update the LBO model with the new capability
-                lbo_model.update(new_capability_encoding, new_capability_score)
+                lbo_model.update(
+                    new_capability.get_embedding(dim_reduction_model.method_name),
+                    new_capability_score,
+                )
 
         logger.info(f"New capabilities: {new_capabilities}")
 
