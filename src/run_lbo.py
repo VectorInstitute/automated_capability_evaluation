@@ -76,11 +76,11 @@ def main(cfg: DictConfig) -> None:
     if cfg.lbo_cfg.pipeline_id == "no_discovery":
         # For pipeline 1 (pipeline_id=="no_discovery"), the set of
         # generated capabilities are split into two sets
-        # TODO: Split uniformly across area for hierarchical capabilities
         train_capabilities, candidate_capabilities = get_lbo_train_set(
             input_data=capabilities,
             train_frac=cfg.lbo_cfg.train_frac,
             min_train_size=cfg.lbo_cfg.min_train_size,
+            stratified=cfg.capabilities_cfg.method == "hierarchical",
             seed=cfg.exp_cfg.seed,
         )
         if num_lbo_runs > len(candidate_capabilities):
