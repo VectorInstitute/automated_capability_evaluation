@@ -113,6 +113,15 @@ class LBO:
                 )
         return idx, x_query[idx]
 
+    def select_k_points(
+        self, x_query: torch.Tensor, k: int
+    ) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+        """Select k query points from x_query."""
+        raise NotImplementedError(
+            "select_k_points is not implemented. "
+            "Please implement this method to select k points."
+        )
+
     def update(self, q_x: torch.Tensor, q_y: torch.Tensor) -> None:
         """
         LBO update function.
@@ -228,6 +237,80 @@ def _get_nearest_capability(
     raise NotImplementedError
 
 
+def fit_lbo(
+    capabilities: List[Capability],
+    embedding_name: str,
+    subject_llm_name: str,
+    acquisition_function: str = "variance",
+) -> LBO:
+    """
+    Fit the Latent Bayesian Optimization (LBO) model using the existing capabilities.
+
+    Args
+    ----
+        capabilities (List[Capability]): The list of existing capabilities
+            used to train the LBO model.
+        embedding_name (str): The name of the embedding used to represent capabilities.
+        subject_llm_name (str): The name of the subject LLM used
+            to evaluate capabilities.
+        acquisition_function (str, optional): The acquisition function for LBO.
+            Defaults to "variance".
+
+    Returns
+    -------
+        LBO: The fitted LBO model.
+    """
+    # Get the capability embeddings both for the existing capabilities
+    # and the capabilities pool
+    capabilities_encoding = torch.stack(
+        [cap.get_embedding(embedding_name) for cap in capabilities]
+    )
+
+    # Load subject LLM scores for each existing capability
+    capability_scores = torch.Tensor(
+        [cap.load_scores()[subject_llm_name]["mean"] for cap in capabilities]
+    )
+
+    # Fit the LBO model using the existing capabilities and their scores
+    return LBO(
+        capabilities_encoding,
+        capability_scores,
+        acquisition_function,
+    )
+
+
+def select_k_capabilities(
+    lbo_model: LBO,
+    capabilities: List[Capability],
+    select_k: int,
+    embedding_name: str,
+) -> List[Capability]:
+    """
+    Select k capabilities from the existing capabilities using LBO.
+
+    Args
+    ----
+        lbo_model (LBO): The fitted LBO model.
+        capabilities (List[Capability]): The list of existing capabilities
+            to select from.
+        select_k (int): The number of capabilities to select.
+        embedding_name (str): The name of the embedding used to represent capabilities.
+
+    Returns
+    -------
+        List[Capability]: A list of selected capabilities.
+    """
+    # Get the capability embeddings for all capabilities
+    capabilities_encoding = torch.stack(
+        [cap.get_embedding(embedding_name) for cap in capabilities]
+    )
+
+    # Select k capabilities using the LBO model
+    k_indices, _ = lbo_model.select_k_points(x_query=capabilities_encoding, k=select_k)
+
+    return [capabilities[idx] for idx in k_indices]
+
+
 def select_capabilities_using_lbo(
     capabilities: List[Capability],
     embedding_name: str,
@@ -266,29 +349,18 @@ def select_capabilities_using_lbo(
         )
         num_lbo_iterations = len(capabilities_pool)
 
-    selected_capabilities = []
-
-    # Get the capability embeddings both for the existing capabilities
-    # and the capabilities pool
-    capabilities_encoding = torch.stack(
-        [cap.get_embedding(embedding_name) for cap in capabilities]
+    lbo = fit_lbo(
+        capabilities=capabilities,
+        embedding_name=embedding_name,
+        subject_llm_name=subject_llm_name,
+        acquisition_function=acquisition_function,
     )
+
     capabilities_pool_encoding = torch.stack(
         [cap.get_embedding(embedding_name) for cap in capabilities_pool]
     )
 
-    # Load subject LLM scores for each existing capability
-    capability_scores = torch.Tensor(
-        [cap.load_scores()[subject_llm_name]["mean"] for cap in capabilities]
-    )
-
-    # Fit the LBO model using the existing capabilities and their scores
-    lbo = LBO(
-        capabilities_encoding,
-        capability_scores,
-        acquisition_function,
-    )
-
+    selected_capabilities = []
     for iter_idx in range(num_lbo_iterations):
         # Select the next capability using LBO
         idx, selected_capability_encoding = lbo.select_next_point(
