@@ -146,7 +146,9 @@ def main(cfg: DictConfig) -> None:
             }
         )
 
-        extended_run_id = f"{run_id}_{cfg.lbo_cfg.pipeline_id}"
+        extended_run_id = (
+            f"{run_id}_{subject_llm.get_model_name()}_{cfg.lbo_cfg.pipeline_id}"
+        )
         base_new_capability_dir = base_capability_dir.replace(
             f"capabilities_{run_id}",
             f"capabilities_{extended_run_id}",
