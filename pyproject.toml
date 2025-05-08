@@ -95,9 +95,6 @@ warn_return_any = true
 implicit_reexport = false
 strict_equality = true
 extra_checks = true
-# Ignore model.py file due to unexpected error for ChatAnthropic class:
-# error: Unexpected keyword argument "model" for "ChatAnthropic" [call-arg]
-exclude = ["src/model.py"]
 
 [tool.ruff]
 include = ["*.py", "pyproject.toml", "*.ipynb"]
