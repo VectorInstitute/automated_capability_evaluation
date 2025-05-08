@@ -1,10 +1,13 @@
-import json  # noqa: D100
+"""Model class for LLMs with rate limiting and generation configuration."""
+
+import json
 import logging
 import os
 import subprocess
 import time
 from typing import Any, Dict, List, Tuple
 
+from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langsmith import traceable
@@ -37,9 +40,13 @@ class Model:
         """
         self.model_name: str = model_name
         self.model_provider: str = kwargs.pop("model_provider", "openai")
-        self.llm: ChatOpenAI | ChatGoogleGenerativeAI = self._set_llm(**kwargs)
+        self.llm: ChatOpenAI | ChatGoogleGenerativeAI | ChatAnthropic = self._set_llm(
+            **kwargs
+        )
 
-    def _set_llm(self, **kwargs: Any) -> ChatOpenAI | ChatGoogleGenerativeAI:
+    def _set_llm(
+        self, **kwargs: Any
+    ) -> ChatOpenAI | ChatGoogleGenerativeAI | ChatAnthropic:
         if self.model_provider == "local":
             self.model_url = get_local_model_url(self.model_name, **kwargs)
             return ChatOpenAI(
@@ -47,10 +54,12 @@ class Model:
                 base_url=self.model_url,
                 api_key=SecretStr(os.environ["LOCAL_API_KEY"]),
             )
-        if self.model_provider == "openai":
-            return ChatOpenAI(model=self.model_name)
+        if self.model_provider == "anthropic":
+            return ChatAnthropic(model=self.model_name)  # type: ignore
         if self.model_provider == "google":
             return ChatGoogleGenerativeAI(model=self.model_name)
+        if self.model_provider == "openai":
+            return ChatOpenAI(model=self.model_name)
         raise ValueError(f"Unsupported model provider: {self.model_provider}")
 
     @sleep_and_retry  # type: ignore
