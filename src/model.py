@@ -240,10 +240,10 @@ def get_local_model_url(model_name: str, **kwargs: Any) -> str:
     status_command = ["vec-inf", "status", slurm_job_id, "--json-mode"]
     status = vec_inf_status.PENDING.value
     while status in [vec_inf_status.PENDING.value, vec_inf_status.LAUNCHING.value]:
-        status_out = _run_command(status_command)
+        status_out = _run_command(status_command, model_status=True)
         status = status_out["model_status"]
         time.sleep(5)  # Wait for 5 seconds before checking again
-        logger.debug(f"Model status: {status}")
+        logger.info(f"Model status: {status}")
     if status == vec_inf_status.FAILED.value:
         raise RuntimeError(f"Model launch failed: {status_out['failed_reason']}")
     if status == vec_inf_status.SHUTDOWN.value:
@@ -272,7 +272,9 @@ def _sanitize_json(json_str: str) -> str:
     return json_str.strip().replace("'", '"')
 
 
-def _run_command(command: List[str]) -> Dict[str, Any] | Any:
+def _run_command(
+    command: List[str], model_status: bool = False
+) -> Dict[str, Any] | Any:
     """
     Run a command and return the parsed JSON output.
 
@@ -290,7 +292,19 @@ def _run_command(command: List[str]) -> Dict[str, Any] | Any:
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         raise RuntimeError(f"Failed to launch local model server: {stderr.strip()}")
+    if model_status and constants.VEC_INF_LOG_DIR not in stdout:
+        # Extract model status string and replace with
+        # appropriate string which can be parsed
+        str_to_replace = (
+            stdout.split("'model_status':")[-1]
+            .split("'base_url':")[0]
+            .strip()
+            .strip(",")
+        )
+        str_to_replace_by = str_to_replace.split(":")[-1].split(">")[0].strip()
+        stdout = stdout.replace(str_to_replace, str_to_replace_by)
     try:
+        logger.info(f"Command output: {stdout.strip()}")
         stdout_dict = json.loads(_sanitize_json(stdout))
     except json.JSONDecodeError:
         raise ValueError(f"Failed to parse JSON output: {stdout.strip()}") from None
