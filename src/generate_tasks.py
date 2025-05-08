@@ -346,9 +346,11 @@ def generate_tasks_using_llm(
     )
 
     # Analyze tokens metadata for task verification
-    total_input_tokens = sum([v["input_tokens"] for v in task_judge_metadata.values()])
+    total_input_tokens = sum(
+        [v.get("input_tokens", 0) for v in task_judge_metadata.values()]
+    )
     total_output_tokens = sum(
-        [v["output_tokens"] for v in task_judge_metadata.values()]
+        [v.get("output_tokens", 0) for v in task_judge_metadata.values()]
     )
     if solved_tasks:
         tokens_summary = {
