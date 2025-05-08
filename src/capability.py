@@ -324,6 +324,7 @@ class Capability:
 
     def load_scores(
         self,
+        subject_llm_name: str,
         scores_dir: str | None = None,
         num_tasks: int = -1,
         seed: int = constants.DEFAULT_RANDOM_SEED,
@@ -333,27 +334,37 @@ class Capability:
 
         Args
         ----
+            subject_llm_name (str): The name of the subject LLM.
             scores_dir (str | None): The directory containing the score files.
+            num_tasks (int): The number of tasks to load scores for.
+                Defaults to -1 (all tasks).
+            seed (int): The random seed for reproducibility.
+                Defaults to the constant DEFAULT_RANDOM_SEED.
 
         Returns
         -------
-            Dict[str, float]: A dictionary where the keys are model names and
-            the values are the scores.
+            Dict[str, Any]: A dictionary where the keys are model names and
+            the values are dictionaries containing the scores and metadata.
         """
         scores_dir = scores_dir if scores_dir else self.score_dir
         scores_dict: defaultdict[str, dict[str, Any]] = defaultdict(dict)
-        for model in list_dir(scores_dir):
-            scores_file_dir = os.path.join(
-                scores_dir,
-                model,
-                self.domain,
-                self.name,
-            )
+        scores_file_dir = os.path.join(
+            scores_dir,
+            subject_llm_name,
+            self.domain,
+            self.name,
+        )
+        logger.debug(f"[{self.name}] Loading scores from {scores_file_dir} ...")
+        try:
             scores_file = os.path.join(scores_file_dir, list_dir(scores_file_dir)[0])
-            if path_exists(scores_file):
-                scores_dict[model] = read_score_inspect_json(
-                    scores_file, num_tasks=num_tasks, seed=seed
-                )
+            scores_dict[subject_llm_name] = read_score_inspect_json(
+                scores_file, num_tasks=num_tasks, seed=seed
+            )
+        except Exception as e:
+            logger.error(
+                f"[{self.name}] Error loading scores from {scores_file_dir}: {repr(e)}"
+            )
+            raise e
         return scores_dict
 
     def get_repr_tasks(self) -> List[Dict[str, Any]]:

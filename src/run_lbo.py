@@ -286,9 +286,9 @@ def main(cfg: DictConfig) -> None:
                     embedding_model_name=cfg.embedding_cfg.embedding_model,
                 )
                 # Get subject LLM score
-                new_capability_score = new_capability.load_scores()[
-                    subject_llm.get_name()
-                ]["mean"]
+                new_capability_score = new_capability.load_scores(
+                    subject_llm_name=subject_llm.get_name(),
+                )[subject_llm.get_name()]["mean"]
                 # Update the LBO model with the new capability
                 lbo_model.update(
                     new_capability.get_embedding(dim_reduction_model.method_name),
