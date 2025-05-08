@@ -33,23 +33,23 @@ scientist_llm:
     time: "01:00:00"
 
 subject_llm:
-  name: o1-mini
+  name: gpt-4.1
   provider: openai
   generation_cfg:
     temperature: 0.7
     max_tokens: 2048
     seed: 42
   local_launch_cfg:
-    # Number of threads to use for local LLM
-    max_num_seqs: 50
     # Type of GPU to use for local LLM
     partition: "a40"
     # QoS for local LLM
-    qos: "m2"
-    # # Account for local LLM
-    # account: "deadline"
+    qos: "deadline"
+    # Account for local LLM
+    account: "deadline"
     # Time limit for local LLM
     time: "01:00:00"
+    # vLLM args
+    vllm_args: "--max-num-seqs=50"
 
 prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.
@@ -97,17 +97,22 @@ capabilities_cfg:
 
 
 lbo_cfg:
-  # Number of capabilities to generate using LBO
-  num_lbo_runs: 1
+  # Number of capabilities to generate/select using LBO
+  num_lbo_runs: 3
   # Type of LBO pipeline to use
-  pipeline_id: "no_discovery" # "no_discovery" or "discover_new"
-  # Train args for 'nearest_neighbor' pipeline
-  train_frac: 0.5
+  pipeline_id: "discover_new_llm" # "no_discovery", "discover_new_llm" or "discover_new_lbo_knn"
+  # Train args for "no_discovery" pipeline
+  train_frac: 0.2
   min_train_size: 10
   # Acquisition function that guides selecting the next query point.
   # For now, only "variance" is supported.
   # TODO: Add other acquisition functions.
   acquisition_function: "variance"
+  # Value of k for "discover_new_lbo_knn" pipeline
+  select_k: 3
+  discover_new_llm_retry_attempts: 3
+  discover_new_lbo_knn_retry_attempts: 3
+  discover_new_retry_attempts: 3
 
 embedding_cfg:
   # The embedding model name used to generate capability embeddings used for filtering.
@@ -118,13 +123,17 @@ embedding_cfg:
 
 dimensionality_reduction_cfg:
   # dimensionality reduction method generates the low dimensional encodings.
-  reduce_dimensionality_method: "t-sne" # "t-sne" or "cut-embedding".
+  reduce_dimensionality_method: "pca" # "t-sne", "cut-embedding" or "pca".
   reduced_dimensionality_size: 2
+  no_discovery_reduced_dimensionality_method: "t-sne"
+  no_discovery_reduced_dimensionality_size: 2
+  discover_new_reduced_dimensionality_method: "pca"
+  discover_new_reduced_dimensionality_size: 2
 
 exp_cfg:
   # Set this flag to true to run test experiments during development
   seed: 37
-  trial_run: false
+  trial_run: true
   exp_id:
 
 defaults:
