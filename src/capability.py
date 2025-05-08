@@ -161,6 +161,8 @@ class Capability:
         )
         if score_dir_suffix:
             self.score_dir = f"{self.score_dir}_{score_dir_suffix}"
+        self.scores: Dict[str, Any] = {}
+
         # The embedding_dict stores various embedding vector associated with
         # different models, encoders, or dimensionality reduction algorithms.
         # Key represents the name of the embedding model or the algorithm,
@@ -328,7 +330,7 @@ class Capability:
         scores_dir: str | None = None,
         num_tasks: int = -1,
         seed: int = constants.DEFAULT_RANDOM_SEED,
-    ) -> Dict[str, Any]:
+    ) -> None:
         """
         Load scores from JSON files in the specified directory.
 
@@ -356,7 +358,15 @@ class Capability:
         )
         logger.debug(f"[{self.name}] Loading scores from {scores_file_dir} ...")
         try:
-            scores_file = os.path.join(scores_file_dir, list_dir(scores_file_dir)[0])
+            # Required to handle special cases:
+            # 1. "nonlinear_systems" and "nonlinear_systems_lyapunov"
+            _scores_file = [
+                file for file in list_dir(scores_file_dir) if file.endswith(".json")
+            ]
+            # Selects the first file, assuming there is only one file
+            # TODO: Handle multiple files and select most recent one
+            scores_file = _scores_file[0]
+            scores_file = os.path.join(scores_file_dir, scores_file)
             scores_dict[subject_llm_name] = read_score_inspect_json(
                 scores_file, num_tasks=num_tasks, seed=seed
             )
@@ -365,7 +375,8 @@ class Capability:
                 f"[{self.name}] Error loading scores from {scores_file_dir}: {repr(e)}"
             )
             raise e
-        return scores_dict
+
+        self.scores.update(scores_dict)
 
     def get_repr_tasks(self) -> List[Dict[str, Any]]:
         """

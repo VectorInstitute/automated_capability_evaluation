@@ -153,7 +153,9 @@ def get_capability_repr_with_score(capability: Capability, model_name: str) -> s
     -------
         str: A JSON string containing the capability JSON string and score.
     """
-    model_score = capability.load_scores(subject_llm_name=model_name)[model_name]
+    if not hasattr(capability, "scores") or model_name not in capability.scores:
+        capability.load_scores(subject_llm_name=model_name)
+    model_score = capability.scores[model_name]
     capability_dict = capability.to_dict()
     capability_dict["score"] = model_score
     return json.dumps(capability_dict, indent=4)
@@ -914,12 +916,9 @@ def score_based_capability_discovery(
     # Get capability names with scores
     capability_score_dict = {}
     for capability in prev_capabilities:
-        score_dict = capability.load_scores(subject_llm_name=subject_llm_name)
-        if subject_llm_name not in score_dict:
-            logger.error(
-                f"Capability {capability.name} does not have a score for {subject_llm_name}. Evaluate the capability first."
-            )
-        capability_score_dict[capability.name] = score_dict[subject_llm_name]["mean"]
+        capability_score_dict[capability.name] = capability.scores[subject_llm_name][
+            "mean"
+        ]
 
     # Randomly sample a capability from the existing capabilities
     sample_capability = random.choice(prev_capabilities)
@@ -971,7 +970,7 @@ def score_based_capability_discovery(
 
                 parsed_response = extract_and_parse_response(response)
                 # Fetch the first capability from the response if multiple are generated
-                gen_capability = parsed_response["parsed_response"][:1]
+                gen_capability = parsed_response["parsed_response"][0]
                 # Convert JSON string to dict if needed
                 if isinstance(gen_capability, dict):
                     gen_capability_dict = gen_capability
@@ -1004,7 +1003,7 @@ def score_based_capability_discovery(
         logger.error(f"Response:\n{response}")
         raise e
 
-    logger.info(f"Generated capability: {gen_capability_obj}")
+    logger.info(f"Generated capability: {gen_capability_obj.name}")
     logger.info(f"Capability generation tokens summary\n{metadata}")
 
     return {
@@ -1121,7 +1120,7 @@ def knn_based_capability_discovery(
 
                 parsed_response = extract_and_parse_response(response)
                 # Fetch the first capability from the response if multiple are generated
-                gen_capability = parsed_response["parsed_response"][:1]
+                gen_capability = parsed_response["parsed_response"][0]
                 # Convert JSON string to dict if needed
                 if isinstance(gen_capability, dict):
                     gen_capability_dict = gen_capability
@@ -1154,7 +1153,7 @@ def knn_based_capability_discovery(
         logger.error(f"Response:\n{response}")
         raise e
 
-    logger.info(f"Generated capability: {gen_capability_obj}")
+    logger.info(f"Generated capability: {gen_capability_obj.name}")
     logger.info(f"Capability generation tokens summary\n{metadata}")
 
     return {

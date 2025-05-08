@@ -5,6 +5,7 @@ import os
 
 import hydra
 from omegaconf import DictConfig
+from tqdm import tqdm
 
 from generate_capabilities import (
     apply_dimensionality_reduction,
@@ -68,6 +69,11 @@ def main(cfg: DictConfig) -> None:
         embedding_model_name=cfg.embedding_cfg.embedding_model,
         embed_dimensions=cfg.embedding_cfg.embedding_size,
     )
+    # Pre-load capability scores
+    for capability in tqdm(capabilities, desc="Loading capability scores"):
+        capability.load_scores(
+            subject_llm_name=cfg.subject_llm.name,
+        )
 
     num_lbo_runs = cfg.lbo_cfg.num_lbo_runs
     if cfg.lbo_cfg.pipeline_id == "no_discovery":
@@ -153,6 +159,7 @@ def main(cfg: DictConfig) -> None:
             f"capabilities_{run_id}",
             f"capabilities_{extended_run_id}",
         )
+        os.makedirs(base_new_capability_dir, exist_ok=False)
 
         if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
             # Create LBO model by fitting on all capabilities
@@ -268,6 +275,10 @@ def main(cfg: DictConfig) -> None:
                 run_id=extended_run_id,
                 concurrency_task_eval=cfg.capabilities_cfg.concurrency_task_eval,
             )
+            # Load subject LLM score
+            new_capability.load_scores(
+                subject_llm_name=subject_llm.get_model_name(),
+            )
 
             # Add the new capability to the list
             new_capabilities.append(new_capability)
@@ -287,10 +298,10 @@ def main(cfg: DictConfig) -> None:
                     dim_reduction_method=dim_reduction_model,
                     embedding_model_name=cfg.embedding_cfg.embedding_model,
                 )
-                # Get subject LLM score
-                new_capability_score = new_capability.load_scores(
-                    subject_llm_name=subject_llm.get_name(),
-                )[subject_llm.get_name()]["mean"]
+                # Fetch the new capability score
+                new_capability_score = new_capability.scores[
+                    subject_llm.get_model_name()
+                ]["mean"]
                 # Update the LBO model with the new capability
                 lbo_model.update(
                     new_capability.get_embedding(dim_reduction_model.method_name),

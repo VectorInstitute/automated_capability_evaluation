@@ -268,10 +268,7 @@ def fit_lbo(
 
     # Load subject LLM scores for each existing capability
     capability_scores = torch.Tensor(
-        [
-            cap.load_scores(subject_llm_name=subject_llm_name)[subject_llm_name]["mean"]
-            for cap in capabilities
-        ]
+        [cap.scores[subject_llm_name]["mean"] for cap in capabilities]
     )
 
     # Fit the LBO model using the existing capabilities and their scores
@@ -376,9 +373,9 @@ def select_capabilities_using_lbo(
         )
         # Obtain selected capability score, since scores for capabilities
         # in the pool are precomputed
-        selected_capability_score = capabilities_pool[idx].load_scores(
-            subject_llm_name=subject_llm_name
-        )[subject_llm_name]["mean"]
+        selected_capability_score = capabilities_pool[idx].scores[subject_llm_name][
+            "mean"
+        ]
         # Remove the selected capability and its embedding from the pool
         capabilities_pool.pop(idx)
         capabilities_pool_encoding = torch.cat(

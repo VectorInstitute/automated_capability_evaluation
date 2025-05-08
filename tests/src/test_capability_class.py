@@ -187,7 +187,8 @@ def test_capability_load_scores():
     """
     scores_dir = os.path.join(test_dir, capability_cfg["scores_path"])
     model = "gpt-4o"
-    scores_dict = capability.load_scores(subject_llm_name=model, scores_dir=scores_dir)
+    capability.load_scores(subject_llm_name=model, scores_dir=scores_dir)
+    scores_dict = capability.scores
     assert isinstance(scores_dict, dict)
     assert len(scores_dict) == 1
     assert model in scores_dict
