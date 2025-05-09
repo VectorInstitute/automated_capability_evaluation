@@ -92,3 +92,16 @@ def test_predict(test_data):
     assert mean.shape == (x_candidates.shape[0],)
     assert std.shape == (x_candidates.shape[0],)
     assert torch.all(std >= 0), "Standard deviation should be non-negative."
+
+
+def test_select_next_point_expected_variance_reduction(test_data):
+    """Test expected variance reduction acquisition function."""
+    _, _, x_candidates, lbo = test_data
+    # Change acquisition function
+    lbo.acquisition_function = "expected_variance_reduction"
+
+    idx, selected_x = lbo.select_next_point(x_candidates)
+
+    # Basic validation
+    assert 0 <= idx < x_candidates.shape[0]
+    assert torch.any(torch.all(x_candidates == selected_x, dim=1))

@@ -111,6 +111,27 @@ class LBO:
             _, st_devs = self.predict(x_query)
             if self.acquisition_function == "variance":
                 idx = torch.argmax(st_devs)
+            elif self.acquisition_function == "expected_variance_reduction":
+                total_var_reduction = []
+                n_query = x_query.shape[0]
+                for i in range(n_query):
+                    x_star = x_query[i].unsqueeze(0)
+
+                    # Compute covariances
+                    k_star_val = self.model.covar_module(
+                        x_star, x_query
+                    ).evaluate()  # (1, n_query)
+                    k_xx = (
+                        self.model.covar_module(x_star).evaluate().squeeze()
+                    )  # scalar
+                    noise = self.model.likelihood.noise.item()
+
+                    # Reduction per validation point (shape (1, n_query))
+                    reduction = (k_star_val**2) / (k_xx + noise)
+                    sum_reduction = reduction.sum().item()
+                    total_var_reduction.append(sum_reduction)
+
+                idx = torch.argmax(torch.tensor(total_var_reduction)).item()
             else:
                 raise ValueError(
                     f"Acquisition function: {self.acquisition_function} is unsupported."
@@ -156,21 +177,13 @@ class LBO:
                 - List of indices of selected points in x_train
                 - List of the selected points
         """
-        if self.acquisition_function != "variance":
-            raise ValueError(
-                f"select_k_points only supports 'variance' acquisition function, "
-                f"got {self.acquisition_function}"
-            )
-
         grid_points = self._create_search_grid()
         # On the grid, find the point with highest predictive variance.
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            _, grid_stds = self.predict(grid_points)
-            max_var_idx = torch.argmax(grid_stds)
-            max_var_point = grid_points[max_var_idx]
+            _, point = self.select_next_point(grid_points)
 
         # Find and return k nearest indices.
-        distances = torch.norm(self.x_train - max_var_point, dim=1)
+        distances = torch.norm(self.x_train - point, dim=1)
         _, topk_indices = torch.topk(distances, k, largest=False)
 
         selected_points = [self.x_train[i] for i in topk_indices]
@@ -295,7 +308,7 @@ def fit_lbo(
     capabilities: List[Capability],
     embedding_name: str,
     subject_llm_name: str,
-    acquisition_function: str = "variance",
+    acquisition_function: str = "expected_variance_reduction",
 ) -> LBO:
     """
     Fit the Latent Bayesian Optimization (LBO) model using the existing capabilities.
@@ -308,7 +321,7 @@ def fit_lbo(
         subject_llm_name (str): The name of the subject LLM used
             to evaluate capabilities.
         acquisition_function (str, optional): The acquisition function for LBO.
-            Defaults to "variance".
+            Defaults to "expected_variance_reduction".
 
     Returns
     -------
@@ -338,7 +351,7 @@ def select_capabilities_using_lbo(
     embedding_name: str,
     capabilities_pool: List[Capability],
     subject_llm_name: str,
-    acquisition_function: str = "variance",
+    acquisition_function: str = "expected_variance_reduction",
     num_lbo_iterations: int | None = None,
 ) -> List[Capability]:
     """
@@ -354,7 +367,7 @@ def select_capabilities_using_lbo(
         subject_llm_name (str): The name of the subject LLM used
             to evaluate capabilities.
         acquisition_function (str, optional): The acquisition function for LBO.
-            Defaults to "variance".
+            Defaults to "expected_variance_reduction".
         num_lbo_iterations (int, optional): The number of iterations
             to run the LBO process. If not provided, it defaults to the size
             of the capabilities pool.
