@@ -33,23 +33,23 @@ scientist_llm:
     time: "01:00:00"
 
 subject_llm:
-  name: claude-3-7-sonnet-20250219
-  provider: anthropic
+  name: Meta-Llama-3.1-70B-Instruct
+  provider: local
   generation_cfg:
     temperature: 0.7
     max_tokens: 2048
     seed: 42
   local_launch_cfg:
     # Type of GPU to use for local LLM
-    partition: "a40"
+    partition: "a100"
     # QoS for local LLM
     qos: "deadline"
     # Account for local LLM
     account: "deadline"
     # Time limit for local LLM
-    time: "01:00:00"
+    time: "10:00:00"
     # vLLM args
-    vllm_args: "--max-num-seqs=50"
+    vllm_args: "--max-model-len=8192,--max-num-seqs=50"
 
 prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.
