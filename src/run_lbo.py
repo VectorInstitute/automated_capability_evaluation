@@ -191,7 +191,7 @@ def main(cfg: DictConfig) -> None:
                     )
                 elif cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
                     # Select K capabilities using LBO
-                    k_indices, _ = lbo_model.select_k(
+                    k_indices, _ = lbo_model.select_k_points(
                         k=cfg.lbo_cfg.select_k,
                     )
                     knn_capabilities = [capabilities[i] for i in k_indices]
