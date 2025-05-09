@@ -123,31 +123,33 @@ class LBO:
         min_vals = self.x_train.min(dim=0).values
         max_vals = self.x_train.max(dim=0).values
         ranges = max_vals - min_vals
-        
+
         # Expand the bounds.
         expanded_min = min_vals - self.expansion_factor * ranges
         expanded_max = max_vals + self.expansion_factor * ranges
-        
+
         # Create grid points.
-        grid_points_per_dim = round(self.num_grid_points ** (1. / self.input_dim))
+        grid_points_per_dim = round(self.num_grid_points ** (1.0 / self.input_dim))
         dim_grids = [
-            torch.linspace(expanded_min[i].item(), expanded_max[i].item(), grid_points_per_dim)
+            torch.linspace(
+                expanded_min[i].item(), expanded_max[i].item(), grid_points_per_dim
+            )
             for i in range(self.input_dim)
         ]
-        
+
         # Create full grid using meshgrid.
         mesh = torch.meshgrid(*dim_grids)
         grid_points = torch.stack([m.flatten() for m in mesh], dim=1)
-        
+
         return grid_points.to(device)
 
     def select_k_points(self, k: int) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
         """Select k query points by finding high-variance regions in the input space.
-        
+
         Args
         ----
             k: Number of points to select
-            
+
         Returns
         -------
             Tuple containing:
@@ -159,21 +161,20 @@ class LBO:
                 f"select_k_points only supports 'variance' acquisition function, "
                 f"got {self.acquisition_function}"
             )
-        
+
         grid_points = self._create_search_grid()
         # On the grid, find the point with highest predictive variance.
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
             _, grid_stds = self.predict(grid_points)
             max_var_idx = torch.argmax(grid_stds)
             max_var_point = grid_points[max_var_idx]
-        
+
         # Find and return k nearest indices.
         distances = torch.norm(self.x_train - max_var_point, dim=1)
         _, topk_indices = torch.topk(distances, k, largest=False)
-        
+
         selected_points = [self.x_train[i] for i in topk_indices]
         return topk_indices.tolist(), selected_points
-
 
     def update(self, q_x: torch.Tensor, q_y: torch.Tensor) -> None:
         """
