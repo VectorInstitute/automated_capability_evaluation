@@ -67,6 +67,8 @@ class LBO:
         acquisition_function: str,
         num_gp_train_iterations: int = 50,
         optimizer_lr: float = 0.1,
+        num_grid_points: int = 100,
+        expansion_factor: float = 0.1,
     ):
         """Initialize the LBO parameters."""
         # x_train shape is [N, d].
@@ -76,6 +78,8 @@ class LBO:
         self.acquisition_function = acquisition_function
         self.num_gp_train_iterations = num_gp_train_iterations
         self.optimizer_lr = optimizer_lr
+        self.num_grid_points = num_grid_points
+        self.expansion_factor = expansion_factor
         self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
         self.likelihood = self.likelihood.to(device)
         self.model = self._train_gp()
@@ -113,12 +117,63 @@ class LBO:
                 )
         return idx, x_query[idx]
 
+    def _create_search_grid(self) -> torch.Tensor:
+        """Create a grid of points covering the expanded space around training data."""
+        # Calculate bounds with expansion.
+        min_vals = self.x_train.min(dim=0).values
+        max_vals = self.x_train.max(dim=0).values
+        ranges = max_vals - min_vals
+        
+        # Expand the bounds.
+        expanded_min = min_vals - self.expansion_factor * ranges
+        expanded_max = max_vals + self.expansion_factor * ranges
+        
+        # Create grid points.
+        grid_points_per_dim = round(self.num_grid_points ** (1. / self.input_dim))
+        dim_grids = [
+            torch.linspace(expanded_min[i].item(), expanded_max[i].item(), grid_points_per_dim)
+            for i in range(self.input_dim)
+        ]
+        
+        # Create full grid using meshgrid.
+        mesh = torch.meshgrid(*dim_grids)
+        grid_points = torch.stack([m.flatten() for m in mesh], dim=1)
+        
+        return grid_points.to(device)
+
     def select_k_points(self, k: int) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
-        """Select k query points from self.x_train."""
-        raise NotImplementedError(
-            "select_k_points is not implemented. "
-            "Please implement this method to select k points."
-        )
+        """Select k query points by finding high-variance regions in the input space.
+        
+        Args
+        ----
+            k: Number of points to select
+            
+        Returns
+        -------
+            Tuple containing:
+                - List of indices of selected points in x_train
+                - List of the selected points
+        """
+        if self.acquisition_function != "variance":
+            raise ValueError(
+                f"select_k_points only supports 'variance' acquisition function, "
+                f"got {self.acquisition_function}"
+            )
+        
+        grid_points = self._create_search_grid()
+        # On the grid, find the point with highest predictive variance.
+        with torch.no_grad(), gpytorch.settings.fast_pred_var():
+            _, grid_stds = self.predict(grid_points)
+            max_var_idx = torch.argmax(grid_stds)
+            max_var_point = grid_points[max_var_idx]
+        
+        # Find and return k nearest indices.
+        distances = torch.norm(self.x_train - max_var_point, dim=1)
+        _, topk_indices = torch.topk(distances, k, largest=False)
+        
+        selected_points = [self.x_train[i] for i in topk_indices]
+        return topk_indices.tolist(), selected_points
+
 
     def update(self, q_x: torch.Tensor, q_y: torch.Tensor) -> None:
         """
