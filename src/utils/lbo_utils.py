@@ -5,15 +5,19 @@ It contains utility functions for LBO pipeline.
 """
 
 import random
-from typing import Any, List, Tuple
+from collections import defaultdict
+from typing import List, Tuple
+
+from src.capability import Capability
 
 
 def get_lbo_train_set(
-    input_data: List[Any],
+    input_data: List[Capability],
     train_frac: float,
     min_train_size: int,
+    stratified: bool = False,
     seed: int = 42,
-) -> Tuple[List[Any], List[Any]]:
+) -> Tuple[List[Capability], List[Capability]]:
     """
     Create LBO train partition.
 
@@ -47,11 +51,29 @@ def get_lbo_train_set(
         + f"Need at least {min_input_data} data points."
     )
 
-    # TODO: Improve the train set selection method
-    num_train = int(len(input_data) * train_frac)
-    assert num_train >= min_train_size, (
-        f"Number of train data points are less than the recommended value: {min_train_size}."
-    )
-    train_data = random.sample(input_data, num_train)
+    if stratified:
+        # Group input data by categories
+        category_to_items = defaultdict(list)
+        for item in input_data:
+            category = item.area
+            category_to_items[category].append(item)
+
+        # Perform stratified sampling
+        train_data = []
+        for _, items in category_to_items.items():
+            num_category_train = int(len(items) * train_frac)
+            train_data.extend(random.sample(items, num_category_train))
+
+        # Ensure the train set size meets the minimum requirement
+        assert len(train_data) >= min_train_size, (
+            f"Number of train data points ({len(train_data)}) is less than the recommended value: {min_train_size}."
+        )
+    else:
+        num_train = int(len(input_data) * train_frac)
+        assert num_train >= min_train_size, (
+            f"Number of train data points ({num_train}) is less than the recommended value: {min_train_size}."
+        )
+        train_data = random.sample(input_data, num_train)
+
     rem_data = list(set(input_data) - set(train_data))
     return (train_data, rem_data)

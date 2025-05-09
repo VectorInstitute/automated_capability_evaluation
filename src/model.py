@@ -5,6 +5,7 @@ import subprocess
 import time
 from typing import Any, Dict, List, Tuple
 
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langsmith import traceable
 from pydantic import SecretStr
@@ -36,21 +37,21 @@ class Model:
         """
         self.model_name: str = model_name
         self.model_provider: str = kwargs.pop("model_provider", "openai")
-        self.llm: ChatOpenAI = self._set_llm(**kwargs)
+        self.llm: ChatOpenAI | ChatGoogleGenerativeAI = self._set_llm(**kwargs)
 
-    def _set_llm(self, **kwargs: Any) -> ChatOpenAI:
+    def _set_llm(self, **kwargs: Any) -> ChatOpenAI | ChatGoogleGenerativeAI:
         if self.model_provider == "local":
             self.model_url = get_local_model_url(self.model_name, **kwargs)
-            llm = ChatOpenAI(
+            return ChatOpenAI(
                 model=self.model_name,
                 base_url=self.model_url,
                 api_key=SecretStr(os.environ["LOCAL_API_KEY"]),
             )
-        elif self.model_provider == "openai":
-            llm = ChatOpenAI(model=self.model_name)
-        else:
-            raise ValueError(f"Unsupported model provider: {self.model_provider}")
-        return llm
+        if self.model_provider == "openai":
+            return ChatOpenAI(model=self.model_name)
+        if self.model_provider == "google":
+            return ChatGoogleGenerativeAI(model=self.model_name)
+        raise ValueError(f"Unsupported model provider: {self.model_provider}")
 
     @sleep_and_retry  # type: ignore
     @limits(**RATE_LIMIT)  # type: ignore

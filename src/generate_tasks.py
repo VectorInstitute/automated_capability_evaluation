@@ -243,7 +243,7 @@ def generate_tasks_using_llm(
             state_str=constants.C_STATE_TASK_GENERATION_FAILED_STR,
             reason=error_msg,
         )
-        raise e
+        return
 
     # Analyze tokens metadata for task problems generation
     tokens_summary = {
@@ -335,19 +335,24 @@ def generate_tasks_using_llm(
     total_output_tokens = sum(
         [v["output_tokens"] for v in task_judge_metadata.values()]
     )
-    tokens_summary = {
-        "total_input_tokens": total_input_tokens,
-        "total_output_tokens": total_output_tokens,
-        "total_tokens": total_input_tokens + total_output_tokens,
-        "input_tokens_per_task": int(total_input_tokens / len(solved_tasks)),
-        "output_tokens_per_task": int(total_output_tokens / len(solved_tasks)),
-        "total_tokens_per_task": int(
-            (total_input_tokens + total_output_tokens) / len(solved_tasks)
-        ),
-    }
-    logger.info(
-        f"[{capability.name}] Task verification tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
-    )
+    if solved_tasks:
+        tokens_summary = {
+            "total_input_tokens": total_input_tokens,
+            "total_output_tokens": total_output_tokens,
+            "total_tokens": total_input_tokens + total_output_tokens,
+            "input_tokens_per_task": int(total_input_tokens / len(solved_tasks)),
+            "output_tokens_per_task": int(total_output_tokens / len(solved_tasks)),
+            "total_tokens_per_task": int(
+                (total_input_tokens + total_output_tokens) / len(solved_tasks)
+            ),
+        }
+        logger.info(
+            f"[{capability.name}] Task verification tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
+        )
+    else:
+        logger.warning(
+            f"[{capability.name}] No tasks were solved. Hence, task verification was skipped."
+        )
 
     # Failed tasks consist of both unsolved tasks and tasks which failed verification
     failed_tasks = failed_tasks + unsolved_tasks

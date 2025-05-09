@@ -186,13 +186,14 @@ def test_capability_load_scores():
     - The scores for each model match the expected scores.
     """
     scores_dir = os.path.join(test_dir, capability_cfg["scores_path"])
-    scores_dict = capability.load_scores(scores_dir)
+    model = "gpt-4o"
+    capability.load_scores(subject_llm_name=model, scores_dir=scores_dir)
+    scores_dict = capability.scores
     assert isinstance(scores_dict, dict)
-    assert len(scores_dict) == len(capability_cfg["scores"])
-    for model, score in capability_cfg["scores"].items():
-        assert model in scores_dict
-        assert scores_dict[model]["mean"] == score["mean"]
-        assert scores_dict[model]["std_err"] == score["std_err"]
+    assert len(scores_dict) == 1
+    assert model in scores_dict
+    assert scores_dict[model]["mean"] == capability_cfg["scores"][model]["mean"]
+    assert scores_dict[model]["std_err"] == capability_cfg["scores"][model]["std_err"]
 
 
 def test_create_capability_from_dict():

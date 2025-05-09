@@ -107,6 +107,30 @@ CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT = """
     ...
 }""".strip("\n")
 
+SCORE_BASED_NEW_CAPABILITY_DISCOVERY_USER_PROMPT = """
+A sample capability JSON is provided below. Additionally, the names of all existing capabilities and their respective scores for the subject LLM are provided.
+
+Sample capability:
+{sample_capability_json}
+
+Existing capability names and scores:
+{prev_capabilities_and_scores}
+
+Design a new capability that pushes the boundaries of the subject LLM's abilities. The proposed capability should specifically target areas where the LLM has demonstrated weaknesses or borderline performance. Ensure the capability is unique compared to the existing ones and aligns with the {domain} domain.
+"""
+
+KNN_BASED_NEW_CAPABILITY_DISCOVERY_USER_PROMPT = """
+A sample capability JSON is provided below. Additionally, the names of {num_input_capabilities} existing capabilities are provided.
+
+Sample capability:
+{sample_capability_json}
+
+Existing capability names:
+{prev_capabilities}
+
+Design a new capability that is semantically close to the provided {num_input_capabilities} capabilities. The proposed capability should align with the {domain} domain and should be unique compared to the existing ones.
+"""
+
 TASK_GENERATION_SYSTEM_PROMPT = """
 You are an expert in designing tasks for a given capability. The name, description, {zero_or_few_shot_patch} for the capability will be provided. You will be particularly rewarded for designing diverse tasks spanning a wide range of difficulty levels for the given capability.
 

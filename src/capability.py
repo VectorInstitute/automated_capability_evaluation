@@ -161,6 +161,8 @@ class Capability:
         )
         if score_dir_suffix:
             self.score_dir = f"{self.score_dir}_{score_dir_suffix}"
+        self.scores: Dict[str, Any] = {}
+
         # The embedding_dict stores various embedding vector associated with
         # different models, encoders, or dimensionality reduction algorithms.
         # Key represents the name of the embedding model or the algorithm,
@@ -324,37 +326,57 @@ class Capability:
 
     def load_scores(
         self,
+        subject_llm_name: str,
         scores_dir: str | None = None,
         num_tasks: int = -1,
         seed: int = constants.DEFAULT_RANDOM_SEED,
-    ) -> Dict[str, Any]:
+    ) -> None:
         """
         Load scores from JSON files in the specified directory.
 
         Args
         ----
+            subject_llm_name (str): The name of the subject LLM.
             scores_dir (str | None): The directory containing the score files.
+            num_tasks (int): The number of tasks to load scores for.
+                Defaults to -1 (all tasks).
+            seed (int): The random seed for reproducibility.
+                Defaults to the constant DEFAULT_RANDOM_SEED.
 
         Returns
         -------
-            Dict[str, float]: A dictionary where the keys are model names and
-            the values are the scores.
+            Dict[str, Any]: A dictionary where the keys are model names and
+            the values are dictionaries containing the scores and metadata.
         """
         scores_dir = scores_dir if scores_dir else self.score_dir
         scores_dict: defaultdict[str, dict[str, Any]] = defaultdict(dict)
-        for model in list_dir(scores_dir):
-            scores_file_dir = os.path.join(
-                scores_dir,
-                model,
-                self.domain,
-                self.name,
+        scores_file_dir = os.path.join(
+            scores_dir,
+            subject_llm_name,
+            self.domain,
+            self.name,
+        )
+        logger.debug(f"[{self.name}] Loading scores from {scores_file_dir} ...")
+        try:
+            # Required to handle special cases:
+            # 1. "nonlinear_systems" and "nonlinear_systems_lyapunov"
+            _scores_file = [
+                file for file in list_dir(scores_file_dir) if file.endswith(".json")
+            ]
+            # Selects the first file, assuming there is only one file
+            # TODO: Handle multiple files and select most recent one
+            scores_file = _scores_file[0]
+            scores_file = os.path.join(scores_file_dir, scores_file)
+            scores_dict[subject_llm_name] = read_score_inspect_json(
+                scores_file, num_tasks=num_tasks, seed=seed
             )
-            scores_file = os.path.join(scores_file_dir, list_dir(scores_file_dir)[0])
-            if path_exists(scores_file):
-                scores_dict[model] = read_score_inspect_json(
-                    scores_file, num_tasks=num_tasks, seed=seed
-                )
-        return scores_dict
+        except Exception as e:
+            logger.error(
+                f"[{self.name}] Error loading scores from {scores_file_dir}: {repr(e)}"
+            )
+            raise e
+
+        self.scores.update(scores_dict)
 
     def get_repr_tasks(self) -> List[Dict[str, Any]]:
         """
@@ -971,6 +993,15 @@ class Capability:
             self.domain,
             self.name,
         )
+        # Skip evaluation if the GCP log directory already exists
+        gcp_log_dir = log_dir.replace(
+            constants.BASE_ARTIFACTS_DIR, constants.GCP_BASE_ARTIFACTS_DIR
+        )
+        if path_exists(gcp_log_dir):
+            logger.warning(
+                f"[{self.name}] GCP log directory already exists: {gcp_log_dir}. Skipping evaluation."
+            )
+            return
         os.makedirs(log_dir, exist_ok=True)
 
         run_inspect_evals(
@@ -983,9 +1014,7 @@ class Capability:
         # Transfer the logs to the GCP bucket
         transfer_inspect_log_to_gcp(
             src_dir=log_dir,
-            gcp_dir=log_dir.replace(
-                constants.BASE_ARTIFACTS_DIR, constants.GCP_BASE_ARTIFACTS_DIR
-            ),
+            gcp_dir=gcp_log_dir,
         )
         # Remove the local logs
         shutil.rmtree(log_dir)

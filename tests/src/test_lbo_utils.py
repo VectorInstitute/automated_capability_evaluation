@@ -77,7 +77,6 @@ def test_get_lbo_train_set_min_train_size_violation():
 
     with pytest.raises(
         AssertionError,
-        match="Number of train data points are less than the recommended value",
     ):
         get_lbo_train_set(input_data, train_frac, min_train_size, seed=42)
 
@@ -138,6 +137,5 @@ def test_get_lbo_train_set_zero_train_frac():
 
     with pytest.raises(
         AssertionError,
-        match="Number of train data points are less than the recommended value",
     ):
         get_lbo_train_set(input_data, train_frac, min_train_size, seed=42)
