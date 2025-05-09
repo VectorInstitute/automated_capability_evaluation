@@ -113,10 +113,8 @@ class LBO:
                 )
         return idx, x_query[idx]
 
-    def select_k_points(
-        self, x_query: torch.Tensor, k: int
-    ) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
-        """Select k query points from x_query."""
+    def select_k_points(self, k: int) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+        """Select k query points from self.x_train."""
         raise NotImplementedError(
             "select_k_points is not implemented. "
             "Please implement this method to select k points."
@@ -277,38 +275,6 @@ def fit_lbo(
         capability_scores,
         acquisition_function,
     )
-
-
-def select_k_capabilities(
-    lbo_model: LBO,
-    capabilities: List[Capability],
-    select_k: int,
-    embedding_name: str,
-) -> List[Capability]:
-    """
-    Select k capabilities from the existing capabilities using LBO.
-
-    Args
-    ----
-        lbo_model (LBO): The fitted LBO model.
-        capabilities (List[Capability]): The list of existing capabilities
-            to select from.
-        select_k (int): The number of capabilities to select.
-        embedding_name (str): The name of the embedding used to represent capabilities.
-
-    Returns
-    -------
-        List[Capability]: A list of selected capabilities.
-    """
-    # Get the capability embeddings for all capabilities
-    capabilities_encoding = torch.stack(
-        [cap.get_embedding(embedding_name) for cap in capabilities]
-    )
-
-    # Select k capabilities using the LBO model
-    k_indices, _ = lbo_model.select_k_points(x_query=capabilities_encoding, k=select_k)
-
-    return [capabilities[idx] for idx in k_indices]
 
 
 def select_capabilities_using_lbo(

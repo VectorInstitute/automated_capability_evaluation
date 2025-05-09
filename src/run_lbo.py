@@ -20,7 +20,7 @@ from generate_capabilities import (
 from generate_tasks import (
     generate_tasks_using_llm,
 )
-from lbo import fit_lbo, select_capabilities_using_lbo, select_k_capabilities
+from lbo import fit_lbo, select_capabilities_using_lbo
 from model import Model
 from utils import constants, prompts
 from utils.data_utils import check_cfg, get_run_id
@@ -50,7 +50,7 @@ def main(cfg: DictConfig) -> None:
         score_dir_suffix=run_id,
     )
     capabilities = sorted(capabilities, key=lambda x: x.name)
-    logger.info(f"ALl capability names:\n{capabilities}")
+    logger.info(f"All capability names:\n{capabilities}")
     # Select complete capabilities (same set of capabilities were evaluated)
     capabilities = select_complete_capabilities(
         capabilities=capabilities,
@@ -191,12 +191,11 @@ def main(cfg: DictConfig) -> None:
                     )
                 elif cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
                     # Select K capabilities using LBO
-                    knn_capabilities = select_k_capabilities(
-                        lbo_model=lbo_model,
-                        capabilities=capabilities,
-                        select_k=cfg.lbo_cfg.select_k,
-                        embedding_name=dim_reduction_method_name,
+                    k_indices, _ = lbo_model.select_k(
+                        k=cfg.lbo_cfg.select_k,
                     )
+                    knn_capabilities = [capabilities[i] for i in k_indices]
+                    # Generate a new capability using KNN-based capability discovery
                     response = knn_based_capability_discovery(
                         knn_capabilities=knn_capabilities,
                         prev_capabilities=capabilities,

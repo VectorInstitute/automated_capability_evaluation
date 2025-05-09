@@ -1166,53 +1166,6 @@ def knn_based_capability_discovery(
     }
 
 
-def generate_new_capability(
-    capabilities: List[Capability],
-    subject_llm_name: str,
-    pipeline_id: str,
-    domain: str,
-    base_capability_dir: str,
-    scientist_llm: Model,
-    scientist_llm_gen_cfg: Dict[str, Any],
-    capabilities_pool: List[Capability] | None = None,
-    **kwargs: Any,
-) -> Any:
-    """
-    Generate a new capability.
-
-    Args
-    ----
-        capabilities (List[Capability]): The list of existing capabilities.
-        subject_llm_name (str): The subject LLM model name.
-        capabilities_pool (List[Capability], optional): The list of existing
-            capabilities without subject model scores, used as a search space
-            for the generated capability representation
-            (only for pipeline_id="nearest_neighbour").
-
-    Returns
-    -------
-        Capability: The generated capability.
-    """
-    if pipeline_id == "no_discovery":
-        # TODO: Implement no discovery pipeline
-        raise NotImplementedError("No discovery pipeline is not implemented.")
-    if pipeline_id == "discover_new_llm":
-        # Set the base capability directory for new capability
-        new_base_capability_dir = f"{base_capability_dir}_{pipeline_id}"
-        # Generate a new capability using the scientist LLM
-        response = score_based_capability_discovery(
-            prev_capabilities=capabilities,
-            domain=domain,
-            base_capability_dir=new_base_capability_dir,
-            scientist_llm=scientist_llm,
-            scientist_llm_gen_cfg=scientist_llm_gen_cfg,
-            user_prompt=prompts.SCORE_BASED_NEW_CAPABILITY_DISCOVERY_USER_PROMPT,
-            subject_llm_name=subject_llm_name,
-            **kwargs,
-        )
-    return response["capability"]
-
-
 def select_complete_capabilities(
     capabilities: List[Capability],
     strict: bool = True,
