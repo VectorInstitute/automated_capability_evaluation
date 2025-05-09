@@ -109,8 +109,8 @@ lbo_cfg:
   # Type of LBO pipeline to use
   pipeline_id: "discover_new_llm" # "no_discovery", "discover_new_llm" or "discover_new_lbo_knn"
   # Train args for "no_discovery" pipeline
-  train_frac: 0.2
-  min_train_size: 10
+  train_frac: 0.5
+  num_initial_train: 9
   # Acquisition function that guides selecting the next query point.
   # For now, only "variance" is supported.
   # TODO: Add other acquisition functions.
