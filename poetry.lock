@@ -6991,8 +6991,10 @@ description = "Efficient LLM inference on Slurm clusters using vLLM."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
-files = []
-develop = false
+files = [
+    {file = "vec_inf-0.6.0-py3-none-any.whl", hash = "sha256:cc0211957f1a4b12fba600ff456312ccb632cd7b3e423937c76ab89001a8ffc9"},
+    {file = "vec_inf-0.6.0.tar.gz", hash = "sha256:c02360de2fde5da9e93bcf702e97fd2ca0a49056831793285fb3788987cf7217"},
+]
 
 [package.dependencies]
 click = ">=8.1.0"
@@ -7003,12 +7005,6 @@ rich = ">=13.7.0"
 
 [package.extras]
 dev = ["cupy-cuda12x (==12.1.0)", "ray (>=2.40.0)", "torch (>=2.5.1)", "vllm (>=0.7.3)", "vllm-nccl-cu12 (>=2.18,<2.19)", "xgrammar (>=0.1.11)"]
-
-[package.source]
-type = "git"
-url = "https://github.com/VectorInstitute/vector-inference.git"
-reference = "feature/add-slurm-account"
-resolved_reference = "9a7a37fd977807e8846caae202ae1943df192c77"
 
 [[package]]
 name = "virtualenv"
@@ -7610,4 +7606,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10, <3.13"
-content-hash = "fab6425e0946b3ca2052ceff31b36be728b35bc921518328046ac12b8a01c4e3"
+content-hash = "57f99aed55984d0caabe138c9b011cc6e037ccb713b94c45c86845a103a86f78"
