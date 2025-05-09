@@ -42,6 +42,10 @@ subject_llm:
   local_launch_cfg:
     # Type of GPU to use for local LLM
     partition: "a100"
+    # Number of nodes to use for local LLM
+    num_nodes: 1
+    # Number of GPUs to use for local LLM
+    gpus_per_node: 2
     # QoS for local LLM
     qos: "deadline"
     # Account for local LLM
@@ -49,7 +53,7 @@ subject_llm:
     # Time limit for local LLM
     time: "10:00:00"
     # vLLM args
-    vllm_args: "--max-model-len=8192,--max-num-seqs=50"
+    vllm_args: "--max-model-len=8192,--max-num-seqs=50,--compilation-config=0,--tensor-parallel-size=2"
 
 prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.
