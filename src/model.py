@@ -251,8 +251,11 @@ def get_local_model_url(model_name: str, **kwargs: Any) -> str:
     while status in [vec_inf_status.PENDING.value, vec_inf_status.LAUNCHING.value]:
         status_out = _run_command(status_command, model_status=True)
         status = status_out["model_status"]
-        time.sleep(5)  # Wait for 5 seconds before checking again
+        status = (
+            vec_inf_status.PENDING.value if ("LOG FILE NOT FOUND" in status) else status
+        )
         logger.info(f"Model status: {status}")
+        time.sleep(5)  # Wait for 5 seconds before checking again
     if status == vec_inf_status.FAILED.value:
         raise RuntimeError(f"Model launch failed: {status_out['failed_reason']}")
     if status == vec_inf_status.SHUTDOWN.value:
@@ -313,7 +316,7 @@ def _run_command(
         str_to_replace_by = str_to_replace.split(":")[-1].split(">")[0].strip()
         stdout = stdout.replace(str_to_replace, str_to_replace_by)
     try:
-        logger.info(f"Command output: {stdout.strip()}")
+        logger.debug(f"Command output: {stdout.strip()}")
         stdout_dict = json.loads(_sanitize_json(stdout))
     except json.JSONDecodeError:
         raise ValueError(f"Failed to parse JSON output: {stdout.strip()}") from None
