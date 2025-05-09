@@ -68,7 +68,7 @@ class LBO:
         num_gp_train_iterations: int = 50,
         optimizer_lr: float = 0.1,
         num_grid_points: int = 100,
-        expansion_factor: float = 0.1,
+        expansion_factor: float = 0.5,
     ):
         """Initialize the LBO parameters."""
         # x_train shape is [N, d].
