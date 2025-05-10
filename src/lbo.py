@@ -1,7 +1,7 @@
 """Latent Bayesian Optimization (LBO) for capability selection."""
 
 import logging
-from typing import Any, List, Tuple  # noqa: D100
+from typing import Any, Dict, List, Tuple
 
 import gpytorch
 import torch
@@ -221,6 +221,29 @@ class LBO:
         vals = self.model(x)
         return vals.mean, vals.variance.sqrt()
 
+    def get_error(
+        self, x_test: torch.Tensor, y_test: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        LBO error function.
+
+        Calculate the error between the predicted and actual scores.
+
+        Args
+        ----
+            x_test (torch.Tensor): The test capability representation tensor
+                with shape (Nc, D).
+            y_test (torch.Tensor): The actual scores for the test capabilities.
+
+        Returns
+        -------
+            Tuple[torch.Tensor, torch.Tensor]: Mean and standard deviation of the error.
+        """
+        raise NotImplementedError(
+            "Error calculation is not implemented yet. "
+            "Please implement the error calculation logic."
+        )
+
 
 def _get_adjusted_representation(
     capabilities: List[Capability],
@@ -333,14 +356,50 @@ def fit_lbo(
     )
 
 
+def calculate_lbo_error(
+    lbo_model: LBO,
+    capabilities: List[Capability],
+    embedding_name: str,
+    subject_llm_name: str,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Calculate the error between the predicted and actual scores for the capabilities.
+
+    Args
+    ----
+        lbo_model (LBO): The fitted LBO model.
+        capabilities (List[Capability]): The list of existing capabilities
+            used to train the LBO model.
+        embedding_name (str): The name of the embedding used to represent capabilities.
+        subject_llm_name (str): The name of the subject LLM used
+            to evaluate capabilities.
+
+    Returns
+    -------
+        Tuple[torch.Tensor, torch.Tensor]: Mean and standard deviation of the error.
+    """
+    # Get the capability embeddings
+    capabilities_encoding = torch.stack(
+        [cap.get_embedding(embedding_name) for cap in capabilities]
+    )
+
+    # Load subject LLM scores for each existing capability
+    capability_scores = torch.Tensor(
+        [cap.scores[subject_llm_name]["mean"] for cap in capabilities]
+    )
+
+    return lbo_model.get_error(capabilities_encoding, capability_scores)
+
+
 def select_capabilities_using_lbo(
     capabilities: List[Capability],
     embedding_name: str,
     capabilities_pool: List[Capability],
+    test_capabilities: List[Capability],
     subject_llm_name: str,
     acquisition_function: str = "variance",
     num_lbo_iterations: int | None = None,
-) -> List[Capability]:
+) -> Tuple[List[Capability], Dict[int, Any]]:
     """
     Select capabilities using the Latent Bayesian Optimization (LBO) method.
 
@@ -351,6 +410,8 @@ def select_capabilities_using_lbo(
         embedding_name (str): The name of the embedding used to represent capabilities.
         capabilities_pool (List[Capability]): The pool of candidate capabilities
             to select from during the LBO process.
+        test_capabilities (List[Capability]): The list of capabilities
+            used to calculate the LBO test error.
         subject_llm_name (str): The name of the subject LLM used
             to evaluate capabilities.
         acquisition_function (str, optional): The acquisition function for LBO.
@@ -376,6 +437,15 @@ def select_capabilities_using_lbo(
         embedding_name=embedding_name,
         subject_llm_name=subject_llm_name,
         acquisition_function=acquisition_function,
+    )
+
+    # Get initial test error
+    error_dict = {}
+    error_dict[0] = calculate_lbo_error(
+        lbo_model=lbo,
+        capabilities=test_capabilities,
+        embedding_name=embedding_name,
+        subject_llm_name=subject_llm_name,
     )
 
     capabilities_pool_encoding = torch.stack(
@@ -410,4 +480,12 @@ def select_capabilities_using_lbo(
         # Update the LBO model with the selected capability
         lbo.update(selected_capability_encoding, selected_capability_score)
 
-    return selected_capabilities
+        # Calculate LBO error on the test set
+        error_dict[iter_idx + 1] = calculate_lbo_error(
+            lbo_model=lbo,
+            capabilities=test_capabilities,
+            embedding_name=embedding_name,
+            subject_llm_name=subject_llm_name,
+        )
+
+    return selected_capabilities, error_dict

@@ -159,6 +159,37 @@ Domain: {capability_domain}
 Generate {num_gen_tasks} new tasks for the given capability.
 """
 
+TASK_GENERATION_SYSTEM_PROMPT_V2 = """
+You are an expert in designing tasks for a given capability. The name, description, {zero_or_few_shot_patch} for the capability will be provided. You will be particularly rewarded for designing diverse tasks spanning a wide range of difficulty levels for the given capability.
+
+Respond precisely in the following format, including the JSON start and end markers:
+
+THOUGHT: <THOUGHT>
+RESPONSE JSON:
+{response_json_format}
+
+In <THOUGHT>, briefly think and reason about what kind of tasks you want to propose.
+In <STR>, provide a string containing the task text.
+
+Be careful to make sure that all proposed tasks are unique. Also ensure that all tasks are within the scope of the given capability.
+
+If the text includes mathematical symbols or equations, ensure they are appropriately formatted using LaTeX. Ensure the single backlash "\\" included in a LateX string is escaped as "\\\\". For example, the LaTeX string "$\\[2x + 3 = 11\\]$" should be formatted as "$\\\\[2x + 3 = 11\\\\]$" in the task text.
+
+Ensure that the tasks you design are diverse and span a wide range of difficulty levels. Include tasks that test basic, intermediate, and advanced understanding of the capability. Strive to create tasks that challenge different aspects of the capability to ensure comprehensive evaluation.
+
+Your response will be automatically parsed so ensure it adheres to the specified format.
+"""
+
+TASK_GENERATION_USER_PROMPT_V2 = """
+Design tasks for the following capability:
+
+Name: {capability_name}
+Description: {capability_description}
+Domain: {capability_domain}
+{zero_or_few_shot_patch}
+Generate {num_gen_tasks} new tasks for the given capability. Ensure that the tasks are diverse and span a wide range of difficulty levels, testing different aspects of the capability comprehensively.
+"""
+
 TASK_GENERATION_ZERO_OR_FEW_SHOT_PATCH = {
     "zero_shot": {"sys": "and domain", "user": ""},
     "few_shot": {
