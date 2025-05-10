@@ -58,21 +58,6 @@ def get_lbo_train_set(
         if num_train <= 0:
             raise ValueError("num_train must be a positive integer.")
 
-    if train_frac is not None:
-        # Limit fraction to 2 decimal places,
-        # TODO: Revisit this and verify if this constraint is reasonable,
-        # if yes, add a warning while validating the config
-        train_frac = round(train_frac, 2)
-        num_decimal_places = (
-            len(str(train_frac).split(".")[1]) if "." in str(train_frac) else 0
-        )
-        min_input_data = 10**num_decimal_places
-        assert len(input_data) >= min_input_data, (
-            f"Insufficient input data: {len(input_data)}, "
-            + f"based on the given train fraction: {train_frac}."
-            + f"Need at least {min_input_data} data points."
-        )
-
     if stratified:
         if input_categories is None:
             raise ValueError(
@@ -93,6 +78,10 @@ def get_lbo_train_set(
         for _, items in category_to_items.items():
             if train_frac is not None:
                 num_category_train = int(len(items) * train_frac)
+                if num_category_train == 0:
+                    raise ValueError(
+                        f"train_frac {train_frac} is too small for category with {len(items)} items."
+                    )
             else:
                 assert num_train is not None
                 num_category_train = min(
@@ -102,6 +91,10 @@ def get_lbo_train_set(
     else:
         if train_frac is not None:
             num_train = int(len(input_data) * train_frac)
+            if num_train == 0:
+                raise ValueError(
+                    f"train_frac {train_frac} is too small for input data with {len(input_data)} items."
+                )
         assert num_train is not None
         train_data = random.sample(input_data, num_train)
 
