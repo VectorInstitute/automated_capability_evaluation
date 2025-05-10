@@ -35,7 +35,7 @@ def test_get_lbo_train_set_num_train():
 
     assert len(train_data) == num_train
     assert len(rem_data) == len(input_data) - num_train
-    assert set(map(tuple, train_data)).isdisjoint(set(map(tuple, rem_data)))
+    assert set(train_data).isdisjoint(set(rem_data))
 
 
 def test_get_lbo_train_set_stratified_sampling():
