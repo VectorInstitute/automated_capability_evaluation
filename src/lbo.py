@@ -368,18 +368,6 @@ def fit_lbo(
         acquisition_function,
     )
 
-def evaluate(model, likelihood, X_test, y_test_true):
-    with torch.no_grad(), gpytorch.settings.fast_pred_var():
-        # preds = likelihood(model(X_test))
-        preds = model(X_test)
-        mean = preds.mean
-        std = preds.variance.sqrt()
-        rmse = torch.sqrt(torch.mean((mean - y_test_true) ** 2)).item()
-        mae = torch.mean(torch.abs(mean - y_test_true)).item()
-        avg_var = torch.mean(preds.variance).item()
-    return rmse, mae, avg_var
-
-
 
 def calculate_lbo_error(
     lbo_model: LBO,
