@@ -19,6 +19,7 @@ def get_task_generation_prompt(
     capability: Capability,
     num_gen_tasks: int,
     sample_tasks: List[Dict[str, Any]] | None = None,
+    version: str = "v1",
 ) -> Tuple[str, str]:
     """
     Generate the system and user prompts for task generation.
@@ -33,13 +34,26 @@ def get_task_generation_prompt(
         num_gen_tasks (int): The number of tasks to generate.
         sample_tasks (List[Dict[str, Any]] | None, optional): The sample tasks
             to use. Defaults to None.
+        version (str, optional): The version of the prompt to use.
+            Defaults to "v1".
 
     Returns
     -------
         Tuple[str, str]: The system and user prompts.
     """
+    if version == "v1":
+        sys_prompt_template = prompts.TASK_GENERATION_SYSTEM_PROMPT
+        user_prompt_template = prompts.TASK_GENERATION_USER_PROMPT
+    elif version == "v2":
+        sys_prompt_template = prompts.TASK_GENERATION_SYSTEM_PROMPT_V2
+        user_prompt_template = prompts.TASK_GENERATION_USER_PROMPT_V2
+    else:
+        raise ValueError(
+            f"Invalid version: {version}. Supported versions are v1 and v2."
+        )
+
     prompt_type = "few_shot" if sample_tasks is not None else "zero_shot"
-    sys_prompt = prompts.TASK_GENERATION_SYSTEM_PROMPT.format(
+    sys_prompt = sys_prompt_template.format(
         zero_or_few_shot_patch=prompts.TASK_GENERATION_ZERO_OR_FEW_SHOT_PATCH[
             prompt_type
         ]["sys"],
@@ -55,7 +69,7 @@ def get_task_generation_prompt(
                 indent=4,
             ),
         )
-    user_prompt = prompts.TASK_GENERATION_USER_PROMPT.format(
+    user_prompt = user_prompt_template.format(
         capability_name=capability.name,
         capability_description=capability.description,
         capability_domain=capability.domain,
@@ -189,6 +203,7 @@ def generate_tasks_using_llm(
         capability=capability,
         num_gen_tasks=num_tasks,
         sample_tasks=sample_tasks if kwargs.get("few_shot", True) else None,
+        version=kwargs.get("task_gen_prompt_version", "v1"),
     )
     # Generate new tasks
     logger.info(f"Generating {num_tasks} tasks for {capability.name} ...")
@@ -331,9 +346,11 @@ def generate_tasks_using_llm(
     )
 
     # Analyze tokens metadata for task verification
-    total_input_tokens = sum([v["input_tokens"] for v in task_judge_metadata.values()])
+    total_input_tokens = sum(
+        [v.get("input_tokens", 0) for v in task_judge_metadata.values()]
+    )
     total_output_tokens = sum(
-        [v["output_tokens"] for v in task_judge_metadata.values()]
+        [v.get("output_tokens", 0) for v in task_judge_metadata.values()]
     )
     if solved_tasks:
         tokens_summary = {

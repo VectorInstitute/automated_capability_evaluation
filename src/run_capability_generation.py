@@ -88,21 +88,30 @@ def main(cfg: DictConfig) -> None:
             "It is recommended to increase the buffer."
         )
 
-    # Embed capabilities using openai embedding model
-    generate_and_set_capabilities_embeddings(
-        capabilities=capabilities,
-        embedding_model_name=cfg.embedding_cfg.embedding_model,
-        embed_dimensions=cfg.embedding_cfg.embedding_size,
-    )
-    # Filter capabilities based on their embeddings
-    filtered_capabilities = filter_capabilities(
-        capabilities,
-        embedding_model_name=cfg.embedding_cfg.embedding_model,
-        similarity_threshold=cfg.embedding_cfg.filtering_similarity_threshold,
-    )
-    logger.info(
-        f"Capabilities retained after filtering ({len(filtered_capabilities)}/{len(capabilities)}): {filtered_capabilities}"
-    )
+    task_gen_prompt_version = cfg.capabilities_cfg.task_gen_prompt_version
+
+    if "mock_seed_capabilities" in run_id:
+        # Use all capabilities (skip filtering) for the mock_seed_capabilities runs
+        filtered_capabilities = capabilities
+        if "v2" in run_id:
+            # Use the task generation prompt version 2 for mock seed capabilities v2
+            task_gen_prompt_version = "v2"
+    else:
+        # Embed capabilities using openai embedding model
+        generate_and_set_capabilities_embeddings(
+            capabilities=capabilities,
+            embedding_model_name=cfg.embedding_cfg.embedding_model,
+            embed_dimensions=cfg.embedding_cfg.embedding_size,
+        )
+        # Filter capabilities based on their embeddings
+        filtered_capabilities = filter_capabilities(
+            capabilities,
+            embedding_model_name=cfg.embedding_cfg.embedding_model,
+            similarity_threshold=cfg.embedding_cfg.filtering_similarity_threshold,
+        )
+        logger.info(
+            f"Capabilities retained after filtering ({len(filtered_capabilities)}/{len(capabilities)}): {filtered_capabilities}"
+        )
 
     # TODO: Run this asynchronosly
     for capability in filtered_capabilities:
@@ -122,7 +131,13 @@ def main(cfg: DictConfig) -> None:
             concurrency_task_solver=cfg.capabilities_cfg.concurrency_task_solver,
             concurrency_task_verifier=cfg.capabilities_cfg.concurrency_task_verifier,
             seed=cfg.exp_cfg.seed,
+            task_gen_prompt_version=task_gen_prompt_version,
         )
+        if cfg.exp_cfg.trial_run:
+            logger.info(
+                f"Trial run enabled. Stopping after generating tasks for {capability.name}."
+            )
+            break
 
 
 if __name__ == "__main__":
