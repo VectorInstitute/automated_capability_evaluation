@@ -84,7 +84,7 @@ def generate_latex_table(
 
 @hydra.main(
     version_base=None,
-    config_path="cfg",
+    config_path="example_cfg",
     config_name="compare_seed_capability_results_cfg",
 )
 def main(cfg: DictConfig) -> None:
@@ -102,7 +102,7 @@ def main(cfg: DictConfig) -> None:
     output_json_path = os.path.join(
         constants.BASE_ARTIFACTS_DIR,
         "paper_artifacts",
-        "compare_seed_capability_results.json",
+        f"{run_id}.json",
     )
     if os.path.exists(output_json_path):
         with open(output_json_path, "r") as f:
@@ -145,9 +145,10 @@ def main(cfg: DictConfig) -> None:
                     f"Comparing scores for capability: {capability_name} with subject LLM: {subject_llm}"
                 )
                 # Get scores for generated mock seed capability tasks
-                mock_scores = capability.load_scores(
-                    num_tasks=num_tasks, seed=cfg.seed
-                )[subject_llm]
+                capability.load_scores(
+                    subject_llm_name=subject_llm, num_tasks=num_tasks, seed=cfg.seed
+                )
+                mock_scores = capability.scores[subject_llm]
 
                 # Get scores for num_tasks tasks from the
                 # original seed capability dataset
@@ -197,7 +198,7 @@ def main(cfg: DictConfig) -> None:
             os.path.join(
                 constants.BASE_ARTIFACTS_DIR,
                 "paper_artifacts",
-                "compare_seed_capability_results.json",
+                f"{run_id}.json",
             ),
             "w",
         ) as f:
@@ -209,7 +210,7 @@ def main(cfg: DictConfig) -> None:
         output_dict=output_dict,
         subject_llms=subject_llms,
         output_dir=os.path.join(constants.BASE_ARTIFACTS_DIR, "paper_artifacts"),
-        output_file_name="compare_seed_capability_results.tex",
+        output_file_name=f"{run_id}.tex",
     )
 
 

@@ -20,7 +20,7 @@ from generate_capabilities import (
 from generate_tasks import (
     generate_tasks_using_llm,
 )
-from lbo import fit_lbo, select_capabilities_using_lbo
+from lbo import calculate_lbo_error, fit_lbo, select_capabilities_using_lbo
 from model import Model
 from utils import constants, prompts
 from utils.data_utils import check_cfg, get_run_id
@@ -75,6 +75,23 @@ def main(cfg: DictConfig) -> None:
             subject_llm_name=cfg.subject_llm.name,
         )
 
+    # Obtain test set
+    train_capabilities, test_capabilities = get_lbo_train_set(
+        input_data=capabilities,
+        train_frac=cfg.lbo_cfg.train_frac,
+        stratified=cfg.capabilities_cfg.method == "hierarchical",
+        input_categories=[capability.area for capability in capabilities],
+        seed=cfg.exp_cfg.seed,
+    )
+    # Obtain initial train set
+    train_capabilities, candidate_capabilities = get_lbo_train_set(
+        input_data=train_capabilities,
+        num_train=cfg.lbo_cfg.num_initial_train,
+        stratified=cfg.capabilities_cfg.method == "hierarchical",
+        input_categories=[capability.area for capability in train_capabilities],
+        seed=cfg.exp_cfg.seed,
+    )
+
     num_lbo_runs = cfg.lbo_cfg.num_lbo_runs
     if cfg.lbo_cfg.pipeline_id == "no_discovery":
         # Reduce the dimensionality of all capability embeddings
@@ -88,17 +105,8 @@ def main(cfg: DictConfig) -> None:
             embedding_model_name=cfg.embedding_cfg.embedding_model,
             random_seed=cfg.exp_cfg.seed,
         )
-        # For pipeline_id=="no_discovery", the set of
-        # generated capabilities are split into two sets
-        train_capabilities, candidate_capabilities = get_lbo_train_set(
-            input_data=capabilities,
-            train_frac=cfg.lbo_cfg.train_frac,
-            min_train_size=cfg.lbo_cfg.min_train_size,
-            stratified=cfg.capabilities_cfg.method == "hierarchical",
-            seed=cfg.exp_cfg.seed,
-        )
         logger.info(
-            f"Train capabilities ({len(train_capabilities)}):\n{train_capabilities}"
+            f"Initial Train capabilities ({len(train_capabilities)}):\n{train_capabilities}"
         )
         if num_lbo_runs > len(candidate_capabilities):
             logger.warning(
@@ -108,10 +116,11 @@ def main(cfg: DictConfig) -> None:
             )
             num_lbo_runs = len(candidate_capabilities)
         # Run LBO to select capabilities
-        new_capabilities = select_capabilities_using_lbo(
+        new_capabilities, lbo_error_dict = select_capabilities_using_lbo(
             capabilities=train_capabilities,
             embedding_name=dim_reduction_method_name,  # Since this embedding is reduced
             capabilities_pool=candidate_capabilities,
+            test_capabilities=test_capabilities,
             subject_llm_name=cfg.subject_llm.name,
             num_lbo_iterations=num_lbo_runs,
         )
@@ -161,11 +170,19 @@ def main(cfg: DictConfig) -> None:
         )
         os.makedirs(base_new_capability_dir, exist_ok=False)
 
+        lbo_error_dict = {}
         if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
-            # Create LBO model by fitting on all capabilities
+            # Create LBO model by fitting on initial train capabilities
             lbo_model = fit_lbo(
-                capabilities=capabilities,
-                embedding_name=dim_reduction_method_name,
+                capabilities=train_capabilities,
+                embedding_name=dim_reduction_model.method_name,
+                subject_llm_name=subject_llm.get_model_name(),
+            )
+            # Get initial test error
+            lbo_error_dict[0] = calculate_lbo_error(
+                lbo_model=lbo_model,
+                capabilities=test_capabilities,
+                embedding_name=dim_reduction_model.method_name,
                 subject_llm_name=subject_llm.get_model_name(),
             )
 
@@ -176,9 +193,9 @@ def main(cfg: DictConfig) -> None:
             while num_retries < cfg.lbo_cfg.discover_new_retry_attempts:
                 if cfg.lbo_cfg.pipeline_id == "discover_new_llm":
                     # Generate a new capability directly using the scientist LLM
-                    # based on the previous capabilities and their scores
+                    # based on the train capabilities (dynamic) and their scores
                     response = score_based_capability_discovery(
-                        prev_capabilities=capabilities,
+                        prev_capabilities=train_capabilities,
                         domain=cfg.capabilities_cfg.domain,
                         base_capability_dir=base_new_capability_dir,
                         user_prompt=prompts.SCORE_BASED_NEW_CAPABILITY_DISCOVERY_USER_PROMPT,
@@ -194,11 +211,11 @@ def main(cfg: DictConfig) -> None:
                     k_indices, _ = lbo_model.select_k_points(
                         k=cfg.lbo_cfg.select_k,
                     )
-                    knn_capabilities = [capabilities[i] for i in k_indices]
+                    knn_capabilities = [train_capabilities[i] for i in k_indices]
                     # Generate a new capability using KNN-based capability discovery
                     response = knn_based_capability_discovery(
                         knn_capabilities=knn_capabilities,
-                        prev_capabilities=capabilities,
+                        prev_capabilities=train_capabilities,
                         domain=cfg.capabilities_cfg.domain,
                         base_capability_dir=base_new_capability_dir,
                         user_prompt=prompts.KNN_BASED_NEW_CAPABILITY_DISCOVERY_USER_PROMPT,
@@ -281,7 +298,7 @@ def main(cfg: DictConfig) -> None:
 
             # Add the new capability to the list
             new_capabilities.append(new_capability)
-            capabilities.append(new_capability)
+            train_capabilities.append(new_capability)
 
             if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
                 # Prepare the new capability for LBO
@@ -306,8 +323,16 @@ def main(cfg: DictConfig) -> None:
                     new_capability.get_embedding(dim_reduction_model.method_name),
                     new_capability_score,
                 )
+                # Calculate the test set score
+                lbo_error_dict[lbo_run_id + 1] = calculate_lbo_error(
+                    lbo_model=lbo_model,
+                    capabilities=test_capabilities,
+                    embedding_name=dim_reduction_model.method_name,
+                    subject_llm_name=subject_llm.get_model_name(),
+                )
 
         logger.info(f"New capabilities: {new_capabilities}")
+        logger.info(f"LBO error dict: {lbo_error_dict}")
 
 
 if __name__ == "__main__":

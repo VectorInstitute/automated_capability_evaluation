@@ -38,18 +38,20 @@ def main(cfg: DictConfig) -> None:
         score_dir_suffix=run_id,
     )
     capabilities = sorted(capabilities, key=lambda x: x.name)
-    logger.info(f"ALl capability names:\n{capabilities}")
-    # Select the capabilities to evaluate
-    capabilities = select_complete_capabilities(
-        capabilities=capabilities,
-        strict=False,
-        num_tasks_lower_bound=int(
-            cfg.capabilities_cfg.num_gen_tasks_per_capability
-            * (1 - cfg.capabilities_cfg.num_gen_tasks_buffer)
-        ),
-    )
-    capabilities = sorted(capabilities, key=lambda x: x.name)
-    logger.info(f"Selected capability names:\n{capabilities}")
+    logger.info(f"All capability names:\n{capabilities}")
+
+    if "mock_seed_capabilities" not in run_id:
+        # Select the capabilities to evaluate
+        capabilities = select_complete_capabilities(
+            capabilities=capabilities,
+            strict=False,
+            num_tasks_lower_bound=int(
+                cfg.capabilities_cfg.num_gen_tasks_per_capability
+                * (1 - cfg.capabilities_cfg.num_gen_tasks_buffer)
+            ),
+        )
+        capabilities = sorted(capabilities, key=lambda x: x.name)
+        logger.info(f"Selected capability names:\n{capabilities}")
 
     # Initialize the scientist LLM model to be used as a judge
     scientist_llm = Model(
