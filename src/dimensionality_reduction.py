@@ -6,10 +6,16 @@ import numpy as np
 import torch
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from sklearn.preprocessing import MinMaxScaler
 
 
 logger = logging.getLogger(__name__)
+
+def _calc_global_min_max(x):
+  return np.min(x), np.max(x)
+
+def _normalize(x, min_value, max_value):
+    return 2 * (x - min_value) / (max_value - min_value) - 1.
+
 
 
 class DimensionalityReductionMethod(ABC):
@@ -29,6 +35,10 @@ class DimensionalityReductionMethod(ABC):
         self.output_dimension_size = output_dimension_size
         self.random_seed = random_seed
         self.normalize_output = normalize_output
+        # To be used for normalization.
+        self.global_min = None
+        self.global_max = None
+
         # Set torch random seed for reproducibility.
         torch.manual_seed(random_seed)
         if torch.cuda.is_available():
@@ -141,7 +151,6 @@ class Tsne(DimensionalityReductionMethod):
             self.perplexity = 30
         else:
             self.perplexity = perplexity
-        self.scaler = MinMaxScaler()
 
     def fit_transform(self, embeddings: List[torch.Tensor]) -> List[torch.Tensor]:
         """Fit and transform the T-SNE dimensionality reduction method to the data."""
@@ -169,13 +178,14 @@ class Tsne(DimensionalityReductionMethod):
         np_embeddings = np.array(embeddings)
         # The output of t-SNE is a numpy array, so we need to convert it back to
         # a list of tensors.
-        reduced_np_embeddings = tsne.fit_transform(np_embeddings)
-
+        reduced_embeddings = tsne.fit_transform(np_embeddings)
         if self.normalize_output:
-            self.scaler.fit(reduced_np_embeddings)
-            reduced_np_embeddings = self.scaler.transform(reduced_np_embeddings)
+            if self.global_min is None and self.global_max is None:
+                self.global_min, self.global_max = _calc_global_min_max(reduced_embeddings)
+            
+            reduced_embeddings = _normalize(reduced_embeddings, min_value=self.global_min, max_value=self.global_max)
 
-        return [torch.Tensor(embedding) for embedding in reduced_np_embeddings]
+        return [torch.Tensor(embedding) for embedding in reduced_embeddings]
 
     def transform_new_points(
         self, new_embeddings: List[torch.Tensor]
@@ -215,7 +225,6 @@ class Pca(DimensionalityReductionMethod):
     ) -> None:
         super().__init__("pca", output_dimension_size, random_seed, normalize_output)
         self.pca = PCA(n_components=output_dimension_size)
-        self.scaler = MinMaxScaler()
 
     def fit_transform(self, embeddings: List[torch.Tensor]) -> List[torch.Tensor]:
         """Fit and transform the PCA dimensionality reduction method to the data."""
@@ -225,8 +234,11 @@ class Pca(DimensionalityReductionMethod):
         self.pca.fit(np_embeddings)
         reduced_embeddings = self.pca.transform(np_embeddings)
         if self.normalize_output:
-            self.scaler.fit(reduced_embeddings)
-            reduced_embeddings = self.scaler.transform(reduced_embeddings)
+            if self.global_min is None and self.global_max is None:
+                self.global_min, self.global_max = _calc_global_min_max(reduced_embeddings)
+            
+            reduced_embeddings = _normalize(reduced_embeddings, min_value=self.global_min, max_value=self.global_max)
+
         # Convert back to PyTorch tensor, and return.
         return [torch.Tensor(embedding) for embedding in reduced_embeddings]
 
@@ -236,8 +248,8 @@ class Pca(DimensionalityReductionMethod):
         """Transform new points using the fitted PCA dimensionality reduction method."""
         # Convert to numpy, transform, then back to torch
         np_embeddings = torch.stack(new_embeddings).numpy()
-        reduced_np_embeddings = self.pca.transform(np_embeddings)
+        reduced_embeddings = self.pca.transform(np_embeddings)
         if self.normalize_output:
-            reduced_np_embeddings = self.scaler.transform(reduced_np_embeddings)
+            reduced_embeddings = _normalize(reduced_embeddings, min_value=self.global_min, max_value=self.global_max)
 
-        return [torch.Tensor(embedding) for embedding in reduced_np_embeddings]
+        return [torch.Tensor(embedding) for embedding in reduced_embeddings]

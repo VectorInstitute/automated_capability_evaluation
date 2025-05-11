@@ -170,7 +170,7 @@ def main(cfg: DictConfig) -> None:
         )
         os.makedirs(base_new_capability_dir, exist_ok=False)
 
-        lbo_error_dict = {}
+        lbo_error_dict = {'rmse': [], 'avg_std': []}
         if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
             # Create LBO model by fitting on initial train capabilities
             lbo_model = fit_lbo(
@@ -179,12 +179,15 @@ def main(cfg: DictConfig) -> None:
                 subject_llm_name=subject_llm.get_model_name(),
             )
             # Get initial test error
-            lbo_error_dict[0] = calculate_lbo_error(
+            rmse, avg_std = calculate_lbo_error(
                 lbo_model=lbo_model,
                 capabilities=test_capabilities,
                 embedding_name=dim_reduction_model.method_name,
                 subject_llm_name=subject_llm.get_model_name(),
             )
+            lbo_error_dict['rmse'].append(rmse)
+            lbo_error_dict['avg_std'].append(avg_std)
+
 
         random_seed = cfg.exp_cfg.seed
         new_capabilities = []
@@ -324,12 +327,15 @@ def main(cfg: DictConfig) -> None:
                     new_capability_score,
                 )
                 # Calculate the test set score
-                lbo_error_dict[lbo_run_id + 1] = calculate_lbo_error(
+                rmse, avg_std = calculate_lbo_error(
                     lbo_model=lbo_model,
                     capabilities=test_capabilities,
                     embedding_name=dim_reduction_model.method_name,
                     subject_llm_name=subject_llm.get_model_name(),
                 )
+                lbo_error_dict['rmse'].append(rmse)
+                lbo_error_dict['avg_std'].append(avg_std)
+
 
         logger.info(f"New capabilities: {new_capabilities}")
         logger.info(f"LBO error dict: {lbo_error_dict}")
