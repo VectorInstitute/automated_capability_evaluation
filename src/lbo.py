@@ -102,9 +102,7 @@ class LBO:
         self.likelihood.eval()
         return model
 
-    def select_next_point(
-        self, x_query: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def select_next_point(self, x_query: torch.Tensor) -> Tuple[int, torch.Tensor]:
         """Select the next query point from x_query."""
         x_query = x_query.to(device)
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
@@ -131,12 +129,12 @@ class LBO:
                     sum_reduction = reduction.sum().item()
                     total_var_reduction.append(sum_reduction)
 
-                idx = torch.argmax(torch.tensor(total_var_reduction)).item()
+                idx = torch.argmax(torch.tensor(total_var_reduction))
             else:
                 raise ValueError(
                     f"Acquisition function: {self.acquisition_function} is unsupported."
                 )
-        return idx, x_query[idx]
+        return int(idx.item()), x_query[idx]
 
     def _create_search_grid(self) -> torch.Tensor:
         """Create a grid of points covering the expanded space around training data."""

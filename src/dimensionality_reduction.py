@@ -213,7 +213,9 @@ class CutEmbeddings(DimensionalityReductionMethod):
     def fit_transform(self, embeddings: List[torch.Tensor]) -> List[torch.Tensor]:
         """Apply the CutEmbeddings dimensionality reduction to the train data."""
         # Cut the embeddings to the desired size
-        cut_embeddings = [embedding[: self.output_dimension_size] for embedding in embeddings]
+        cut_embeddings = [
+            embedding[: self.output_dimension_size] for embedding in embeddings
+        ]
 
         if not self.normalize_output:
             return cut_embeddings
