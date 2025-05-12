@@ -63,7 +63,7 @@ def test_apply_dim_reduction_tsne(mock_capabilities):
 
 
 def test_apply_dim_reduction_pca(mock_capabilities):
-    """Test the apply_dimensionality_reduction function For the PCA method."""
+    """Test the apply_dimensionality_reduction function for the PCA method."""
     dimensionality_reduction_method = "pca"
     output_dimensions = 2
     embedding_model_name = "text-embedding-3-small"
@@ -96,7 +96,7 @@ def test_apply_dim_reduction_pca(mock_capabilities):
 
 
 def test_apply_dim_reduction_cut_embeddings(mock_capabilities):
-    """Test the apply_dimensionality_reduction function For the cut-embeddings method."""
+    """Test apply_dimensionality_reduction for the cut-embeddings method."""
     dimensionality_reduction_method = "cut-embeddings"
     output_dimensions = 2
     embedding_model_name = "text-embedding-3-small"

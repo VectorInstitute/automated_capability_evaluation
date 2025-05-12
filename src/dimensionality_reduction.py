@@ -1,9 +1,10 @@
 import logging  # noqa: D100
 from abc import ABC, abstractmethod
-from typing import List
+from typing import Any, List, Tuple
 
 import numpy as np
 import torch
+from numpy.typing import NDArray
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
@@ -11,11 +12,11 @@ from sklearn.manifold import TSNE
 logger = logging.getLogger(__name__)
 
 
-def _global_min_max(x):
-    return np.min(x), np.max(x)
+def _global_min_max(x: NDArray[Any]) -> Tuple[float, float]:
+    return float(np.min(x)), float(np.max(x))
 
 
-def _normalize(x, min_value, max_value):
+def _normalize(x: NDArray[Any], min_value: float, max_value: float) -> NDArray[Any]:
     return 2 * (x - min_value) / (max_value - min_value) - 1.0
 
 
@@ -37,8 +38,8 @@ class DimensionalityReductionMethod(ABC):
         self.random_seed = random_seed
         self.normalize_output = normalize_output
         # To be used for normalization.
-        self.normalization_lower_bound = None
-        self.normalization_upper_bound = None
+        self.normalization_lower_bound = 0.0
+        self.normalization_upper_bound = 0.0
 
         # Set torch random seed for reproducibility.
         torch.manual_seed(random_seed)
@@ -212,40 +213,46 @@ class CutEmbeddings(DimensionalityReductionMethod):
     def fit_transform(self, embeddings: List[torch.Tensor]) -> List[torch.Tensor]:
         """Apply the CutEmbeddings dimensionality reduction to the train data."""
         # Cut the embeddings to the desired size
-        new_embeddings = [
-            embedding[: self.output_dimension_size] for embedding in embeddings
-        ]
-        new_embeddings = torch.stack(new_embeddings).numpy()
-        if self.normalize_output:
-            self.normalization_lower_bound, self.normalization_upper_bound = (
-                _global_min_max(new_embeddings)
-            )
-            return torch.Tensor(
-                _normalize(
-                    new_embeddings,
-                    min_value=self.normalization_lower_bound,
-                    max_value=self.normalization_upper_bound,
-                )
-            )
+        cut_embeddings = [embedding[: self.output_dimension_size] for embedding in embeddings]
+
+        if not self.normalize_output:
+            return cut_embeddings
+
+        # Convert to numpy for normalization
+        np_embeddings = torch.stack(cut_embeddings).numpy()
+        self.normalization_lower_bound, self.normalization_upper_bound = (
+            _global_min_max(np_embeddings)
+        )
+        normalized = _normalize(
+            np_embeddings,
+            min_value=self.normalization_lower_bound,
+            max_value=self.normalization_upper_bound,
+        )
+        return [torch.Tensor(x) for x in normalized]
 
     def transform_new_points(
         self, new_embeddings: List[torch.Tensor]
     ) -> List[torch.Tensor]:
         """Apply the CutEmbeddings dimensionality reduction to the test data."""
         # Cut the new points to the desired size
-        new_embeddings = [
+        cut_embeddings = [
             embedding[: self.output_dimension_size] for embedding in new_embeddings
         ]
-        return [
-            torch.Tensor(
-                _normalize(
-                    embedding,
-                    min_value=self.normalization_lower_bound,
-                    max_value=self.normalization_upper_bound,
-                )
+
+        if not self.normalize_output:
+            return cut_embeddings
+
+        # Convert to numpy for normalization
+        normalized_results = []
+        for embedding in cut_embeddings:
+            np_embedding = embedding.numpy()
+            normalized = _normalize(
+                np_embedding,
+                min_value=self.normalization_lower_bound,
+                max_value=self.normalization_upper_bound,
             )
-            for embedding in new_embeddings
-        ]
+            normalized_results.append(torch.Tensor(normalized))
+        return normalized_results
 
 
 class Pca(DimensionalityReductionMethod):
