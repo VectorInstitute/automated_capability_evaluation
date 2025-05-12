@@ -10,9 +10,6 @@ from sklearn.manifold import TSNE
 
 logger = logging.getLogger(__name__)
 
-def _calc_global_min_max(x):
-  return np.min(x), np.max(x)
-
 def _normalize(x, min_value, max_value):
     return 2 * (x - min_value) / (max_value - min_value) - 1.
 
@@ -30,14 +27,16 @@ class DimensionalityReductionMethod(ABC):
         output_dimension_size: int,
         random_seed: int,
         normalize_output: bool,
+        normalization_lower_bound: float,
+        normalization_upper_bound: float
     ):
         self.method_name = method_name
         self.output_dimension_size = output_dimension_size
         self.random_seed = random_seed
         self.normalize_output = normalize_output
         # To be used for normalization.
-        self.global_min = None
-        self.global_max = None
+        self.normalization_lower_bound = normalization_lower_bound
+        self.normalization_upper_bound = normalization_upper_bound
 
         # Set torch random seed for reproducibility.
         torch.manual_seed(random_seed)
@@ -93,6 +92,8 @@ class DimensionalityReductionMethod(ABC):
         output_dimension_size: int,
         random_seed: int,
         normalize_output: bool,
+        normalization_lower_bound: float,
+        normalization_upper_bound: float,
         tsne_perplexity: int | None = None,
     ) -> "DimensionalityReductionMethod":
         """Create an instance of a dimensionality reduction method based on its name.
@@ -102,6 +103,8 @@ class DimensionalityReductionMethod(ABC):
             output_dimension_size (int): The size of the output dimensions.
             random_seed (int): The random seed for reproducibility.
             normalize_output (bool): Whether to normalize the output embeddings.
+            normalization_lower_bound (float): Lower bound of the normalization interval.
+            normalization_upper_bound (float): Upper bound of the normalization interval.
             tsne_perplexity (int | None): The perplexity parameter for T-SNE. If None,
                 the default value of 30 will be used.
 
@@ -120,18 +123,24 @@ class DimensionalityReductionMethod(ABC):
                 output_dimension_size=output_dimension_size,
                 random_seed=random_seed,
                 normalize_output=normalize_output,
+                normalization_lower_bound=normalization_lower_bound,
+                normalization_upper_bound=normalization_upper_bound,
             )
         if method_name.lower() == "cut-embeddings":
             return CutEmbeddings(
                 output_dimension_size=output_dimension_size,
                 random_seed=random_seed,
                 normalize_output=normalize_output,
+                normalization_lower_bound=normalization_lower_bound,
+                normalization_upper_bound=normalization_upper_bound,
             )
         if method_name.lower() == "pca":
             return Pca(
                 output_dimension_size=output_dimension_size,
                 random_seed=random_seed,
                 normalize_output=normalize_output,
+                normalization_lower_bound=normalization_lower_bound,
+                normalization_upper_bound=normalization_upper_bound,
             )
         raise ValueError(f"Unknown dimensionality reduction method: {method_name}")
 
@@ -180,10 +189,7 @@ class Tsne(DimensionalityReductionMethod):
         # a list of tensors.
         reduced_embeddings = tsne.fit_transform(np_embeddings)
         if self.normalize_output:
-            if self.global_min is None and self.global_max is None:
-                self.global_min, self.global_max = _calc_global_min_max(reduced_embeddings)
-            
-            reduced_embeddings = _normalize(reduced_embeddings, min_value=self.global_min, max_value=self.global_max)
+            reduced_embeddings = _normalize(reduced_embeddings, min_value=self.normalization_lower_bound, max_value=self.normalization_upper_bound)
 
         return [torch.Tensor(embedding) for embedding in reduced_embeddings]
 
@@ -234,10 +240,7 @@ class Pca(DimensionalityReductionMethod):
         self.pca.fit(np_embeddings)
         reduced_embeddings = self.pca.transform(np_embeddings)
         if self.normalize_output:
-            if self.global_min is None and self.global_max is None:
-                self.global_min, self.global_max = _calc_global_min_max(reduced_embeddings)
-            
-            reduced_embeddings = _normalize(reduced_embeddings, min_value=self.global_min, max_value=self.global_max)
+            reduced_embeddings = _normalize(reduced_embeddings, min_value=self.normalization_lower_bound, max_value=self.normalization_upper_bound)
 
         # Convert back to PyTorch tensor, and return.
         return [torch.Tensor(embedding) for embedding in reduced_embeddings]
@@ -250,6 +253,6 @@ class Pca(DimensionalityReductionMethod):
         np_embeddings = torch.stack(new_embeddings).numpy()
         reduced_embeddings = self.pca.transform(np_embeddings)
         if self.normalize_output:
-            reduced_embeddings = _normalize(reduced_embeddings, min_value=self.global_min, max_value=self.global_max)
+            reduced_embeddings = _normalize(reduced_embeddings, min_value=self.normalization_lower_bound, max_value=self.normalization_upper_bound)
 
         return [torch.Tensor(embedding) for embedding in reduced_embeddings]

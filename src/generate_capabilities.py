@@ -25,6 +25,10 @@ from src.utils import constants, prompts
 from src.utils.capability_utils import extract_and_parse_response
 
 
+def _global_min_max(x):
+  return np.min(x), np.max(x)
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -485,11 +489,14 @@ def apply_dimensionality_reduction(
         )
         embeddings.append(embedding)
 
+    x_min, x_max = _global_min_max(embeddings)
     dim_reduction = DimensionalityReductionMethod.from_name(
         dim_reduction_method_name,
         output_dimension_size,
         random_seed=random_seed,
         normalize_output=normalize_output,
+        normalization_lower_bound=x_min,
+        normalization_upper_bound=x_max,
         tsne_perplexity=tsne_perplexity,
     )
     # fit_transform() the dimensionality reduction module on the embeddings.
