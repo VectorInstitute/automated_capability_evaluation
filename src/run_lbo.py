@@ -109,20 +109,17 @@ def main(cfg: DictConfig) -> None:
             )
         else:
             # For pca and cut-embedding
-            # Fit the dimensionality reduction model on the train capabilities
+            # Fit the dimensionality reduction model on the
+            # train + candidate capabilities since the
+            # set if train capabilities is small
             dim_reduction_model = apply_dimensionality_reduction(
-                capabilities=train_capabilities,
+                capabilities=train_capabilities + candidate_capabilities,
                 dim_reduction_method_name=dim_reduction_method_name,
                 output_dimension_size=cfg.dimensionality_reduction_cfg.discover_new_reduced_dimensionality_size,
                 embedding_model_name=cfg.embedding_cfg.embedding_model,
                 random_seed=cfg.exp_cfg.seed,
             )
-            # Apply the dimensionality reduction to the candidate and test capabilities
-            apply_dimensionality_reduction_to_test_capabilities(
-                capabilities=candidate_capabilities,
-                dim_reduction_method=dim_reduction_model,
-                embedding_model_name=cfg.embedding_cfg.embedding_model,
-            )
+            # Apply the dimensionality reduction to the test capabilities
             apply_dimensionality_reduction_to_test_capabilities(
                 capabilities=test_capabilities,
                 dim_reduction_method=dim_reduction_model,
