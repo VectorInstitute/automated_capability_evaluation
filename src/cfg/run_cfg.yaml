@@ -33,7 +33,7 @@ scientist_llm:
     time: "01:00:00"
 
 subject_llm:
-  name: Meta-Llama-3.1-70B-Instruct
+  name: c4ai-command-r-plus-08-2024
   provider: local
   generation_cfg:
     temperature: 0.7
@@ -45,7 +45,7 @@ subject_llm:
     # Number of nodes to use for local LLM
     num_nodes: 1
     # Number of GPUs to use for local LLM
-    gpus_per_node: 2
+    gpus_per_node: 4
     # QoS for local LLM
     qos: "deadline"
     # Account for local LLM
@@ -53,7 +53,7 @@ subject_llm:
     # Time limit for local LLM
     time: "10:00:00"
     # vLLM args
-    vllm_args: "--max-model-len=8192,--max-num-seqs=50,--compilation-config=0,--tensor-parallel-size=2"
+    vllm_args: "--max-model-len=8192,--max-num-seqs=50,--compilation-config=0,--tensor-parallel-size=4,--pipeline-parallel-size=1"
 
 prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.

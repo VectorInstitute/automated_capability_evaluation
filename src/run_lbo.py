@@ -98,13 +98,33 @@ def main(cfg: DictConfig) -> None:
         dim_reduction_method_name = (
             cfg.dimensionality_reduction_cfg.no_discovery_reduced_dimensionality_method
         )
-        _ = apply_dimensionality_reduction(
-            capabilities=capabilities,
-            dim_reduction_method_name=dim_reduction_method_name,
-            output_dimension_size=cfg.dimensionality_reduction_cfg.no_discovery_reduced_dimensionality_size,
-            embedding_model_name=cfg.embedding_cfg.embedding_model,
-            random_seed=cfg.exp_cfg.seed,
-        )
+        if dim_reduction_method_name == "t-sne":
+            # Fit the dimensionality reduction model and transform all capabilities
+            _ = apply_dimensionality_reduction(
+                capabilities=capabilities,
+                dim_reduction_method_name=dim_reduction_method_name,
+                output_dimension_size=cfg.dimensionality_reduction_cfg.no_discovery_reduced_dimensionality_size,
+                embedding_model_name=cfg.embedding_cfg.embedding_model,
+                random_seed=cfg.exp_cfg.seed,
+            )
+        else:
+            # For pca and cut-embedding
+            # Fit the dimensionality reduction model on the
+            # train + candidate capabilities since the
+            # set if train capabilities is small
+            dim_reduction_model = apply_dimensionality_reduction(
+                capabilities=train_capabilities + candidate_capabilities,
+                dim_reduction_method_name=dim_reduction_method_name,
+                output_dimension_size=cfg.dimensionality_reduction_cfg.discover_new_reduced_dimensionality_size,
+                embedding_model_name=cfg.embedding_cfg.embedding_model,
+                random_seed=cfg.exp_cfg.seed,
+            )
+            # Apply the dimensionality reduction to the test capabilities
+            apply_dimensionality_reduction_to_test_capabilities(
+                capabilities=test_capabilities,
+                dim_reduction_method=dim_reduction_model,
+                embedding_model_name=cfg.embedding_cfg.embedding_model,
+            )
         logger.info(
             f"Initial Train capabilities ({len(train_capabilities)}):\n{train_capabilities}"
         )
@@ -126,16 +146,23 @@ def main(cfg: DictConfig) -> None:
         )
 
     elif "discover_new" in cfg.lbo_cfg.pipeline_id:
-        # Reduce the dimensionality of all capability embeddings
+        # Only pca and cut-embedding methods are supported for "discover_new" pipelines
+        # Reduce the dimensionality of train capabilities
         dim_reduction_method_name = (
             cfg.dimensionality_reduction_cfg.discover_new_reduced_dimensionality_method
         )
         dim_reduction_model = apply_dimensionality_reduction(
-            capabilities=capabilities,
+            capabilities=train_capabilities,
             dim_reduction_method_name=dim_reduction_method_name,
             output_dimension_size=cfg.dimensionality_reduction_cfg.discover_new_reduced_dimensionality_size,
             embedding_model_name=cfg.embedding_cfg.embedding_model,
             random_seed=cfg.exp_cfg.seed,
+        )
+        # Apply the dimensionality reduction to the test capabilities
+        apply_dimensionality_reduction_to_test_capabilities(
+            capabilities=test_capabilities,
+            dim_reduction_method=dim_reduction_model,
+            embedding_model_name=cfg.embedding_cfg.embedding_model,
         )
 
         # Initialize the scientist LLM model for new capabilities'
