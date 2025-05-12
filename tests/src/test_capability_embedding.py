@@ -44,7 +44,9 @@ def test_apply_dim_reduction_tsne(mock_capabilities):
         embedding_model_name="text-embedding-3-small",
         tsne_perplexity=2,
     )
-    print(f"after dim reduction: {mock_capabilities[0].embedding_dict[dimensionality_reduction_method]}")
+    print(
+        f"after dim reduction: {mock_capabilities[0].embedding_dict[dimensionality_reduction_method]}"
+    )
 
     # Verify that the dim reduction output is set for each capability
     for capability in mock_capabilities:
@@ -129,5 +131,5 @@ def test_apply_dim_reduction_cut_embeddings(mock_capabilities):
     print(f"embeddings: {embeddings}")
     # The first two elements of capability 0 embedding are [1.0, 2.0].
     # The range is 4 - 1 = 3. So normalization of [1, 2] should yield [-1, -1/3].
-    actual = torch.tensor([-1., -1. / 3])
+    actual = torch.tensor([-1.0, -1.0 / 3])
     assert torch.isclose(actual, embeddings).all()

@@ -458,7 +458,7 @@ def select_capabilities_using_lbo(
         acquisition_function=acquisition_function,
     )
 
-    error_dict = {'rmse': [], 'avg_std': []}
+    error_dict = {"rmse": [], "avg_std": []}
     # Get initial test error.
     rmse, avg_std = calculate_lbo_error(
         lbo_model=lbo,
@@ -466,8 +466,8 @@ def select_capabilities_using_lbo(
         embedding_name=embedding_name,
         subject_llm_name=subject_llm_name,
     )
-    error_dict['rmse'].append(rmse)
-    error_dict['avg_std'].append(avg_std)
+    error_dict["rmse"].append(rmse)
+    error_dict["avg_std"].append(avg_std)
 
     capabilities_pool_encoding = torch.stack(
         [cap.get_embedding(embedding_name) for cap in capabilities_pool]
@@ -509,7 +509,7 @@ def select_capabilities_using_lbo(
             embedding_name=embedding_name,
             subject_llm_name=subject_llm_name,
         )
-        error_dict['rmse'].append(rmse)
-        error_dict['avg_std'].append(avg_std)
+        error_dict["rmse"].append(rmse)
+        error_dict["avg_std"].append(avg_std)
 
     return selected_capabilities, error_dict
