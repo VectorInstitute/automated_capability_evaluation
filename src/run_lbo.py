@@ -150,6 +150,7 @@ def main(cfg: DictConfig) -> None:
             capabilities_pool=candidate_capabilities,
             test_capabilities=test_capabilities,
             subject_llm_name=cfg.subject_llm.name,
+            acquisition_function=cfg.lbo_cfg.acquisition_function,
             num_lbo_iterations=num_lbo_runs,
         )
 
@@ -215,6 +216,7 @@ def main(cfg: DictConfig) -> None:
                 capabilities=train_capabilities,
                 embedding_name=dim_reduction_model.method_name,
                 subject_llm_name=subject_llm.get_model_name(),
+                acquisition_function=cfg.lbo_cfg.acquisition_function,
             )
             # Get initial test error
             rmse, avg_std = calculate_lbo_error(
@@ -380,6 +382,10 @@ def main(cfg: DictConfig) -> None:
         lbo_results_dict = {
             "run_id": run_id,
             "extended_run_id": extended_run_id,
+            "acquisition_function": cfg.lbo_cfg.acquisition_function,
+            "acquisition_function_tag": "ALM"
+            if cfg.lbo_cfg.acquisition_function == "variance"
+            else "ALC",
             "train_capabilities": [cap.name for cap in train_capabilities],
             "test_capabilities": [cap.name for cap in test_capabilities],
             "new_capabilities": [cap.name for cap in new_capabilities],
