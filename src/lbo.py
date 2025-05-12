@@ -102,9 +102,7 @@ class LBO:
         self.likelihood.eval()
         return model
 
-    def select_next_point(
-        self, x_query: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def select_next_point(self, x_query: torch.Tensor) -> Tuple[int, torch.Tensor]:
         """Select the next query point from x_query."""
         x_query = x_query.to(device)
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
@@ -131,12 +129,12 @@ class LBO:
                     sum_reduction = reduction.sum().item()
                     total_var_reduction.append(sum_reduction)
 
-                idx = torch.argmax(torch.tensor(total_var_reduction)).item()
+                idx = torch.argmax(torch.tensor(total_var_reduction))
             else:
                 raise ValueError(
                     f"Acquisition function: {self.acquisition_function} is unsupported."
                 )
-        return idx, x_query[idx]
+        return int(idx.item()), x_query[idx]
 
     def _create_search_grid(self) -> torch.Tensor:
         """Create a grid of points covering the expanded space around training data."""
@@ -374,7 +372,7 @@ def calculate_lbo_error(
     capabilities: List[Capability],
     embedding_name: str,
     subject_llm_name: str,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> Tuple[float, float]:
     """
     Calculate the error between the predicted and actual scores for the capabilities.
 
@@ -389,7 +387,8 @@ def calculate_lbo_error(
 
     Returns
     -------
-        Tuple[torch.Tensor, torch.Tensor]: Mean and standard deviation of the error.
+        Tuple[float, float]: RMSE and average standard deviation of candidate
+        capabilities.
     """
     # Get the capability embeddings
     capabilities_encoding = torch.stack(
@@ -401,7 +400,11 @@ def calculate_lbo_error(
         [cap.scores[subject_llm_name]["mean"] for cap in capabilities]
     )
 
-    return lbo_model.get_error(capabilities_encoding, capability_scores)
+    preds_mean, preds_std = lbo_model.predict(capabilities_encoding)
+    rmse = torch.sqrt(torch.mean((preds_mean - capability_scores) ** 2)).item()
+    avg_std = torch.mean(preds_std).item()
+
+    return rmse, avg_std
 
 
 def select_capabilities_using_lbo(
@@ -412,7 +415,7 @@ def select_capabilities_using_lbo(
     subject_llm_name: str,
     acquisition_function: str = "expected_variance_reduction",
     num_lbo_iterations: int | None = None,
-) -> Tuple[List[Capability], Dict[int, Any]]:
+) -> Tuple[List[Capability], Dict[str, List[float]]]:
     """
     Select capabilities using the Latent Bayesian Optimization (LBO) method.
 
@@ -452,14 +455,16 @@ def select_capabilities_using_lbo(
         acquisition_function=acquisition_function,
     )
 
-    # Get initial test error
-    error_dict = {}
-    error_dict[0] = calculate_lbo_error(
+    error_dict: Dict[str, List[float]] = {"rmse": [], "avg_std": []}
+    # Get initial test error.
+    rmse, avg_std = calculate_lbo_error(
         lbo_model=lbo,
         capabilities=test_capabilities,
         embedding_name=embedding_name,
         subject_llm_name=subject_llm_name,
     )
+    error_dict["rmse"].append(rmse)
+    error_dict["avg_std"].append(avg_std)
 
     capabilities_pool_encoding = torch.stack(
         [cap.get_embedding(embedding_name) for cap in capabilities_pool]
@@ -494,11 +499,14 @@ def select_capabilities_using_lbo(
         lbo.update(selected_capability_encoding, selected_capability_score)
 
         # Calculate LBO error on the test set
-        error_dict[iter_idx + 1] = calculate_lbo_error(
+
+        rmse, avg_std = calculate_lbo_error(
             lbo_model=lbo,
             capabilities=test_capabilities,
             embedding_name=embedding_name,
             subject_llm_name=subject_llm_name,
         )
+        error_dict["rmse"].append(rmse)
+        error_dict["avg_std"].append(avg_std)
 
     return selected_capabilities, error_dict

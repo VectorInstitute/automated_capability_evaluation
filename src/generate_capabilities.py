@@ -448,7 +448,7 @@ def apply_dimensionality_reduction(
     embedding_model_name: str,
     tsne_perplexity: int | None = None,
     random_seed: int = constants.DEFAULT_RANDOM_SEED,
-    normalize_output: bool = False,
+    normalize_output: bool = True,
 ) -> DimensionalityReductionMethod:  # noqa: D205
     """Apply dimensionality reduction to the capabilities.
 
