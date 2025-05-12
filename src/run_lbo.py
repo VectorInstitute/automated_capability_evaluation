@@ -1,5 +1,6 @@
 """Script to discover new capabilities using LBO."""
 
+import json
 import logging
 import os
 
@@ -91,6 +92,13 @@ def main(cfg: DictConfig) -> None:
         input_categories=[capability.area for capability in train_capabilities],
         seed=cfg.exp_cfg.seed,
     )
+    logger.info(
+        f"Initial Train capabilities ({len(train_capabilities)}):\n{train_capabilities}"
+    )
+    logger.info(
+        f"Candidate capabilities ({len(candidate_capabilities)}):\n{candidate_capabilities}"
+    )
+    logger.info(f"Test capabilities ({len(test_capabilities)}):\n{test_capabilities}")
 
     num_lbo_runs = cfg.lbo_cfg.num_lbo_runs
     if cfg.lbo_cfg.pipeline_id == "no_discovery":
@@ -146,6 +154,10 @@ def main(cfg: DictConfig) -> None:
         )
 
     elif "discover_new" in cfg.lbo_cfg.pipeline_id:
+        # Define vars for storing output of runs for "discover_new" pipelines
+        lbo_error_dict = {"rmse": [], "avg_std": []}
+        knn_capabilities_list = []
+
         # Only pca and cut-embedding methods are supported for "discover_new" pipelines
         # Reduce the dimensionality of train capabilities
         dim_reduction_method_name = (
@@ -188,16 +200,15 @@ def main(cfg: DictConfig) -> None:
             }
         )
 
-        extended_run_id = (
-            f"{run_id}_{subject_llm.get_model_name()}_{cfg.lbo_cfg.pipeline_id}"
-        )
+        extended_run_id = f"{run_id}_{subject_llm.get_model_name()}_{cfg.lbo_cfg.pipeline_id}_F{cfg.lbo_cfg.train_frac}_I{cfg.lbo_cfg.num_initial_train}_LR{cfg.lbo_cfg.num_lbo_runs}_AF{cfg.lbo_cfg.acquisition_function}"
+        if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
+            extended_run_id += f"_K{cfg.lbo_cfg.select_k}"
         base_new_capability_dir = base_capability_dir.replace(
             f"capabilities_{run_id}",
             f"capabilities_{extended_run_id}",
         )
         os.makedirs(base_new_capability_dir, exist_ok=False)
 
-        lbo_error_dict = {"rmse": [], "avg_std": []}
         if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
             # Create LBO model by fitting on initial train capabilities
             lbo_model = fit_lbo(
@@ -241,6 +252,7 @@ def main(cfg: DictConfig) -> None:
                         k=cfg.lbo_cfg.select_k,
                     )
                     knn_capabilities = [train_capabilities[i] for i in k_indices]
+                    knn_capabilities_list.append([cap.name for cap in knn_capabilities])
                     # Generate a new capability using KNN-based capability discovery
                     response = knn_based_capability_discovery(
                         knn_capabilities=knn_capabilities,
@@ -364,6 +376,34 @@ def main(cfg: DictConfig) -> None:
 
         logger.info(f"New capabilities: {new_capabilities}")
         logger.info(f"LBO error dict: {lbo_error_dict}")
+
+        lbo_results_dict = {
+            "run_id": run_id,
+            "extended_run_id": extended_run_id,
+            "train_capabilities": [cap.name for cap in train_capabilities],
+            "test_capabilities": [cap.name for cap in test_capabilities],
+            "new_capabilities": [cap.name for cap in new_capabilities],
+            "run_cfg": dict(cfg),
+        }
+        if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
+            lbo_results_dict["lbo_error_dict"] = lbo_error_dict
+            lbo_results_dict["knn_capabilities"] = knn_capabilities_list
+        lbo_results_dir = os.path.join(
+            constants.BASE_ARTIFACTS_DIR,
+            "lbo_results",
+        )
+        with open(
+            os.path.join(lbo_results_dir, f"lbo_results_{extended_run_id}.json"),
+            "w",
+        ) as f:
+            json.dump(
+                lbo_results_dict,
+                f,
+                indent=4,
+            )
+        logger.info(
+            f"LBO results saved to {lbo_results_dir}/lbo_results_{extended_run_id}.json"
+        )
 
 
 if __name__ == "__main__":
