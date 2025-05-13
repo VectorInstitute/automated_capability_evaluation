@@ -208,7 +208,11 @@ def main(cfg: DictConfig) -> None:
             f"capabilities_{run_id}",
             f"capabilities_{extended_run_id}",
         )
-        os.makedirs(base_new_capability_dir, exist_ok=False)
+        os.makedirs(base_new_capability_dir, exist_ok=True)
+        lbo_results_dir = os.path.join(
+            constants.BASE_ARTIFACTS_DIR,
+            "lbo_results",
+        )
 
         if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
             # Create LBO model by fitting on initial train capabilities
@@ -272,30 +276,56 @@ def main(cfg: DictConfig) -> None:
                 new_capability = response["capability"]
 
                 # Generate tasks for the new capability
-                generate_tasks_using_llm(
-                    capability=new_capability,
-                    scientist_llm=scientist_llm,
-                    num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
-                    num_tasks_buffer=cfg.capabilities_cfg.num_gen_tasks_buffer,
-                    scientist_llm_gen_cfg_task_gen=dict(
-                        scientist_llm_gen_cfg.task_generation
-                    ),
-                    scientist_llm_gen_cfg_task_solve=dict(
-                        scientist_llm_gen_cfg.task_solve
-                    ),
-                    scientist_llm_gen_cfg_task_verify=dict(
-                        scientist_llm_gen_cfg.task_verify
-                    ),
-                    solve_sample_tasks=True,
-                    few_shot=cfg.capabilities_cfg.task_gen_few_shot,
-                    run_id=extended_run_id,
-                    tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
-                    concurrency_task_solver=cfg.capabilities_cfg.concurrency_task_solver,
-                    concurrency_task_verifier=cfg.capabilities_cfg.concurrency_task_verifier,
-                    seed=random_seed,
-                )
+                if cfg.exp_cfg.trial_run:
+                    generate_tasks_using_llm(
+                        capability=new_capability,
+                        scientist_llm=scientist_llm,
+                        num_tasks=1,
+                        num_tasks_buffer=0.0,
+                        scientist_llm_gen_cfg_task_gen=dict(
+                            scientist_llm_gen_cfg.task_generation
+                        ),
+                        scientist_llm_gen_cfg_task_solve=dict(
+                            scientist_llm_gen_cfg.task_solve
+                        ),
+                        scientist_llm_gen_cfg_task_verify=dict(
+                            scientist_llm_gen_cfg.task_verify
+                        ),
+                        solve_sample_tasks=True,
+                        few_shot=cfg.capabilities_cfg.task_gen_few_shot,
+                        run_id=extended_run_id,
+                        tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
+                        concurrency_task_solver=cfg.capabilities_cfg.concurrency_task_solver,
+                        concurrency_task_verifier=cfg.capabilities_cfg.concurrency_task_verifier,
+                        seed=random_seed,
+                    )
+                else:
+                    generate_tasks_using_llm(
+                        capability=new_capability,
+                        scientist_llm=scientist_llm,
+                        num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
+                        num_tasks_buffer=cfg.capabilities_cfg.num_gen_tasks_buffer,
+                        scientist_llm_gen_cfg_task_gen=dict(
+                            scientist_llm_gen_cfg.task_generation
+                        ),
+                        scientist_llm_gen_cfg_task_solve=dict(
+                            scientist_llm_gen_cfg.task_solve
+                        ),
+                        scientist_llm_gen_cfg_task_verify=dict(
+                            scientist_llm_gen_cfg.task_verify
+                        ),
+                        solve_sample_tasks=True,
+                        few_shot=cfg.capabilities_cfg.task_gen_few_shot,
+                        run_id=extended_run_id,
+                        tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
+                        concurrency_task_solver=cfg.capabilities_cfg.concurrency_task_solver,
+                        concurrency_task_verifier=cfg.capabilities_cfg.concurrency_task_verifier,
+                        seed=random_seed,
+                    )
 
                 # Verify if the new capability is complete
+                if cfg.exp_cfg.trial_run:
+                    break
                 if capability_satisfies_criterion(
                     capability=new_capability,
                     strict=False,
@@ -376,40 +406,33 @@ def main(cfg: DictConfig) -> None:
                 lbo_error_dict["rmse"].append(rmse)
                 lbo_error_dict["avg_std"].append(avg_std)
 
-        logger.info(f"New capabilities: {new_capabilities}")
-        logger.info(f"LBO error dict: {lbo_error_dict}")
-
-        lbo_results_dict = {
-            "run_id": run_id,
-            "extended_run_id": extended_run_id,
-            "acquisition_function": cfg.lbo_cfg.acquisition_function,
-            "acquisition_function_tag": "ALM"
-            if cfg.lbo_cfg.acquisition_function == "variance"
-            else "ALC",
-            "train_capabilities": [cap.name for cap in train_capabilities],
-            "test_capabilities": [cap.name for cap in test_capabilities],
-            "new_capabilities": [cap.name for cap in new_capabilities],
-            "run_cfg": dict(cfg),
-        }
-        if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
-            lbo_results_dict["lbo_error_dict"] = lbo_error_dict
-            lbo_results_dict["knn_capabilities"] = knn_capabilities_list
-        lbo_results_dir = os.path.join(
-            constants.BASE_ARTIFACTS_DIR,
-            "lbo_results",
-        )
-        with open(
-            os.path.join(lbo_results_dir, f"lbo_results_{extended_run_id}.json"),
-            "w",
-        ) as f:
-            json.dump(
-                lbo_results_dict,
-                f,
-                indent=4,
+            lbo_results_dict = {
+                "lbo_run_id": lbo_run_id,
+                "run_id": run_id,
+                "extended_run_id": extended_run_id,
+                "acquisition_function": str(cfg.lbo_cfg.acquisition_function),
+                "acquisition_function_tag": "ALM"
+                if cfg.lbo_cfg.acquisition_function == "variance"
+                else "ALC",
+                "train_capabilities": [cap.name for cap in train_capabilities],
+                "test_capabilities": [cap.name for cap in test_capabilities],
+                "new_capabilities": [cap.name for cap in new_capabilities],
+            }
+            if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
+                lbo_results_dict["lbo_error_dict"] = lbo_error_dict
+                lbo_results_dict["knn_capabilities"] = knn_capabilities_list
+            with open(
+                os.path.join(lbo_results_dir, f"lbo_results_{extended_run_id}.json"),
+                "w",
+            ) as f:
+                json.dump(
+                    lbo_results_dict,
+                    f,
+                    indent=4,
+                )
+            logger.info(
+                f"[Iteration {lbo_run_id + 1}/{num_lbo_runs}] LBO results saved to {lbo_results_dir}/lbo_results_{extended_run_id}.json"
             )
-        logger.info(
-            f"LBO results saved to {lbo_results_dir}/lbo_results_{extended_run_id}.json"
-        )
 
 
 if __name__ == "__main__":
