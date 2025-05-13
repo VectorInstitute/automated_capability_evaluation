@@ -33,8 +33,8 @@ scientist_llm:
     time: "01:00:00"
 
 subject_llm:
-  name: c4ai-command-r-plus-08-2024
-  provider: local
+  name: o3-mini
+  provider: openai
   generation_cfg:
     temperature: 0.7
     max_tokens: 2048
@@ -105,18 +105,17 @@ capabilities_cfg:
 
 lbo_cfg:
   # Number of capabilities to generate/select using LBO
-  num_lbo_runs: 3
+  num_lbo_runs: 20
   # Type of LBO pipeline to use
-  pipeline_id: "discover_new_llm" # "no_discovery", "discover_new_llm" or "discover_new_lbo_knn"
+  pipeline_id: "discover_new_lbo_knn" # "no_discovery", "discover_new_llm" or "discover_new_lbo_knn"
   # Train args for "no_discovery" pipeline
   train_frac: 0.5
-  num_initial_train: 9
+  num_initial_train: 10
   # Acquisition function that guides selecting the next query point.
-  # For now, only "variance" is supported.
-  # TODO: Add other acquisition functions.
-  acquisition_function: "variance"
+  # "variance" and "expected_variance_reduction" is supported.
+  acquisition_function: "expected_variance_reduction"
   # Value of k for "discover_new_lbo_knn" pipeline
-  select_k: 3
+  select_k: 5
   discover_new_llm_retry_attempts: 3
   discover_new_lbo_knn_retry_attempts: 3
   discover_new_retry_attempts: 3
