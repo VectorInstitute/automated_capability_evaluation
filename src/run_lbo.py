@@ -276,56 +276,30 @@ def main(cfg: DictConfig) -> None:
                 new_capability = response["capability"]
 
                 # Generate tasks for the new capability
-                if cfg.exp_cfg.trial_run:
-                    generate_tasks_using_llm(
-                        capability=new_capability,
-                        scientist_llm=scientist_llm,
-                        num_tasks=1,
-                        num_tasks_buffer=0.0,
-                        scientist_llm_gen_cfg_task_gen=dict(
-                            scientist_llm_gen_cfg.task_generation
-                        ),
-                        scientist_llm_gen_cfg_task_solve=dict(
-                            scientist_llm_gen_cfg.task_solve
-                        ),
-                        scientist_llm_gen_cfg_task_verify=dict(
-                            scientist_llm_gen_cfg.task_verify
-                        ),
-                        solve_sample_tasks=True,
-                        few_shot=cfg.capabilities_cfg.task_gen_few_shot,
-                        run_id=extended_run_id,
-                        tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
-                        concurrency_task_solver=cfg.capabilities_cfg.concurrency_task_solver,
-                        concurrency_task_verifier=cfg.capabilities_cfg.concurrency_task_verifier,
-                        seed=random_seed,
-                    )
-                else:
-                    generate_tasks_using_llm(
-                        capability=new_capability,
-                        scientist_llm=scientist_llm,
-                        num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
-                        num_tasks_buffer=cfg.capabilities_cfg.num_gen_tasks_buffer,
-                        scientist_llm_gen_cfg_task_gen=dict(
-                            scientist_llm_gen_cfg.task_generation
-                        ),
-                        scientist_llm_gen_cfg_task_solve=dict(
-                            scientist_llm_gen_cfg.task_solve
-                        ),
-                        scientist_llm_gen_cfg_task_verify=dict(
-                            scientist_llm_gen_cfg.task_verify
-                        ),
-                        solve_sample_tasks=True,
-                        few_shot=cfg.capabilities_cfg.task_gen_few_shot,
-                        run_id=extended_run_id,
-                        tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
-                        concurrency_task_solver=cfg.capabilities_cfg.concurrency_task_solver,
-                        concurrency_task_verifier=cfg.capabilities_cfg.concurrency_task_verifier,
-                        seed=random_seed,
-                    )
+                generate_tasks_using_llm(
+                    capability=new_capability,
+                    scientist_llm=scientist_llm,
+                    num_tasks=cfg.capabilities_cfg.num_gen_tasks_per_capability,
+                    num_tasks_buffer=cfg.capabilities_cfg.num_gen_tasks_buffer,
+                    scientist_llm_gen_cfg_task_gen=dict(
+                        scientist_llm_gen_cfg.task_generation
+                    ),
+                    scientist_llm_gen_cfg_task_solve=dict(
+                        scientist_llm_gen_cfg.task_solve
+                    ),
+                    scientist_llm_gen_cfg_task_verify=dict(
+                        scientist_llm_gen_cfg.task_verify
+                    ),
+                    solve_sample_tasks=True,
+                    few_shot=cfg.capabilities_cfg.task_gen_few_shot,
+                    run_id=extended_run_id,
+                    tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
+                    concurrency_task_solver=cfg.capabilities_cfg.concurrency_task_solver,
+                    concurrency_task_verifier=cfg.capabilities_cfg.concurrency_task_verifier,
+                    seed=random_seed,
+                )
 
                 # Verify if the new capability is complete
-                if cfg.exp_cfg.trial_run:
-                    break
                 if capability_satisfies_criterion(
                     capability=new_capability,
                     strict=False,
@@ -414,7 +388,10 @@ def main(cfg: DictConfig) -> None:
                 "acquisition_function_tag": "ALM"
                 if cfg.lbo_cfg.acquisition_function == "variance"
                 else "ALC",
-                "train_capabilities": [cap.name for cap in train_capabilities],
+                "initial_train_capabilities": [
+                    cap.name
+                    for cap in train_capabilities[: cfg.lbo_cfg.num_initial_train]
+                ],
                 "test_capabilities": [cap.name for cap in test_capabilities],
                 "new_capabilities": [cap.name for cap in new_capabilities],
             }
