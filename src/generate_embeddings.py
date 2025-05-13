@@ -1,5 +1,6 @@
 import logging  # noqa: D100
 import os
+import textwrap
 from enum import Enum
 from typing import List, Set
 
@@ -196,6 +197,7 @@ def hierarchical_2d_visualization(
     save_dir: str,
     plot_name: str,
     points_area_name_ids: dict[str, dict[str, int]] | None = None,
+    add_area_legend: bool = True,
 ) -> None:
     """Visualize 2D points grouped by their area.
 
@@ -215,15 +217,18 @@ def hierarchical_2d_visualization(
         for point in points
     ), "All points must be 2D tensors for visualization."
 
-    plt.figure(figsize=(12, 8))
+    # Adjust figure size to better accommodate data points and legend
+    if add_area_legend:
+        plt.figure(figsize=(7, 6))  # Adjusted plot size for better layout
+    else:
+        plt.figure(figsize=(7, 6))
     colors = sns.color_palette("husl", len(embeddings_by_area))
-
     for i, (area, points) in enumerate(embeddings_by_area.items()):
         points_tensor = torch.stack(points)  # Shape: (N, 2)
         x = points_tensor[:, 0].numpy()
         y = points_tensor[:, 1].numpy()
         point_color = "red" if area == "test" else colors[i]
-        plt.scatter(x, y, label=area, color=point_color, alpha=0.6, edgecolor="k", s=90)
+        plt.scatter(x, y, label=area, color=point_color, alpha=0.6, s=90)
 
         # Write point IDs on each point.
         if points_area_name_ids is not None:
@@ -241,21 +246,19 @@ def hierarchical_2d_visualization(
                         color="black",
                         bbox={"facecolor": "none", "edgecolor": "none"},
                     )
-
-        # Compute cluster center to place label
-        if area != "test":  # Skip the label for the test area
+        # Compute cluster center to place a star
+        if area != "test":  # Skip the star for the test area
             center_x = x.mean()
             center_y = y.mean()
-            plt.text(
+            plt.scatter(
                 center_x,
                 center_y,
-                area,
-                fontsize=8,
-                weight="normal",
-                bbox={"facecolor": colors[i], "alpha": 0.6, "edgecolor": "none"},
-                ha="center",
-                va="center",
-                color="white",
+                marker="*",
+                s=200,  # Size of the star
+                color=colors[i],
+                edgecolor="black",
+                linewidth=1.5,
+                label=f"{area} center",
             )
 
     # If point names are provided, create a legend with names and IDs
@@ -279,10 +282,9 @@ def hierarchical_2d_visualization(
             loc="center left",
             bbox_to_anchor=(1, 0.5),
             fontsize=8,
+            prop={"weight": "bold"},
         )
-    plt.title(f"{plot_name} Visualization")
-    plt.xlabel("Dim 1")
-    plt.ylabel("Dim 2")
+    plt.title(f"{plot_name}", fontsize=30)
     plt.axis("equal")
     plt.tight_layout()
 
@@ -292,6 +294,45 @@ def hierarchical_2d_visualization(
     plt.savefig(save_path, format="pdf")
     plt.close()
 
+    fontsize = 23
+    fig_width = 12
+    text_width = 30
+    handles = []
+    labels = []
+
+    for i, area in enumerate(embeddings_by_area.keys()):
+        if area != "test":
+            # Wrap text with increased width parameter
+            wrapped_text = "\n".join(textwrap.wrap(area, width=text_width))
+            handles.append(
+                Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    color=colors[i],
+                    linestyle="None",
+                    markersize=10,
+                )
+            )
+            labels.append(wrapped_text)
+
+    # Create a figure with specified width but minimal height
+    fig = plt.figure(figsize=(fig_width, 0.1))
+
+    # Create a legend that will adjust to the wider figure
+    _ = plt.figlegend(
+        handles,
+        labels,
+        loc="center",
+        frameon=True,
+        fontsize=fontsize,
+    )
+
+    # Save with tight bbox
+    save_path2 = os.path.join(save_dir, f"{plot_name}_legend.pdf")
+    fig.savefig(save_path2, bbox_inches="tight", pad_inches=0.05, format="pdf")
+    plt.close(fig)
+
 
 def save_embedding_heatmap(
     embeddings_by_area: dict[str, List[torch.Tensor]],
@@ -300,7 +341,7 @@ def save_embedding_heatmap(
     plot_name: str,
     add_squares: bool,
     annot_fontsize: int = 14,
-    tick_fontsize: int = 16,
+    tick_fontsize: int = 40,
 ) -> None:
     """Generate and save a heatmap of cosine similarity between embeddings.
 
@@ -354,14 +395,13 @@ def save_embedding_heatmap(
 
     ax = sns.heatmap(
         similarity_matrix,
-        annot=True,
+        annot=False,
         fmt=".2f",
         cmap="Blues",
         vmin=0,
         vmax=1,
         xticklabels=all_capability_names,
         yticklabels=all_capability_names,
-        annot_kws={"size": annot_fontsize},
         cbar_kws={"shrink": 0.7},
     )
 
@@ -380,8 +420,6 @@ def save_embedding_heatmap(
         ha="right",
         fontsize=tick_fontsize,
     )
-
-    plt.title("Embedding Similarity Heatmap", fontsize=24)
 
     # tight layout to maximize use of space
     plt.tight_layout(pad=1.0)

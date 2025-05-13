@@ -1,0 +1,22 @@
+# The capabilities directory should contain the LLM generated capability files.
+capabilities_cfg:
+  saved_capabilities_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/capabilities_o4-mini_C100_R5_A10_T100
+  domain: math
+
+score_cfg:
+  subject_llm_names:
+    - gemini-2.0-flash
+    - c4ai-command-r-plus-08-2024
+    - claude-3-7-sonnet-20250219
+    - Meta-Llama-3.1-8B-Instruct
+    - Meta-Llama-3.1-70B-Instruct
+    - o1-mini
+    - o3-mini
+    - gemini-1.5-pro
+    - gpt-4.1
+
+  read_score_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/gcp_artifacts/scores
+  save_capabilities_score_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/gcp_artifacts/plots
+
+defaults:
+  - _self_

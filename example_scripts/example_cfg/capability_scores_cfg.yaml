@@ -1,7 +1,20 @@
 # The capabilities directory should contain the LLM generated capability files.
 capabilities_cfg:
-  saved_capabilities_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/capabilities_o4-mini_C100_R5_A10_T100_v1
+  saved_capabilities_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/capabilities_o4-mini_C100_R5_A10_T100
   domain: math
+  subject_llm_names:
+    - gemini-2.0-flash
+    - c4ai-command-r-plus-08-2024
+    - claude-3-7-sonnet-20250219
+    - Meta-Llama-3.1-8B-Instruct
+    - Meta-Llama-3.1-70B-Instruct
+    - o1-mini
+    - o3-mini
+    - gemini-1.5-pro
+    - gpt-4.1
+
+  read_score_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/gcp_artifacts/capabilities_results_o4-mini_C100_R5_A10_T100
+  save_capabilities_score_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/gcp_artifacts/scores
 
 embedding_cfg:
   # The embedding model name used to generate capability embeddings used for filtering.
@@ -11,22 +24,14 @@ embedding_cfg:
   filtering_similarity_threshold: 0.90
 
 dimensionality_reduction_cfg:
-  # Dimensionality reduction method generates the low dimensional encodings.
-  reduce_dimensionality_method: "pca" # "t-sne" or "pca".
   reduced_dimensionality_size: 2
   # The following parameter will be used only if you are using t-SNE.
   tsne_perplexity: 8 # Choose this hyperparameter based on the number of capabilities you have.
   normalize_output: False
 
 embedding_visualization_cfg:
-  save_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/capabilities_o4-mini_C100_R5_A10_T100_v1/visualizations
-  plot_name: "PCA Embeddings"
+  save_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/capabilities_o4-mini_C100_R5_A10_T100/visualizations
   show_point_ids: False # Set to true when plotting a small number of capabilities.
-
-heatmap_cfg:
-  save_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/capabilities_o4-mini_C100_R5_A10_T100_v1/visualizations
-  plot_name: "embedding_heatmap"
-  add_squares: true
 
 defaults:
   - _self_

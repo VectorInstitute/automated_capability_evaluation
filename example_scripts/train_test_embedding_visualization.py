@@ -35,7 +35,6 @@ def main(cfg: DictConfig) -> None:
     train_capability_dir = os.path.join(
         cfg.capabilities_cfg.saved_capabilities_dir,
         cfg.capabilities_cfg.domain,
-        "train",
     )
 
     # Fetch previously generated capabilities
@@ -63,8 +62,10 @@ def main(cfg: DictConfig) -> None:
         dim_reduction_method_name=cfg.dimensionality_reduction_cfg.reduce_dimensionality_method,
         output_dimension_size=cfg.dimensionality_reduction_cfg.reduced_dimensionality_size,
         embedding_model_name=cfg.embedding_cfg.embedding_model,
+        tsne_perplexity=cfg.dimensionality_reduction_cfg.tsne_perplexity,
         normalize_output=cfg.dimensionality_reduction_cfg.normalize_output,
     )
+
     # Visualize the reduced embeddings
     logger.info(
         f"Visualizing {len(filtered_capabilities)} train capabilities at {cfg.embedding_visualization_cfg.save_dir}"
@@ -74,12 +75,13 @@ def main(cfg: DictConfig) -> None:
         capabilities=filtered_capabilities,
         dim_reduction_method=cfg.dimensionality_reduction_cfg.reduce_dimensionality_method,
         save_dir=cfg.embedding_visualization_cfg.save_dir,
-        plot_name=cfg.embedding_visualization_cfg.plot_name + " Train",
+        plot_name=cfg.embedding_visualization_cfg.plot_name,
         show_point_ids=cfg.embedding_visualization_cfg.show_point_ids,
     )
     # Create and save the heatmap
     logger.info(
-        f"Generating heatmap for {len(filtered_capabilities)} train capabilities at {cfg.heatmap_cfg.save_dir}"
+        f"Generating heatmap for {len(filtered_capabilities)} train capabilities\
+            at {cfg.heatmap_cfg.save_dir}"
     )
     generate_capability_heatmap(
         capabilities=filtered_capabilities,
@@ -87,6 +89,22 @@ def main(cfg: DictConfig) -> None:
         save_dir=cfg.heatmap_cfg.save_dir,
         plot_name=cfg.heatmap_cfg.plot_name,
         add_squares=cfg.heatmap_cfg.add_squares,
+    )
+
+    _ = apply_dimensionality_reduction(
+        filtered_capabilities,
+        dim_reduction_method_name="t-sne",
+        output_dimension_size=cfg.dimensionality_reduction_cfg.reduced_dimensionality_size,
+        embedding_model_name=cfg.embedding_cfg.embedding_model,
+        tsne_perplexity=cfg.dimensionality_reduction_cfg.tsne_perplexity,
+        normalize_output=cfg.dimensionality_reduction_cfg.normalize_output,
+    )
+    plot_hierarchical_capability_2d_embeddings(
+        capabilities=filtered_capabilities,
+        dim_reduction_method="t-sne",
+        save_dir=cfg.embedding_visualization_cfg.save_dir,
+        plot_name="t-SNE Embedding",
+        show_point_ids=cfg.embedding_visualization_cfg.show_point_ids,
     )
     # Test capabilities
     # Only PCA can be used for test capabilities.

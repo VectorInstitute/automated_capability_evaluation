@@ -350,6 +350,7 @@ def plot_hierarchical_capability_2d_embeddings(
     plot_name: str,
     save_dir: str,
     show_point_ids: bool,
+    add_area_legend: bool = True,
 ) -> None:
     """Visualize the hierarchical capability embeddings.
 
@@ -391,6 +392,7 @@ def plot_hierarchical_capability_2d_embeddings(
         save_dir=save_dir,
         plot_name=plot_name,
         points_area_name_ids=points_area_name_ids if show_point_ids else None,
+        add_area_legend=add_area_legend,
     )
 
 
@@ -567,7 +569,8 @@ def generate_and_set_capabilities_embeddings(
     texts = []
     for capability in capabilities:
         capability_dict = capability.to_dict(attribute_names=["name", "description"])
-        texts.append(f"{capability_dict['name']}: {capability_dict['description']}")
+        rep_string = f"{capability_dict['name']} - {capability.area}: {capability_dict['description']}"
+        texts.append(rep_string)
     embeddings = embedding_generator.generate_embeddings(texts)
     # Set embeddings for capabilities.
     for i, capability in enumerate(capabilities):
