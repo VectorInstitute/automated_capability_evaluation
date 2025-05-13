@@ -21,123 +21,127 @@ import pytest
 from src.utils.lbo_utils import get_lbo_train_set
 
 
-def test_get_lbo_train_set_valid_input():
+def test_get_lbo_train_set_num_train():
     """
-    Test the `get_lbo_train_set` function with valid input parameters.
+    Test the `get_lbo_train_set` function with `num_train` parameter.
 
     This test verifies that the function correctly splits the input data into
-    training and remaining datasets based on the specified training fraction
-    and minimum training size. It also ensures that the training and remaining
-    datasets are disjoint.
-
-    It checks the following:
-    - The length of the training dataset matches the expected fraction of input data.
-    - The length of the remaining dataset is the complement of the training dataset.
-    - The training and remaining datasets do not share any common elements.
+    training and remaining datasets based on the specified number of training
+    samples.
     """
-    input_data = list(range(10))
-    train_frac = 0.5
-    min_train_size = 2
+    input_data = [f"area_{i}" for i in range(10)]
+    num_train = 4
+    train_data, rem_data = get_lbo_train_set(input_data, num_train=num_train, seed=42)
+
+    assert len(train_data) == num_train
+    assert len(rem_data) == len(input_data) - num_train
+    assert set(train_data).isdisjoint(set(rem_data))
+
+
+def test_get_lbo_train_set_stratified_sampling():
+    """
+    Test the `get_lbo_train_set` function with stratified sampling.
+
+    This test verifies that the function correctly performs stratified sampling
+    when the `stratified` parameter is set to `True`.
+    """
+    input_data = [f"area_{i}" for i in range(10)]
+    input_categories = ["A"] * 5 + ["B"] * 5
+    train_frac = 0.6
     train_data, rem_data = get_lbo_train_set(
-        input_data, train_frac, min_train_size, seed=42
+        input_data,
+        train_frac=train_frac,
+        stratified=True,
+        input_categories=input_categories,
+        seed=42,
     )
 
     assert len(train_data) == int(train_frac * len(input_data))
     assert len(rem_data) == len(input_data) - len(train_data)
-    assert set(train_data).isdisjoint(set(rem_data))
+    assert set(map(tuple, train_data)).isdisjoint(set(map(tuple, rem_data)))
+
+    # Ensure stratification
+    train_data_indices = [int(item.split("_")[1]) for item in train_data]
+    rem_data_indices = [int(item.split("_")[1]) for item in rem_data]
+    train_data_categories = [input_categories[i] for i in train_data_indices]
+    rem_data_categories = [input_categories[i] for i in rem_data_indices]
+    assert train_data_categories.count("A") == 3
+    assert train_data_categories.count("B") == 3
+    assert rem_data_categories.count("A") == 2
+    assert rem_data_categories.count("B") == 2
 
 
-def test_get_lbo_train_set_insufficient_input_data():
+def test_get_lbo_train_set_num_train_less_than_categories():
     """
-    Test the `get_lbo_train_set` function for handling insufficient input data.
+    Test the `get_lbo_train_set` function when `num_train` <= number of categories.
 
-    This test verifies that the function raises an `AssertionError` with the
-    appropriate error message when the input data is insufficient to create a
-    training set based on the specified `train_frac` and `min_train_size`.
+    This test verifies that the function raises a `ValueError` when the number
+    of training samples is less than the number of unique categories in the input data.
     """
-    input_data = list(range(5))
-    train_frac = 0.5
-    min_train_size = 1
-
-    with pytest.raises(AssertionError, match="Insufficient input data"):
-        get_lbo_train_set(input_data, train_frac, min_train_size, seed=42)
-
-
-def test_get_lbo_train_set_min_train_size_violation():
-    """
-    Test the `get_lbo_train_set` function for violating the minimum training size.
-
-    This test verifies that the function raises an `AssertionError` with the
-    appropriate error message when the number of training data points is less
-    than the recommended minimum training size.
-    """
-    input_data = list(range(20))
-    train_frac = 0.5
-    min_train_size = 15
+    input_data = [f"area_{i}" for i in range(3)]
+    input_categories = ["A", "B", "C"]
+    num_train = 2
 
     with pytest.raises(
-        AssertionError,
-        match="Number of train data points are less than the recommended value",
+        ValueError,
+        match="Number of training samples .* cannot be less than the number of categories",
     ):
-        get_lbo_train_set(input_data, train_frac, min_train_size, seed=42)
+        get_lbo_train_set(
+            input_data,
+            num_train=num_train,
+            stratified=True,
+            input_categories=input_categories,
+            seed=42,
+        )
 
 
-def test_get_lbo_train_set_rounding_train_frac():
+def test_get_lbo_train_set_no_train_frac_or_num_train():
     """
-    Test the `get_lbo_train_set` function for rounding the training fraction.
+    Test the `get_lbo_train_set` function with neither `train_frac` nor `num_train`.
 
-    This test verifies that the function correctly rounds the training fraction to two
-    decimal places when the fraction is not a multiple of 0.01.
-
-    It checks the following:
-    - The length of the training dataset is rounded to 33% of the input data.
-    - The length of the remaining dataset is the complement of the training dataset.
-    - The training and remaining datasets do not share any common elements.
+    This test verifies that the function raises a `ValueError` when both
+    `train_frac` and `num_train` are `None`.
     """
-    input_data = list(range(100))
-    train_frac = 0.33333  # Should round to 0.33
-    min_train_size = 20
-    train_data, rem_data = get_lbo_train_set(
-        input_data, train_frac, min_train_size, seed=42
-    )
-
-    assert len(train_data) == int(round(train_frac, 2) * len(input_data))
-    assert len(rem_data) == len(input_data) - len(train_data)
-    assert set(train_data).isdisjoint(rem_data)
-
-
-def test_get_lbo_train_set_empty_input_data():
-    """
-    Test the `get_lbo_train_set` function with empty input data.
-
-    This test verifies that the function raises an `AssertionError` with the expected
-    error message "Insufficient input data" when provided with an empty input list.
-    The test uses a training fraction of 0.5 and a minimum training size of 1.
-    """
-    input_data = []
-    train_frac = 0.5
-    min_train_size = 1
-
-    with pytest.raises(AssertionError, match="Insufficient input data"):
-        get_lbo_train_set(input_data, train_frac, min_train_size, seed=42)
-
-
-def test_get_lbo_train_set_zero_train_frac():
-    """
-    Test the `get_lbo_train_set` function with a zero training fraction.
-
-    This test verifies that the function raises an `AssertionError` when the
-    number of training data points is less than the recommended minimum size.
-    The input data consists of a range of 10 integers, and the training fraction
-    is set to 0.0, which should result in no training data being selected. The
-    minimum training size is set to 1.
-    """
-    input_data = list(range(10))
-    train_frac = 0.0
-    min_train_size = 1
+    input_data = [f"area_{i}" for i in range(10)]
 
     with pytest.raises(
-        AssertionError,
-        match="Number of train data points are less than the recommended value",
+        ValueError, match="Either num_train or train_frac must be provided"
     ):
-        get_lbo_train_set(input_data, train_frac, min_train_size, seed=42)
+        get_lbo_train_set(input_data, seed=42)
+
+
+def test_get_lbo_train_set_both_train_frac_and_num_train():
+    """
+    Test the `get_lbo_train_set` function with both `train_frac` and `num_train`.
+
+    This test verifies that the function raises a `ValueError` when both
+    `train_frac` and `num_train` are specified.
+    """
+    input_data = [f"area_{i}" for i in range(10)]
+    train_frac = 0.5
+    num_train = 4
+
+    with pytest.raises(
+        ValueError,
+        match="Both num_train and train_frac are provided, train_frac will be ignored",
+    ):
+        get_lbo_train_set(
+            input_data, train_frac=train_frac, num_train=num_train, seed=42
+        )
+
+
+def test_get_lbo_train_set_missing_input_categories():
+    """
+    Test `get_lbo_train_set` with `stratified=True` but missing `input_categories`.
+
+    This test verifies that the function raises a `ValueError` when stratified
+    sampling is enabled but `input_categories` is not provided.
+    """
+    input_data = [f"area_{i}" for i in range(10)]
+    train_frac = 0.6
+
+    with pytest.raises(
+        ValueError,
+        match="input_categories must be provided when stratified sampling is enabled",
+    ):
+        get_lbo_train_set(input_data, train_frac=train_frac, stratified=True, seed=42)

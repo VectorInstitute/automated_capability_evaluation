@@ -1,10 +1,14 @@
-import json  # noqa: D100
+"""Model class for LLMs with rate limiting and generation configuration."""
+
+import json
 import logging
 import os
 import subprocess
 import time
 from typing import Any, Dict, List, Tuple
 
+from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langsmith import traceable
 from pydantic import SecretStr
@@ -36,21 +40,27 @@ class Model:
         """
         self.model_name: str = model_name
         self.model_provider: str = kwargs.pop("model_provider", "openai")
-        self.llm: ChatOpenAI = self._set_llm(**kwargs)
+        self.llm: ChatOpenAI | ChatGoogleGenerativeAI | ChatAnthropic = self._set_llm(
+            **kwargs
+        )
 
-    def _set_llm(self, **kwargs: Any) -> ChatOpenAI:
+    def _set_llm(
+        self, **kwargs: Any
+    ) -> ChatOpenAI | ChatGoogleGenerativeAI | ChatAnthropic:
         if self.model_provider == "local":
             self.model_url = get_local_model_url(self.model_name, **kwargs)
-            llm = ChatOpenAI(
+            return ChatOpenAI(
                 model=self.model_name,
                 base_url=self.model_url,
                 api_key=SecretStr(os.environ["LOCAL_API_KEY"]),
             )
-        elif self.model_provider == "openai":
-            llm = ChatOpenAI(model=self.model_name)
-        else:
-            raise ValueError(f"Unsupported model provider: {self.model_provider}")
-        return llm
+        if self.model_provider == "anthropic":
+            return ChatAnthropic(model=self.model_name)  # type: ignore
+        if self.model_provider == "google":
+            return ChatGoogleGenerativeAI(model=self.model_name)
+        if self.model_provider == "openai":
+            return ChatOpenAI(model=self.model_name)
+        raise ValueError(f"Unsupported model provider: {self.model_provider}")
 
     @sleep_and_retry  # type: ignore
     @limits(**RATE_LIMIT)  # type: ignore
@@ -239,10 +249,13 @@ def get_local_model_url(model_name: str, **kwargs: Any) -> str:
     status_command = ["vec-inf", "status", slurm_job_id, "--json-mode"]
     status = vec_inf_status.PENDING.value
     while status in [vec_inf_status.PENDING.value, vec_inf_status.LAUNCHING.value]:
-        status_out = _run_command(status_command)
+        status_out = _run_command(status_command, model_status=True)
         status = status_out["model_status"]
+        status = (
+            vec_inf_status.PENDING.value if ("LOG FILE NOT FOUND" in status) else status
+        )
+        logger.info(f"Model status: {status}")
         time.sleep(5)  # Wait for 5 seconds before checking again
-        logger.debug(f"Model status: {status}")
     if status == vec_inf_status.FAILED.value:
         raise RuntimeError(f"Model launch failed: {status_out['failed_reason']}")
     if status == vec_inf_status.SHUTDOWN.value:
@@ -271,7 +284,9 @@ def _sanitize_json(json_str: str) -> str:
     return json_str.strip().replace("'", '"')
 
 
-def _run_command(command: List[str]) -> Dict[str, Any] | Any:
+def _run_command(
+    command: List[str], model_status: bool = False
+) -> Dict[str, Any] | Any:
     """
     Run a command and return the parsed JSON output.
 
@@ -289,7 +304,19 @@ def _run_command(command: List[str]) -> Dict[str, Any] | Any:
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         raise RuntimeError(f"Failed to launch local model server: {stderr.strip()}")
+    if model_status and constants.VEC_INF_LOG_DIR not in stdout:
+        # Extract model status string and replace with
+        # appropriate string which can be parsed
+        str_to_replace = (
+            stdout.split("'model_status':")[-1]
+            .split("'base_url':")[0]
+            .strip()
+            .strip(",")
+        )
+        str_to_replace_by = str_to_replace.split(":")[-1].split(">")[0].strip()
+        stdout = stdout.replace(str_to_replace, str_to_replace_by)
     try:
+        logger.debug(f"Command output: {stdout.strip()}")
         stdout_dict = json.loads(_sanitize_json(stdout))
     except json.JSONDecodeError:
         raise ValueError(f"Failed to parse JSON output: {stdout.strip()}") from None
