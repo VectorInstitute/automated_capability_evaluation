@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import shutil
 
 import hydra
 from omegaconf import DictConfig
@@ -318,6 +319,17 @@ def main(cfg: DictConfig) -> None:
                 )
                 random_seed += 1
                 scientist_llm_gen_cfg_cap_gen["seed"] += 1
+
+                if num_retries < cfg.lbo_cfg.discover_new_retry_attempts - 1:
+                    # Delete the incomplete capability, except for the last attempt
+                    logger.info(
+                        f"Deleting incomplete capability {new_capability.name} from {base_new_capability_dir}"
+                    )
+                    new_capability_dir = os.path.join(
+                        base_new_capability_dir, new_capability.name
+                    )
+                    shutil.rmtree(new_capability_dir)
+
                 num_retries += 1
 
             # TODO: Raise error if the new capability is not complete even after
