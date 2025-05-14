@@ -349,6 +349,7 @@ def main(cfg: DictConfig) -> None:
                 judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
                 run_id=extended_run_id,
                 concurrency_task_eval=cfg.capabilities_cfg.concurrency_task_eval,
+                inspect_eval_log_level=cfg.capabilities_cfg.inspect_eval_log_level,
             )
             # Load subject LLM score
             new_capability.load_scores(

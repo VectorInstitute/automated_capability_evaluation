@@ -81,6 +81,7 @@ def main(cfg: DictConfig) -> None:
             judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
             run_id=run_id,
             concurrency_task_eval=cfg.capabilities_cfg.concurrency_task_eval,
+            inspect_eval_log_level=cfg.capabilities_cfg.inspect_eval_log_level,
         )
         if cfg.exp_cfg.trial_run:
             logger.info("Trial run completed, exiting after one capability.")

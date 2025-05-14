@@ -33,7 +33,7 @@ scientist_llm:
     time: "01:00:00"
 
 subject_llm:
-  name: o3-mini
+  name: o1-mini
   provider: openai
   generation_cfg:
     temperature: 0.7
@@ -96,12 +96,8 @@ capabilities_cfg:
   concurrency_task_solver: 50
   concurrency_task_verifier: 50
   concurrency_task_eval: 50
-  # # Inspect evals config
-  # inspect_eval_log_samples: false
-  # inspect_eval_log_realtime: false
-  # inspect_eval_score: false
-  # inspect_eval_score_display: false
-
+  # Inspect evals config
+  inspect_eval_log_level: "info"
 
 lbo_cfg:
   # Number of capabilities to generate/select using LBO
@@ -117,7 +113,7 @@ lbo_cfg:
   # Value of k for "discover_new_lbo_knn" pipeline
   select_k: 5
   discover_new_llm_retry_attempts: 3
-  discover_new_lbo_knn_retry_attempts: 3
+  discover_new_lbo_knn_retry_attempts: 5
   discover_new_retry_attempts: 3
 
 embedding_cfg:

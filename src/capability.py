@@ -1087,6 +1087,10 @@ class Capability:
                     max_samples=kwargs.get(
                         "concurrency_task_eval", constants.DEFAULT_TASK_EVAL_CONCURRENCY
                     ),
+                    log_level=kwargs.get(
+                        "inspect_eval_log_level",
+                        constants.DEFAULT_INSPECT_EVAL_LOG_LEVEL,
+                    ),
                 )
             except Exception as e:
                 logger.error(
