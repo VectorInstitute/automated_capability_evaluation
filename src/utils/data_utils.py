@@ -1,5 +1,5 @@
 """
-The data_utils module for the automatic_benchmark_generation project.
+The data_utils module for the automated_capability_evaluation project.
 
 It contains utility functions for loading datasets.
 """

@@ -1,3 +1,5 @@
+"""Module containing prompt templates for generating capabilities and tasks."""
+
 CAPABILITY_GENERATION_SYSTEM_PROMPT = """
 You are an expert in designing capabilities to assess the abilities of large language models (LLMs). Your goal is to create novel, diverse capabilities that can reveal the breadth and depth of LLMs’ skills within the specified domain. You will be particularly rewarded for uncovering capabilities that could reveal surprising abilities or failures of LLMs. Valid capabilities will be added to a capability archive. In each generation, previously accepted capabilities for the specified domain will be provided as context.
 
@@ -65,7 +67,7 @@ Do not download additional data from the internet or access the file system.
 Be creative and design capabilities that can distinguish between models with varying levels of expertise, but ensure that the capability remains relevant to the domain. Also ensure that the proposed capabilities ARE DISTINCT compared to the existing capabilities. Names of all existing capabilities will be provided.
 
 Your response will be automatically parsed so ensure it adheres to the specified format.
-"""  # noqa: D100
+"""
 
 CAPABILITY_GENERATION_USER_PROMPT = """
 A sample capability JSON is provided below. The names of all existing capabilities are also provided.

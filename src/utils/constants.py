@@ -1,12 +1,11 @@
 """Module containing constants used throughout the codebase."""
 
 import os
-from enum import Enum
 
 
-BASE_ARTIFACTS_DIR = "/fs01/projects/aieng/public/ace/artifacts"
-GCP_BASE_ARTIFACTS_DIR = "gs://ace-artifacts"
-BASE_INSPECT_EVALS_DIR = "/fs01/projects/aieng/public/ace/inspect_evals/src/ace_evals"
+BASE_ARTIFACTS_DIR = "<base_dir_to_store_capabilities>"
+GCP_BASE_ARTIFACTS_DIR = "<gcp_base_path_to_store_capabilities>"
+BASE_INSPECT_EVALS_DIR = "<dir_to_store_inspect_eval_scripts>"
 
 SEED_CAPABILITIES_SCORE_DIR = os.path.join(
     GCP_BASE_ARTIFACTS_DIR, "seed_capabilities_results"
@@ -40,18 +39,6 @@ C_STATE_TASK_GENERATION_FAILED_STR = "task_generation_failed"
 C_STATE_TASK_GENERATION_PARTIALLY_COMPLETED_STR = "task_generation_partially_completed"
 C_STATE_TASK_GENERATION_COMPLETED_STR = "task_generation_completed"
 
-
-class VecInfStatus(Enum):
-    """Enum class for vector inference status."""
-
-    PENDING = "PENDING"
-    LAUNCHING = "LAUNCHING"
-    READY = "READY"
-    FAILED = "FAILED"
-    SHUTDOWN = "SHUTDOWN"
-    UNAVAILABLE = "UNAVAILABLE"
-
-
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
 
 DEFAULT_CAPABILITY_GENERATION_RETRY_ATTEMPTS = 3
@@ -67,5 +54,3 @@ DEFAULT_TASK_EVAL_CONCURRENCY = 5
 DEFAULT_INSPECT_SCORER_NAME = "custom_scorer"
 
 DEFAULT_INSPECT_EVAL_LOG_LEVEL = "warning"
-
-VEC_INF_LOG_DIR = os.environ["VEC_INF_LOG_DIR"]

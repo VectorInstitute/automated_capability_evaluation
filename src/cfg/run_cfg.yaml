@@ -59,9 +59,9 @@ prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.
 
 capabilities_cfg:
-  capabilities_dir: /fs01/projects/aieng/public/ace/artifacts
-  results_dir: gs://ace-artifacts
-  inspect_evals_dir: /fs01/projects/aieng/public/ace/inspect_evals/src/ace_evals
+  capabilities_dir: <base_dir_to_store_capabilities>
+  results_dir: <base_dir_to_store_evaluation_results>
+  inspect_evals_dir: <dir_to_store_inspect_eval_scripts>
   domain: math
   # Method used to generate capabilities
   method: "hierarchical"
