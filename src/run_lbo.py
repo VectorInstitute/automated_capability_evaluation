@@ -1,7 +1,9 @@
 """Script to discover new capabilities using LBO."""
 
+import json
 import logging
 import os
+import shutil
 
 import hydra
 from omegaconf import DictConfig
@@ -91,6 +93,13 @@ def main(cfg: DictConfig) -> None:
         input_categories=[capability.area for capability in train_capabilities],
         seed=cfg.exp_cfg.seed,
     )
+    logger.info(
+        f"Initial Train capabilities ({len(train_capabilities)}):\n{train_capabilities}"
+    )
+    logger.info(
+        f"Candidate capabilities ({len(candidate_capabilities)}):\n{candidate_capabilities}"
+    )
+    logger.info(f"Test capabilities ({len(test_capabilities)}):\n{test_capabilities}")
 
     num_lbo_runs = cfg.lbo_cfg.num_lbo_runs
     if cfg.lbo_cfg.pipeline_id == "no_discovery":
@@ -142,10 +151,15 @@ def main(cfg: DictConfig) -> None:
             capabilities_pool=candidate_capabilities,
             test_capabilities=test_capabilities,
             subject_llm_name=cfg.subject_llm.name,
+            acquisition_function=cfg.lbo_cfg.acquisition_function,
             num_lbo_iterations=num_lbo_runs,
         )
 
     elif "discover_new" in cfg.lbo_cfg.pipeline_id:
+        # Define vars for storing output of runs for "discover_new" pipelines
+        lbo_error_dict = {"rmse": [], "avg_std": []}
+        knn_capabilities_list = []
+
         # Only pca and cut-embedding methods are supported for "discover_new" pipelines
         # Reduce the dimensionality of train capabilities
         dim_reduction_method_name = (
@@ -188,22 +202,26 @@ def main(cfg: DictConfig) -> None:
             }
         )
 
-        extended_run_id = (
-            f"{run_id}_{subject_llm.get_model_name()}_{cfg.lbo_cfg.pipeline_id}"
-        )
+        extended_run_id = f"{run_id}_{subject_llm.get_model_name()}_{cfg.lbo_cfg.pipeline_id}_F{cfg.lbo_cfg.train_frac}_I{cfg.lbo_cfg.num_initial_train}_LR{cfg.lbo_cfg.num_lbo_runs}_AF{cfg.lbo_cfg.acquisition_function}"
+        if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
+            extended_run_id += f"_K{cfg.lbo_cfg.select_k}"
         base_new_capability_dir = base_capability_dir.replace(
             f"capabilities_{run_id}",
             f"capabilities_{extended_run_id}",
         )
-        os.makedirs(base_new_capability_dir, exist_ok=False)
+        os.makedirs(base_new_capability_dir, exist_ok=True)
+        lbo_results_dir = os.path.join(
+            constants.BASE_ARTIFACTS_DIR,
+            "lbo_results",
+        )
 
-        lbo_error_dict = {"rmse": [], "avg_std": []}
         if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
             # Create LBO model by fitting on initial train capabilities
             lbo_model = fit_lbo(
                 capabilities=train_capabilities,
                 embedding_name=dim_reduction_model.method_name,
                 subject_llm_name=subject_llm.get_model_name(),
+                acquisition_function=cfg.lbo_cfg.acquisition_function,
             )
             # Get initial test error
             rmse, avg_std = calculate_lbo_error(
@@ -241,6 +259,7 @@ def main(cfg: DictConfig) -> None:
                         k=cfg.lbo_cfg.select_k,
                     )
                     knn_capabilities = [train_capabilities[i] for i in k_indices]
+                    knn_capabilities_list.append([cap.name for cap in knn_capabilities])
                     # Generate a new capability using KNN-based capability discovery
                     response = knn_based_capability_discovery(
                         knn_capabilities=knn_capabilities,
@@ -300,6 +319,17 @@ def main(cfg: DictConfig) -> None:
                 )
                 random_seed += 1
                 scientist_llm_gen_cfg_cap_gen["seed"] += 1
+
+                if num_retries < cfg.lbo_cfg.discover_new_retry_attempts - 1:
+                    # Delete the incomplete capability, except for the last attempt
+                    logger.info(
+                        f"Deleting incomplete capability {new_capability.name} from {base_new_capability_dir}"
+                    )
+                    new_capability_dir = os.path.join(
+                        base_new_capability_dir, new_capability.name
+                    )
+                    shutil.rmtree(new_capability_dir)
+
                 num_retries += 1
 
             # TODO: Raise error if the new capability is not complete even after
@@ -319,6 +349,7 @@ def main(cfg: DictConfig) -> None:
                 judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
                 run_id=extended_run_id,
                 concurrency_task_eval=cfg.capabilities_cfg.concurrency_task_eval,
+                inspect_eval_log_level=cfg.capabilities_cfg.inspect_eval_log_level,
             )
             # Load subject LLM score
             new_capability.load_scores(
@@ -362,8 +393,36 @@ def main(cfg: DictConfig) -> None:
                 lbo_error_dict["rmse"].append(rmse)
                 lbo_error_dict["avg_std"].append(avg_std)
 
-        logger.info(f"New capabilities: {new_capabilities}")
-        logger.info(f"LBO error dict: {lbo_error_dict}")
+            lbo_results_dict = {
+                "lbo_run_id": lbo_run_id,
+                "run_id": run_id,
+                "extended_run_id": extended_run_id,
+                "acquisition_function": str(cfg.lbo_cfg.acquisition_function),
+                "acquisition_function_tag": "ALM"
+                if cfg.lbo_cfg.acquisition_function == "variance"
+                else "ALC",
+                "initial_train_capabilities": [
+                    cap.name
+                    for cap in train_capabilities[: cfg.lbo_cfg.num_initial_train]
+                ],
+                "test_capabilities": [cap.name for cap in test_capabilities],
+                "new_capabilities": [cap.name for cap in new_capabilities],
+            }
+            if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
+                lbo_results_dict["lbo_error_dict"] = lbo_error_dict
+                lbo_results_dict["knn_capabilities"] = knn_capabilities_list
+            with open(
+                os.path.join(lbo_results_dir, f"lbo_results_{extended_run_id}.json"),
+                "w",
+            ) as f:
+                json.dump(
+                    lbo_results_dict,
+                    f,
+                    indent=4,
+                )
+            logger.info(
+                f"[Iteration {lbo_run_id + 1}/{num_lbo_runs}] LBO results saved to {lbo_results_dir}/lbo_results_{extended_run_id}.json"
+            )
 
 
 if __name__ == "__main__":

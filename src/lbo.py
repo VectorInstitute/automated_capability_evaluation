@@ -393,12 +393,12 @@ def calculate_lbo_error(
     # Get the capability embeddings
     capabilities_encoding = torch.stack(
         [cap.get_embedding(embedding_name) for cap in capabilities]
-    )
+    ).to(device)
 
     # Load subject LLM scores for each existing capability
     capability_scores = torch.Tensor(
         [cap.scores[subject_llm_name]["mean"] for cap in capabilities]
-    )
+    ).to(device)
 
     preds_mean, preds_std = lbo_model.predict(capabilities_encoding)
     rmse = torch.sqrt(torch.mean((preds_mean - capability_scores) ** 2)).item()

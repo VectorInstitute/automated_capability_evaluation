@@ -26,10 +26,15 @@ The capability evaluation logs (evaluated using [Inspect](https://inspect.aisi.o
 gcloud auth application-default login
 ```
 
-### Run pipeline with default config
+### Run pipeline
 
-Note: Please set the following env vars before running the command.
+#### Configuration
+
+1. Set environment variables:
+
 - OPENAI_API_KEY
+- GOOGLE_API_KEY - To use LLMs provided by Google
+- ANTHROPIC_API_KEY - To use LLMs provided by Anthropic
 - Rate limit vars (default values given):
     - RATE_LIMIT_CALLS=5
     - RATE_LIMIT_PERIOD=60
@@ -41,6 +46,22 @@ Note: Please set the following env vars before running the command.
 - GCP env vars:
     - GOOGLE_CLOUD_PROJECT=<project_id>
 
+2. Modify `src/cfg/run_cfg.yaml`, if required.
+
+#### Capability Generation using the scientist LLM
+
 ```bash
-python3 src/run.py
+python3 src/run_capability_generation.py
+```
+
+#### Evaluation of subject LLM on generated capabilities
+
+```bash
+python3 src/run_evaluation.py
+```
+
+#### Run active learning pipeline
+
+```bash
+python3 src/run_lbo.py
 ```

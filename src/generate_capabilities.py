@@ -305,9 +305,15 @@ def generate_capabilities_using_llm(
                             base_dir=base_capability_dir,
                             score_dir_suffix=(kwargs.get("run_id")),
                         )
-                    except Exception as e:
-                        # TODO: Handle different exceptions separately?
+                    except FileExistsError:
                         # 1. Same name as existing capability
+                        # Do not delete the capability directory if it already exists
+                        logger.warning(
+                            f"Capability {capability['name']} already exists. Skipping it."
+                        )
+                        # Skip this capability
+                        continue
+                    except Exception as e:
                         # 2. “problem” replaced with “riddle” or some other keyword
                         #   leads to KeyError
                         # 3. Ill-formatted `capability.py` file due to missing quotes
@@ -987,6 +993,12 @@ def score_based_capability_discovery(
                         base_dir=base_capability_dir,
                         score_dir_suffix=(kwargs.get("run_id")),
                     )
+                except FileExistsError as e:
+                    # Do not delete the capability directory if it already exists
+                    logger.error(
+                        f"Capability {gen_capability_dict['name']} already exists. Updating seed to generate a new capability."
+                    )
+                    raise e
                 except Exception as e:
                     logger.error(
                         f"Error creating capability object {gen_capability_dict['name']}: {repr(e)}"
@@ -1137,6 +1149,12 @@ def knn_based_capability_discovery(
                         base_dir=base_capability_dir,
                         score_dir_suffix=(kwargs.get("run_id")),
                     )
+                except FileExistsError as e:
+                    # Do not delete the capability directory if it already exists
+                    logger.error(
+                        f"Capability {gen_capability_dict['name']} already exists. Updating seed to generate a new capability."
+                    )
+                    raise e
                 except Exception as e:
                     logger.error(
                         f"Error creating capability object {gen_capability_dict['name']}: {repr(e)}"

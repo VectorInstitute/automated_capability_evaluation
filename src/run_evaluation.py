@@ -53,6 +53,13 @@ def main(cfg: DictConfig) -> None:
         capabilities = sorted(capabilities, key=lambda x: x.name)
         logger.info(f"Selected capability names:\n{capabilities}")
 
+    # Obtain task statistics
+    num_total_tasks = sum([len(capability.get_tasks()) for capability in capabilities])
+    logger.info(f"Total number of tasks: {num_total_tasks}")
+    logger.info(
+        f"Mean number of tasks per capability: {num_total_tasks / len(capabilities)}"
+    )
+
     # Initialize the scientist LLM model to be used as a judge
     scientist_llm = Model(
         model_name=cfg.scientist_llm.name,
@@ -81,6 +88,7 @@ def main(cfg: DictConfig) -> None:
             judge_llm_gen_args=dict(scientist_llm_gen_cfg.judge_llm),
             run_id=run_id,
             concurrency_task_eval=cfg.capabilities_cfg.concurrency_task_eval,
+            inspect_eval_log_level=cfg.capabilities_cfg.inspect_eval_log_level,
         )
         if cfg.exp_cfg.trial_run:
             logger.info("Trial run completed, exiting after one capability.")
