@@ -1,4 +1,6 @@
-import logging  # noqa: D100
+"""Functions to generate and visualize embeddings."""
+
+import logging
 import os
 from enum import Enum
 from typing import List, Set

@@ -1,4 +1,6 @@
-import asyncio  # noqa: D100
+"""Defines the Capability class and its associated methods."""
+
+import asyncio
 import importlib
 import json
 import logging
@@ -893,7 +895,7 @@ class Capability:
         ) as f:
             utils_file_contents = f.read()
         # Update judge LLM if provided
-        # NOTE: Judge LLM does not support local models (hosted using vector inference)
+        # NOTE: Judge LLM does not support local models
         # TODO: Add support for local models? Not required,
         # since we will rarely use open source LLMs as judge LLMs
         if judge_llm_name is not None:

@@ -1,4 +1,6 @@
-import json  # noqa: D100
+"""Module to create seed capabilities for the mathematics and GSM8K datasets."""
+
+import json
 import logging
 import os
 import random
@@ -6,7 +8,7 @@ import shutil
 from collections import defaultdict
 from typing import Any, Dict, List
 
-import hydra  # noqa: D100
+import hydra
 from omegaconf import DictConfig
 
 from capability import CapabilitySeedDataset

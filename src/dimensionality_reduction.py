@@ -1,4 +1,6 @@
-import logging  # noqa: D100
+"""Defines the DimensionalityReductionMethod class and its subclasses."""
+
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
 

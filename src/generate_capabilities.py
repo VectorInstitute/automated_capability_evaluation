@@ -1,4 +1,6 @@
-import json  # noqa: D100
+"""Functions to generate capabilities using the scientist LLM."""
+
+import json
 import logging
 import os
 import random

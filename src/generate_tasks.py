@@ -1,4 +1,6 @@
-import asyncio  # noqa: D100
+"""Functions to generate tasks using the scientist LLM."""
+
+import asyncio
 import json
 import logging
 from typing import Any, Dict, List, Tuple

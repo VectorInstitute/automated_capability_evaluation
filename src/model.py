@@ -1,20 +1,14 @@
 """Model class for LLMs with rate limiting and generation configuration."""
 
-import json
 import logging
 import os
-import subprocess
-import time
 from typing import Any, Dict, List, Tuple
 
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langsmith import traceable
-from pydantic import SecretStr
 from ratelimit import limits, sleep_and_retry
-
-from src.utils import constants
 
 
 RATE_LIMIT = {
@@ -48,11 +42,9 @@ class Model:
         self, **kwargs: Any
     ) -> ChatOpenAI | ChatGoogleGenerativeAI | ChatAnthropic:
         if self.model_provider == "local":
-            self.model_url = get_local_model_url(self.model_name, **kwargs)
-            return ChatOpenAI(
-                model=self.model_name,
-                base_url=self.model_url,
-                api_key=SecretStr(os.environ["LOCAL_API_KEY"]),
+            raise NotImplementedError(
+                "Code to support local model is removed for annonymity purposes."
+                "Please use your own local model."
             )
         if self.model_provider == "anthropic":
             return ChatAnthropic(model=self.model_name)  # type: ignore
@@ -199,125 +191,3 @@ class Model:
             ("system", sys_prompt),
             ("user", user_prompt),
         ]
-
-
-def get_local_model_url(model_name: str, **kwargs: Any) -> str:
-    """
-    Get the base URL of a locally launched model.
-
-    This function launches a local model using vector inference, waits for the model
-    to be ready, and retrieves its base URL.
-
-    Args
-    ----
-        model_name (str): The name of the model to launch.
-
-    Returns
-    -------
-        str: The base URL of the launched local model.
-
-    Raises
-    ------
-        RuntimeError: If the model launch fails or is cancelled.
-    """
-    # Check if the model is supported
-    list_command = ["vec-inf", "list", "--json-mode"]
-    list_out = _run_command(list_command)
-    if model_name not in list_out:
-        raise ValueError(
-            f"Model {model_name} is not supported locally. Supported local models: {list_out}"
-        )
-
-    # Launch the local model using vector inference
-    launch_command = ["vec-inf", "launch", model_name, "--json-mode"]
-    # Add any additional arguments from kwargs
-    for key, value in kwargs.items():
-        c_arg = key.replace("_", "-")
-        if isinstance(value, bool):
-            if value:
-                launch_command.append(f"--{c_arg}")
-        else:
-            launch_command.append(f"--{c_arg}={value}")
-    logger.info(f"Launching local model with command: {' '.join(launch_command)}")
-    launch_out = _run_command(launch_command)
-    slurm_job_id = launch_out["slurm_job_id"]
-
-    # TODO: Check if the model is already running?
-    # TODO: What if the model is in pending state for a long time?
-    # Wait for the model to be ready
-    vec_inf_status = constants.VecInfStatus
-    status_command = ["vec-inf", "status", slurm_job_id, "--json-mode"]
-    status = vec_inf_status.PENDING.value
-    while status in [vec_inf_status.PENDING.value, vec_inf_status.LAUNCHING.value]:
-        status_out = _run_command(status_command, model_status=True)
-        status = status_out["model_status"]
-        status = (
-            vec_inf_status.PENDING.value if ("LOG FILE NOT FOUND" in status) else status
-        )
-        logger.info(f"Model status: {status}")
-        time.sleep(5)  # Wait for 5 seconds before checking again
-    if status == vec_inf_status.FAILED.value:
-        raise RuntimeError(f"Model launch failed: {status_out['failed_reason']}")
-    if status == vec_inf_status.SHUTDOWN.value:
-        raise RuntimeError("Model launch cancelled")
-    if status == vec_inf_status.UNAVAILABLE.value:
-        raise RuntimeError("Model launch has either failed or is shutdown")
-
-    # Check if the model is ready and get the base URL
-    assert status == vec_inf_status.READY.value, f"Unknown model status: {status}"
-
-    return str(status_out["base_url"])
-
-
-def _sanitize_json(json_str: str) -> str:
-    """
-    Sanitize JSON string by replacing single quotes with double quotes.
-
-    Args
-    ----
-        json_str (str): The JSON string to sanitize.
-
-    Returns
-    -------
-        str: The sanitized JSON string.
-    """
-    return json_str.strip().replace("'", '"')
-
-
-def _run_command(
-    command: List[str], model_status: bool = False
-) -> Dict[str, Any] | Any:
-    """
-    Run a command and return the parsed JSON output.
-
-    Args
-    ----
-        command (List[str]): The command to run.
-
-    Returns
-    -------
-        Dict[str, Any]: The parsed JSON output.
-    """
-    p = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    )
-    stdout, stderr = p.communicate()
-    if p.returncode != 0:
-        raise RuntimeError(f"Failed to launch local model server: {stderr.strip()}")
-    if model_status and constants.VEC_INF_LOG_DIR not in stdout:
-        # Extract model status string and replace with
-        # appropriate string which can be parsed
-        str_to_replace = (
-            stdout.split("'model_status':")[-1]
-            .split("'base_url':")[0]
-            .strip()
-            .strip(",")
-        )
-        str_to_replace_by = str_to_replace.split(":")[-1].split(">")[0].strip()
-        stdout = stdout.replace(str_to_replace, str_to_replace_by)
-    try:
-        logger.debug(f"Command output: {stdout.strip()}")
-        stdout_dict = json.loads(_sanitize_json(stdout))
-    except json.JSONDecodeError:
-        raise ValueError(f"Failed to parse JSON output: {stdout.strip()}") from None
-    return stdout_dict

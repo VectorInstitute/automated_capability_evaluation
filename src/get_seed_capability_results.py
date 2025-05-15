@@ -1,8 +1,10 @@
-import json  # noqa: D100
+"""Extract seed capability results from inspect eval logs."""
+
+import json
 import logging
 import os
 
-import hydra  # noqa: D100
+import hydra
 import numpy as np
 from omegaconf import DictConfig
 
