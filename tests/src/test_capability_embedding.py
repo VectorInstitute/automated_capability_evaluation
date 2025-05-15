@@ -1,4 +1,6 @@
-import pytest  # noqa: D100
+"""Tests for the capability embedding module."""
+
+import pytest
 import torch
 
 from src.capability import Capability

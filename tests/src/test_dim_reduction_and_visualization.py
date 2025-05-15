@@ -1,8 +1,10 @@
-import json  # noqa: D100
+"""Tests for the dimensionality reduction."""
+
+import json
 import os
 from typing import List
 
-import pytest  # noqa: D100
+import pytest
 import torch
 
 from src.capability import Capability

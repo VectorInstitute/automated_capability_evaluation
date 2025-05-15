@@ -1,4 +1,6 @@
-import json  # noqa: D100
+"""Tests for the capability embedding and filtering."""
+
+import json
 import os
 from typing import List
 

@@ -1,5 +1,5 @@
 """
-The __init__.py file for the tests module in the automatic_benchmark_generation project.
+The __init__.py file for tests module in the automated_capability_evaluation project.
 
 It initializes the tests module.
 """
