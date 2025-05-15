@@ -42,9 +42,9 @@ gcloud auth application-default login
     - LANGSMITH_TRACING=true
     - LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
     - LANGSMITH_API_KEY=<langsmith_api_key>
-    - LANGSMITH_PROJECT="automated_capability_evaluation"
+    - LANGSMITH_PROJECT=<langsmith_project_id>
 - GCP env vars:
-    - GOOGLE_CLOUD_PROJECT=<project_id>
+    - GOOGLE_CLOUD_PROJECT=<gcp_project_id>
 
 2. Modify `src/cfg/run_cfg.yaml`, if required.
 
