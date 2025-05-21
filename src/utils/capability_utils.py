@@ -36,12 +36,16 @@ def read_score_inspect_json(
     """
     Read a JSON file containing scores.
 
-    Args:
+    Args
+    ----
         json_file (str): The path to the JSON file.
+        num_tasks (int): The number of tasks to score. If -1, all tasks are used.
+        seed (int): The random seed for selecting tasks.
 
     Returns
     -------
-        float: The score value.
+        Dict[str, float]: A dictionary containing the mean and standard error
+            of the scores.
     """
     random.seed(seed)
 
@@ -90,11 +94,12 @@ def get_inspect_score(
     Args
     ----
         tasks (List[Dict[str, Any]]): The list of tasks to score.
-        score_func (str): The scoring function to use.
+        scorer_name (str): The name of the scorer to use.
 
     Returns
     -------
-        float: The inspect score.
+        Tuple[float, float]: A tuple containing the mean score and
+            the standard error of the scores.
     """
     if not tasks:
         return (0.0, 0.0)
@@ -225,18 +230,10 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
 
     Args
     ----
-    path : str
-        The path to the evaluation file for the capability.
-    model : Model
-        The model object to evaluate.
-    log_dir : str
-        The directory to store evaluation logs.
-    kwargs : Any
-        Additional arguments for the command.
-
-    Returns
-    -------
-    None
+        path (str): The path to the evaluation file for the capability.
+        model (Model): The model object to evaluate.
+        log_dir (str): The directory to store evaluation logs.
+        kwargs (Any): Additional arguments for the command.
     """
     # Create langsmith metadata
     model_name = model.get_model_name(with_provider=True)
@@ -270,7 +267,7 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
         # Return usage stats
         if inspect_model_name in eval_log.stats.model_usage:
             eval_model_usage = eval_log.stats.model_usage[inspect_model_name]
-            # [IMP] TODO: How to track usage for judge llm?
+            # TODO: How to track usage for judge llm?
             usage_metadata = {
                 "input_tokens": eval_model_usage.input_tokens,
                 "output_tokens": eval_model_usage.output_tokens,

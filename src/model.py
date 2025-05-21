@@ -164,10 +164,13 @@ class Model:
         """
         Get the name of the model.
 
+        Args
+        ----
+            with_provider (bool): If True, include the model provider in the name.
+
         Returns
         -------
-        str: The name of the model.
-        with_provider (bool): If True, include the model provider in the name.
+            str: The name of the model.
         """
         return (
             self.model_name
@@ -211,6 +214,7 @@ def get_local_model_url(model_name: str, **kwargs: Any) -> str:
     Args
     ----
         model_name (str): The name of the model to launch.
+        kwargs (Any): Additional keyword arguments for model launch.
 
     Returns
     -------
@@ -242,8 +246,6 @@ def get_local_model_url(model_name: str, **kwargs: Any) -> str:
     launch_out = _run_command(launch_command)
     slurm_job_id = launch_out["slurm_job_id"]
 
-    # TODO: Check if the model is already running?
-    # TODO: What if the model is in pending state for a long time?
     # Wait for the model to be ready
     vec_inf_status = constants.VecInfStatus
     status_command = ["vec-inf", "status", slurm_job_id, "--json-mode"]
@@ -293,6 +295,7 @@ def _run_command(
     Args
     ----
         command (List[str]): The command to run.
+        model_status (bool): If True, parse the model status from the output.
 
     Returns
     -------

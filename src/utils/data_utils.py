@@ -28,9 +28,14 @@ def load_data(
     """
     Load a dataset from the Hugging Face Hub.
 
-    Args:
+    Args
+    ----
         dataset_name (str): The name of the dataset to load.
         split (str): The split of the dataset to load (default is 'train').
+        subset (str): The subset of the dataset to load (default is '').
+        streaming (bool): Whether to load the dataset in streaming mode
+            (default is True).
+        **kwargs: Additional arguments to pass to the load
 
     Returns
     -------
@@ -46,7 +51,8 @@ def read_json_file(file_path: str) -> Any:
     """
     Read a JSON file from a GCP bucket or local file system based on the file path.
 
-    Args:
+    Args
+    ----
         file_path (str): The path to the JSON file. If it starts with 'gs://',
             it is treated as a GCP bucket path.
 
@@ -76,7 +82,8 @@ def write_json_file(file_path: str, data: Dict[Any, Any]) -> None:
 
     This function handles both GCP bucket paths and local file system paths.
 
-    Args:
+    Args
+    ----
         file_path (str): The path to the JSON file. If it starts with 'gs://',
             it is treated as a GCP bucket path.
         data (Dict[Any, Any]): The dictionary to write to the JSON file.
@@ -101,13 +108,14 @@ def list_dir(path: str) -> list[str]:
 
     This function handles both GCP bucket paths and local file system paths.
 
-    Args:
+    Args
+    ----
         path (str): The path to the directory. If it starts with 'gs://',
             it is treated as a GCP bucket path.
 
     Returns
     -------
-        list: A list of contents in the directory.
+        list[str]: A list of contents in the directory.
     """
     if path.startswith("gs://"):
         # List contents from GCP bucket
@@ -131,7 +139,8 @@ def copy_file(src: str, dest: str) -> None:
 
     This function handles both GCP bucket paths and local file system paths.
 
-    Args:
+    Args
+    ----
         src (str): The source file path. If it starts with 'gs://',
             it is treated as a GCP bucket path.
         dest (str): The destination file path. If it starts with 'gs://',
@@ -179,7 +188,8 @@ def path_exists(path: str) -> bool:
 
     This function handles both GCP bucket paths and local file system paths.
 
-    Args:
+    Args
+    ----
         path (str): The path to check. If it starts with 'gs://',
             it is treated as a GCP bucket path.
 
@@ -203,7 +213,8 @@ def transfer_inspect_log_to_gcp(src_dir: str, gcp_dir: str) -> None:
     """
     Transfer the inspect log file from local to GCP bucket.
 
-    Args:
+    Args
+    ----
         src_dir (str): The source directory containing the file.
         gcp_dir (str): The destination GCP bucket directory.
     """

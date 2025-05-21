@@ -40,7 +40,7 @@ def get_lbo_train_set(
 
     Returns
     -------
-        Tuple[List[Any], List[Any]]: A tuple containing the train set
+        Tuple[List[Capability], List[Capability]]: A tuple containing the train set
             and the remaining data.
     """
     random.seed(seed)

@@ -1,5 +1,7 @@
-import logging  # noqa: D100
-import os  # noqa: D100
+"""Train and test capability embedding visualization script."""
+
+import logging
+import os
 
 import hydra
 from omegaconf import DictConfig

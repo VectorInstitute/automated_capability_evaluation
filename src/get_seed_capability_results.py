@@ -1,8 +1,10 @@
-import json  # noqa: D100
+"""Seed capability results extraction script."""
+
+import json
 import logging
 import os
 
-import hydra  # noqa: D100
+import hydra
 import numpy as np
 from omegaconf import DictConfig
 
@@ -22,17 +24,14 @@ def extract_math_capability_logs(
     update the log structure, and
     write the processed logs to an output directory.
 
-    Args:
+    Args
+    ----
         log_file (str): Path to the input log file
         containing the capability logs in JSON format.
         capability_name (str): Name of the capability to be used
             in the output file and log updates.
         subject (str): Subject to filter the log tasks by.
         out_dir (str): Directory where the processed log file will be saved.
-
-    Returns
-    -------
-        None
     """
     logs = read_json_file(log_file)
 
@@ -111,6 +110,10 @@ def main(cfg: DictConfig) -> None:
     processes the log file based on the dataset type:
         - For "math" dataset, extracts math capability logs.
         - For "gsm8k" dataset, copies the log file to the output directory.
+
+    Args
+    ----
+        cfg (DictConfig): Configuration object containing paths and settings.
     """
     domain = cfg.capabilities_cfg.domain
     seed_capability_dir = os.path.join(
