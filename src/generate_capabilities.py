@@ -1,4 +1,6 @@
-import json  # noqa: D100
+"""Generate capabilities using the scientist LLM."""
+
+import json
 import logging
 import os
 import random
@@ -98,7 +100,6 @@ def _sample_seed_capabilities(
             all_seed_capability_paths.remove(capability_name)
         num_seed_capabilities -= len(include_capability_names)
 
-    # TODO: Enhance the selection criterion
     for capability_path in random.sample(
         all_seed_capability_paths, num_seed_capabilities
     ):
@@ -373,10 +374,6 @@ def plot_hierarchical_capability_2d_embeddings(
         save_dir (str): The directory to save the plot.
         show_point_ids (bool): Whether to show point IDs in the plot. Set this to
             False for large datasets to avoid cluttering the plot.
-
-    Returns
-    -------
-        None
     """
     # Get the reduced embeddings.
     reduced_embeddings = [
@@ -471,8 +468,8 @@ def apply_dimensionality_reduction(
         output_dimension_size (int): The number of dimensions to reduce to.
         embedding_model_name (str): The name of the OpenAI embedding model used for
             generating the embeddings.
-        seed (int): The random seed for reproducibility.
         tsne_perplexity (int | None): The perplexity parameter for T-SNE.
+        random_seed (int): The seed for the random number generator.
         normalize_output (bool): Whether to normalize the output embeddings.
 
     Returns
@@ -529,10 +526,6 @@ def apply_dimensionality_reduction_to_test_capabilities(
             reduction method to use.
         embedding_model_name (str): The name of the embedding model used for
             generating the embeddings.
-
-    Returns
-    -------
-        None
     """
     # Apply the dimensionality reduction technique on test capabilities.
     reduced_embeddings = dim_reduction_method.transform_new_points(
@@ -561,7 +554,6 @@ def generate_and_set_capabilities_embeddings(
         capabilities (List[Capability]): The list of capabilities.
         embedding_model_name (str): The name of the embedding model to use.
         embed_dimensions (int): The number of dimensions for the embeddings.
-
     """
     # Convert the embedding model name to `EmbeddingModelName` to ensure
     # that the provided model name is valid and supported.
@@ -1045,7 +1037,8 @@ def knn_based_capability_discovery(
     capabilities to create new ones. The scientist LLM is used to generate
     these capabilities based on a user-defined prompt and configuration.
 
-    Args:
+    Args
+    ----
         knn_capabilities (List[Capability]): A list of capabilities identified
             as nearest neighbors to guide the generation process.
         prev_capabilities (List[Capability]): The list of previously generated
@@ -1199,6 +1192,10 @@ def select_complete_capabilities(
     Args
     ----
         capabilities (List[Capability]): The list of generated capabilities.
+        strict (bool): If True, only capabilities with the state
+            `TASK_GENERATION_COMPLETED` are selected. If False, capabilities
+            with at least `num_tasks_lower_bound` tasks are also selected.
+        num_tasks_lower_bound (int): The minimum number of tasks required
 
     Returns
     -------
@@ -1241,7 +1238,8 @@ def capability_satisfies_criterion(
     considered complete. The criteria can be adjusted based on the `strict`
     parameter and the minimum number of tasks required.
 
-    Args:
+    Args
+    ----
         capability (Capability): The capability object to evaluate.
         strict (bool, optional): If True, only capabilities with the
             TASK_GENERATION_COMPLETED state are considered valid. If False,

@@ -1,7 +1,7 @@
 """Latent Bayesian Optimization (LBO) for capability selection."""
 
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 import gpytorch
 import torch
@@ -35,7 +35,8 @@ class GPModel(gpytorch.models.ExactGP):  # type: ignore
         """
         Compute the GP prior/posterior distribution at input x.
 
-        Args:
+        Args
+        ----
             x (torch.Tensor): A tensor of input points at which to evaluate the GP.
                 Shape: (n_samples, input_dim)
 
@@ -256,75 +257,6 @@ class LBO:
         )
 
 
-def _get_adjusted_representation(
-    capabilities: List[Capability],
-    capability_scores: torch.Tensor,
-    encoder: Any,
-    decoder: Any,
-) -> torch.Tensor:
-    """
-    Apply the InvBO method and adjust the capabilities' representations.
-
-    Args
-    ----
-        capabilities (List[Capability]): The list of capabilities.
-        capability_score (torch.Tensor): The subject model scores.
-        encoder (Any): The encoder model to encode the capability representation.
-        decoder (Any): The decoder model to decode the capability representation.
-
-    Returns
-    -------
-        torch.Tensor: Adjusted capabilities' representations with shape (Nc, D).
-    """
-    # TODO:
-    # 1. Encode the capability representation using the encoder model.
-    #   capability_representations = torch.stack(
-    #       [elm.encode(encoder) for elm in capabilities]
-    #   )
-    # 2. Apply the InvBO method to adjust the capabilities' representations.
-    raise NotImplementedError
-
-
-def _decode_capability(
-    representation: torch.Tensor,
-    decoder: Any,
-) -> Capability:
-    """
-    Decode the capability representation using the decoder model.
-
-    Args
-    ----
-        representation (torch.Tensor): The capability representation tensor, shape (D,).
-        decoder (Any): The decoder model to decode the capability representation.
-
-    Returns
-    -------
-        Capability: The decoded capability.
-    """
-    raise NotImplementedError
-
-
-def _get_nearest_capability(
-    representation: torch.Tensor,
-    capabilities_pool: List[Capability],
-) -> Capability:
-    """
-    Get the nearest capability from the existing capability pool.
-
-    Used for selecting the capability in LBO pipeline 1.
-
-    Args
-    ----
-        representation (torch.Tensor): The latent representation tensor, shape (D,).
-        capabilities_pool (List[Capability]): The pool of existing capabilities.
-
-    Returns
-    -------
-        Capability: The nearest capability.
-    """
-    raise NotImplementedError
-
-
 def fit_lbo(
     capabilities: List[Capability],
     embedding_name: str,
@@ -438,8 +370,10 @@ def select_capabilities_using_lbo(
 
     Returns
     -------
-        List[Capability]: A list of selected capabilities generated
-            using the LBO method.
+        Tuple[List[Capability], Dict[str, List[float]]]: A tuple containing:
+            - List of selected capabilities.
+            - Dictionary containing the RMSE and average standard deviation
+                of the LBO model at each iteration.
     """
     if num_lbo_iterations is None:
         logger.info(

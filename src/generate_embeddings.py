@@ -1,4 +1,6 @@
-import logging  # noqa: D100
+"""Embedding generation and visualization utilities."""
+
+import logging
 import os
 from enum import Enum
 from typing import List, Set
@@ -43,7 +45,8 @@ class EmbeddingGenerator:
         """
         Load the embedding model.
 
-        Args:
+        Args
+        ----
             model_name (EmbeddingModelName): The name of the embedding model.
             dimensions (int): The dimensions of the embedding.
 
@@ -62,7 +65,8 @@ class EmbeddingGenerator:
         """
         Generate and optionally reduce embeddings for a list of texts.
 
-        Args:
+        Args
+        ----
             texts (list[str]): A list of texts to generate embeddings for.
 
         Returns
@@ -84,7 +88,8 @@ def filter_embeddings(
     based on a specified threshold while minimizing the number of
     removed points.
 
-    Args:
+    Args
+    ----
         embeddings (List[torch.Tensor]): The list of embedding tensors.
         similarity_threshold (float): The threshold for cosine similarity
                         above which capabilities are considered duplicates.
@@ -140,16 +145,12 @@ def visualize_embeddings(
     """
     Visualize the embeddings, and make sure they are 2D.
 
-    Args:
+    Args
+    ----
         embeddings (List[torch.Tensor]): A list of embeddings to visualize.
         save_dir (str): The directory to save the plot.
         plot_name (str): The name of the plot file.
         point_names (List[str] | None): Optional names for each point in the plot.
-        seed (int): The random seed for reproducibility.
-
-    Returns
-    -------
-        None
     """
     assert all(point.size(0) == 2 for point in embeddings), (
         "All points must be 2D tensors for visualization."
@@ -199,14 +200,14 @@ def hierarchical_2d_visualization(
 ) -> None:
     """Visualize 2D points grouped by their area.
 
-    Args:
+    Args
+    ----
         embeddings_by_area (dict[str, List[torch.Tensor]]): A dictionary where
             keys are areas and values are lists of 2D points (as tensors).
         save_dir (str): The directory to save the plot.
         plot_name (str): The name of the plot file.
         points_area_name_ids (dict[str, dict[str, int]] | None): Optional dictionary
             mapping area names to dictionaries of point names and their IDs.
-
     """
     # Assert that all points are 2D
     assert all(
@@ -308,7 +309,9 @@ def save_embedding_heatmap(
     embeddings and generates a heatmap to visualize the similarity
     matrix. If add_squares is True, it highlights the squares
     along the diagonal corresponding to each area.
-    Args:
+
+    Args
+    ----
         embeddings_by_area (dict[str, List[torch.Tensor]]): A dictionary where
             keys are area names and values are lists of embeddings.
         capability_names_by_area (dict[str, List[str]]): A dictionary where

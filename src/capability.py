@@ -1,4 +1,6 @@
-import asyncio  # noqa: D100
+"""Capability class and related utilities."""
+
+import asyncio
 import importlib
 import json
 import logging
@@ -130,12 +132,41 @@ class Capability:
         Loads the capability configuration from a JSON file.
     _load_capability_repr_class() -> None
         Loads the capability representation class from a Python file.
+    set_state() -> None
+        Sets the state of the capability.
+    get_state() -> CapabilityState
+        Gets the current state of the capability.
+    load_scores() -> None
+        Loads scores from JSON files in the specified directory.
+    get_repr_tasks() -> List[Dict[str, Any]]
+        Gets the representative tasks for the capability.
+    add_and_update_tasks() -> None
+        Adds and/or updates tasks for the capability.
     to_dict() -> Dict[str, Any]
         Converts the capability attributes to a dictionary.
+    get_attribute() -> Any
+        Gets the value of a specific attribute of the capability.
     to_json_str() -> str
         Converts the capability to a JSON string.
     __str__() -> str
         Returns a JSON string representation of the capability.
+    __repr__() -> str
+        Returns the name of the capability.
+    set_embedding() -> None
+        Sets the embedding of the capability based on embedding_name.
+    get_embedding() -> torch.Tensor
+        Gets the embedding for the capability.
+    solve_tasks() -> Tuple[Tuple[List[Dict[str, Any]],
+                    List[Dict[str, Any]]], Dict[str, Any]]
+        Solves the tasks using the given LLM.
+    get_tasks() -> List[Dict[str, Any]]
+        Gets the existing tasks for the capability.
+    _create_inspect_file() -> None
+        Creates the inspect file for the capability.
+    _evaluate_using_inspect() -> None
+        Evaluates the capability using the inspect framework.
+    evaluate() -> None
+        Evaluates the capability using the inspect framework.
     """
 
     def __init__(
@@ -186,6 +217,7 @@ class Capability:
             the capability attributes.
         base_dir (str): The base directory where the capability
             directory will be created
+        score_dir_suffix (str | None): Optional suffix for the score directory.
 
         Returns
         -------
@@ -255,7 +287,6 @@ class Capability:
         self.domain = _cfg["capability_domain"]
         self.instructions = _cfg["capability_instructions"]
         self.area = _cfg.get("capability_area", None)
-        # TODO: Store data is stored in json or elsewhere?
         self._data: List[Dict[str, Any]] = _cfg["capability_data"]
         self._failed_data: List[Dict[str, Any]] = _cfg.get("capability_failed_data", [])
         # Check if the capability is a seed capability, use source_dataset as indicator
@@ -342,11 +373,6 @@ class Capability:
                 Defaults to -1 (all tasks).
             seed (int): The random seed for reproducibility.
                 Defaults to the constant DEFAULT_RANDOM_SEED.
-
-        Returns
-        -------
-            Dict[str, Any]: A dictionary where the keys are model names and
-            the values are dictionaries containing the scores and metadata.
         """
         scores_dir = scores_dir if scores_dir else self.score_dir
         scores_dict: defaultdict[str, dict[str, Any]] = defaultdict(dict)
@@ -414,6 +440,7 @@ class Capability:
             failed_tasks (List[Dict[str, Any]]): A list of dictionaries
                 containing the tasks that failed to be solved.
                 Each task dict consists of id, problem, and answer keys.
+            seed (int): The random seed for reproducibility.
         """
         random.seed(seed)
 
@@ -549,7 +576,8 @@ class Capability:
         """
         Return a dictionary of the capability attributes.
 
-        Args:
+        Args
+        ----
             attribute_names (List[str] | None, optional): the list of attribute
             names requested. If none, return a set of default attributes.
             Defaults to None.
@@ -589,6 +617,12 @@ class Capability:
     def to_json_str(self, attribute_names: List[str] | None = None) -> str:
         """
         Convert the capability to a JSON string.
+
+        Args
+        ----
+            attribute_names (List[str] | None, optional): the list of attribute
+            names requested. If none, return a set of default attributes.
+            Defaults to None.
 
         Returns
         -------
@@ -639,10 +673,6 @@ class Capability:
         ----
             embedding_name (str): The name of the embedding model/algorithm.
             embedding_vector (torch.Tensor): The embedding vector to set.
-
-        Returns
-        -------
-            None
         """
         self.embedding_dict[embedding_name] = embedding_tensor
 
@@ -859,6 +889,14 @@ class Capability:
         Implement pipeline to evaluate the capability using the inspect framework.
 
         This involves converting the METR format to inspect solvers and scorers.
+
+        Args
+        ----
+            path (str): The path to the directory where the inspect files
+                will be created.
+            judge_llm_name (str | None): The name of the judge LLM to use.
+            judge_llm_gen_args (Dict[str, Any] | None): Additional generation arguments
+                for the judge LLM.
         """
         # Create JSONL dataset and store it under the inspect path
         dataset = self.get_tasks()
@@ -894,8 +932,7 @@ class Capability:
             utils_file_contents = f.read()
         # Update judge LLM if provided
         # NOTE: Judge LLM does not support local models (hosted using vector inference)
-        # TODO: Add support for local models? Not required,
-        # since we will rarely use open source LLMs as judge LLMs
+        # TODO: Add support for local models?
         if judge_llm_name is not None:
             utils_file_contents = utils_file_contents.replace(
                 'INSPECT_JUDGE_LLM = "openai/gpt-4o-mini"',
@@ -911,7 +948,6 @@ class Capability:
             f.write(utils_file_contents)
 
         # 2. Construct inspect evals script file
-        # TODO: Do we need system prompt?
         instruction_template = self.capability_repr_class.get_instructions(
             {"problem": "{prompt}"}
         )
@@ -969,7 +1005,8 @@ class Capability:
         required evaluation files exist, temporarily stores logs locally, and transfers
         them to a GCP bucket after the evaluation is complete.
 
-        Args:
+        Args
+        ----
             subject_llm (Model): The LLM model to evaluate.
             **kwargs (Any): Additional args for running the evals.
 
@@ -1032,16 +1069,14 @@ class Capability:
 
         Args
         ----
-        subject_llms : List[Model]
-            The list of LLMs to use for evaluation.
-        gen_args : List[Dict[Any, Any]]
-            The list of generation configurations corresponding to each LLM.
-        judge_llm : Model | None
-            The judge LLM to use for evaluation. If None, no judge LLM is used.
-        judge_llm_gen_args : Dict[str, Any] | None
-            The generation configuration for the judge LLM. If None, defaults are used.
-        **kwargs : Any
-            Additional arguments for the evaluation.
+            subject_llms (List[Model]): The list of LLMs to use for evaluation.
+            gen_args (List[Dict[Any, Any]]): The list of generation configurations
+                corresponding to each LLM.
+            judge_llm (Model | None): The judge LLM to use for evaluation. If None,
+                no judge LLM is used.
+            judge_llm_gen_args (Dict[str, Any] | None): The generation configuration
+                for the judge LLM. If None, defaults are used.
+            **kwargs (Any): Additional arguments for the evaluation.
         """
         assert len(subject_llms) == len(gen_args), (
             "Each subject LLM must have a corresponding generation config."
@@ -1051,7 +1086,6 @@ class Capability:
             inspect_path = os.path.join(constants.BASE_INSPECT_EVALS_DIR, self.name)
             if os.path.exists(inspect_path):
                 # Recreating the inspect file to avoid an unknown path error
-                # TODO: Resolve the unknown path error?
                 # Remove existing inspect path to avoid conflicts
                 shutil.rmtree(inspect_path)
             os.makedirs(inspect_path)
@@ -1074,7 +1108,6 @@ class Capability:
         cwd = os.getcwd()
         os.chdir(constants.BASE_INSPECT_EVALS_DIR)
         sys.path.append(constants.BASE_INSPECT_EVALS_DIR)
-        # TODO: Run asynchronosly
         for model_idx, model in enumerate(subject_llms):
             try:
                 self._evaluate_using_inspect(
@@ -1112,7 +1145,8 @@ def _import_from_path(module_name: str, file_path: str) -> Any:
 
     This is a helper function for loading the capability.py file as a module.
 
-    Args:
+    Args
+    ----
         module_name (str): The name to assign to the imported module.
         file_path (str): The file path to the module to be imported.
 

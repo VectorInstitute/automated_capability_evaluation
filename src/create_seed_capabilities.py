@@ -1,4 +1,6 @@
-import json  # noqa: D100
+"""Create seed capabilities for the mathematics and GSM8K datasets."""
+
+import json
 import logging
 import os
 import random
@@ -6,7 +8,7 @@ import shutil
 from collections import defaultdict
 from typing import Any, Dict, List
 
-import hydra  # noqa: D100
+import hydra
 from omegaconf import DictConfig
 
 from capability import CapabilitySeedDataset
@@ -33,7 +35,8 @@ def populate_seed_capability_dir(
 
     Create a JSON configuration and a Python script.
 
-    Args:
+    Args
+    ----
         base_dir (str): The base directory where the capability directory
             will be created.
         capability_name (str): The name of the capability.
@@ -45,10 +48,7 @@ def populate_seed_capability_dir(
         capability_instructions (str): Instructions for the capability.
         capability_score_func (str): The scoring function for the capability.
         source_dataset (str): The name of the source dataset.
-
-    Returns
-    -------
-        None
+        capability_subject (str | None): The subject of the capability.
     """
     # Create capability dir
     capability_dir = os.path.join(base_dir, capability_name)
@@ -114,7 +114,8 @@ def remove_boxed(s: str) -> str:
     2. If the string starts with "\\boxed{" and ends with "}", it removes these
        enclosing characters.
 
-    Args:
+    Args
+    ----
         s (str): The input string containing the LaTeX boxed notation.
 
     Returns
@@ -149,7 +150,8 @@ def last_boxed_only_string(string: str) -> str | None:
     the last occurrence of these box commands.
     If no such boxed substring is found, it returns None.
 
-    Args:
+    Args
+    ----
         string (str): The input string to search for boxed substrings.
 
     Returns
@@ -185,7 +187,8 @@ def main(cfg: DictConfig) -> None:
     """
     Create seed capabilities based on the provided configuration.
 
-    Args:
+    Args
+    ----
         cfg (DictConfig): Configuration object containing capability settings.
 
     The function processes capabilities from the configuration and

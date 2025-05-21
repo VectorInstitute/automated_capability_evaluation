@@ -65,7 +65,7 @@ async def evaluate_with_llm_judge(
         submission (str): The submission string to evaluate.
         target (str): The target answer string.
         llm_model (str | InspectModel): The LLM model to use for evaluation.
-        **kwargs: Additional arguments for the LLM model.
+        gen_cfg (Dict[str, Any]): The generation configuration for the LLM.
 
     Returns
     -------
