@@ -38,9 +38,5 @@ score_cfg:
   # The directory to save the capability scores plots.
   plot_capabilities_score_dir: /fs01/projects/aieng/public/ace/artifacts/gcp_artifacts/plots
 
-embedding_visualization_cfg:
-  save_dir: /fs01/projects/aieng/public/ace/artifacts/plots
-  show_point_ids: False # Set to true when plotting a small number of capabilities.
-
 defaults:
   - _self_

@@ -1,6 +1,6 @@
 # The capabilities directory should contain the LLM generated capability files.
 capabilities_cfg:
-  saved_capabilities_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/capabilities_o4-mini_C100_R5_A10_T100_v1
+  saved_capabilities_dir: /fs01/projects/aieng/public/ace/capabilities_o4-mini_C100_R5_A10_T100
   domain: math
 
 embedding_cfg:
@@ -19,12 +19,12 @@ dimensionality_reduction_cfg:
   normalize_output: False
 
 embedding_visualization_cfg:
-  save_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/capabilities_o4-mini_C100_R5_A10_T100_v1/visualizations
+  save_dir: /fs01/projects/aieng/public/acecapabilities_o4-mini_C100_R5_A10_T100/visualizations
   plot_name: "PCA Embeddings"
   show_point_ids: False # Set to true when plotting a small number of capabilities.
 
 heatmap_cfg:
-  save_dir: /Users/fatemehtavakoli/Desktop/ACE code/local/capabilities_o4-mini_C100_R5_A10_T100_v1/visualizations
+  save_dir: /fs01/projects/aieng/public/ace/capabilities_o4-mini_C100_R5_A10_T100/visualizations
   plot_name: "embedding_heatmap"
   add_squares: true
 

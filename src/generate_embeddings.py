@@ -629,7 +629,7 @@ def visualize_llm_scores_spider_chart(
 
     # Plot each LLM
     for _i, llm in enumerate(llms):
-        # Extract model name and size
+        # Extract model name
         model_parts = llm.split(",")
         model_name = model_parts[0].strip()
         line_style = "-"
