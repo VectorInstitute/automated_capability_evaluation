@@ -575,7 +575,7 @@ def visualize_llm_scores_spider_chart(
     areas = list(data.keys())
     llms = {llm for area_data in data.values() for llm in area_data}
     n = len(areas)
-    angles = [n / float(n) * 2 * np.pi for n in range(n)]
+    angles = [i / float(n) * 2 * np.pi for i in range(n)]
     angles += angles[:1]
 
     _, ax = plt.subplots(figsize=(12, 27), subplot_kw={"polar": True})
