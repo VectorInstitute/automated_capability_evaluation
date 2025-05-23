@@ -1,6 +1,6 @@
 # The capabilities directory should contain the LLM generated capability files.
 capabilities_cfg:
-  saved_capabilities_dir: /fs01/projects/aieng/public/ace/artifacts/capabilities_o3-mini_C20_R3_A5_T5
+  saved_capabilities_dir: /fs01/projects/aieng/public/ace/capabilities_o4-mini_C100_R5_A10_T100
   domain: math
 
 embedding_cfg:
@@ -8,7 +8,7 @@ embedding_cfg:
   embedding_model: "text-embedding-3-small" # "text-embedding-3-small" or "text-embedding-3-large"
   embedding_size: 512
   # The cosine similarity threshold for filtering capabilities based on their embeddings.
-  filtering_similarity_threshold: 0.9
+  filtering_similarity_threshold: 0.90
 
 dimensionality_reduction_cfg:
   # Dimensionality reduction method generates the low dimensional encodings.
@@ -19,12 +19,12 @@ dimensionality_reduction_cfg:
   normalize_output: False
 
 embedding_visualization_cfg:
-  save_dir: /fs01/projects/aieng/public/ace/artifacts/visualizations
-  plot_name: "Non-normalized PCA Embeddings"
-  show_point_ids: true # Set to true when plotting a small number of capabilities.
+  save_dir: /fs01/projects/aieng/public/acecapabilities_o4-mini_C100_R5_A10_T100/visualizations
+  plot_name: "PCA Embeddings"
+  show_point_ids: False # Set to true when plotting a small number of capabilities.
 
 heatmap_cfg:
-  save_dir: /fs01/projects/aieng/public/ace/artifacts/visualizations
+  save_dir: /fs01/projects/aieng/public/ace/capabilities_o4-mini_C100_R5_A10_T100/visualizations
   plot_name: "embedding_heatmap"
   add_squares: true
 

@@ -1,0 +1,42 @@
+scientist_llm:
+  name: o4-mini
+  provider: openai
+exp_cfg:
+  exp_id: o4-mini_C100_R5_A10_T100
+# The capabilities directory should contain the LLM generated capability files.
+capabilities_cfg:
+  saved_capabilities_dir: /fs01/projects/aieng/public/ace/artifacts/gcp_artifacts/capabilities_o4-mini_C100_R5_A10_T100
+  domain: math
+  # Method used to generate capabilities
+  method: "hierarchical"
+  # Number of seed capabilities to use for initial capability generation
+  # Set to -1 to use all seed capabilities
+  num_seed_capabilities: 1
+  # Number of initial capabilities to generate using the scientist LLM
+  num_gen_capabilities: 100
+  # Buffer for capability generation
+  num_gen_capabilities_buffer: 0.2
+  # Number of capability areas to generate
+  num_capability_areas: 10
+  # Number of initial capabilities to generate per run
+  num_gen_capabilities_per_run: 5
+  # Number of tasks to generate for each capability
+  num_gen_tasks_per_capability: 100
+  # Buffer for task generation
+  num_gen_tasks_buffer: 0.2
+
+score_cfg:
+  subject_llm_names:
+    - claude-3-7-sonnet-20250219
+    - o3-mini
+    - gemini-2.0-flash
+    - o1-mini
+    - Meta-Llama-3.1-70B-Instruct
+
+  # The scores directory should contain the LLM capability scores.
+  read_score_dir: /fs01/projects/aieng/public/ace/artifacts/gcp_artifacts/scores
+  # The directory to save the capability scores plots.
+  plot_capabilities_score_dir: /fs01/projects/aieng/public/ace/artifacts/gcp_artifacts/plots
+
+defaults:
+  - _self_
