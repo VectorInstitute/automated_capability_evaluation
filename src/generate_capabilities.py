@@ -421,6 +421,7 @@ def plot_hierarchical_capability_2d_embeddings(
         save_dir (str): The directory to save the plot.
         show_point_ids (bool): Whether to show point IDs in the plot. Set this to
             False for large datasets to avoid cluttering the plot.
+        save_area_legend (bool): Whether to save the area legend as a separate plot.
 
     Returns
     -------
