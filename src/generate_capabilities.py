@@ -1,4 +1,6 @@
-import json  # noqa: D100
+"""Generate capabilities using the scientist LLM."""
+
+import json
 import logging
 import os
 import random
@@ -100,7 +102,6 @@ def _sample_seed_capabilities(
             all_seed_capability_paths.remove(capability_name)
         num_seed_capabilities -= len(include_capability_names)
 
-    # TODO: Enhance the selection criterion
     for capability_path in random.sample(
         all_seed_capability_paths, num_seed_capabilities
     ):
@@ -307,9 +308,15 @@ def generate_capabilities_using_llm(
                             base_dir=base_capability_dir,
                             score_dir_suffix=(kwargs.get("run_id")),
                         )
-                    except Exception as e:
-                        # TODO: Handle different exceptions separately?
+                    except FileExistsError:
                         # 1. Same name as existing capability
+                        # Do not delete the capability directory if it already exists
+                        logger.warning(
+                            f"Capability {capability['name']} already exists. Skipping it."
+                        )
+                        # Skip this capability
+                        continue
+                    except Exception as e:
                         # 2. “problem” replaced with “riddle” or some other keyword
                         #   leads to KeyError
                         # 3. Ill-formatted `capability.py` file due to missing quotes
@@ -521,8 +528,8 @@ def apply_dimensionality_reduction(
         output_dimension_size (int): The number of dimensions to reduce to.
         embedding_model_name (str): The name of the OpenAI embedding model used for
             generating the embeddings.
-        seed (int): The random seed for reproducibility.
         tsne_perplexity (int | None): The perplexity parameter for T-SNE.
+        random_seed (int): The seed for the random number generator.
         normalize_output (bool): Whether to normalize the output embeddings.
 
     Returns
@@ -579,10 +586,6 @@ def apply_dimensionality_reduction_to_test_capabilities(
             reduction method to use.
         embedding_model_name (str): The name of the embedding model used for
             generating the embeddings.
-
-    Returns
-    -------
-        None
     """
     # Apply the dimensionality reduction technique on test capabilities.
     reduced_embeddings = dim_reduction_method.transform_new_points(
@@ -611,7 +614,6 @@ def generate_and_set_capabilities_embeddings(
         capabilities (List[Capability]): The list of capabilities.
         embedding_model_name (str): The name of the embedding model to use.
         embed_dimensions (int): The number of dimensions for the embeddings.
-
     """
     # Convert the embedding model name to `EmbeddingModelName` to ensure
     # that the provided model name is valid and supported.
@@ -1044,6 +1046,12 @@ def score_based_capability_discovery(
                         base_dir=base_capability_dir,
                         score_dir_suffix=(kwargs.get("run_id")),
                     )
+                except FileExistsError as e:
+                    # Do not delete the capability directory if it already exists
+                    logger.error(
+                        f"Capability {gen_capability_dict['name']} already exists. Updating seed to generate a new capability."
+                    )
+                    raise e
                 except Exception as e:
                     logger.error(
                         f"Error creating capability object {gen_capability_dict['name']}: {repr(e)}"
@@ -1090,7 +1098,8 @@ def knn_based_capability_discovery(
     capabilities to create new ones. The scientist LLM is used to generate
     these capabilities based on a user-defined prompt and configuration.
 
-    Args:
+    Args
+    ----
         knn_capabilities (List[Capability]): A list of capabilities identified
             as nearest neighbors to guide the generation process.
         prev_capabilities (List[Capability]): The list of previously generated
@@ -1194,6 +1203,12 @@ def knn_based_capability_discovery(
                         base_dir=base_capability_dir,
                         score_dir_suffix=(kwargs.get("run_id")),
                     )
+                except FileExistsError as e:
+                    # Do not delete the capability directory if it already exists
+                    logger.error(
+                        f"Capability {gen_capability_dict['name']} already exists. Updating seed to generate a new capability."
+                    )
+                    raise e
                 except Exception as e:
                     logger.error(
                         f"Error creating capability object {gen_capability_dict['name']}: {repr(e)}"
@@ -1238,6 +1253,10 @@ def select_complete_capabilities(
     Args
     ----
         capabilities (List[Capability]): The list of generated capabilities.
+        strict (bool): If True, only capabilities with the state
+            `TASK_GENERATION_COMPLETED` are selected. If False, capabilities
+            with at least `num_tasks_lower_bound` tasks are also selected.
+        num_tasks_lower_bound (int): The minimum number of tasks required
 
     Returns
     -------
@@ -1280,7 +1299,8 @@ def capability_satisfies_criterion(
     considered complete. The criteria can be adjusted based on the `strict`
     parameter and the minimum number of tasks required.
 
-    Args:
+    Args
+    ----
         capability (Capability): The capability object to evaluate.
         strict (bool, optional): If True, only capabilities with the
             TASK_GENERATION_COMPLETED state are considered valid. If False,

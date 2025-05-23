@@ -1,0 +1,20 @@
+subject_llms:
+  - o3-mini
+  - gemini-2.0-flash
+  - claude-3-7-sonnet-20250219
+
+lbo_cfg:
+  num_lbo_runs: 20
+  pipeline_id: "discover_new_lbo_knn"
+  train_frac: 0.5
+  num_initial_train: 10
+  acquisition_functions:
+    - "expected_variance_reduction"
+  select_k: 5
+  metrics:
+    - "rmse"
+    - "avg_std"
+
+exp_cfg:
+  seed: 37
+  exp_id: "o4-mini_C100_R5_A10_T100"

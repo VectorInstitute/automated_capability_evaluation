@@ -1,4 +1,6 @@
-import asyncio  # noqa: D100
+"""Task generation module."""
+
+import asyncio
 import json
 import logging
 from typing import Any, Dict, List, Tuple
@@ -147,8 +149,7 @@ def generate_tasks_using_llm(
     Generate `num_tasks` tasks for the given capability.
 
     Generate tasks for the given capability
-    using the scientist LLM model based on the following approach:
-    <Approach>
+    using the scientist LLM model.
 
     Args
     ----
@@ -170,16 +171,6 @@ def generate_tasks_using_llm(
             (not reached target number of tasks).
         **kwargs (Any): Additional arguments for task generation.
     """
-    # TODO: Implement Approach 2 (low priority)
-    # # Approach 2
-    # 1. Generate task problems and answers together in a single run.
-    #    Again, this can be done in two ways described above.
-    # 2. Filter out similar/ill-formatted problem/asnwer pairs
-    # 3. Verify each pair by:
-    #   a. prompting the scientist LLM to function as a judge
-    #   b. using a group of (less capable) models to judge and
-    #      then selecting the majority answer
-
     # Calculate the number of tasks to generate
     target_num_tasks = num_tasks
     num_tasks = int(num_tasks * (1 + num_tasks_buffer))
@@ -424,8 +415,11 @@ def verify_solved_tasks(
 
     Returns
     -------
-        Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]: A tuple containing
-            the list of successful tasks and the list of failed tasks.
+        Tuple[Tuple[List[Dict[str, Any]], List[Dict[str, Any]]], Dict[Any, Any]]:
+            A tuple containing two lists:
+                1. The list of successfully verified tasks.
+                2. The list of failed tasks.
+                3. A dictionary containing metadata for each task.
     """
     successful_tasks = []
     failed_tasks = []

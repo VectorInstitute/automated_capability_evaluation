@@ -1,4 +1,6 @@
-import logging  # noqa: D100
+"""Dim ensionality Reduction Module."""
+
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
 
@@ -50,17 +52,18 @@ class DimensionalityReductionMethod(ABC):
     def fit_transform(self, embeddings: List[torch.Tensor]) -> List[torch.Tensor]:
         """Fit the dimensionality reduction method to the data and transform the data.
 
-        Args:
+        Args
+        ----
             embeddings (List[torch.Tensor]): List of tensors representing the embeddings
                 to be reduced.
-
-        Raises
-        ------
-            NotImplementedError: If the method is not implemented in a subclass.
 
         Returns
         -------
             List[torch.Tensor]: List of tensors representing the reduced embeddings.
+
+        Raises
+        ------
+            NotImplementedError: If the method is not implemented in a subclass.
         """
         raise NotImplementedError(
             "The fit_transform method should be implemented in subclasses."
@@ -72,17 +75,18 @@ class DimensionalityReductionMethod(ABC):
     ) -> List[torch.Tensor]:
         """Transform new points using the fitted dimensionality reduction method.
 
-        Args:
+        Args
+        ----
             new_embeddings (List[torch.Tensor]): List of tensors representing the new
                 embeddings to be transformed.
-
-        Raises
-        ------
-            NotImplementedError: If the method is not implemented in a subclass.
 
         Returns
         -------
             List[torch.Tensor]: List of tensors representing the transformed embeddings.
+
+        Raises
+        ------
+            NotImplementedError: If the method is not implemented in a subclass.
         """
         raise NotImplementedError(
             "The transform_new_points method should be implemented in subclasses."
@@ -99,7 +103,8 @@ class DimensionalityReductionMethod(ABC):
     ) -> "DimensionalityReductionMethod":
         """Create an instance of a dimensionality reduction method based on its name.
 
-        Args:
+        Args
+        ----
             method_name (str): The name of the dimensionality reduction method.
             output_dimension_size (int): The size of the output dimensions.
             random_seed (int): The random seed for reproducibility.

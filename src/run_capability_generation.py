@@ -113,7 +113,6 @@ def main(cfg: DictConfig) -> None:
             f"Capabilities retained after filtering ({len(filtered_capabilities)}/{len(capabilities)}): {filtered_capabilities}"
         )
 
-    # TODO: Run this asynchronosly
     for capability in filtered_capabilities:
         # Generate tasks for each capability
         generate_tasks_using_llm(
@@ -124,7 +123,7 @@ def main(cfg: DictConfig) -> None:
             scientist_llm_gen_cfg_task_gen=dict(scientist_llm_gen_cfg.task_generation),
             scientist_llm_gen_cfg_task_solve=dict(scientist_llm_gen_cfg.task_solve),
             scientist_llm_gen_cfg_task_verify=dict(scientist_llm_gen_cfg.task_verify),
-            solve_sample_tasks=True,  # TODO: Update this based on checkpointing
+            solve_sample_tasks=True,
             few_shot=cfg.capabilities_cfg.task_gen_few_shot,
             run_id=run_id,
             tasks_gen_retry_attempts=cfg.capabilities_cfg.tasks_gen_retry_attempts,
