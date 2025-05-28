@@ -62,7 +62,19 @@ def _sample_seed_capabilities(
     random.seed(random_seed)
 
     sampled_seed_capabilities = []
-    all_seed_capability_paths = os.listdir(seed_capability_dir)
+    try:
+        all_seed_capability_paths = os.listdir(seed_capability_dir)
+    except FileNotFoundError:
+        # If seed capabilities does not exist for the specified domain,
+        # use seed capabilities from the math domain.
+        logger.warning(
+            f"Seed capability directory {seed_capability_dir} does not exist. "
+            "Using seed capabilities from the math domain."
+        )
+        seed_capability_dir = os.path.join(
+            constants.BASE_ARTIFACTS_DIR, "seed_capabilities", "math"
+        )
+        all_seed_capability_paths = os.listdir(seed_capability_dir)
 
     if exclude_capability_names is not None:
         assert num_seed_capabilities != -1, (
