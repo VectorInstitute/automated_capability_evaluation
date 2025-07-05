@@ -9,12 +9,14 @@ from src.capability import Capability
 from src.dimensionality_reduction import DimensionalityReductionMethod
 from src.generate_capabilities import (
     apply_dimensionality_reduction,
-    generate_capability_heatmap,
-    plot_hierarchical_capability_2d_embeddings,
 )
 from src.generate_embeddings import (
     EmbeddingGenerator,
     EmbeddingModelName,
+)
+from src.utils.visualization_utils import (
+    generate_capability_heatmap,
+    plot_hierarchical_capability_2d_embeddings,
 )
 
 

@@ -11,8 +11,10 @@ from src.generate_capabilities import (
     apply_dimensionality_reduction_to_test_capabilities,
     filter_capabilities,
     generate_and_set_capabilities_embeddings,
-    generate_capability_heatmap,
     get_previous_capabilities,
+)
+from src.utils.visualization_utils import (
+    generate_capability_heatmap,
     plot_hierarchical_capability_2d_embeddings,
 )
 
