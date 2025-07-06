@@ -6,18 +6,18 @@ import os
 import hydra
 from omegaconf import DictConfig
 
-from generate_capabilities import (
+from src.generate_capabilities import (
     filter_capabilities,
     generate_and_set_capabilities_embeddings,
     generate_capabilities,
     get_previous_capabilities,
 )
-from generate_tasks import (
+from src.generate_tasks import (
     generate_tasks_using_llm,
 )
-from model import Model
-from utils import constants
-from utils.data_utils import check_cfg, get_run_id
+from src.model import Model
+from src.utils import constants
+from src.utils.data_utils import check_cfg, get_run_id
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
@@ -63,6 +63,7 @@ def main(cfg: DictConfig) -> None:
             target_num_capabilities
             * (1 + cfg.capabilities_cfg.num_gen_capabilities_buffer)
         )
+
         capabilities = generate_capabilities(
             domain=cfg.capabilities_cfg.domain,
             num_capabilities=num_capabilities,
