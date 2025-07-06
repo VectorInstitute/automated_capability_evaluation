@@ -7,17 +7,21 @@ import hydra
 from omegaconf import DictConfig
 
 from src.generate_capabilities import (
-    filter_capabilities,
-    generate_and_set_capabilities_embeddings,
     generate_capabilities,
-    get_previous_capabilities,
 )
 from src.generate_tasks import (
     generate_tasks_using_llm,
 )
 from src.model import Model
 from src.utils import constants
+from src.utils.capability_management_utils import (
+    filter_capabilities,
+    get_previous_capabilities,
+)
 from src.utils.data_utils import check_cfg, get_run_id
+from src.utils.embedding_utils import (
+    generate_and_set_capabilities_embeddings,
+)
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
@@ -48,6 +52,7 @@ def main(cfg: DictConfig) -> None:
         f"capabilities_{run_id}",
         cfg.capabilities_cfg.domain,
     )
+    print(f"Base capability directory: {base_capability_dir}")
     target_num_capabilities = cfg.capabilities_cfg.num_gen_capabilities
     if os.path.exists(base_capability_dir):
         # Fetch previously generated capabilities

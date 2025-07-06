@@ -9,24 +9,28 @@ import hydra
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from generate_capabilities import (
-    apply_dimensionality_reduction,
-    apply_dimensionality_reduction_to_test_capabilities,
+from src.generate_tasks import (
+    generate_tasks_using_llm,
+)
+from src.lbo import calculate_lbo_error, fit_lbo, select_capabilities_using_lbo
+from src.model import Model
+from src.utils import constants, prompts
+from src.utils.capability_discovery_utils import (
     capability_satisfies_criterion,
-    generate_and_set_capabilities_embeddings,
-    get_previous_capabilities,
     knn_based_capability_discovery,
     score_based_capability_discovery,
     select_complete_capabilities,
 )
-from generate_tasks import (
-    generate_tasks_using_llm,
+from src.utils.capability_management_utils import (
+    get_previous_capabilities,
 )
-from lbo import calculate_lbo_error, fit_lbo, select_capabilities_using_lbo
-from model import Model
-from utils import constants, prompts
-from utils.data_utils import check_cfg, get_run_id
-from utils.lbo_utils import get_lbo_train_set
+from src.utils.data_utils import check_cfg, get_run_id
+from src.utils.embedding_utils import (
+    apply_dimensionality_reduction,
+    apply_dimensionality_reduction_to_test_capabilities,
+    generate_and_set_capabilities_embeddings,
+)
+from src.utils.lbo_utils import get_lbo_train_set
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")

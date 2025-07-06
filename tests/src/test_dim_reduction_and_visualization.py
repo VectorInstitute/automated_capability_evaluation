@@ -7,12 +7,12 @@ import torch
 
 from src.capability import Capability
 from src.dimensionality_reduction import DimensionalityReductionMethod
-from src.generate_capabilities import (
-    apply_dimensionality_reduction,
-)
 from src.generate_embeddings import (
     EmbeddingGenerator,
     EmbeddingModelName,
+)
+from src.utils.embedding_utils import (
+    apply_dimensionality_reduction,
 )
 from src.utils.visualization_utils import (
     generate_capability_heatmap,

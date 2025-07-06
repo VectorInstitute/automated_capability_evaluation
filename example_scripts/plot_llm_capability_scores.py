@@ -5,9 +5,11 @@ import hydra
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from src.generate_capabilities import (
-    get_previous_capabilities,
+from src.utils.capability_discovery_utils import (
     select_complete_capabilities,
+)
+from src.utils.capability_management_utils import (
+    get_previous_capabilities,
 )
 from src.utils.data_utils import get_run_id
 from src.utils.visualization_utils import (
