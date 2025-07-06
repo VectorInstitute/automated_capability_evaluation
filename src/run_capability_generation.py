@@ -52,7 +52,6 @@ def main(cfg: DictConfig) -> None:
         f"capabilities_{run_id}",
         cfg.capabilities_cfg.domain,
     )
-    print(f"Base capability directory: {base_capability_dir}")
     target_num_capabilities = cfg.capabilities_cfg.num_gen_capabilities
     if os.path.exists(base_capability_dir):
         # Fetch previously generated capabilities
