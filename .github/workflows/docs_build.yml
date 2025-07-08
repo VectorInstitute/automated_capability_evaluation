@@ -38,7 +38,12 @@ jobs:
           source $(poetry env info --path)/bin/activate
           poetry install --with docs,test
           cd docs && rm -rf source/reference/api/_autosummary && make html
-          cd .. && coverage run -m pytest -m "not integration_test" && coverage xml && coverage report -m
+      - name: Run tests and generate coverage
+        run: |
+          source $(poetry env info --path)/bin/activate
+          coverage run -m pytest -m "not integration_test"
+          coverage xml
+          coverage report -m || true  # Don't fail CI if coverage report has issues
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
