@@ -33,9 +33,14 @@ jobs:
           python-version: '3.10'
           cache: 'poetry'
 
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: false
+
       - name: Install dependencies and check code
         run: |
-          python3 -m pip install --upgrade pip poetry
           poetry env use '3.10'
           source $(poetry env info --path)/bin/activate
           poetry install --with test --all-extras
