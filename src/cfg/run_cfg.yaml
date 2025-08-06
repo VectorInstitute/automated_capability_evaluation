@@ -1,5 +1,5 @@
 scientist_llm:
-  name: o4-mini
+  name: o3-mini
   provider: openai
   generation_cfg:
     capability_generation:
@@ -59,85 +59,51 @@ prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.
 
 capabilities_cfg:
-  capabilities_dir: /fs01/projects/aieng/public/ace/artifacts
-  results_dir: gs://ace-artifacts
-  inspect_evals_dir: /fs01/projects/aieng/public/ace/inspect_evals/src/ace_evals
-  domain: math
-  # Method used to generate capabilities
+  capabilities_dir: /h/fkohankh/automated_capability_evaluation_logs
+  results_dir: /h/fkohankh/automated_capability_evaluation_logs/results
+  inspect_evals_dir: /h/fkohankh/automated_capability_evaluation_logs/inspect_evals
+  domain: personal_finance
   method: "hierarchical"
-  # Number of seed capabilities to use for initial capability generation
-  # Set to -1 to use all seed capabilities
   num_seed_capabilities: 1
-  # Number of initial capabilities to generate using the scientist LLM
-  num_gen_capabilities: 100
-  # Buffer for capability generation
-  num_gen_capabilities_buffer: 0.2
-  # Number of capability areas to generate
-  num_capability_areas: 10
-  # Number of initial capabilities to generate per run
-  num_gen_capabilities_per_run: 5
-  # Number of tasks to generate for each capability
-  num_gen_tasks_per_capability: 100
-  # Buffer for task generation
-  num_gen_tasks_buffer: 0.2
-  # Set this flag to true to use representative tasks
-  # as few shot examples for task generation
-  task_gen_few_shot: true
-  # Set this flag to true to use the specific version
-  # of task generation prompt
+  num_gen_capabilities: 20
+  num_gen_capabilities_buffer: 0.0
+  num_capability_areas: 5
+  num_gen_capabilities_per_run: 1
+  num_gen_tasks_per_capability: 1
+  num_gen_tasks_buffer: 0.0
+  task_gen_few_shot: false
   task_gen_prompt_version: "v1"
-  # Number of tasks to evaluate for each capability
-  # Set to -1 to evaluate all tasks
-  num_eval_tasks_per_capability: -1
-  # Number of retries for each run of capability generation
-  capabilities_gen_retry_attempts: 3
+  num_eval_tasks_per_capability: 2
+  capabilities_gen_retry_attempts: 5
   tasks_gen_retry_attempts: 3
-  # Concurrency for task solving and verification
-  concurrency_task_solver: 50
-  concurrency_task_verifier: 50
-  concurrency_task_eval: 50
-  # Inspect evals config
+  concurrency_task_solver: 2
+  concurrency_task_verifier: 2
+  concurrency_task_eval: 2
   inspect_eval_log_level: "info"
 
 lbo_cfg:
-  # Number of capabilities to generate/select using LBO
-  num_lbo_runs: 20
-  # Type of LBO pipeline to use
-  pipeline_id: "discover_new_lbo_knn" # "no_discovery", "discover_new_llm" or "discover_new_lbo_knn"
-  # Train args for "no_discovery" pipeline
+  num_lbo_runs: 2
+  pipeline_id: "no_discovery"
   train_frac: 0.5
-  num_initial_train: 10
-  # Acquisition function that guides selecting the next query point.
-  # "variance" and "expected_variance_reduction" is supported.
-  acquisition_function: "expected_variance_reduction"
-  # Value of k for "discover_new_lbo_knn" pipeline
-  select_k: 5
-  discover_new_llm_retry_attempts: 3
-  discover_new_lbo_knn_retry_attempts: 5
-  discover_new_retry_attempts: 3
+  num_initial_train: 2
+  acquisition_function: "variance"
 
 embedding_cfg:
-  # The embedding model name used to generate capability embeddings used for filtering.
-  embedding_model: "text-embedding-3-small" # "text-embedding-3-small" or "text-embedding-3-large"
-  embedding_size: 512
-  # The cosine similarity threshold for filtering capabilities based on their embeddings.
-  filtering_similarity_threshold: 0.85
+  embedding_model: "text-embedding-3-small"
+  embedding_size: 256
+  filtering_similarity_threshold: 0.7
 
 dimensionality_reduction_cfg:
-  # dimensionality reduction method generates the low dimensional encodings.
-  reduce_dimensionality_method: "pca" # "t-sne", "cut-embedding" or "pca".
+  reduce_dimensionality_method: "pca"
   reduced_dimensionality_size: 2
-  no_discovery_reduced_dimensionality_method: "t-sne"
+  no_discovery_reduced_dimensionality_method: "pca"
   no_discovery_reduced_dimensionality_size: 2
-  discover_new_reduced_dimensionality_method: "pca"
-  discover_new_reduced_dimensionality_size: 2
 
 exp_cfg:
-  # Set this flag to true to run test experiments during development
   seed: 37
   trial_run: false
-  exp_id:
+  exp_id: "personal_finance_o3-mini_r1"
 
 defaults:
   - _self_
-  - capabilities: math
+  - capabilities: personal_finance

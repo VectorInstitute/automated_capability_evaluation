@@ -1,0 +1,10 @@
+personal_finance_basic:
+  name: personal_finance_basic
+  description: This capability contains synthetic multi-step personal finance problems that cover budgeting, compounding, debt strategies, insurance trade-offs, expected-value analysis, and more, requiring detailed numerical reasoning and using advanced finance concepts.
+  domain: personal_finance
+  data_args:
+    source: kohankhaki/personal_finance_question_answer_complex
+    split: train
+    num_repr_tasks: 3
+  instructions: >-
+    f"""Solve the following personal finance problem step by step. The last line of your response should be of the form "ANSWER: $ANSWER" (without quotes) where $ANSWER is the final numerical answer to the problem.\n\nProblem: {problem}\n\nShow every calculation, explain any rounding, and put the final answer on its own line as 'ANSWER: $ANSWER'."""
