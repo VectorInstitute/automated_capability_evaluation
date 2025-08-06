@@ -6,13 +6,15 @@ import os
 import hydra
 from omegaconf import DictConfig
 
-from generate_capabilities import (
-    get_previous_capabilities,
+from src.model import Model
+from src.utils import constants
+from src.utils.capability_discovery_utils import (
     select_complete_capabilities,
 )
-from model import Model
-from utils import constants
-from utils.data_utils import check_cfg, get_run_id
+from src.utils.capability_management_utils import (
+    get_previous_capabilities,
+)
+from src.utils.data_utils import check_cfg, get_run_id
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")

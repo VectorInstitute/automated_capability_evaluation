@@ -68,4 +68,4 @@ DEFAULT_INSPECT_SCORER_NAME = "custom_scorer"
 
 DEFAULT_INSPECT_EVAL_LOG_LEVEL = "warning"
 
-VEC_INF_LOG_DIR = os.environ["VEC_INF_LOG_DIR"]
+VEC_INF_LOG_DIR = os.environ.get("VEC_INF_LOG_DIR", "/tmp")

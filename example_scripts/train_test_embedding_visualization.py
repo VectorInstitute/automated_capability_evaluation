@@ -6,13 +6,17 @@ import os
 import hydra
 from omegaconf import DictConfig
 
-from src.generate_capabilities import (
+from src.utils.capability_management_utils import (
+    filter_capabilities,
+    get_previous_capabilities,
+)
+from src.utils.embedding_utils import (
     apply_dimensionality_reduction,
     apply_dimensionality_reduction_to_test_capabilities,
-    filter_capabilities,
     generate_and_set_capabilities_embeddings,
+)
+from src.utils.visualization_utils import (
     generate_capability_heatmap,
-    get_previous_capabilities,
     plot_hierarchical_capability_2d_embeddings,
 )
 

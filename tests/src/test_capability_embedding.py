@@ -2,7 +2,7 @@ import pytest  # noqa: D100
 import torch
 
 from src.capability import Capability
-from src.generate_capabilities import apply_dimensionality_reduction
+from src.utils.embedding_utils import apply_dimensionality_reduction
 
 
 @pytest.fixture

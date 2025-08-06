@@ -55,7 +55,7 @@ gcloud auth application-default login
 Generates capability names and descriptions in the first step. In the second step, for each capability, it generates tasks, solves them, and verifies the solutions.
 
 ```bash
-python3 src/run_capability_generation.py
+python -m src.run_capability_generation
 ```
 
 ### Evaluation of subject LLM on generated capabilities
@@ -63,7 +63,7 @@ python3 src/run_capability_generation.py
 Evaluates the subject LLM on the generated capabilities and calculates a score for each.
 
 ```bash
-python3 src/run_evaluation.py
+python -m src.run_evaluation
 ```
 
 ### Capability selection/generation using active learning
@@ -71,5 +71,5 @@ python3 src/run_evaluation.py
 Utilize the capability and the corresponding subject LLM score to select or generate a new capability.
 
 ```bash
-python3 src/run_lbo.py
+python -m src.run_lbo
 ```

@@ -9,10 +9,8 @@ import hydra
 import numpy as np
 from omegaconf import DictConfig
 
-from src.generate_capabilities import (
-    get_previous_capabilities,
-)
 from src.utils import constants
+from src.utils.capability_management_utils import get_previous_capabilities
 from src.utils.capability_utils import (
     read_score_inspect_json,
 )

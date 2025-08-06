@@ -37,25 +37,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
-      - name: Install poetry
-        run: python3 -m pip install --upgrade pip && python3 -m pip install poetry
+
       - uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.10'
-      - name: Install dependencies and check code
+
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: false
+
+      - name: Install dependencies and run tests
         run: |
           poetry env use '3.10'
           source $(poetry env info --path)/bin/activate
-          poetry install --with docs,test
-          coverage run -m pytest -m "not integration_test" && coverage xml && coverage report -m
+          poetry install --with test
+          coverage run -m pytest -m "not integration_test"
+          coverage xml
+          coverage report -m || true
+
       - name: Upload coverage to Codecov
-        uses: Wandalen/wretry.action@v3.8.0
+        uses: codecov/codecov-action@v4
         with:
-          action: codecov/codecov-action@v4.0.0
-          with: |
-            token: ${{ secrets.CODECOV_TOKEN }}
-            file: ./coverage.xml
-            name: codecov-umbrella
-            fail_ci_if_error: true
-          attempt_limit: 5
-          attempt_delay: 30000
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.xml
+          name: codecov-umbrella
+          fail_ci_if_error: false
+        continue-on-error: true

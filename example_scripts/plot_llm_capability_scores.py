@@ -5,12 +5,16 @@ import hydra
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from src.generate_capabilities import (
-    get_previous_capabilities,
-    plot_capability_scores_spider_and_bar_chart,
+from src.utils.capability_discovery_utils import (
     select_complete_capabilities,
 )
+from src.utils.capability_management_utils import (
+    get_previous_capabilities,
+)
 from src.utils.data_utils import get_run_id
+from src.utils.visualization_utils import (
+    plot_capability_scores_spider_and_bar_chart,
+)
 
 
 logger = logging.getLogger(__name__)
