@@ -1,0 +1,20 @@
+defaults:
+  - _self_
+
+# LLM settings for the two scientist agents (and the moderator baseline)
+scientist_llm:
+  name: o3-mini
+  generation_cfg:
+    capability_generation:
+      temperature: 0.8
+      max_tokens: 4096
+      seed: 8
+
+capabilities_cfg:
+  domain: math
+  num_capability_areas: 5         # top-level areas
+  num_gen_capabilities: 20        # total capabilities across all areas
+  capabilities_dir: ./artifacts   # root folder to store METR files
+
+exp_cfg:
+  exp_id: agentic_demo
