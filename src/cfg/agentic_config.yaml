@@ -1,20 +1,36 @@
 defaults:
   - _self_
 
-# LLM settings for the two scientist agents (and the moderator baseline)
-scientist_llm:
-  name: o3-mini
-  generation_cfg:
-    capability_generation:
-      temperature: 0.8
-      max_tokens: 4096
-      seed: 8
+# Debate configuration
+debate_cfg:
+  max_round: 3
+
+
+# Agent configurations
+agents:
+  scientist_a:
+    name: o3-mini
+    temperature: 0.7
+    max_tokens: 4096
+    seed: 8
+
+  scientist_b:
+    name: o3-mini
+    temperature: 1.0  # Higher temperature for more creative responses
+    max_tokens: 4096
+    seed: 88  # Different seed for diversity
+
+  moderator:
+    name: o3-mini
+    temperature: 0.2  # Lower temperature for more focused responses
+    max_tokens: 4096
+    seed: 8
 
 capabilities_cfg:
   domain: math
   num_capability_areas: 5         # top-level areas
-  num_gen_capabilities: 20        # total capabilities across all areas
-  capabilities_dir: ./artifacts   # root folder to store METR files
+  num_gen_capabilities: 10        # total capabilities across all areas
+  capabilities_dir: ~/capability_generation/artifacts   # root folder to store METR files
 
 exp_cfg:
-  exp_id: agentic_demo
+  exp_id: agentic_demo_area
