@@ -4,6 +4,7 @@ defaults:
 # Debate configuration
 debate_cfg:
   max_round: 3
+  output_dir: ace_outputs/
 
 
 # Agent configurations
@@ -30,7 +31,6 @@ capabilities_cfg:
   domain: math
   num_capability_areas: 5         # top-level areas
   num_gen_capabilities: 10        # total capabilities across all areas
-  capabilities_dir: ~/capability_generation/artifacts   # root folder to store METR files
 
 exp_cfg:
-  exp_id: agentic_demo_area
+  exp_id: kill_me

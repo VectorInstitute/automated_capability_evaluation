@@ -331,7 +331,7 @@ async def generate_areas(cfg: DictConfig) -> None:
 
         output_dir = (
             Path.home()
-            / "ace_outputs"
+            / cfg.debate_cfg.output_dir
             / cfg.capabilities_cfg.domain
             / cfg.exp_cfg.exp_id
             / "areas"
