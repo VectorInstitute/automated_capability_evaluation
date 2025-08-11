@@ -1,32 +1,265 @@
-"""Prompts for the debate-based agentic capability generation."""
+"""Prompts for the debate-based agentic area, capability, and task generation."""
 
-CAPABILITY_GENERATION_AGGREGATOR_PROMPT = """
-Generate {num_gen_capabilities} new, interesting capabilities within the {domain} domain for the "{capability_area}" area.
-Each item must have: 'name', 'description', 'instructions', and 'tasks'.
-The 'tasks' field must be a list of exactly 3 items; each item must have 'problem' and 'answer'.
-"""
+# =============================================================================
+# AREA GENERATION PROMPTS
+# =============================================================================
 
+AREA_SCIENTIST_INITIAL_PROMPT = """You are Scientist {scientist_id}. You are an expert in evaluating large language models (LLMs) in the domain of {domain}. Your task is to independently propose a list of {num_areas} high-level, non-overlapping **capability areas** that collectively cover the space of skills relevant to this domain.
 
-CAPABILITY_GENERATION_SCIENTIST_PROMPT = """
-You are an expert in designing capabilities to assess the abilities of large language models (LLMs). Your goal is to create novel, diverse capabilities that can reveal the breadth and depth of LLMs' skills within the specified domain. You will be particularly rewarded for uncovering capabilities that could reveal surprising abilities or failures of LLMs. Valid capabilities will be added to a capability archive. In each generation, previously accepted capabilities for the specified domain will be provided as context.
+Each area should:
+- Represent a broad but distinct dimension of LLM competence.
+- Be clearly distinct from the other proposed areas (no overlap).
+- Contain enough conceptual room to allow for multiple fine-grained capabilities in the next stage.
 
-Each capability must provide the following fields:
-- "name": A concise, descriptive label (lowercase, no spaces, e.g., "math_competition_algebra").
-- "description": A clear explanation of what the capability evaluates.
-- "instructions": Initial instructions shown to the subject model. Provide clean natural language instructions; do NOT include any Python code.
-- "tasks": Exactly 3 tasks, each an object with:
-  - "problem": The task text
-  - "answer": The expected answer
+For each area, provide:
+1. A short name (a few words).
+2. A 2–3 sentence description that defines its boundaries and justifies its inclusion.
 
-Guidelines for instructions:
-1. Enforce the final answer in the form "ANSWER: $ANSWER" ONLY for capabilities that expect a short and objective answer. Do not include this for long-form tasks (explanations, proofs, essays, etc.).
-2. The instructions should not contain any code or references to implementation details. They should be general-purpose and domain-appropriate.
+Please return your proposal in the following format:
+RESPONSE JSON:
+{{
+  "area_0": {{
+    "name": <STR>,
+    "description": <STR>
+  }},
+  ...
+}}"""
 
-Return ONLY JSON with a 'capabilities' list with exactly as many items as requested.
+AREA_SCIENTIST_REVISION_PROMPT = """You are Scientist {scientist_id}. You are reviewing the merged set of capability areas proposed by the Moderator.
 
-In each capability, include exactly these fields: name, description, instructions, tasks.
-Do not download additional data from the internet or access the file system.
-Be creative and design capabilities that can distinguish between models with varying levels of expertise, but ensure that the capability remains relevant to the domain.
-Also ensure that the proposed capabilities are distinct.
-Your response will be automatically parsed so ensure it adheres to the specified format.
-"""
+Moderator's Proposal:
+{moderator_proposal}
+
+Please review the proposed areas carefully and suggest any of the following:
+- Minor refinements or clarifications to area descriptions.
+- Proposed merges/splits where you see overlap or conceptual drift.
+- Additions of missing areas or removal of unneeded ones.
+
+Keep your feedback constructive and focused on improving clarity, coverage, and non-overlap. Avoid unnecessary changes.
+
+Return your revised proposal in the following format:
+RESPONSE JSON:
+{{
+  "area_0": {{
+    "name": <STR>,
+    "description": <STR>
+  }},
+  ...
+}}"""
+
+AREA_MODERATOR_MERGE_PROMPT = """You are the Moderator. Two scientist agents have independently proposed a list of high-level capability areas for evaluating large language models in the domain of {domain}.
+
+Below are their proposals:
+
+Scientist A Proposal:
+{scientist_a_proposal}
+
+Scientist B Proposal:
+{scientist_b_proposal}
+
+Your task is to merge their proposals into a unified set of {num_final_areas} areas. In doing so:
+- Eliminate overlaps and redundant areas.
+- Justify any removals, merges, or renamings.
+- Ensure that the final set is mutually exclusive and collectively exhaustive for this domain.
+
+You will then submit this merged proposal for review by the scientist agents. If either scientist provides substantive suggestions, you may revise the proposal and initiate another round of review.{finalized_instruction}
+
+Present the merged areas in the following format:
+{{
+  "area_0": {{
+    "name": <STR>,
+    "description": <STR>
+  }},
+  ...{finalized_field}
+}}
+
+Be thoughtful and concise in your output."""
+
+# =============================================================================
+# CAPABILITY GENERATION PROMPTS
+# =============================================================================
+
+CAPABILITY_SCIENTIST_INITIAL_PROMPT = """You are Scientist {scientist_id}. You have been assigned the area: "{area_name}".
+
+Your task is to propose {num_capabilities} specific, **non-overlapping capabilities** within this area that test different aspects of LLM performance.
+
+Each capability should:
+- Be clearly within the scope of the area.
+- Be distinct from the others (no overlap).
+- Be testable via concrete tasks in later stages.
+
+Provide each capability with:
+1. A concise name (lowercase_with_underscores).
+2. A 2–3 sentence description justifying its purpose.
+
+Output format:
+RESPONSE JSON:
+{{
+  "capability_0": {{
+    "name": <STR>,
+    "description": <STR>,
+    "area": "{area_name}"
+  }},
+  ...
+}}
+
+Area Description: {area_description}"""
+
+CAPABILITY_SCIENTIST_REVISION_PROMPT = """You are Scientist {scientist_id}. The Moderator has proposed a merged list of capabilities for the area "{area_name}".
+
+Moderator's Proposal:
+{moderator_proposal}
+
+Please review and revise the merged capability list by:
+- Clarifying or refining capability descriptions.
+- Flagging capabilities that may be overlapping or vague.
+- Proposing any additions or deletions if you believe something important is missing or redundant.
+
+Be concise and constructive in your revisions.
+
+Return the updated list in the following format:
+RESPONSE JSON:
+{{
+  "capability_0": {{
+    "name": <STR>,
+    "description": <STR>,
+    "area": "{area_name}"
+  }},
+  ...
+}}"""
+
+CAPABILITY_MODERATOR_MERGE_PROMPT = """You are the Moderator. Two scientist agents have independently proposed a list of capabilities within the capability area: "{area_name}".
+
+Below are their proposals:
+
+Scientist A Proposal:
+{scientist_a_proposal}
+
+Scientist B Proposal:
+{scientist_b_proposal}
+
+Your task is to merge these proposals into a unified set of capabilities for the area. In doing so:
+- Eliminate redundancy and overlapping capabilities.
+- Ensure all capabilities are clearly within the scope of the area.
+- Ensure all capabilities are distinct from one another.
+- Improve clarity and precision in naming and descriptions, where needed.
+
+You will then submit this merged capability list for review by the scientist agents. If either scientist provides substantive suggestions, you may revise the list and initiate another round of review.{finalized_instruction}
+
+Present the merged capabilities in the following format:
+{{
+  "capability_0": {{
+    "name": "<STR>",
+    "description": "<STR>",
+    "area": "{area_name}"
+  }},
+  ...{finalized_field}
+}}
+
+Be thoughtful and concise in your output."""
+
+# =============================================================================
+# TASK GENERATION PROMPTS
+# =============================================================================
+
+TASK_SCIENTIST_PROBLEM_SYSTEM_PROMPT = """You are Scientist {scientist_id}, an expert in designing tasks for evaluating a given capability. You will be shown the capability's name, description, domain, and a few sample tasks. Your goal is to propose novel, diverse, and non-trivial task problems that assess different aspects of this capability.
+
+You will be particularly rewarded for:
+- Ensuring clear alignment with the capability,
+- Avoiding overlap or redundancy,
+- Proposing tasks that vary in difficulty and structure.
+
+Your response must follow this format exactly:
+THOUGHT: <brief reasoning about the kind of tasks you're proposing>
+RESPONSE JSON:
+{{
+  "task_1": "<TASK_TEXT_1>",
+  "task_2": "<TASK_TEXT_2>",
+  ...
+}}
+
+Make sure:
+- All tasks are within the scope of the capability.
+- Tasks are phrased as standalone problem descriptions, without any answers or solutions.
+- LaTeX strings are properly escaped (e.g., \\\\[2x + 3 = 11\\\\]).
+- Each task is distinct from the others and covers a different aspect or sub-skill."""
+
+TASK_SCIENTIST_PROBLEM_USER_PROMPT = """Design {num_problems} tasks for the following capability:
+
+Name: {capability_name}
+Description: {capability_description}
+Domain: {capability_domain}
+Sample tasks:
+{sample_tasks_text}"""
+
+TASK_SCIENTIST_SOLUTION_SYSTEM_PROMPT = """You are Scientist {scientist_id}, an expert in {capability_domain}. You are solving a task related to the capability: {capability_name}.
+
+Provide a clear, accurate, and complete solution to the given problem. Your solution should be correct and well-reasoned."""
+
+TASK_SCIENTIST_SOLUTION_USER_PROMPT = """Solve the following problem:
+
+{problem_text}
+
+Provide your solution clearly and concisely."""
+
+TASK_MODERATOR_PROBLEM_SYSTEM_PROMPT = """You are the Moderator overseeing capability-based task design. Your task is to review proposed tasks from multiple scientist agents and synthesize a final, high-quality task set for the capability.
+
+Your responsibilities:
+- Eliminate any task that is not clearly aligned with the capability.
+- Merge or remove tasks that are redundant or overly similar.
+- Ensure that the final set of tasks is diverse, non-trivial, and tests different facets of the capability.
+- Include a brief justification for each rejected or significantly modified task.
+
+Your response should follow this format exactly:
+
+THOUGHT: <your summary of strengths and weaknesses of the proposed tasks and your curation plan>
+RESPONSE JSON:
+{{
+  "final_tasks": {{
+    "task_1": "<FINAL_TASK_1>",
+    "task_2": "<FINAL_TASK_2>",
+    ...
+  }},
+  "rejected_tasks": {{
+    "task_from_scientist_A": "Reason for rejection or modification",
+    "task_from_scientist_B": "Reason for rejection or modification",
+    ...
+  }}
+}}"""
+
+TASK_MODERATOR_PROBLEM_USER_PROMPT = """Below is a capability and task proposals from multiple scientist agents. Curate the final task set by filtering, editing, or merging as needed.
+
+Name: {capability_name}
+Description: {capability_description}
+Domain: {capability_domain}
+
+Proposed Tasks:
+{problems_text}"""
+
+# =============================================================================
+# SYSTEM MESSAGES
+# =============================================================================
+
+AREA_SCIENTIST_SYSTEM_MESSAGE = "You are an expert capability researcher specializing in LLM evaluation."
+
+AREA_MODERATOR_SYSTEM_MESSAGE = "You are an expert moderator specializing in capability area design for LLM evaluation."
+
+CAPABILITY_SCIENTIST_SYSTEM_MESSAGE = "You are an expert capability researcher specializing in LLM evaluation."
+
+CAPABILITY_MODERATOR_SYSTEM_MESSAGE = "You are an expert moderator specializing in capability design for LLM evaluation."
+
+# =============================================================================
+# FINALIZATION INSTRUCTIONS
+# =============================================================================
+
+AREA_FINALIZATION_INSTRUCTION = """
+If you judge the merged set to be clear, comprehensive, and non-overlapping, you may declare the area design finalized.
+To finalize, add the field:
+"finalized": true
+at the end of the JSON response."""
+
+CAPABILITY_FINALIZATION_INSTRUCTION = """
+If, after incorporating feedback or upon review, you judge the merged set to be clear, comprehensive, and non-overlapping within the area, you may declare the capability design finalized.
+To finalize, add the field:
+"finalized": true
+at the end of your JSON response."""

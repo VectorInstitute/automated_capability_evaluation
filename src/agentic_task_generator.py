@@ -26,6 +26,15 @@ from autogen_core.models import (
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from omegaconf import DictConfig, OmegaConf
 
+from .utils.agentic_prompts import (
+    TASK_SCIENTIST_PROBLEM_SYSTEM_PROMPT,
+    TASK_SCIENTIST_PROBLEM_USER_PROMPT,
+    TASK_SCIENTIST_SOLUTION_SYSTEM_PROMPT,
+    TASK_SCIENTIST_SOLUTION_USER_PROMPT,
+    TASK_MODERATOR_PROBLEM_SYSTEM_PROMPT,
+    TASK_MODERATOR_PROBLEM_USER_PROMPT,
+)
+
 
 log = logging.getLogger("agentic_task_gen")
 
@@ -133,35 +142,17 @@ class TaskScientist(RoutedAgent):
             else:
                 sample_tasks_text = "(No sample tasks provided)"
 
-            system_prompt = f"""You are Scientist {self._scientist_id}, an expert in designing tasks for evaluating a given capability. You will be shown the capability's name, description, domain, and a few sample tasks. Your goal is to propose novel, diverse, and non-trivial task problems that assess different aspects of this capability.
+            system_prompt = TASK_SCIENTIST_PROBLEM_SYSTEM_PROMPT.format(
+                scientist_id=self._scientist_id,
+            )
 
-You will be particularly rewarded for:
-- Ensuring clear alignment with the capability,
-- Avoiding overlap or redundancy,
-- Proposing tasks that vary in difficulty and structure.
-
-Your response must follow this format exactly:
-THOUGHT: <brief reasoning about the kind of tasks you're proposing>
-RESPONSE JSON:
-{{
-  "task_1": "<TASK_TEXT_1>",
-  "task_2": "<TASK_TEXT_2>",
-  ...
-}}
-
-Make sure:
-- All tasks are within the scope of the capability.
-- Tasks are phrased as standalone problem descriptions, without any answers or solutions.
-- LaTeX strings are properly escaped (e.g., \\\\[2x + 3 = 11\\\\]).
-- Each task is distinct from the others and covers a different aspect or sub-skill."""
-
-            user_prompt = f"""Design {message.num_problems} tasks for the following capability:
-
-Name: {message.capability_name}
-Description: {message.capability_description}
-Domain: {message.capability_domain}
-Sample tasks:
-{sample_tasks_text}"""
+            user_prompt = TASK_SCIENTIST_PROBLEM_USER_PROMPT.format(
+                num_problems=message.num_problems,
+                capability_name=message.capability_name,
+                capability_description=message.capability_description,
+                capability_domain=message.capability_domain,
+                sample_tasks_text=sample_tasks_text,
+            )
 
             system_message = SystemMessage(content=system_prompt)
             user_message = UserMessage(content=user_prompt, source="user")
@@ -224,15 +215,15 @@ Sample tasks:
             solutions = {}
 
             for task_id, problem_text in message.problems.items():
-                system_prompt = f"""You are Scientist {self._scientist_id}, an expert in {message.capability_domain}. You are solving a task related to the capability: {message.capability_name}.
+                system_prompt = TASK_SCIENTIST_SOLUTION_SYSTEM_PROMPT.format(
+                    scientist_id=self._scientist_id,
+                    capability_domain=message.capability_domain,
+                    capability_name=message.capability_name,
+                )
 
-Provide a clear, accurate, and complete solution to the given problem. Your solution should be correct and well-reasoned."""
-
-                user_prompt = f"""Solve the following problem:
-
-{problem_text}
-
-Provide your solution clearly and concisely."""
+                user_prompt = TASK_SCIENTIST_SOLUTION_USER_PROMPT.format(
+                    problem_text=problem_text,
+                )
 
                 system_message = SystemMessage(content=system_prompt)
                 user_message = UserMessage(content=user_prompt, source="user")
@@ -448,40 +439,15 @@ class TaskModerator(RoutedAgent):
                         problems_text += f"- {task_name}: {problem}\n"
                 problems_text += "\n"
 
-            system_prompt = """You are the Moderator overseeing capability-based task design. Your task is to review proposed tasks from multiple scientist agents and synthesize a final, high-quality task set for the capability.
-
-Your responsibilities:
-- Eliminate any task that is not clearly aligned with the capability.
-- Merge or remove tasks that are redundant or overly similar.
-- Ensure that the final set of tasks is diverse, non-trivial, and tests different facets of the capability.
-- Include a brief justification for each rejected or significantly modified task.
-
-Your response should follow this format exactly:
-
-THOUGHT: <your summary of strengths and weaknesses of the proposed tasks and your curation plan>
-RESPONSE JSON:
-{
-  "final_tasks": {
-    "task_1": "<FINAL_TASK_1>",
-    "task_2": "<FINAL_TASK_2>",
-    ...
-  },
-  "rejected_tasks": {
-    "task_from_scientist_A": "Reason for rejection or modification",
-    "task_from_scientist_B": "Reason for rejection or modification",
-    ...
-  }
-}"""
+            system_prompt = TASK_MODERATOR_PROBLEM_SYSTEM_PROMPT
 
             capability_info = self._capabilities[capability_name]
-            user_prompt = f"""Below is a capability and task proposals from multiple scientist agents. Curate the final task set by filtering, editing, or merging as needed.
-
-Name: {capability_info.name}
-Description: {capability_info.description}
-Domain: {capability_info.domain}
-
-Proposed Tasks:
-{problems_text}"""
+            user_prompt = TASK_MODERATOR_PROBLEM_USER_PROMPT.format(
+                capability_name=capability_info.name,
+                capability_description=capability_info.description,
+                capability_domain=capability_info.domain,
+                problems_text=problems_text,
+            )
 
             system_message = SystemMessage(content=system_prompt)
             user_message = UserMessage(content=user_prompt, source="user")
