@@ -14,14 +14,11 @@ from autogen_core import (
     MessageContext,
     RoutedAgent,
     SingleThreadedAgentRuntime,
-    TypeSubscription,
     default_subscription,
     message_handler,
 )
 from autogen_core.models import (
-    AssistantMessage,
     ChatCompletionClient,
-    LLMMessage,
     SystemMessage,
     UserMessage,
 )
@@ -43,23 +40,54 @@ class Domain:
 
 
 @dataclass
-class AreaRequest:
-    """A request for capability areas."""
+class AreaProposalRequest:
+    """Initial request for area proposals from scientists."""
 
-    content: str
+    domain: str
+    num_areas: int
 
 
 @dataclass
-class IntermediateAreaResponse:
-    """An intermediate response from a scientist."""
+class ScientistAreaProposal:
+    """Area proposal from a scientist."""
 
-    areas: str
+    scientist_id: str
+    proposal: str
     round: int
 
 
 @dataclass
-class FinalAreaResponse:
-    """A final response from a scientist."""
+class ModeratorMergeRequest:
+    """Request for moderator to merge scientist proposals."""
+
+    domain: str
+    num_final_areas: int
+    scientist_a_proposal: str
+    scientist_b_proposal: str
+    round: int
+
+
+@dataclass
+class ModeratorMergedProposal:
+    """Merged proposal from moderator."""
+
+    merged_proposal: str
+    round: int
+    is_finalized: bool
+
+
+@dataclass
+class ScientistRevisionRequest:
+    """Request for scientist to review and revise moderator's proposal."""
+
+    scientist_id: str
+    moderator_proposal: str
+    round: int
+
+
+@dataclass
+class FinalAreasResponse:
+    """Final areas response."""
 
     areas: str
 
@@ -83,206 +111,354 @@ class AreaScientist(RoutedAgent):
     def __init__(
         self,
         model_client: ChatCompletionClient,
-        topic_type: str,
-        num_neighbors: int,
+        scientist_id: str,
         max_round: int,
-        expected_areas: int,
     ) -> None:
-        super().__init__("An Area scientist.")
-        self._topic_type = topic_type
+        super().__init__(f"Area Scientist {scientist_id}")
+        self._scientist_id = scientist_id
         self._model_client = model_client
-        self._num_neighbors = num_neighbors
-        self._expected_areas = expected_areas
-        self._history: List[LLMMessage] = []
-        self._buffer: Dict[int, List[IntermediateAreaResponse]] = {}
-        self._system_messages = [
-            SystemMessage(
-                content=(
-                    "You are an expert capability researcher. "
-                    "Given a domain, propose non-overlapping areas that comprehensively cover it. "
-                    "Each area must include a name and description. Return ONLY JSON with an 'areas' list."
-                )
-            )
-        ]
-        self._round = 0
         self._max_round = max_round
+        self._round = 0
 
     @message_handler
-    async def handle_request(self, message: AreaRequest, ctx: MessageContext) -> None:
-        """Handle area generation requests."""
+    async def handle_area_proposal_request(
+        self, message: AreaProposalRequest, ctx: MessageContext
+    ) -> None:
+        """Handle initial area proposal request."""
         try:
-            log.info(f"Area scientist {self.id} handling request, round {self._round}")
+            log.info(
+                f"Scientist {self._scientist_id} handling area proposal request for domain: {message.domain}"
+            )
 
-            self._history.append(UserMessage(content=message.content, source="user"))
+            prompt = f"""You are Scientist {self._scientist_id}. You are an expert in evaluating large language models (LLMs) in the domain of {message.domain}. Your task is to independently propose a list of {message.num_areas} high-level, non-overlapping **capability areas** that collectively cover the space of skills relevant to this domain.
+
+Each area should:
+- Represent a broad but distinct dimension of LLM competence.
+- Be clearly distinct from the other proposed areas (no overlap).
+- Contain enough conceptual room to allow for multiple fine-grained capabilities in the next stage.
+
+For each area, provide:
+1. A short name (a few words).
+2. A 2–3 sentence description that defines its boundaries and justifies its inclusion.
+
+Please return your proposal in the following format:
+RESPONSE JSON:
+{{
+  "area_0": {{
+    "name": <STR>,
+    "description": <STR>
+  }},
+  ...
+}}"""
+
+            system_message = SystemMessage(
+                content="You are an expert capability researcher specializing in LLM evaluation."
+            )
+            user_message = UserMessage(content=prompt, source="user")
 
             model_result = await self._model_client.create(
-                self._system_messages + self._history
+                [system_message, user_message]
             )
 
-            # Process the model result content
             raw_content = model_result.content
             if not isinstance(raw_content, str):
-                log.error(f"Model result content is not a string: {type(raw_content)}")
                 raw_content = str(raw_content)
 
-            # For areas, normalize to ensure correct shape and count
-            areas = normalize_areas(raw_content, self._expected_areas)
-
-            self._history.append(
-                AssistantMessage(
-                    content=areas, source=self.metadata.get("type", "AreaScientist")
-                )
+            log.info(f"Scientist {self._scientist_id} publishing area proposal")
+            await self.publish_message(
+                ScientistAreaProposal(
+                    scientist_id=self._scientist_id,
+                    proposal=raw_content,
+                    round=self._round,
+                ),
+                topic_id=DefaultTopicId(),
             )
 
-            self._round += 1
-
-            if self._round == self._max_round:
-                log.info(f"Area scientist {self.id} publishing final response")
-                await self.publish_message(
-                    FinalAreaResponse(areas=areas), topic_id=DefaultTopicId()
-                )
-            else:
-                log.info(f"Area scientist {self.id} publishing intermediate response")
-                await self.publish_message(
-                    IntermediateAreaResponse(
-                        areas=areas,
-                        round=self._round,
-                    ),
-                    topic_id=DefaultTopicId(type=self._topic_type),
-                )
-
         except Exception as e:
-            log.error(f"Error in AreaScientist {self.id} handle_request: {e}")
+            log.error(
+                f"Error in Scientist {self._scientist_id} handle_area_proposal_request: {e}"
+            )
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
     @message_handler
-    async def handle_response(
-        self, message: IntermediateAreaResponse, ctx: MessageContext
+    async def handle_revision_request(
+        self, message: ScientistRevisionRequest, ctx: MessageContext
     ) -> None:
-        """Handle intermediate responses from peers."""
+        """Handle revision request from moderator."""
         try:
+            if message.scientist_id != self._scientist_id:
+                return  # Not for this scientist
+
             log.info(
-                f"Area scientist {self.id} handling response from round {message.round}"
+                f"Scientist {self._scientist_id} handling revision request for round {message.round}"
             )
 
-            self._buffer.setdefault(message.round, []).append(message)
+            prompt = f"""You are Scientist {self._scientist_id}. You are reviewing the merged set of capability areas proposed by the Moderator.
 
-            if len(self._buffer[message.round]) == self._num_neighbors:
-                log.info(
-                    f"Area scientist {self.id} round {message.round}:\nReceived all responses from {self._num_neighbors} neighbors."
-                )
+Moderator's Proposal:
+{message.moderator_proposal}
 
-                prompt = "These are the areas generated by other scientists:\n"
-                for resp in self._buffer[message.round]:
-                    prompt += f"One scientist solution: {resp.areas}\n"
-                prompt += (
-                    "Using the areas generated by other scientists as additional information, "
-                    "can you provide your answer to the area generation problem? "
-                    "Return ONLY JSON with an 'areas' list."
-                )
+Please review the proposed areas carefully and suggest any of the following:
+- Minor refinements or clarifications to area descriptions.
+- Proposed merges/splits where you see overlap or conceptual drift.
+- Additions of missing areas or removal of unneeded ones.
 
-                await self.publish_message(
-                    AreaRequest(content=prompt),
-                    topic_id=DefaultTopicId(type=self._topic_type),
-                )
+Keep your feedback constructive and focused on improving clarity, coverage, and non-overlap. Avoid unnecessary changes.
 
-                self._buffer.pop(message.round)
+Return your revised proposal in the following format:
+RESPONSE JSON:
+{{
+  "area_0": {{
+    "name": <STR>,
+    "description": <STR>
+  }},
+  ...
+}}"""
+
+            system_message = SystemMessage(
+                content="You are an expert capability researcher specializing in LLM evaluation."
+            )
+            user_message = UserMessage(content=prompt, source="user")
+
+            model_result = await self._model_client.create(
+                [system_message, user_message]
+            )
+
+            raw_content = model_result.content
+            if not isinstance(raw_content, str):
+                raw_content = str(raw_content)
+
+            log.info(
+                f"Scientist {self._scientist_id} publishing revised proposal for round {message.round}"
+            )
+            await self.publish_message(
+                ScientistAreaProposal(
+                    scientist_id=self._scientist_id,
+                    proposal=raw_content,
+                    round=message.round,
+                ),
+                topic_id=DefaultTopicId(),
+            )
 
         except Exception as e:
-            log.error(f"Error in Area scientist {self.id} handle_response: {e}")
+            log.error(
+                f"Error in Scientist {self._scientist_id} handle_revision_request: {e}"
+            )
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
 
 @default_subscription
-class AreaAggregator(RoutedAgent):
-    """Aggregates final responses and saves results."""
+class AreaModerator(RoutedAgent):
+    """Moderator that merges scientist proposals and manages iteration."""
 
-    def __init__(self, num_scientists: int, num_areas: int, output_dir: Path) -> None:
-        super().__init__("Area aggregator")
+    def __init__(
+        self,
+        model_client: ChatCompletionClient,
+        num_scientists: int,
+        num_final_areas: int,
+        max_round: int,
+        output_dir: Path,
+    ) -> None:
+        super().__init__("Area Moderator")
+        self._model_client = model_client
         self._num_scientists = num_scientists
-        self._num_areas = num_areas
-        self._buffer: List[FinalAreaResponse] = []
+        self._num_final_areas = num_final_areas
+        self._max_round = max_round
         self._output_dir = output_dir
+        self._round = 0
+        self._proposals_buffer: Dict[int, List[ScientistAreaProposal]] = {}
+        self._domain = ""
 
     @message_handler
     async def handle_domain(self, message: Domain, ctx: MessageContext) -> None:
-        """Handle the domain message from the moderator."""
+        """Handle the domain message and initiate area proposal process."""
         try:
-            log.info(f"Area aggregator received domain: {message.name}")
+            log.info(f"Moderator received domain: {message.name}")
+            self._domain = message.name
 
-            prompt = (
-                f"Generate {self._num_areas} non-overlapping capability areas for the following domain: {message.name}. "
-                f"Return ONLY JSON with an 'areas' list with exactly {self._num_areas} items (each item: name, description)."
-            )
-
+            # Send initial proposal request to scientists
             await self.publish_message(
-                AreaRequest(content=prompt), topic_id=DefaultTopicId()
+                AreaProposalRequest(
+                    domain=message.name, num_areas=self._num_final_areas
+                ),
+                topic_id=DefaultTopicId(),
             )
 
         except Exception as e:
-            log.error(f"Error in AreaAggregator handle_domain: {e}")
+            log.error(f"Error in Moderator handle_domain: {e}")
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
     @message_handler
-    async def handle_final_area_response(
-        self, message: FinalAreaResponse, ctx: MessageContext
+    async def handle_scientist_proposal(
+        self, message: ScientistAreaProposal, ctx: MessageContext
     ) -> None:
-        """Handle the final area response from a scientist."""
+        """Handle area proposals from scientists."""
         try:
             log.info(
-                f"AreaAggregator received final response from scientist {ctx.sender}"
+                f"Moderator received proposal from Scientist {message.scientist_id} for round {message.round}"
             )
-            self._buffer.append(message)
 
-            if len(self._buffer) == self._num_scientists:
-                areas = [resp.areas for resp in self._buffer]
+            self._proposals_buffer.setdefault(message.round, []).append(message)
 
-                if not areas:
-                    log.error("No areas received from scientists")
-                    majority_areas = DEFAULT_AREAS_JSON
-                else:
-                    # Get the most common response
-                    majority_areas = max(set(areas), key=areas.count)
-                    majority_areas = self._limit_areas_to_count(
-                        majority_areas, self._num_areas
-                    )
+            if len(self._proposals_buffer[message.round]) == self._num_scientists:
+                log.info(
+                    f"Moderator received all proposals for round {message.round}, proceeding to merge"
+                )
 
-                log.info(f"Final majority_areas: {majority_areas}")
+                # Get proposals from both scientists
+                proposals = self._proposals_buffer[message.round]
+                scientist_a_proposal = next(
+                    p.proposal for p in proposals if p.scientist_id == "A"
+                )
+                scientist_b_proposal = next(
+                    p.proposal for p in proposals if p.scientist_id == "B"
+                )
 
-                # Save the results to file
-                try:
-                    self._save_areas_to_file(majority_areas)
-                    log.info("Areas successfully saved to file")
-                except Exception as save_error:
-                    log.error(f"Failed to save areas to file: {save_error}")
-
-                log.info("Area generation completed successfully")
-
-                self._buffer.clear()
+                await self._merge_proposals(
+                    scientist_a_proposal, scientist_b_proposal, message.round
+                )
 
         except Exception as e:
-            log.error(f"Error in AreaAggregator handle_final_area_response: {e}")
+            log.error(f"Error in Moderator handle_scientist_proposal: {e}")
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
-    def _limit_areas_to_count(self, areas_str: str, max_count: int) -> str:
-        """Limit the number of areas in the JSON string to max_count."""
+    async def _merge_proposals(
+        self, scientist_a_proposal: str, scientist_b_proposal: str, round_num: int
+    ) -> None:
+        """Merge scientist proposals using LLM."""
         try:
-            areas_data = json.loads(areas_str)
-            if (
-                isinstance(areas_data, dict)
-                and "areas" in areas_data
-                and isinstance(areas_data["areas"], list)
-            ):
-                areas_data["areas"] = areas_data["areas"][:max_count]
-                return json.dumps(areas_data, indent=2)
-            return areas_str
-        except (json.JSONDecodeError, TypeError, KeyError) as e:
-            log.warning(f"Could not limit areas count due to JSON parsing error: {e}")
-            raise e
+            log.info(f"Moderator merging proposals for round {round_num}")
+
+            finalized_instruction = ""
+            if round_num >= self._max_round - 1:
+                finalized_instruction = """
+If you judge the merged set to be clear, comprehensive, and non-overlapping, you may declare the area design finalized.
+To finalize, add the field:
+"finalized": true
+at the end of the JSON response."""
+
+            prompt = f"""You are the Moderator. Two scientist agents have independently proposed a list of high-level capability areas for evaluating large language models in the domain of {self._domain}.
+
+Below are their proposals:
+
+Scientist A Proposal:
+{scientist_a_proposal}
+
+Scientist B Proposal:
+{scientist_b_proposal}
+
+Your task is to merge their proposals into a unified set of {self._num_final_areas} areas. In doing so:
+- Eliminate overlaps and redundant areas.
+- Justify any removals, merges, or renamings.
+- Ensure that the final set is mutually exclusive and collectively exhaustive for this domain.
+
+You will then submit this merged proposal for review by the scientist agents. If either scientist provides substantive suggestions, you may revise the proposal and initiate another round of review.{finalized_instruction}
+
+Present the merged areas in the following format:
+{{
+  "area_0": {{
+    "name": <STR>,
+    "description": <STR>
+  }},
+  ...{', "finalized": <true|false>' if finalized_instruction else ""}
+}}
+
+Be thoughtful and concise in your output."""
+
+            system_message = SystemMessage(
+                content="You are an expert moderator specializing in capability area design for LLM evaluation."
+            )
+            user_message = UserMessage(content=prompt, source="user")
+
+            model_result = await self._model_client.create(
+                [system_message, user_message]
+            )
+
+            raw_content = model_result.content
+            if not isinstance(raw_content, str):
+                raw_content = str(raw_content)
+
+            # Check if finalized
+            is_finalized = False
+            try:
+                parsed = json.loads(raw_content)
+                is_finalized = parsed.get("finalized", False)
+            except Exception:
+                pass
+
+            if is_finalized or round_num >= self._max_round - 1:
+                log.info(f"Moderator finalizing areas after round {round_num}")
+                await self._finalize_areas(raw_content)
+            else:
+                log.info(
+                    f"Moderator sending merged proposal for revision in round {round_num}"
+                )
+                self._round = round_num + 1
+
+                # Send to scientists for revision
+                await self.publish_message(
+                    ScientistRevisionRequest(
+                        scientist_id="A",
+                        moderator_proposal=raw_content,
+                        round=self._round,
+                    ),
+                    topic_id=DefaultTopicId(),
+                )
+                await self.publish_message(
+                    ScientistRevisionRequest(
+                        scientist_id="B",
+                        moderator_proposal=raw_content,
+                        round=self._round,
+                    ),
+                    topic_id=DefaultTopicId(),
+                )
+
+        except Exception as e:
+            log.error(f"Error in Moderator _merge_proposals: {e}")
+            log.error(f"Traceback: {traceback.format_exc()}")
+            raise
+
+    async def _finalize_areas(self, final_areas: str) -> None:
+        """Save final areas to file."""
+        try:
+            log.info("Moderator finalizing and saving areas")
+
+            # Convert to the expected format with "areas" list
+            try:
+                json_start = final_areas.find("{")
+                if json_start != -1:
+                    json_part = final_areas[json_start:]
+                    parsed = json.loads(json_part)
+                else:
+                    parsed = json.loads(final_areas)
+
+                if "finalized" in parsed:
+                    del parsed["finalized"]  # Remove finalized flag
+
+                # Convert area_0, area_1 format to areas list
+                areas_list = []
+                i = 0
+                while f"area_{i}" in parsed:
+                    areas_list.append(parsed[f"area_{i}"])
+                    i += 1
+
+                final_format = {"areas": areas_list}
+                final_areas_json = json.dumps(final_format, indent=2)
+            except Exception as e:
+                log.warning(f"Could not parse final areas JSON: {e}")
+                final_areas_json = final_areas
+
+            self._save_areas_to_file(final_areas_json)
+            log.info("Area generation completed successfully")
+
+        except Exception as e:
+            log.error(f"Error in Moderator _finalize_areas: {e}")
+            log.error(f"Traceback: {traceback.format_exc()}")
+            raise
 
     def _save_areas_to_file(self, areas: str) -> None:
         """Save the generated areas to a file in the specified directory structure."""
@@ -343,12 +519,11 @@ async def generate_areas(cfg: DictConfig) -> None:
             "AreaScientistA",
             lambda: AreaScientist(
                 model_client=OpenAIChatCompletionClient(
-                    model=cfg.agents.scientist_a.name
+                    model=cfg.agents.scientist_a.name,
+                    seed=cfg.agents.scientist_a.seed,
                 ),
-                topic_type="AreaScientistA",
-                num_neighbors=1,
+                scientist_id="A",
                 max_round=max_round,
-                expected_areas=cfg.capabilities_cfg.num_capability_areas,
             ),
         )
 
@@ -357,30 +532,27 @@ async def generate_areas(cfg: DictConfig) -> None:
             "AreaScientistB",
             lambda: AreaScientist(
                 model_client=OpenAIChatCompletionClient(
-                    model=cfg.agents.scientist_b.name
+                    model=cfg.agents.scientist_b.name,
+                    seed=cfg.agents.scientist_b.seed,
                 ),
-                topic_type="AreaScientistB",
-                num_neighbors=1,
+                scientist_id="B",
                 max_round=max_round,
-                expected_areas=cfg.capabilities_cfg.num_capability_areas,
             ),
         )
 
-        await AreaAggregator.register(
+        await AreaModerator.register(
             runtime,
-            "AreaAggregator",
-            lambda: AreaAggregator(
+            "AreaModerator",
+            lambda: AreaModerator(
+                model_client=OpenAIChatCompletionClient(
+                    model=cfg.agents.moderator.name,
+                    seed=cfg.agents.moderator.seed,
+                ),
                 num_scientists=DEFAULT_NUM_SCIENTISTS,
-                num_areas=cfg.capabilities_cfg.num_capability_areas,
+                num_final_areas=cfg.capabilities_cfg.num_capability_areas,
+                max_round=max_round,
                 output_dir=output_dir,
             ),
-        )
-
-        await runtime.add_subscription(
-            TypeSubscription("AreaScientistA", "AreaScientistB")
-        )
-        await runtime.add_subscription(
-            TypeSubscription("AreaScientistB", "AreaScientistA")
         )
 
         # Use domain from config

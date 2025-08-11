@@ -6,7 +6,7 @@ import logging
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import hydra
 from autogen_core import (
@@ -14,23 +14,16 @@ from autogen_core import (
     MessageContext,
     RoutedAgent,
     SingleThreadedAgentRuntime,
-    TypeSubscription,
     default_subscription,
     message_handler,
 )
 from autogen_core.models import (
-    AssistantMessage,
     ChatCompletionClient,
-    LLMMessage,
     SystemMessage,
     UserMessage,
 )
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from omegaconf import DictConfig, OmegaConf
-
-from src.utils.agentic_prompts import (
-    CAPABILITY_GENERATION_SCIENTIST_PROMPT,
-)
 
 
 log = logging.getLogger("agentic_cap_gen")
@@ -47,29 +40,32 @@ class Area:
 
 
 @dataclass
-class CapabilityRequest:
-    """A request for capabilities within an area."""
+class CapabilityProposalRequest:
+    """Initial request for capability proposals from scientists."""
 
-    content: str
     area_name: str
     area_description: str
+    num_capabilities: int
 
 
 @dataclass
-class IntermediateCapabilityResponse:
-    """An intermediate response from a scientist."""
+class ScientistCapabilityProposal:
+    """Capability proposal from a scientist."""
 
-    capabilities: str
+    scientist_id: str
+    proposal: str
+    area_name: str
     round: int
-    area_name: str
 
 
 @dataclass
-class FinalCapabilityResponse:
-    """A final response from a scientist."""
+class CapabilityRevisionRequest:
+    """Request for scientist to review and revise moderator's proposal."""
 
-    capabilities: str
+    scientist_id: str
+    moderator_proposal: str
     area_name: str
+    round: int
 
 
 def normalize_capabilities(s: str, expected: int, domain: str = "") -> str:
@@ -80,7 +76,7 @@ def normalize_capabilities(s: str, expected: int, domain: str = "") -> str:
             if "capabilities" in data and isinstance(data["capabilities"], list):
                 data["capabilities"] = data["capabilities"][:expected]
                 return json.dumps(data, indent=2)
-            capabilities = []
+            capabilities: List[Dict[str, Any]] = []
             i = 0
             while f"capability_{i}" in data and len(capabilities) < expected:
                 cap = data[f"capability_{i}"]
@@ -99,255 +95,412 @@ class CapabilityScientist(RoutedAgent):
     def __init__(
         self,
         model_client: ChatCompletionClient,
-        topic_type: str,
-        num_neighbors: int,
+        scientist_id: str,
         max_round: int,
         expected_capabilities: int,
         domain: str = "",
     ) -> None:
-        super().__init__("A Capability scientist.")
-        self._topic_type = topic_type
+        super().__init__(f"Capability Scientist {scientist_id}")
+        self._scientist_id = scientist_id
         self._model_client = model_client
-        self._num_neighbors = num_neighbors
+        self._max_round = max_round
         self._expected_capabilities = expected_capabilities
         self._domain = domain
-        self._history: List[LLMMessage] = []
-        self._buffer: Dict[int, List[IntermediateCapabilityResponse]] = {}
-        self._system_messages = [
-            SystemMessage(content=CAPABILITY_GENERATION_SCIENTIST_PROMPT)
-        ]
         self._round = 0
-        self._max_round = max_round
 
     @message_handler
-    async def handle_request(
-        self, message: CapabilityRequest, ctx: MessageContext
+    async def handle_capability_proposal_request(
+        self, message: CapabilityProposalRequest, ctx: MessageContext
     ) -> None:
-        """Handle capability generation requests."""
+        """Handle initial capability proposal request."""
         try:
-            area_name = message.area_name
             log.info(
-                f"Capability scientist {self.id} handling request for area: {area_name}, round {self._round}"
+                f"Capability Scientist {self._scientist_id} handling proposal request for area: {message.area_name}"
             )
 
-            self._history.append(UserMessage(content=message.content, source="user"))
+            prompt = f"""You are Scientist {self._scientist_id}. You have been assigned the area: "{message.area_name}".
+
+Your task is to propose {message.num_capabilities} specific, **non-overlapping capabilities** within this area that test different aspects of LLM performance.
+
+Each capability should:
+- Be clearly within the scope of the area.
+- Be distinct from the others (no overlap).
+- Be testable via concrete tasks in later stages.
+
+Provide each capability with:
+1. A concise name (lowercase_with_underscores).
+2. A 2–3 sentence description justifying its purpose.
+
+Output format:
+RESPONSE JSON:
+{{
+  "capability_0": {{
+    "name": <STR>,
+    "description": <STR>,
+    "area": "{message.area_name}"
+  }},
+  ...
+}}
+
+Area Description: {message.area_description}"""
+
+            system_message = SystemMessage(
+                content="You are an expert capability researcher specializing in LLM evaluation."
+            )
+            user_message = UserMessage(content=prompt, source="user")
 
             model_result = await self._model_client.create(
-                self._system_messages + self._history
+                [system_message, user_message]
             )
 
-            # Process the model result content
             raw_content = model_result.content
             if not isinstance(raw_content, str):
-                log.error(f"Model result content is not a string: {type(raw_content)}")
                 raw_content = str(raw_content)
 
-            # Normalize capabilities to ensure correct shape and count
-            capabilities = normalize_capabilities(
-                raw_content, self._expected_capabilities, self._domain
-            )
-
-            self._history.append(
-                AssistantMessage(
-                    content=capabilities,
-                    source=self.metadata.get("type", "CapabilityScientist"),
-                )
-            )
-
-            self._round += 1
-
-            if self._round == self._max_round:
-                log.info(
-                    f"Capability scientist {self.id} publishing final response for area: {area_name}"
-                )
-                await self.publish_message(
-                    FinalCapabilityResponse(
-                        capabilities=capabilities, area_name=area_name
-                    ),
-                    topic_id=DefaultTopicId(),
-                )
-            else:
-                log.info(
-                    f"Capability scientist {self.id} publishing intermediate response for area: {area_name}"
-                )
-                await self.publish_message(
-                    IntermediateCapabilityResponse(
-                        capabilities=capabilities,
-                        round=self._round,
-                        area_name=area_name,
-                    ),
-                    topic_id=DefaultTopicId(type=self._topic_type),
-                )
-
-        except Exception as e:
-            log.error(f"Error in CapabilityScientist {self.id} handle_request: {e}")
-            log.error(f"Traceback: {traceback.format_exc()}")
-            raise
-
-    @message_handler
-    async def handle_response(
-        self, message: IntermediateCapabilityResponse, ctx: MessageContext
-    ) -> None:
-        """Handle intermediate responses from peers."""
-        try:
-            area_name = message.area_name
             log.info(
-                f"Capability scientist {self.id} handling response for area: {area_name} from round {message.round}"
+                f"Capability Scientist {self._scientist_id} publishing capability proposal for area: {message.area_name}"
             )
-
-            self._buffer.setdefault(message.round, []).append(message)
-
-            if len(self._buffer[message.round]) == self._num_neighbors:
-                log.info(
-                    f"Capability scientist {self.id} round {message.round} for area {area_name}: "
-                    f"Received all responses from {self._num_neighbors} neighbors."
-                )
-
-                prompt = f"These are the capabilities generated by other scientists for the '{area_name}' area:\n"
-                for resp in self._buffer[message.round]:
-                    prompt += f"One scientist solution: {resp.capabilities}\n"
-                prompt += (
-                    f"Using the capabilities generated by other scientists as additional information, "
-                    f"can you provide your answer to the capability generation problem for the '{area_name}' area? "
-                    f"Return ONLY JSON with a 'capabilities' list."
-                )
-
-                await self.publish_message(
-                    CapabilityRequest(
-                        content=prompt, area_name=area_name, area_description=""
-                    ),
-                    topic_id=DefaultTopicId(type=self._topic_type),
-                )
-
-                self._buffer.pop(message.round)
-
-        except Exception as e:
-            log.error(f"Error in Capability scientist {self.id} handle_response: {e}")
-            log.error(f"Traceback: {traceback.format_exc()}")
-            raise
-
-
-@default_subscription
-class CapabilityAggregator(RoutedAgent):
-    """Aggregates final responses and saves results."""
-
-    def __init__(
-        self, num_scientists: int, num_capabilities: int, output_dir: Path, domain: str
-    ) -> None:
-        super().__init__("Capability aggregator")
-        self._num_scientists = num_scientists
-        self._num_capabilities = num_capabilities
-        self._buffer: List[FinalCapabilityResponse] = []
-        self._output_dir = output_dir
-        self._domain = domain
-
-    @message_handler
-    async def handle_area(self, message: Area, ctx: MessageContext) -> None:
-        """Handle area messages."""
-        try:
-            log.info(f"Capability aggregator received area: {message.name}")
-
-            prompt = (
-                f"Generate {self._num_capabilities} diverse and novel capabilities for the '{message.name}' area. "
-                f"Area description: {message.description}. "
-                f"Each capability should be relevant to this area and designed to assess LLM abilities. "
-                f"Return ONLY JSON with a 'capabilities' list with exactly {self._num_capabilities} items. "
-                f"Each item must include: 'name', 'description', 'instructions', and 'tasks' (exactly 3, each with 'problem' and 'answer')."
-            )
-
             await self.publish_message(
-                CapabilityRequest(
-                    content=prompt,
-                    area_name=message.name,
-                    area_description=message.description,
+                ScientistCapabilityProposal(
+                    scientist_id=self._scientist_id,
+                    proposal=raw_content,
+                    area_name=message.area_name,
+                    round=self._round,
                 ),
                 topic_id=DefaultTopicId(),
             )
 
         except Exception as e:
-            log.error(f"Error in CapabilityAggregator handle_area: {e}")
+            log.error(
+                f"Error in Capability Scientist {self._scientist_id} handle_capability_proposal_request: {e}"
+            )
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
     @message_handler
-    async def handle_final_capability_response(
-        self, message: FinalCapabilityResponse, ctx: MessageContext
+    async def handle_revision_request(
+        self, message: CapabilityRevisionRequest, ctx: MessageContext
     ) -> None:
-        """Handle final capability responses from scientists."""
+        """Handle revision request from moderator."""
         try:
-            area_name = message.area_name
+            if message.scientist_id != self._scientist_id:
+                return  # Not for this scientist
+
             log.info(
-                f"Capability aggregator received final response for area '{area_name}' from scientist {ctx.sender}"
+                f"Capability Scientist {self._scientist_id} handling revision request for area: {message.area_name}, round {message.round}"
             )
 
-            self._buffer.append(message)
+            prompt = f"""You are Scientist {self._scientist_id}. The Moderator has proposed a merged list of capabilities for the area "{message.area_name}".
 
-            if len(self._buffer) == self._num_scientists:
-                capabilities_list = [resp.capabilities for resp in self._buffer]
+Moderator's Proposal:
+{message.moderator_proposal}
 
-                if not capabilities_list:
-                    log.error(
-                        f"No capabilities received from scientists for area: {area_name}"
-                    )
-                    majority_capabilities = DEFAULT_CAPABILITIES_JSON
-                else:
-                    # Get the most common response
-                    majority_capabilities = max(
-                        set(capabilities_list), key=capabilities_list.count
-                    )
-                    majority_capabilities = self._limit_capabilities_to_count(
-                        majority_capabilities, self._num_capabilities
-                    )
+Please review and revise the merged capability list by:
+- Clarifying or refining capability descriptions.
+- Flagging capabilities that may be overlapping or vague.
+- Proposing any additions or deletions if you believe something important is missing or redundant.
 
-                log.info(
-                    f"Final majority_capabilities for area '{area_name}': {majority_capabilities}"
-                )
+Be concise and constructive in your revisions.
 
-                # Save the results to file
-                try:
-                    self._save_capabilities_to_file(majority_capabilities, area_name)
-                    log.info(
-                        f"Capabilities for area '{area_name}' successfully saved to file"
-                    )
-                except Exception as save_error:
-                    log.error(
-                        f"Failed to save capabilities for area '{area_name}' to file: {save_error}"
-                    )
+Return the updated list in the following format:
+RESPONSE JSON:
+{{
+  "capability_0": {{
+    "name": <STR>,
+    "description": <STR>,
+    "area": "{message.area_name}"
+  }},
+  ...
+}}"""
 
-                self._buffer.clear()
+            system_message = SystemMessage(
+                content="You are an expert capability researcher specializing in LLM evaluation."
+            )
+            user_message = UserMessage(content=prompt, source="user")
 
-                log.info(
-                    f"Capability generation for area '{area_name}' completed successfully"
-                )
+            model_result = await self._model_client.create(
+                [system_message, user_message]
+            )
+
+            raw_content = model_result.content
+            if not isinstance(raw_content, str):
+                raw_content = str(raw_content)
+
+            log.info(
+                f"Capability Scientist {self._scientist_id} publishing revised proposal for area: {message.area_name}, round {message.round}"
+            )
+            await self.publish_message(
+                ScientistCapabilityProposal(
+                    scientist_id=self._scientist_id,
+                    proposal=raw_content,
+                    area_name=message.area_name,
+                    round=message.round,
+                ),
+                topic_id=DefaultTopicId(),
+            )
 
         except Exception as e:
             log.error(
-                f"Error in CapabilityAggregator handle_final_capability_response: {e}"
+                f"Error in Capability Scientist {self._scientist_id} handle_revision_request: {e}"
             )
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
-    def _limit_capabilities_to_count(
-        self, capabilities_str: str, max_count: int
-    ) -> str:
-        """Limit the number of capabilities in the JSON string to max_count."""
+
+@default_subscription
+class CapabilityModerator(RoutedAgent):
+    """Moderator that merges scientist capability proposals and manages iteration."""
+
+    def __init__(
+        self,
+        model_client: ChatCompletionClient,
+        num_scientists: int,
+        num_capabilities: int,
+        max_round: int,
+        output_dir: Path,
+        domain: str,
+    ) -> None:
+        super().__init__("Capability Moderator")
+        self._model_client = model_client
+        self._num_scientists = num_scientists
+        self._num_capabilities = num_capabilities
+        self._max_round = max_round
+        self._output_dir = output_dir
+        self._domain = domain
+        self._round = 0
+        self._proposals_buffer: Dict[
+            str, Dict[int, List[ScientistCapabilityProposal]]
+        ] = {}
+
+    @message_handler
+    async def handle_area(self, message: Area, ctx: MessageContext) -> None:
+        """Handle area messages and initiate capability proposal process."""
         try:
-            capabilities_data = json.loads(capabilities_str)
-            if (
-                isinstance(capabilities_data, dict)
-                and "capabilities" in capabilities_data
-                and isinstance(capabilities_data["capabilities"], list)
-            ):
-                capabilities_data["capabilities"] = capabilities_data["capabilities"][
-                    :max_count
-                ]
-                return json.dumps(capabilities_data, indent=2)
-            return capabilities_str
-        except (json.JSONDecodeError, TypeError, KeyError) as e:
-            log.warning(
-                f"Could not limit capabilities count due to JSON parsing error: {e}"
+            log.info(f"Capability Moderator received area: {message.name}")
+
+            # Send initial proposal request to scientists
+            await self.publish_message(
+                CapabilityProposalRequest(
+                    area_name=message.name,
+                    area_description=message.description,
+                    num_capabilities=self._num_capabilities,
+                ),
+                topic_id=DefaultTopicId(),
             )
-            raise e
+
+        except Exception as e:
+            log.error(f"Error in Capability Moderator handle_area: {e}")
+            log.error(f"Traceback: {traceback.format_exc()}")
+            raise
+
+    @message_handler
+    async def handle_scientist_proposal(
+        self, message: ScientistCapabilityProposal, ctx: MessageContext
+    ) -> None:
+        """Handle capability proposals from scientists."""
+        try:
+            log.info(
+                f"Capability Moderator received proposal from Scientist {message.scientist_id} for area: {message.area_name}, round {message.round}"
+            )
+
+            area_key = message.area_name
+            if area_key not in self._proposals_buffer:
+                self._proposals_buffer[area_key] = {}
+
+            self._proposals_buffer[area_key].setdefault(message.round, []).append(
+                message
+            )
+
+            if (
+                len(self._proposals_buffer[area_key][message.round])
+                == self._num_scientists
+            ):
+                log.info(
+                    f"Capability Moderator received all proposals for area: {message.area_name}, round {message.round}, proceeding to merge"
+                )
+
+                # Get proposals from both scientists
+                proposals = self._proposals_buffer[area_key][message.round]
+                scientist_a_proposal = next(
+                    p.proposal for p in proposals if p.scientist_id == "A"
+                )
+                scientist_b_proposal = next(
+                    p.proposal for p in proposals if p.scientist_id == "B"
+                )
+
+                await self._merge_proposals(
+                    scientist_a_proposal,
+                    scientist_b_proposal,
+                    message.area_name,
+                    message.round,
+                )
+
+        except Exception as e:
+            log.error(f"Error in Capability Moderator handle_scientist_proposal: {e}")
+            log.error(f"Traceback: {traceback.format_exc()}")
+            raise
+
+    async def _merge_proposals(
+        self,
+        scientist_a_proposal: str,
+        scientist_b_proposal: str,
+        area_name: str,
+        round_num: int,
+    ) -> None:
+        """Merge scientist proposals using LLM."""
+        try:
+            log.info(
+                f"Capability Moderator merging proposals for area: {area_name}, round {round_num}"
+            )
+
+            finalized_instruction = ""
+            if round_num >= self._max_round - 1:
+                finalized_instruction = """
+If, after incorporating feedback or upon review, you judge the merged set to be clear, comprehensive, and non-overlapping within the area, you may declare the capability design finalized.
+To finalize, add the field:
+"finalized": true
+at the end of your JSON response."""
+
+            prompt = f"""You are the Moderator. Two scientist agents have independently proposed a list of capabilities within the capability area: "{area_name}".
+
+Below are their proposals:
+
+Scientist A Proposal:
+{scientist_a_proposal}
+
+Scientist B Proposal:
+{scientist_b_proposal}
+
+Your task is to merge these proposals into a unified set of capabilities for the area. In doing so:
+- Eliminate redundancy and overlapping capabilities.
+- Ensure all capabilities are clearly within the scope of the area.
+- Ensure all capabilities are distinct from one another.
+- Improve clarity and precision in naming and descriptions, where needed.
+
+You will then submit this merged capability list for review by the scientist agents. If either scientist provides substantive suggestions, you may revise the list and initiate another round of review.{finalized_instruction}
+
+Present the merged capabilities in the following format:
+{{
+  "capability_0": {{
+    "name": "<STR>",
+    "description": "<STR>",
+    "area": "{area_name}"
+  }},
+  ...{', "finalized": <true|false>' if finalized_instruction else ""}
+}}
+
+Be thoughtful and concise in your output."""
+
+            system_message = SystemMessage(
+                content="You are an expert moderator specializing in capability design for LLM evaluation."
+            )
+            user_message = UserMessage(content=prompt, source="user")
+
+            model_result = await self._model_client.create(
+                [system_message, user_message]
+            )
+
+            raw_content = model_result.content
+            if not isinstance(raw_content, str):
+                raw_content = str(raw_content)
+
+            # Check if finalized
+            is_finalized = False
+            try:
+                json_start = raw_content.find("{")
+                if json_start != -1:
+                    json_part = raw_content[json_start:]
+                    parsed = json.loads(json_part)
+                    is_finalized = parsed.get("finalized", False)
+            except Exception:
+                pass
+
+            if is_finalized or round_num >= self._max_round - 1:
+                log.info(
+                    f"Capability Moderator finalizing capabilities for area: {area_name} after round {round_num}"
+                )
+                await self._finalize_capabilities(raw_content, area_name)
+            else:
+                log.info(
+                    f"Capability Moderator sending merged proposal for revision in area: {area_name}, round {round_num}"
+                )
+                next_round = round_num + 1
+
+                # Send to scientists for revision
+                await self.publish_message(
+                    CapabilityRevisionRequest(
+                        scientist_id="A",
+                        moderator_proposal=raw_content,
+                        area_name=area_name,
+                        round=next_round,
+                    ),
+                    topic_id=DefaultTopicId(),
+                )
+                await self.publish_message(
+                    CapabilityRevisionRequest(
+                        scientist_id="B",
+                        moderator_proposal=raw_content,
+                        area_name=area_name,
+                        round=next_round,
+                    ),
+                    topic_id=DefaultTopicId(),
+                )
+
+        except Exception as e:
+            log.error(f"Error in Capability Moderator _merge_proposals: {e}")
+            log.error(f"Traceback: {traceback.format_exc()}")
+            raise
+
+    async def _finalize_capabilities(
+        self, final_capabilities: str, area_name: str
+    ) -> None:
+        """Save final capabilities to file."""
+        try:
+            log.info(
+                f"Capability Moderator finalizing and saving capabilities for area: {area_name}"
+            )
+
+            # Convert to the expected format with "capabilities" list
+            try:
+                json_start = final_capabilities.find("{")
+                if json_start != -1:
+                    json_part = final_capabilities[json_start:]
+                    parsed = json.loads(json_part)
+                else:
+                    parsed = json.loads(final_capabilities)
+
+                if "finalized" in parsed:
+                    del parsed["finalized"]  # Remove finalized flag
+
+                # Convert capability_0, capability_1 format to capabilities list
+                capabilities_list = []
+                i = 0
+                while f"capability_{i}" in parsed:
+                    cap = parsed[f"capability_{i}"]
+                    # Add domain and area fields manually
+                    if isinstance(cap, dict):
+                        if "domain" not in cap:
+                            cap["domain"] = self._domain
+                        if "area" not in cap:
+                            cap["area"] = area_name
+                    capabilities_list.append(cap)
+                    i += 1
+
+                final_format = {"capabilities": capabilities_list}
+                final_capabilities_json = json.dumps(final_format, indent=2)
+            except Exception as e:
+                log.warning(f"Could not parse final capabilities JSON: {e}")
+                final_capabilities_json = final_capabilities
+
+            self._save_capabilities_to_file(final_capabilities_json, area_name)
+            log.info(
+                f"Capability generation for area '{area_name}' completed successfully"
+            )
+
+        except Exception as e:
+            log.error(f"Error in Capability Moderator _finalize_capabilities: {e}")
+            log.error(f"Traceback: {traceback.format_exc()}")
+            raise
 
     def _save_capabilities_to_file(self, capabilities: str, area_name: str) -> None:
         """Save the generated capabilities JSON payload to disk under the area."""
@@ -356,22 +509,11 @@ class CapabilityAggregator(RoutedAgent):
             area_dir = self._output_dir / area_name
             area_dir.mkdir(parents=True, exist_ok=True)
 
-            # Normalize capabilities JSON string and enforce max count again for safety
-            normalized = self._limit_capabilities_to_count(
-                capabilities, self._num_capabilities
-            )
             try:
-                parsed = json.loads(normalized)
+                parsed = json.loads(capabilities)
             except json.JSONDecodeError:
                 # Wrap raw string if not valid JSON
-                parsed = {"capabilities": normalized}
-
-            # Add domain field to each capability
-            for cap in parsed.get("capabilities", []):
-                if isinstance(cap, dict) and "domain" not in cap:
-                    cap["domain"] = self._domain
-                if isinstance(cap, dict) and "area" not in cap:
-                    cap["area"] = area_name
+                parsed = {"capabilities": capabilities}
 
             # Write to file
             out_path = area_dir / "capabilities.json"
@@ -401,8 +543,7 @@ async def generate_capabilities_for_area(
                     model=cfg.agents.scientist_a.name,
                     seed=cfg.agents.scientist_a.seed,
                 ),
-                topic_type="CapabilityScientistA",
-                num_neighbors=1,
+                scientist_id="A",
                 max_round=cfg.debate_cfg.max_round,
                 expected_capabilities=cfg.capabilities_cfg.num_capabilities_per_area,
                 domain=cfg.capabilities_cfg.domain,
@@ -417,30 +558,27 @@ async def generate_capabilities_for_area(
                     model=cfg.agents.scientist_b.name,
                     seed=cfg.agents.scientist_b.seed,
                 ),
-                topic_type="CapabilityScientistB",
-                num_neighbors=1,
+                scientist_id="B",
                 max_round=cfg.debate_cfg.max_round,
                 expected_capabilities=cfg.capabilities_cfg.num_capabilities_per_area,
                 domain=cfg.capabilities_cfg.domain,
             ),
         )
 
-        await CapabilityAggregator.register(
+        await CapabilityModerator.register(
             runtime,
-            "CapabilityAggregator",
-            lambda: CapabilityAggregator(
+            "CapabilityModerator",
+            lambda: CapabilityModerator(
+                model_client=OpenAIChatCompletionClient(
+                    model=cfg.agents.moderator.name,
+                    seed=cfg.agents.moderator.seed,
+                ),
                 num_scientists=2,
                 num_capabilities=cfg.capabilities_cfg.num_capabilities_per_area,
+                max_round=cfg.debate_cfg.max_round,
                 output_dir=output_dir,
                 domain=cfg.capabilities_cfg.domain,
             ),
-        )
-
-        await runtime.add_subscription(
-            TypeSubscription("CapabilityScientistA", "CapabilityScientistB")
-        )
-        await runtime.add_subscription(
-            TypeSubscription("CapabilityScientistB", "CapabilityScientistA")
         )
 
         # Start runtime and process the area

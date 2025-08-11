@@ -26,5 +26,12 @@ capabilities_cfg:
   num_capability_areas: 2         # top-level areas
   num_capabilities_per_area: 4        # number of capabilities per area
 
+# Task generation configuration
+task_cfg:
+  num_scientists: 2               # M: Number of scientist agents
+  num_final_problems: 3           # N: Number of final problems per capability
+  buffer_param: 2                 # B: Buffer parameter (extra problems each agent proposes)
+  agreement_threshold: 0.6        # S: Agreement threshold for solution consensus
+
 exp_cfg:
-  exp_id: kill_me
+  exp_id: mode
