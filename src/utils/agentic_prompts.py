@@ -240,13 +240,19 @@ Proposed Tasks:
 # SYSTEM MESSAGES
 # =============================================================================
 
-AREA_SCIENTIST_SYSTEM_MESSAGE = "You are an expert capability researcher specializing in LLM evaluation."
+AREA_SCIENTIST_SYSTEM_MESSAGE = (
+    "You are an expert capability researcher specializing in LLM evaluation."
+)
 
 AREA_MODERATOR_SYSTEM_MESSAGE = "You are an expert moderator specializing in capability area design for LLM evaluation."
 
-CAPABILITY_SCIENTIST_SYSTEM_MESSAGE = "You are an expert capability researcher specializing in LLM evaluation."
+CAPABILITY_SCIENTIST_SYSTEM_MESSAGE = (
+    "You are an expert capability researcher specializing in LLM evaluation."
+)
 
-CAPABILITY_MODERATOR_SYSTEM_MESSAGE = "You are an expert moderator specializing in capability design for LLM evaluation."
+CAPABILITY_MODERATOR_SYSTEM_MESSAGE = (
+    "You are an expert moderator specializing in capability design for LLM evaluation."
+)
 
 # =============================================================================
 # FINALIZATION INSTRUCTIONS
