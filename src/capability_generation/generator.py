@@ -6,15 +6,22 @@ import logging
 import traceback
 from pathlib import Path
 
+import openlit
 from autogen_core import DefaultTopicId, SingleThreadedAgentRuntime
 from autogen_ext.models.openai import OpenAIChatCompletionClient
+from langfuse import Langfuse
 from omegaconf import DictConfig
 
 from .messages import Area
 from .moderator import CapabilityModerator
 from .scientist import CapabilityScientist
 
+
 log = logging.getLogger("agentic_cap_gen.generator")
+langfuse = Langfuse(
+    blocked_instrumentation_scopes=["autogen SingleThreadedAgentRuntime"]
+)
+openlit.init(tracer=langfuse._otel_tracer, disable_batch=True)
 
 
 async def generate_capabilities_for_area(
@@ -93,67 +100,87 @@ async def generate_capabilities_for_area(
 
 async def generate_capabilities(cfg: DictConfig) -> None:
     """Generate capabilities using multi-agent debate system for each area."""
-    try:
-        log.info("Starting capability generation process")
+    with langfuse.start_as_current_span(
+        name=f"ace_capability_generation:{cfg.capabilities_cfg.domain}:{cfg.exp_cfg.exp_id}"
+    ) as span:
+        try:
+            log.info("Starting capability generation process")
+            max_round = cfg.debate_cfg.max_round
 
-        # Read areas from the areas.json file
-        areas_file = (
-            Path.home()
-            / cfg.debate_cfg.output_dir
-            / cfg.capabilities_cfg.domain
-            / cfg.exp_cfg.exp_id
-            / "areas"
-            / "areas.json"
-        )
+            span.update_trace(
+                metadata={
+                    "domain": cfg.capabilities_cfg.domain,
+                    "exp_id": cfg.exp_cfg.exp_id,
+                    "max_round": max_round,
+                    "num_capability_areas": cfg.capabilities_cfg.num_capability_areas,
+                },
+                tags=["capability_generation_process", cfg.exp_cfg.exp_id],
+            )
 
-        if not areas_file.exists():
-            raise FileNotFoundError(f"Areas file not found: {areas_file}")
+            # Read areas from the areas.json file
+            areas_file = (
+                Path.home()
+                / cfg.debate_cfg.output_dir
+                / cfg.capabilities_cfg.domain.replace(" ", "_")
+                / cfg.exp_cfg.exp_id
+                / "areas"
+                / "areas.json"
+            )
 
-        with open(areas_file, "r", encoding="utf-8") as f:
-            areas_data = json.load(f)
+            if not areas_file.exists():
+                raise FileNotFoundError(f"Areas file not found: {areas_file}")
 
-        # Parse areas from the JSON data
-        areas = []
-        if isinstance(areas_data, dict) and "areas" in areas_data:
-            for area_dict in areas_data["areas"]:
-                if (
-                    isinstance(area_dict, dict)
-                    and "name" in area_dict
-                    and "description" in area_dict
-                ):
-                    areas.append(
-                        Area(
-                            name=area_dict["name"], description=area_dict["description"]
+            with open(areas_file, "r", encoding="utf-8") as f:
+                areas_data = json.load(f)
+
+            # Parse areas from the JSON data
+            areas = []
+            if isinstance(areas_data, dict) and "areas" in areas_data:
+                for area_dict in areas_data["areas"]:
+                    if (
+                        isinstance(area_dict, dict)
+                        and "name" in area_dict
+                        and "description" in area_dict
+                    ):
+                        areas.append(
+                            Area(
+                                name=area_dict["name"],
+                                description=area_dict["description"],
+                            )
                         )
-                    )
 
-        if not areas:
-            raise ValueError(f"No valid areas found in {areas_file}")
+            if not areas:
+                raise ValueError(f"No valid areas found in {areas_file}")
 
-        log.info(
-            f"Found {len(areas)} areas to process: {[area.name for area in areas]}"
-        )
+            log.info(
+                f"Found {len(areas)} areas to process: {[area.name for area in areas]}"
+            )
 
-        output_dir = (
-            Path.home()
-            / cfg.debate_cfg.output_dir
-            / cfg.capabilities_cfg.domain
-            / cfg.exp_cfg.exp_id
-            / "capabilities"
-        )
-        log.info(f"Output directory: {output_dir}")
+            output_dir = (
+                Path.home()
+                / cfg.debate_cfg.output_dir
+                / cfg.capabilities_cfg.domain.replace(" ", "_")
+                / cfg.exp_cfg.exp_id
+                / "capabilities"
+            )
+            log.info(f"Output directory: {output_dir}")
+            span.update(metadata={"output_dir": str(output_dir)})
 
-        # Process each area individually with fresh agents
-        for i, area in enumerate(areas):
-            log.info(f"Processing area {i + 1}/{len(areas)}: {area.name}")
+            # Process each area individually with fresh agents
+            for i, area in enumerate(areas):
+                log.info(f"Processing area {i + 1}/{len(areas)}: {area.name}")
 
-            await generate_capabilities_for_area(cfg, area, output_dir)
+                await generate_capabilities_for_area(cfg, area, output_dir)
 
-            log.info(f"Completed area {i + 1}/{len(areas)}: {area.name}")
+                log.info(f"Completed area {i + 1}/{len(areas)}: {area.name}")
 
-            await asyncio.sleep(1)
+                await asyncio.sleep(1)
 
-    except Exception as e:
-        log.error(f"Error in generate_capabilities: {e}")
-        log.error(f"Traceback: {traceback.format_exc()}")
-        raise 
+        except Exception as e:
+            log.error(f"Error in generate_capabilities: {e}")
+            log.error(f"Traceback: {traceback.format_exc()}")
+            span.update(level="ERROR", status_message=str(e))
+            raise
+        finally:
+            langfuse.flush()
+            span.end()

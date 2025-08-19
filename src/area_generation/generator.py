@@ -110,13 +110,11 @@ async def generate_areas(cfg: DictConfig) -> None:
                 log.info("Runtime stopped when idle")
             except Exception as e:
                 log.error(f"Error while waiting for runtime to stop: {e}")
-                span.record_exception(e)
                 span.update(level="ERROR", status_message=str(e))
                 raise
 
         except Exception as e:
             log.error(f"Error in generate_areas: {e}")
-            span.record_exception(e)
             span.update(level="ERROR", status_message=str(e))
             raise
         finally:
