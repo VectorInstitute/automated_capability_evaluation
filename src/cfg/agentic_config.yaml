@@ -3,7 +3,7 @@ defaults:
 
 # Debate configuration
 debate_cfg:
-  max_round: 2
+  max_round: 3
   output_dir: ace_outputs/
 
 
@@ -23,8 +23,8 @@ agents:
 
 capabilities_cfg:
   domain: math
-  num_capability_areas: 2         # top-level areas
-  num_capabilities_per_area: 4        # number of capabilities per area
+  num_capability_areas: 3         # top-level areas
+  num_capabilities_per_area: 2       # number of capabilities per area
 
 # Task generation configuration
 task_cfg:
@@ -34,4 +34,9 @@ task_cfg:
   agreement_threshold: 0.6        # S: Agreement threshold for solution consensus
 
 exp_cfg:
-  exp_id: mode
+  exp_id: test
+
+# Pipeline tags for chaining stages
+pipeline_tags:
+  areas_tag: null          # Set via pipeline_tags.areas_tag=<tag>
+  capabilities_tag: null   # Set via pipeline_tags.capabilities_tag=<tag>

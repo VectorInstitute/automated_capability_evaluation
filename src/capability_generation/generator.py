@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import traceback
+from datetime import datetime
 from pathlib import Path
 
 import openlit
@@ -31,6 +32,8 @@ async def generate_capabilities_for_area(
     try:
         log.info(f"Generating capabilities for area: {area.name}")
 
+        domain_name = cfg.capabilities_cfg.domain
+
         runtime = SingleThreadedAgentRuntime()
 
         await CapabilityScientist.register(
@@ -44,7 +47,7 @@ async def generate_capabilities_for_area(
                 scientist_id="A",
                 max_round=cfg.debate_cfg.max_round,
                 expected_capabilities=cfg.capabilities_cfg.num_capabilities_per_area,
-                domain=cfg.capabilities_cfg.domain,
+                domain=domain_name,
             ),
         )
 
@@ -59,7 +62,7 @@ async def generate_capabilities_for_area(
                 scientist_id="B",
                 max_round=cfg.debate_cfg.max_round,
                 expected_capabilities=cfg.capabilities_cfg.num_capabilities_per_area,
-                domain=cfg.capabilities_cfg.domain,
+                domain=domain_name,
             ),
         )
 
@@ -75,7 +78,7 @@ async def generate_capabilities_for_area(
                 num_capabilities=cfg.capabilities_cfg.num_capabilities_per_area,
                 max_round=cfg.debate_cfg.max_round,
                 output_dir=output_dir,
-                domain=cfg.capabilities_cfg.domain,
+                domain=domain_name,
             ),
         )
 
@@ -98,10 +101,15 @@ async def generate_capabilities_for_area(
         raise
 
 
-async def generate_capabilities(cfg: DictConfig) -> None:
+async def generate_capabilities(cfg: DictConfig, areas_tag: str) -> None:
     """Generate capabilities using multi-agent debate system for each area."""
+    domain_name = cfg.capabilities_cfg.domain
+    exp_id = cfg.exp_cfg.exp_id
+    capabilities_tag = f"_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    log.info(f"Capabilities will be saved with tag: {capabilities_tag}")
+
     with langfuse.start_as_current_span(
-        name=f"ace_capability_generation:{cfg.capabilities_cfg.domain}:{cfg.exp_cfg.exp_id}"
+        name=f"ace_capability_generation:{domain_name}:{exp_id}:{capabilities_tag}"
     ) as span:
         try:
             log.info("Starting capability generation process")
@@ -109,21 +117,23 @@ async def generate_capabilities(cfg: DictConfig) -> None:
 
             span.update_trace(
                 metadata={
-                    "domain": cfg.capabilities_cfg.domain,
-                    "exp_id": cfg.exp_cfg.exp_id,
+                    "domain": domain_name,
+                    "exp_id": exp_id,
                     "max_round": max_round,
-                    "num_capability_areas": cfg.capabilities_cfg.num_capability_areas,
+                    "num_capabilities_per_area": cfg.capabilities_cfg.num_capabilities_per_area,
+                    "areas_tag": areas_tag,
+                    "capabilities_tag": capabilities_tag,
                 },
-                tags=["capability_generation_process", cfg.exp_cfg.exp_id],
+                tags=["capability_generation_process", exp_id],
             )
 
-            # Read areas from the areas.json file
             areas_file = (
                 Path.home()
                 / cfg.debate_cfg.output_dir
-                / cfg.capabilities_cfg.domain.replace(" ", "_")
-                / cfg.exp_cfg.exp_id
+                / domain_name.replace(" ", "_")
+                / exp_id
                 / "areas"
+                / areas_tag
                 / "areas.json"
             )
 
@@ -159,9 +169,10 @@ async def generate_capabilities(cfg: DictConfig) -> None:
             output_dir = (
                 Path.home()
                 / cfg.debate_cfg.output_dir
-                / cfg.capabilities_cfg.domain.replace(" ", "_")
-                / cfg.exp_cfg.exp_id
+                / domain_name.replace(" ", "_")
+                / exp_id
                 / "capabilities"
+                / capabilities_tag
             )
             log.info(f"Output directory: {output_dir}")
             span.update(metadata={"output_dir": str(output_dir)})
@@ -176,11 +187,12 @@ async def generate_capabilities(cfg: DictConfig) -> None:
 
                 await asyncio.sleep(1)
 
+            print(f"Capabilities generated with tag: {capabilities_tag}")
+
         except Exception as e:
             log.error(f"Error in generate_capabilities: {e}")
             log.error(f"Traceback: {traceback.format_exc()}")
             span.update(level="ERROR", status_message=str(e))
-            raise
-        finally:
             langfuse.flush()
             span.end()
+            raise
