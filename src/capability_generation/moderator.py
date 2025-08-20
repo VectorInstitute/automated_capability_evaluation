@@ -20,16 +20,18 @@ from autogen_core.models import (
 )
 
 from ..utils.agentic_prompts import (
+    CAPABILITY_FINALIZATION_INSTRUCTION,
     CAPABILITY_MODERATOR_MERGE_PROMPT,
     CAPABILITY_MODERATOR_SYSTEM_MESSAGE,
-    CAPABILITY_FINALIZATION_INSTRUCTION,
+    FINALIZED_FIELD,
 )
 from .messages import (
     Area,
     CapabilityProposalRequest,
-    ScientistCapabilityProposal,
     CapabilityRevisionRequest,
+    ScientistCapabilityProposal,
 )
+
 
 log = logging.getLogger("agentic_cap_gen.moderator")
 
@@ -160,18 +162,12 @@ class CapabilityModerator(RoutedAgent):
                 f"Capability Moderator merging proposals for area: {area_name}, round {round_num}"
             )
 
-            finalized_instruction = ""
-            finalized_field = ""
-            if round_num >= self._max_round - 1:
-                finalized_instruction = CAPABILITY_FINALIZATION_INSTRUCTION
-                finalized_field = ', "finalized": <true|false>'
-
             prompt = CAPABILITY_MODERATOR_MERGE_PROMPT.format(
                 area_name=area_name,
                 scientist_a_proposal=scientist_a_proposal,
                 scientist_b_proposal=scientist_b_proposal,
-                finalized_instruction=finalized_instruction,
-                finalized_field=finalized_field,
+                finalized_instruction=CAPABILITY_FINALIZATION_INSTRUCTION,
+                finalized_field=FINALIZED_FIELD,
             )
 
             system_message = SystemMessage(content=CAPABILITY_MODERATOR_SYSTEM_MESSAGE)
@@ -194,7 +190,8 @@ class CapabilityModerator(RoutedAgent):
                     parsed = json.loads(json_part)
                     is_finalized = parsed.get("finalized", False)
             except Exception:
-                pass
+                log.error(f"Error parsing final capabilities JSON: {raw_content}")
+                raise
 
             if is_finalized or round_num >= self._max_round - 1:
                 log.info(
@@ -304,4 +301,4 @@ class CapabilityModerator(RoutedAgent):
         except Exception as e:
             log.error(f"Failed to save capabilities for area {area_name}: {e}")
             log.error(f"Traceback: {traceback.format_exc()}")
-            raise 
+            raise

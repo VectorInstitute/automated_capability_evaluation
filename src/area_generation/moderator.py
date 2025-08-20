@@ -20,16 +20,18 @@ from autogen_core.models import (
 )
 
 from ..utils.agentic_prompts import (
+    AREA_FINALIZATION_INSTRUCTION,
     AREA_MODERATOR_MERGE_PROMPT,
     AREA_MODERATOR_SYSTEM_MESSAGE,
-    AREA_FINALIZATION_INSTRUCTION,
+    FINALIZED_FIELD,
 )
 from .messages import (
-    Domain,
     AreaProposalRequest,
+    Domain,
     ScientistAreaProposal,
     ScientistRevisionRequest,
 )
+
 
 log = logging.getLogger("agentic_area_gen.moderator")
 
@@ -118,19 +120,13 @@ class AreaModerator(RoutedAgent):
         try:
             log.info(f"Moderator merging proposals for round {round_num}")
 
-            finalized_instruction = ""
-            finalized_field = ""
-            if round_num >= self._max_round - 1:
-                finalized_instruction = AREA_FINALIZATION_INSTRUCTION
-                finalized_field = ', "finalized": <true|false>'
-
             prompt = AREA_MODERATOR_MERGE_PROMPT.format(
                 domain=self._domain,
                 scientist_a_proposal=scientist_a_proposal,
                 scientist_b_proposal=scientist_b_proposal,
                 num_final_areas=self._num_final_areas,
-                finalized_instruction=finalized_instruction,
-                finalized_field=finalized_field,
+                finalized_instruction=AREA_FINALIZATION_INSTRUCTION,
+                finalized_field=FINALIZED_FIELD,
             )
 
             system_message = SystemMessage(content=AREA_MODERATOR_SYSTEM_MESSAGE)
@@ -150,7 +146,8 @@ class AreaModerator(RoutedAgent):
                 parsed = json.loads(raw_content)
                 is_finalized = parsed.get("finalized", False)
             except Exception:
-                pass
+                log.error(f"Error parsing final areas JSON: {raw_content}")
+                raise
 
             if is_finalized or round_num >= self._max_round - 1:
                 log.info(f"Moderator finalizing areas after round {round_num}")
@@ -251,4 +248,4 @@ class AreaModerator(RoutedAgent):
         except Exception as e:
             log.error(f"Failed to save areas to file: {e}")
             log.error(f"Traceback: {traceback.format_exc()}")
-            raise 
+            raise
