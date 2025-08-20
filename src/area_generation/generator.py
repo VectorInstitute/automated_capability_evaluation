@@ -69,7 +69,7 @@ async def generate_areas(cfg: DictConfig) -> None:
                 "AreaScientistA",
                 lambda: AreaScientist(
                     model_client=OpenAIChatCompletionClient(
-                        model=cfg.agents.scientist_a.name,
+                        model=cfg.agents.scientist_a.model_name,
                         seed=cfg.agents.scientist_a.seed,
                     ),
                     scientist_id="A",
@@ -82,7 +82,7 @@ async def generate_areas(cfg: DictConfig) -> None:
                 "AreaScientistB",
                 lambda: AreaScientist(
                     model_client=OpenAIChatCompletionClient(
-                        model=cfg.agents.scientist_b.name,
+                        model=cfg.agents.scientist_b.model_name,
                         seed=cfg.agents.scientist_b.seed,
                     ),
                     scientist_id="B",
@@ -95,7 +95,7 @@ async def generate_areas(cfg: DictConfig) -> None:
                 "AreaModerator",
                 lambda: AreaModerator(
                     model_client=OpenAIChatCompletionClient(
-                        model=cfg.agents.moderator.name,
+                        model=cfg.agents.moderator.model_name,
                         seed=cfg.agents.moderator.seed,
                     ),
                     num_scientists=2,

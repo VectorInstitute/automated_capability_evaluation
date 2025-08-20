@@ -37,7 +37,8 @@ Please review the proposed areas carefully and suggest any of the following:
 
 Keep your feedback constructive and focused on improving clarity, coverage, and non-overlap. Avoid unnecessary changes.
 
-Return your revised proposal in the following format:
+Return your revised proposal with the following format:
+THOUGHT: <your summary of thoughts on the proposal and changes you made>
 RESPONSE JSON:
 {{
   "area_0": {{
@@ -62,9 +63,11 @@ Your task is to merge their proposals into a unified set of {num_final_areas} ar
 - Justify any removals, merges, or renamings.
 - Ensure that the final set is mutually exclusive and collectively exhaustive for this domain.
 
+Explain how you merge the above proposals. Be thoughtful and concise in your output.
 You will then submit this merged proposal for review by the scientist agents. If either scientist provides substantive suggestions, you may revise the proposal and initiate another round of review.{finalized_instruction}
 
 Present the merged areas in the following format:
+THOUGHT: <your summary of thoughts on the proposals and merges you made>
 {{
   "area_0": {{
     "name": <STR>,
@@ -72,8 +75,7 @@ Present the merged areas in the following format:
   }},
   ...{finalized_field}
 }}
-
-Be thoughtful and concise in your output."""
+"""
 
 # =============================================================================
 # CAPABILITY GENERATION PROMPTS
@@ -115,9 +117,10 @@ Please review and revise the merged capability list by:
 - Flagging capabilities that may be overlapping or vague.
 - Proposing any additions or deletions if you believe something important is missing or redundant.
 
-Be concise and constructive in your revisions.
-
+Detail the modifications you make to the above proposal and explain your reasoning.
 Return the updated list in the following format:
+
+THOUGHT: <your thought and your reasoning>
 RESPONSE JSON:
 {{
   "capability_0": {{
@@ -147,6 +150,7 @@ Your task is to merge these proposals into a unified set of capabilities for the
 You will then submit this merged capability list for review by the scientist agents. If either scientist provides substantive suggestions, you may revise the list and initiate another round of review.{finalized_instruction}
 
 Present the merged capabilities in the following format:
+THOUGHT: <your thoughts and reasoning>
 {{
   "capability_0": {{
     "name": "<STR>",
@@ -155,8 +159,7 @@ Present the merged capabilities in the following format:
   }},
   ...{finalized_field}
 }}
-
-Be thoughtful and concise in your output."""
+"""
 
 # =============================================================================
 # TASK GENERATION PROMPTS
@@ -240,19 +243,13 @@ Proposed Tasks:
 # SYSTEM MESSAGES
 # =============================================================================
 
-AREA_SCIENTIST_SYSTEM_MESSAGE = (
-    "You are an expert capability researcher specializing in LLM evaluation."
-)
+AREA_SCIENTIST_SYSTEM_MESSAGE = "You are an expert in and designing a taxonomy of capabilities/skills in this domain."
 
-AREA_MODERATOR_SYSTEM_MESSAGE = "You are an expert moderator specializing in capability area design for LLM evaluation."
+AREA_MODERATOR_SYSTEM_MESSAGE = "You are an expert in and designing and reviewing a taxonomy of capabilities/skills in this domain."
 
-CAPABILITY_SCIENTIST_SYSTEM_MESSAGE = (
-    "You are an expert capability researcher specializing in LLM evaluation."
-)
+CAPABILITY_SCIENTIST_SYSTEM_MESSAGE = "You are an expert in and designing a taxonomy of capabilities/skills in this domain."
 
-CAPABILITY_MODERATOR_SYSTEM_MESSAGE = (
-    "You are an expert moderator specializing in capability design for LLM evaluation."
-)
+CAPABILITY_MODERATOR_SYSTEM_MESSAGE = "You are an expert in and designing and reviewing a taxonomy of capabilities/skills in this domain."
 
 # =============================================================================
 # FINALIZATION INSTRUCTIONS
@@ -269,3 +266,5 @@ If, after incorporating feedback or upon review, you judge the merged set to be 
 To finalize, add the field:
 "finalized": true
 at the end of your JSON response."""
+
+FINALIZED_FIELD = ', "finalized": <true|false>'

@@ -4,7 +4,7 @@ import json
 import logging
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from autogen_core import (
     DefaultTopicId,
@@ -34,26 +34,6 @@ from .messages import (
 
 
 log = logging.getLogger("agentic_cap_gen.moderator")
-
-
-def normalize_capabilities(s: str, expected: int, domain: str = "") -> str:
-    """Ensure payload has JSON with a 'capabilities' list of size <= expected."""
-    try:
-        data = json.loads(s)
-        if isinstance(data, dict):
-            if "capabilities" in data and isinstance(data["capabilities"], list):
-                data["capabilities"] = data["capabilities"][:expected]
-                return json.dumps(data, indent=2)
-            capabilities: List[Dict[str, Any]] = []
-            i = 0
-            while f"capability_{i}" in data and len(capabilities) < expected:
-                cap = data[f"capability_{i}"]
-                capabilities.append(cap)
-                i += 1
-            return json.dumps({"capabilities": capabilities}, indent=2)
-    except Exception:
-        pass
-    return s
 
 
 @default_subscription

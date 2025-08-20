@@ -45,7 +45,7 @@ async def generate_capabilities_for_area(
             "CapabilityScientistA",
             lambda: CapabilityScientist(
                 model_client=OpenAIChatCompletionClient(
-                    model=cfg.agents.scientist_a.name,
+                    model=cfg.agents.scientist_a.model_name,
                     seed=cfg.agents.scientist_a.seed,
                 ),
                 scientist_id="A",
@@ -60,7 +60,7 @@ async def generate_capabilities_for_area(
             "CapabilityScientistB",
             lambda: CapabilityScientist(
                 model_client=OpenAIChatCompletionClient(
-                    model=cfg.agents.scientist_b.name,
+                    model=cfg.agents.scientist_b.model_name,
                     seed=cfg.agents.scientist_b.seed,
                 ),
                 scientist_id="B",
@@ -75,7 +75,7 @@ async def generate_capabilities_for_area(
             "CapabilityModerator",
             lambda: CapabilityModerator(
                 model_client=OpenAIChatCompletionClient(
-                    model=cfg.agents.moderator.name,
+                    model=cfg.agents.moderator.model_name,
                     seed=cfg.agents.moderator.seed,
                 ),
                 num_scientists=2,
