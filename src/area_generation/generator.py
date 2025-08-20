@@ -15,32 +15,29 @@ from .moderator import AreaModerator
 from .scientist import AreaScientist
 
 
+logging.getLogger("autogen").setLevel(logging.WARNING)
+logging.getLogger("autogen_core").setLevel(logging.WARNING)
+logging.getLogger("autogen_ext").setLevel(logging.WARNING)
+
 log = logging.getLogger("agentic_area_gen.generator")
 
-langfuse = Langfuse(
-    blocked_instrumentation_scopes=["autogen SingleThreadedAgentRuntime"]
-)
-openlit.init(tracer=langfuse._otel_tracer, disable_batch=True)
-
-
-DEFAULT_NUM_SCIENTISTS = 2
+lf = Langfuse(blocked_instrumentation_scopes=["autogen SingleThreadedAgentRuntime"])
+openlit.init(tracer=lf._otel_tracer, disable_batch=True)
 
 
 async def generate_areas(cfg: DictConfig) -> None:
     """Generate areas using multi-agent debate system."""
     domain_name = cfg.capabilities_cfg.domain
     exp_id = cfg.exp_cfg.exp_id
+    max_round = cfg.debate_cfg.max_round
     areas_tag = f"_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     log.info(f"Areas will be saved with tag: {areas_tag}")
 
-    with langfuse.start_as_current_span(
+    with lf.start_as_current_span(
         name=f"ace_area_generation:{domain_name}:{exp_id}:{areas_tag}"
     ) as span:
         try:
             log.info("Starting area generation process")
-
-            max_round = cfg.debate_cfg.max_round
-            runtime = SingleThreadedAgentRuntime()
 
             output_dir = (
                 Path.home()
@@ -63,6 +60,8 @@ async def generate_areas(cfg: DictConfig) -> None:
                 },
                 tags=["area_generation", exp_id],
             )
+
+            runtime = SingleThreadedAgentRuntime()
 
             # Register agents with the runtime
             await AreaScientist.register(
@@ -99,7 +98,7 @@ async def generate_areas(cfg: DictConfig) -> None:
                         model=cfg.agents.moderator.name,
                         seed=cfg.agents.moderator.seed,
                     ),
-                    num_scientists=DEFAULT_NUM_SCIENTISTS,
+                    num_scientists=2,
                     num_final_areas=cfg.capabilities_cfg.num_capability_areas,
                     max_round=max_round,
                     output_dir=output_dir,
@@ -118,14 +117,14 @@ async def generate_areas(cfg: DictConfig) -> None:
                 log.info("Runtime stopped when idle")
             except Exception as e:
                 log.error(f"Error while waiting for runtime to stop: {e}")
-                span.update(level="ERROR", status_message=str(e))
+                span.update(level="ERROR", statusMessage=str(e))
                 raise
 
             print(f"Areas generated with tag: {areas_tag}")
 
         except Exception as e:
             log.error(f"Error in generate_areas: {e}")
-            span.update(level="ERROR", status_message=str(e))
-            langfuse.flush()
+            span.update(level="ERROR", statusMessage=str(e))
+            lf.flush()
             span.end()
             raise

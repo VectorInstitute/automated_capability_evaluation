@@ -18,11 +18,15 @@ from .moderator import CapabilityModerator
 from .scientist import CapabilityScientist
 
 
+logging.getLogger("autogen").setLevel(logging.WARNING)
+logging.getLogger("autogen_core").setLevel(logging.WARNING)
+logging.getLogger("autogen_ext").setLevel(logging.WARNING)
+
 log = logging.getLogger("agentic_cap_gen.generator")
-langfuse = Langfuse(
-    blocked_instrumentation_scopes=["autogen SingleThreadedAgentRuntime"]
-)
-openlit.init(tracer=langfuse._otel_tracer, disable_batch=True)
+
+
+lf = Langfuse(blocked_instrumentation_scopes=["autogen SingleThreadedAgentRuntime"])
+openlit.init(tracer=lf._otel_tracer, disable_batch=True)
 
 
 async def generate_capabilities_for_area(
@@ -105,15 +109,15 @@ async def generate_capabilities(cfg: DictConfig, areas_tag: str) -> None:
     """Generate capabilities using multi-agent debate system for each area."""
     domain_name = cfg.capabilities_cfg.domain
     exp_id = cfg.exp_cfg.exp_id
+    max_round = cfg.debate_cfg.max_round
     capabilities_tag = f"_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     log.info(f"Capabilities will be saved with tag: {capabilities_tag}")
 
-    with langfuse.start_as_current_span(
+    with lf.start_as_current_span(
         name=f"ace_capability_generation:{domain_name}:{exp_id}:{capabilities_tag}"
     ) as span:
         try:
             log.info("Starting capability generation process")
-            max_round = cfg.debate_cfg.max_round
 
             span.update_trace(
                 metadata={
@@ -192,7 +196,7 @@ async def generate_capabilities(cfg: DictConfig, areas_tag: str) -> None:
         except Exception as e:
             log.error(f"Error in generate_capabilities: {e}")
             log.error(f"Traceback: {traceback.format_exc()}")
-            span.update(level="ERROR", status_message=str(e))
-            langfuse.flush()
+            span.update(level="ERROR", statusMessage=str(e))
+            lf.flush()
             span.end()
             raise
