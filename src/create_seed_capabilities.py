@@ -285,7 +285,7 @@ def main(cfg: DictConfig) -> None:
             # Only keep problem and answer
             capability_repr_tasks = [
                 {"problem": s["problem"], "answer": s["answer"]}
-                for s in tasks[: dataset._cfg["data_args"]["num_repr_tasks"]]
+                for s in gsm_tasks[: dataset._cfg["data_args"]["num_repr_tasks"]]
             ]
 
             populate_seed_capability_dir(
@@ -301,6 +301,47 @@ def main(cfg: DictConfig) -> None:
             )
             logger.info(
                 f"Created capability {capability_name} with {len(gsm_tasks)} tasks."
+            )
+        elif dataset.name == "personal_finance_basic":
+            capability_name = "personal_finance_basic"
+
+            # Reformat raw data
+            pf_tasks = []
+            for task_id, task in enumerate(dataset._data):
+                task["id"] = str(task_id + 1)
+                task["problem"] = task.pop("problem")
+                task["answer"] = task.pop("solution")
+                task["solution"] = task.pop("reasoning")
+                task.pop("area")
+                task.pop("capability")
+                pf_tasks.append(task)
+
+            # Prepare instructions
+            capability_instructions = dataset.instructions.format(
+                problem='{t["problem"]}'
+            )
+
+            # Create representative tasks
+            capability_repr_tasks = [
+                {"problem": t["problem"], "answer": t["answer"]}
+                for t in pf_tasks[: dataset._cfg["data_args"]["num_repr_tasks"]]
+            ]
+
+            populate_seed_capability_dir(
+                base_dir=seed_capability_dir,
+                capability_name=capability_name,
+                capability_description=dataset.description,
+                capability_domain=dataset.domain,
+                capability_data=pf_tasks,
+                capability_repr_tasks=capability_repr_tasks,
+                capability_instructions=capability_instructions,
+                capability_score_func=constants.PERSONAL_FINANCE_BASIC_SCORE_FUNC.strip(
+                    "\n"
+                ),
+                source_dataset=dataset.name,
+            )
+            logger.info(
+                f"Created capability {capability_name} with {len(pf_tasks)} tasks."
             )
 
 
