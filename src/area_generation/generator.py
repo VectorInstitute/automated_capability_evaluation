@@ -1,6 +1,7 @@
 """Main area generation orchestration function."""
 
 import logging
+from contextlib import redirect_stdout
 from datetime import datetime
 from pathlib import Path
 
@@ -29,7 +30,8 @@ logging.getLogger(EVENT_LOGGER_NAME).setLevel(logging.WARNING)
 lf = Langfuse(blocked_instrumentation_scopes=["autogen SingleThreadedAgentRuntime"])
 
 
-openlit.init(tracer=lf._otel_tracer, disable_metrics=True)
+with open(os.devnull, "w") as devnull, redirect_stdout(devnull):
+    openlit.init(tracer=lf._otel_tracer, disable_batch=True, disable_metrics=True)
 
 
 async def generate_areas(cfg: DictConfig) -> None:
