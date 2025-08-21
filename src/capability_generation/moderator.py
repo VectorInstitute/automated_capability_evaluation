@@ -20,11 +20,10 @@ from autogen_core.models import (
 )
 
 from ..utils.agentic_prompts import (
-    CAPABILITY_FINALIZATION_INSTRUCTION,
     CAPABILITY_MODERATOR_MERGE_PROMPT,
     CAPABILITY_MODERATOR_SYSTEM_MESSAGE,
-    FINALIZED_FIELD,
 )
+from ..utils.json_utils import parse_llm_json_response
 from .messages import (
     Area,
     CapabilityProposalRequest,
@@ -146,8 +145,6 @@ class CapabilityModerator(RoutedAgent):
                 area_name=area_name,
                 scientist_a_proposal=scientist_a_proposal,
                 scientist_b_proposal=scientist_b_proposal,
-                finalized_instruction=CAPABILITY_FINALIZATION_INSTRUCTION,
-                finalized_field=FINALIZED_FIELD,
             )
 
             system_message = SystemMessage(content=CAPABILITY_MODERATOR_SYSTEM_MESSAGE)
@@ -157,49 +154,48 @@ class CapabilityModerator(RoutedAgent):
                 [system_message, user_message]
             )
 
-            raw_content = model_result.content
-            if not isinstance(raw_content, str):
-                raw_content = str(raw_content)
-
             # Check if finalized
             is_finalized = False
             try:
-                json_start = raw_content.find("{")
-                if json_start != -1:
-                    json_part = raw_content[json_start:]
-                    parsed = json.loads(json_part)
-                    is_finalized = parsed.get("finalized", False)
+                parsed = parse_llm_json_response(model_result.content)
+                revised_capabilities = parsed.get("capabilities", {})
+                is_finalized = parsed.get("finalized", False)
+
             except Exception:
-                log.error(f"Error parsing final capabilities JSON: {raw_content}")
+                log.error(
+                    f"Error parsing merged capabilities JSON: {model_result.content}"
+                )
                 raise
 
             if is_finalized or round_num >= self._max_round - 1:
                 log.info(
                     f"Capability Moderator finalizing capabilities for area: {area_name} after round {round_num}"
                 )
-                await self._finalize_capabilities(raw_content, area_name)
+                await self._finalize_capabilities(revised_capabilities, area_name)
             else:
                 log.info(
                     f"Capability Moderator sending merged proposal for revision in area: {area_name}, round {round_num}"
                 )
-                next_round = round_num + 1
+
+                round_num += 1
+                revision_content = json.dumps(revised_capabilities)
 
                 # Send to scientists for revision
                 await self.publish_message(
                     CapabilityRevisionRequest(
                         scientist_id="A",
-                        moderator_proposal=raw_content,
+                        moderator_proposal=revision_content,
                         area_name=area_name,
-                        round=next_round,
+                        round=round_num,
                     ),
                     topic_id=DefaultTopicId(),
                 )
                 await self.publish_message(
                     CapabilityRevisionRequest(
                         scientist_id="B",
-                        moderator_proposal=raw_content,
+                        moderator_proposal=revision_content,
                         area_name=area_name,
-                        round=next_round,
+                        round=round_num,
                     ),
                     topic_id=DefaultTopicId(),
                 )
@@ -210,7 +206,7 @@ class CapabilityModerator(RoutedAgent):
             raise
 
     async def _finalize_capabilities(
-        self, final_capabilities: str, area_name: str
+        self, final_capabilities: dict, area_name: str
     ) -> None:
         """Save final capabilities to file."""
         try:
@@ -218,39 +214,25 @@ class CapabilityModerator(RoutedAgent):
                 f"Capability Moderator finalizing and saving capabilities for area: {area_name}"
             )
 
-            # Convert to the expected format with "capabilities" list
-            try:
-                json_start = final_capabilities.find("{")
-                if json_start != -1:
-                    json_part = final_capabilities[json_start:]
-                    parsed = json.loads(json_part)
-                else:
-                    parsed = json.loads(final_capabilities)
+            if "finalized" in final_capabilities:
+                del final_capabilities["finalized"]  # Remove finalized flag
 
-                if "finalized" in parsed:
-                    del parsed["finalized"]  # Remove finalized flag
+            # Convert capability_0, capability_1 format to capabilities list
+            capabilities_list = []
+            i = 0
+            while f"capability_{i}" in final_capabilities:
+                cap = final_capabilities[f"capability_{i}"]
+                # Add domain and area fields manually
+                if isinstance(cap, dict):
+                    if "domain" not in cap:
+                        cap["domain"] = self._domain
+                    if "area" not in cap:
+                        cap["area"] = area_name
+                capabilities_list.append(cap)
+                i += 1
 
-                # Convert capability_0, capability_1 format to capabilities list
-                capabilities_list = []
-                i = 0
-                while f"capability_{i}" in parsed:
-                    cap = parsed[f"capability_{i}"]
-                    # Add domain and area fields manually
-                    if isinstance(cap, dict):
-                        if "domain" not in cap:
-                            cap["domain"] = self._domain
-                        if "area" not in cap:
-                            cap["area"] = area_name
-                    capabilities_list.append(cap)
-                    i += 1
-
-                final_format = {"capabilities": capabilities_list}
-                final_capabilities_json = json.dumps(final_format, indent=2)
-            except Exception as e:
-                log.warning(f"Could not parse final capabilities JSON: {e}")
-                final_capabilities_json = final_capabilities
-
-            self._save_capabilities_to_file(final_capabilities_json, area_name)
+            final_format = {"capabilities": capabilities_list}
+            self._save_capabilities_to_file(final_format, area_name)
             log.info(
                 f"Capability generation for area '{area_name}' completed successfully"
             )
@@ -260,23 +242,17 @@ class CapabilityModerator(RoutedAgent):
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
-    def _save_capabilities_to_file(self, capabilities: str, area_name: str) -> None:
+    def _save_capabilities_to_file(self, capabilities: dict, area_name: str) -> None:
         """Save the generated capabilities JSON payload to disk under the area."""
         try:
             # Ensure output dir exists
             area_dir = self._output_dir / area_name
             area_dir.mkdir(parents=True, exist_ok=True)
 
-            try:
-                parsed = json.loads(capabilities)
-            except json.JSONDecodeError:
-                # Wrap raw string if not valid JSON
-                parsed = {"capabilities": capabilities}
-
             # Write to file
             out_path = area_dir / "capabilities.json"
             with open(out_path, "w", encoding="utf-8") as f:
-                json.dump(parsed, f, indent=2, ensure_ascii=False)
+                json.dump(capabilities, f, indent=2, ensure_ascii=False)
             log.info(f"Saved capabilities JSON for area '{area_name}' to {out_path}")
         except Exception as e:
             log.error(f"Failed to save capabilities for area {area_name}: {e}")

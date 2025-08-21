@@ -3,12 +3,20 @@
 import asyncio
 import json
 import logging
+import os
 import traceback
+from contextlib import redirect_stdout
 from datetime import datetime
 from pathlib import Path
 
 import openlit
-from autogen_core import DefaultTopicId, SingleThreadedAgentRuntime
+from autogen_core import (
+    EVENT_LOGGER_NAME,
+    ROOT_LOGGER_NAME,
+    TRACE_LOGGER_NAME,
+    DefaultTopicId,
+    SingleThreadedAgentRuntime,
+)
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from langfuse import Langfuse
 from omegaconf import DictConfig
@@ -18,15 +26,16 @@ from .moderator import CapabilityModerator
 from .scientist import CapabilityScientist
 
 
-logging.getLogger("autogen").setLevel(logging.WARNING)
-logging.getLogger("autogen_core").setLevel(logging.WARNING)
-logging.getLogger("autogen_ext").setLevel(logging.WARNING)
-
 log = logging.getLogger("agentic_cap_gen.generator")
-
+logging.getLogger(ROOT_LOGGER_NAME).setLevel(logging.WARNING)
+logging.getLogger(TRACE_LOGGER_NAME).setLevel(logging.WARNING)
+logging.getLogger(EVENT_LOGGER_NAME).setLevel(logging.WARNING)
 
 lf = Langfuse(blocked_instrumentation_scopes=["autogen SingleThreadedAgentRuntime"])
-openlit.init(tracer=lf._otel_tracer, disable_batch=True)
+
+
+with open(os.devnull, "w") as devnull, redirect_stdout(devnull):
+    openlit.init(tracer=lf._otel_tracer, disable_batch=True, disable_metrics=True)
 
 
 async def generate_capabilities_for_area(
@@ -37,6 +46,8 @@ async def generate_capabilities_for_area(
         log.info(f"Generating capabilities for area: {area.name}")
 
         domain_name = cfg.capabilities_cfg.domain
+        max_round = cfg.debate_cfg.max_round
+        expected_capabilities = cfg.capabilities_cfg.num_capabilities_per_area
 
         runtime = SingleThreadedAgentRuntime()
 
@@ -49,8 +60,8 @@ async def generate_capabilities_for_area(
                     seed=cfg.agents.scientist_a.seed,
                 ),
                 scientist_id="A",
-                max_round=cfg.debate_cfg.max_round,
-                expected_capabilities=cfg.capabilities_cfg.num_capabilities_per_area,
+                max_round=max_round,
+                expected_capabilities=expected_capabilities,
                 domain=domain_name,
             ),
         )
@@ -64,8 +75,8 @@ async def generate_capabilities_for_area(
                     seed=cfg.agents.scientist_b.seed,
                 ),
                 scientist_id="B",
-                max_round=cfg.debate_cfg.max_round,
-                expected_capabilities=cfg.capabilities_cfg.num_capabilities_per_area,
+                max_round=max_round,
+                expected_capabilities=expected_capabilities,
                 domain=domain_name,
             ),
         )
@@ -79,8 +90,8 @@ async def generate_capabilities_for_area(
                     seed=cfg.agents.moderator.seed,
                 ),
                 num_scientists=2,
-                num_capabilities=cfg.capabilities_cfg.num_capabilities_per_area,
-                max_round=cfg.debate_cfg.max_round,
+                num_capabilities=expected_capabilities,
+                max_round=max_round,
                 output_dir=output_dir,
                 domain=domain_name,
             ),

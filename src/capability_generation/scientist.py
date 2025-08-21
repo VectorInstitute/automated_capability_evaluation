@@ -1,5 +1,6 @@
 """Capability scientist agent for generating capabilities within areas."""
 
+import json
 import logging
 import traceback
 
@@ -21,11 +22,13 @@ from ..utils.agentic_prompts import (
     CAPABILITY_SCIENTIST_REVISION_PROMPT,
     CAPABILITY_SCIENTIST_SYSTEM_MESSAGE,
 )
+from ..utils.json_utils import parse_llm_json_response
 from .messages import (
     CapabilityProposalRequest,
-    ScientistCapabilityProposal,
     CapabilityRevisionRequest,
+    ScientistCapabilityProposal,
 )
+
 
 log = logging.getLogger("agentic_cap_gen.scientist")
 
@@ -74,9 +77,12 @@ class CapabilityScientist(RoutedAgent):
                 [system_message, user_message]
             )
 
-            raw_content = model_result.content
-            if not isinstance(raw_content, str):
-                raw_content = str(raw_content)
+            try:
+                parsed = parse_llm_json_response(model_result.content)
+                proposal_content = json.dumps(parsed["capabilities"])
+            except Exception as e:
+                log.error(f"Could not parse scientist response as JSON: {e}")
+                raise
 
             log.info(
                 f"Capability Scientist {self._scientist_id} publishing capability proposal for area: {message.area_name}"
@@ -84,7 +90,7 @@ class CapabilityScientist(RoutedAgent):
             await self.publish_message(
                 ScientistCapabilityProposal(
                     scientist_id=self._scientist_id,
-                    proposal=raw_content,
+                    proposal=proposal_content,
                     area_name=message.area_name,
                     round=self._round,
                 ),
@@ -124,9 +130,12 @@ class CapabilityScientist(RoutedAgent):
                 [system_message, user_message]
             )
 
-            raw_content = model_result.content
-            if not isinstance(raw_content, str):
-                raw_content = str(raw_content)
+            try:
+                parsed = parse_llm_json_response(model_result.content)
+                proposal_content = json.dumps(parsed["capabilities"])
+            except Exception as e:
+                log.error(f"Could not parse scientist response as JSON: {e}")
+                raise
 
             log.info(
                 f"Capability Scientist {self._scientist_id} publishing revised proposal for area: {message.area_name}, round {message.round}"
@@ -134,7 +143,7 @@ class CapabilityScientist(RoutedAgent):
             await self.publish_message(
                 ScientistCapabilityProposal(
                     scientist_id=self._scientist_id,
-                    proposal=raw_content,
+                    proposal=proposal_content,
                     area_name=message.area_name,
                     round=message.round,
                 ),
@@ -146,4 +155,4 @@ class CapabilityScientist(RoutedAgent):
                 f"Error in Capability Scientist {self._scientist_id} handle_revision_request: {e}"
             )
             log.error(f"Traceback: {traceback.format_exc()}")
-            raise 
+            raise
