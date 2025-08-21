@@ -20,10 +20,8 @@ from autogen_core.models import (
 )
 
 from ..utils.agentic_prompts import (
-    AREA_FINALIZATION_INSTRUCTION,
     AREA_MODERATOR_MERGE_PROMPT,
     AREA_MODERATOR_SYSTEM_MESSAGE,
-    FINALIZED_FIELD,
 )
 from .messages import (
     AreaProposalRequest,
@@ -125,8 +123,6 @@ class AreaModerator(RoutedAgent):
                 scientist_a_proposal=scientist_a_proposal,
                 scientist_b_proposal=scientist_b_proposal,
                 num_final_areas=self._num_final_areas,
-                finalized_instruction=AREA_FINALIZATION_INSTRUCTION,
-                finalized_field=FINALIZED_FIELD,
             )
 
             system_message = SystemMessage(content=AREA_MODERATOR_SYSTEM_MESSAGE)

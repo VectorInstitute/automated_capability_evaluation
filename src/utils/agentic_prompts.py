@@ -70,7 +70,9 @@ Your task is to merge their proposals into a unified set of {num_final_areas} ar
 - Ensure that the final set is mutually exclusive and collectively exhaustive for this domain.
 
 Explain how you merge the above proposals. Be thoughtful and concise in your output.
-You will then submit this merged proposal for review by the scientist agents. If either scientist provides substantive suggestions, you may revise the proposal and initiate another round of review.{finalized_instruction}
+You will then submit this merged proposal for review by the scientist agents. If either scientist provides substantive suggestions, you may revise the proposal and initiate another round of review.
+If you judge the merged set to be clear, comprehensive, and non-overlapping, you may declare the area design finalized.
+To finalize, set the "finalized" field in your JSON response to true, otherwise set it to false.
 
 Present the merged areas and your thoughts and reasoning in the following format:
 {{
@@ -83,7 +85,7 @@ Present the merged areas and your thoughts and reasoning in the following format
     }},
     ...
   }}
-  {finalized_field}
+  "finalized": <true|false>
 }}
 """
 
@@ -167,7 +169,7 @@ THOUGHT: <your thoughts and reasoning>
     "description": "<STR>",
     "area": "{area_name}"
   }},
-  ...{finalized_field}
+  "finalized": <true|false>
 }}
 """
 
@@ -265,16 +267,8 @@ CAPABILITY_MODERATOR_SYSTEM_MESSAGE = "You are an expert in and designing and re
 # FINALIZATION INSTRUCTIONS
 # =============================================================================
 
-AREA_FINALIZATION_INSTRUCTION = """
-If you judge the merged set to be clear, comprehensive, and non-overlapping, you may declare the area design finalized.
-To finalize, add the field:
-"finalized": true
-at the end of the JSON response."""
 
 CAPABILITY_FINALIZATION_INSTRUCTION = """
 If, after incorporating feedback or upon review, you judge the merged set to be clear, comprehensive, and non-overlapping within the area, you may declare the capability design finalized.
-To finalize, add the field:
-"finalized": true
-at the end of your JSON response."""
-
-FINALIZED_FIELD = '"finalized": <true|false>'
+To finalize, set the "finalized" field to true, otherwise set it to false.
+"""
