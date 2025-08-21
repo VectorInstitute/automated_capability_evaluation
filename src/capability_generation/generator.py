@@ -153,6 +153,7 @@ async def generate_capabilities(cfg: DictConfig, areas_tag: str) -> None:
             )
 
             if not areas_file.exists():
+                log.error(f"Areas file not found: {areas_file}")
                 raise FileNotFoundError(f"Areas file not found: {areas_file}")
 
             with open(areas_file, "r", encoding="utf-8") as f:

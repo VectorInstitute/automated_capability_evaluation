@@ -25,7 +25,7 @@ def main(cfg: DictConfig) -> None:
         log.info(f"Using areas from tag: {areas_tag}")
     else:
         log.warning(
-            "No areas_tag provided. Please provide --pipeline_tags.areas_tag=<tag> to specify which areas to use."
+            "No areas_tag provided. Please provide pipeline_tags.areas_tag=<tag> to specify which areas to use."
         )
         return
 
