@@ -18,7 +18,8 @@ dependencies = [
     "langchain>=0.3.19",
     "matplotlib>=3.10.0",
     "omegaconf>=2.3.0",
-    "openai>=1.68.0",
+    "openai>=1.92.0",
+    "pyautogen>=0.2.22",
     "ratelimit>=2.2.1",
     "torchvision (>=0.21.0,<0.22.0)",
     "torchaudio (>=2.6.0,<3.0.0)",
@@ -33,6 +34,8 @@ dependencies = [
     "langchain-anthropic (==0.3.12)",
     "pytest (==8.3.3)",
     "pytest-env (>=1.1.5,<2.0.0)",
+    "langfuse>=2.0.0",
+    "openlit>=1.35.0",
 ]
 
 [project.urls]
@@ -169,11 +172,20 @@ markers = [
 env = [
     "VEC_INF_LOG_DIR=DUMMY",
 ]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
 
 [tool.coverage]
     [tool.coverage.run]
     source=["src"]
     omit=["tests/*", "*__init__.py"]
+
+    [tool.coverage.report]
+    # Ignore errors such as "No source for code" that can happen when runtime-generated
+    # files are deleted before the coverage report phase. This prevents coverage from
+    # exiting with status 1 even though the test suite passed.
+    ignore_errors = true
 
 [build-system]
 requires = ["poetry-core>=2.0.1"]

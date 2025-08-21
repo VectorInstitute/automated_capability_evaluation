@@ -73,3 +73,18 @@ Utilize the capability and the corresponding subject LLM score to select or gene
 ```bash
 python -m src.run_lbo
 ```
+
+### Agentic Generation Scripts
+
+Generate areas, capabilities, and tasks using multi-agent debate systems. Configure parameters in `src/cfg/agentic_config.yaml`.
+
+```bash
+# Generate capability areas
+python -m src.agentic_area_generator
+
+# Generate capabilities for each area
+python -m src.agentic_capability_generator
+
+# Generate tasks for each capability
+python -m src.agentic_task_generator
+```

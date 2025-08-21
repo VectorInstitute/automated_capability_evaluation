@@ -1,0 +1,42 @@
+defaults:
+  - _self_
+
+# Debate configuration
+debate_cfg:
+  max_round: 3
+  output_dir: ace_outputs/
+
+
+# Agent configurations
+agents:
+  scientist_a:
+    model_name: o3-mini
+    seed: 8
+
+  scientist_b:
+    model_name: claude-3-5-sonnet-20241022
+    seed: 88  # If using same model as scientist_a, use different seed for diversity
+
+  moderator:
+    model_name: gpt-4o
+    seed: 888
+
+capabilities_cfg:
+  domain: math
+  num_capability_areas: 2         # top-level areas
+  num_capabilities_per_area: 3       # number of capabilities per area
+
+# Task generation configuration
+task_cfg:
+  num_scientists: 2               # M: Number of scientist agents
+  num_final_problems: 3           # N: Number of final problems per capability
+  buffer_param: 2                 # B: Buffer parameter (extra problems each agent proposes)
+  agreement_threshold: 0.6        # S: Agreement threshold for solution consensus
+
+exp_cfg:
+  exp_id: test
+
+# Pipeline tags for chaining stages
+pipeline_tags:
+  areas_tag: null          # Set via pipeline_tags.areas_tag=<tag>
+  capabilities_tag: null   # Set via pipeline_tags.capabilities_tag=<tag>
