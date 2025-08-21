@@ -15,14 +15,17 @@ For each area, provide:
 1. A short name (a few words).
 2. A 2–3 sentence description that defines its boundaries and justifies its inclusion.
 
-Please return your proposal in the following format:
-RESPONSE JSON:
+Please return your proposal and your thoughts and reasoning in the following format:
 {{
-  "area_0": {{
-    "name": <STR>,
-    "description": <STR>
-  }},
-  ...
+  "thought": <STR>,
+  "areas":
+  {{
+    "area_0": {{
+      "name": <STR>,
+      "description": <STR>
+    }},
+    ...
+  }}
 }}"""
 
 AREA_SCIENTIST_REVISION_PROMPT = """You are Scientist {scientist_id}. You are reviewing the merged set of capability areas proposed by the Moderator.
@@ -37,16 +40,19 @@ Please review the proposed areas carefully and suggest any of the following:
 
 Keep your feedback constructive and focused on improving clarity, coverage, and non-overlap. Avoid unnecessary changes.
 
-Return your revised proposal with the following format:
-THOUGHT: <your summary of thoughts on the proposal and changes you made>
-RESPONSE JSON:
+Return your revised proposal and your thoughts and reasoning with the following format:
 {{
-  "area_0": {{
-    "name": <STR>,
-    "description": <STR>
-  }},
-  ...
-}}"""
+  "thought": <STR>,
+  "areas":
+  {{
+    "area_0": {{
+      "name": <STR>,
+      "description": <STR>
+    }},
+    ...
+  }}
+}}
+"""
 
 AREA_MODERATOR_MERGE_PROMPT = """You are the Moderator. Two scientist agents have independently proposed a list of high-level capability areas for evaluating large language models in the domain of {domain}.
 
@@ -66,14 +72,18 @@ Your task is to merge their proposals into a unified set of {num_final_areas} ar
 Explain how you merge the above proposals. Be thoughtful and concise in your output.
 You will then submit this merged proposal for review by the scientist agents. If either scientist provides substantive suggestions, you may revise the proposal and initiate another round of review.{finalized_instruction}
 
-Present the merged areas in the following format:
-THOUGHT: <your summary of thoughts on the proposals and merges you made>
+Present the merged areas and your thoughts and reasoning in the following format:
 {{
-  "area_0": {{
-    "name": <STR>,
-    "description": <STR>
-  }},
-  ...{finalized_field}
+  "thought": <STR>,
+  "areas":
+  {{
+    "area_0": {{
+      "name": <STR>,
+      "description": <STR>
+    }},
+    ...
+  }}
+  {finalized_field}
 }}
 """
 
@@ -267,4 +277,4 @@ To finalize, add the field:
 "finalized": true
 at the end of your JSON response."""
 
-FINALIZED_FIELD = ', "finalized": <true|false>'
+FINALIZED_FIELD = '"finalized": <true|false>'

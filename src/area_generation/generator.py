@@ -15,14 +15,12 @@ from .moderator import AreaModerator
 from .scientist import AreaScientist
 
 
-logging.getLogger("autogen").setLevel(logging.WARNING)
-logging.getLogger("autogen_core").setLevel(logging.WARNING)
-logging.getLogger("autogen_ext").setLevel(logging.WARNING)
-
 log = logging.getLogger("agentic_area_gen.generator")
 
 lf = Langfuse(blocked_instrumentation_scopes=["autogen SingleThreadedAgentRuntime"])
-openlit.init(tracer=lf._otel_tracer, disable_batch=True)
+
+
+openlit.init(tracer=lf._otel_tracer, disable_metrics=True)
 
 
 async def generate_areas(cfg: DictConfig) -> None:

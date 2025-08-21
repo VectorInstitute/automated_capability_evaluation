@@ -1,5 +1,6 @@
 """Area scientist agent for generating capability areas."""
 
+import json
 import logging
 import traceback
 
@@ -26,6 +27,7 @@ from .messages import (
     ScientistAreaProposal,
     ScientistRevisionRequest,
 )
+
 
 log = logging.getLogger("agentic_area_gen.scientist")
 
@@ -73,11 +75,20 @@ class AreaScientist(RoutedAgent):
             if not isinstance(raw_content, str):
                 raw_content = str(raw_content)
 
+            # Extract only the areas part for the proposal message
+            proposal_content = raw_content
+            try:
+                parsed = json.loads(raw_content)
+                proposal_content = json.dumps(parsed["areas"])
+            except Exception as e:
+                log.error(f"Could not parse scientist response as JSON: {e}")
+                raise
+
             log.info(f"Scientist {self._scientist_id} publishing area proposal")
             await self.publish_message(
                 ScientistAreaProposal(
                     scientist_id=self._scientist_id,
-                    proposal=raw_content,
+                    proposal=proposal_content,
                     round=self._round,
                 ),
                 topic_id=DefaultTopicId(),
@@ -119,13 +130,21 @@ class AreaScientist(RoutedAgent):
             if not isinstance(raw_content, str):
                 raw_content = str(raw_content)
 
+            proposal_content = raw_content
+            try:
+                parsed = json.loads(raw_content)
+                proposal_content = json.dumps(parsed["areas"])
+            except Exception as e:
+                log.error(f"Could not parse scientist revision response as JSON: {e}")
+                raise
+
             log.info(
                 f"Scientist {self._scientist_id} publishing revised proposal for round {message.round}"
             )
             await self.publish_message(
                 ScientistAreaProposal(
                     scientist_id=self._scientist_id,
-                    proposal=raw_content,
+                    proposal=proposal_content,
                     round=message.round,
                 ),
                 topic_id=DefaultTopicId(),
@@ -136,4 +155,4 @@ class AreaScientist(RoutedAgent):
                 f"Error in Scientist {self._scientist_id} handle_revision_request: {e}"
             )
             log.error(f"Traceback: {traceback.format_exc()}")
-            raise 
+            raise

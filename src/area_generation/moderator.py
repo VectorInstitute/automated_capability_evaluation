@@ -144,34 +144,37 @@ class AreaModerator(RoutedAgent):
             is_finalized = False
             try:
                 parsed = json.loads(raw_content)
+                log.info(f"Moderator parsed: {parsed}")
+                revised_areas = parsed.get("areas", {})
                 is_finalized = parsed.get("finalized", False)
+
             except Exception:
-                log.error(f"Error parsing final areas JSON: {raw_content}")
+                log.error(f"Error parsing merged areas JSON: {raw_content}")
                 raise
 
             if is_finalized or round_num >= self._max_round - 1:
                 log.info(f"Moderator finalizing areas after round {round_num}")
-                await self._finalize_areas(raw_content)
+                await self._finalize_areas(revised_areas)
             else:
                 log.info(
                     f"Moderator sending merged proposal for revision in round {round_num}"
                 )
-                self._round = round_num + 1
+
+                # Use the already parsed areas instead of parsing again
+                revision_content = json.dumps(revised_areas)
 
                 # Send to scientists for revision
                 await self.publish_message(
                     ScientistRevisionRequest(
-                        scientist_id="A",
-                        moderator_proposal=raw_content,
-                        round=self._round,
+                        moderator_proposal=revision_content,
+                        round=round_num + 1,
                     ),
                     topic_id=DefaultTopicId(),
                 )
                 await self.publish_message(
                     ScientistRevisionRequest(
-                        scientist_id="B",
-                        moderator_proposal=raw_content,
-                        round=self._round,
+                        moderator_proposal=revision_content,
+                        round=round_num + 1,
                     ),
                     topic_id=DefaultTopicId(),
                 )
@@ -181,35 +184,19 @@ class AreaModerator(RoutedAgent):
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
-    async def _finalize_areas(self, final_areas: str) -> None:
+    async def _finalize_areas(self, final_areas: dict) -> None:
         """Save final areas to file."""
         try:
             log.info("Moderator finalizing and saving areas")
 
-            # Convert to the expected format with "areas" list
-            try:
-                json_start = final_areas.find("{")
-                if json_start != -1:
-                    json_part = final_areas[json_start:]
-                    parsed = json.loads(json_part)
-                else:
-                    parsed = json.loads(final_areas)
+            areas_list = []
+            i = 0
+            while f"area_{i}" in final_areas:
+                areas_list.append(final_areas[f"area_{i}"])
+                i += 1
 
-                if "finalized" in parsed:
-                    del parsed["finalized"]  # Remove finalized flag
-
-                # Convert area_0, area_1 format to areas list
-                areas_list = []
-                i = 0
-                while f"area_{i}" in parsed:
-                    areas_list.append(parsed[f"area_{i}"])
-                    i += 1
-
-                final_format = {"areas": areas_list}
-                final_areas_json = json.dumps(final_format, indent=2)
-            except Exception as e:
-                log.warning(f"Could not parse final areas JSON: {e}")
-                final_areas_json = final_areas
+            final_format = {"areas": areas_list}
+            final_areas_json = json.dumps(final_format, indent=2)
 
             self._save_areas_to_file(final_areas_json)
             log.info("Area generation completed successfully")
