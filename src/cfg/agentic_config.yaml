@@ -10,21 +10,21 @@ debate_cfg:
 # Agent configurations
 agents:
   scientist_a:
-    name: o3-mini
+    model_name: o3-mini
     seed: 8
 
   scientist_b:
-    name: o3-mini
-    seed: 88  # Different seed for diversity
+    model_name: claude-3-5-sonnet-20241022
+    seed: 88  # If using same model as scientist_a, use different seed for diversity
 
   moderator:
-    name: o3-mini
-    seed: 8
+    model_name: gpt-4o
+    seed: 888
 
 capabilities_cfg:
   domain: math
-  num_capability_areas: 3         # top-level areas
-  num_capabilities_per_area: 2       # number of capabilities per area
+  num_capability_areas: 2         # top-level areas
+  num_capabilities_per_area: 3       # number of capabilities per area
 
 # Task generation configuration
 task_cfg:

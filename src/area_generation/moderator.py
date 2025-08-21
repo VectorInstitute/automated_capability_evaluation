@@ -23,6 +23,7 @@ from ..utils.agentic_prompts import (
     AREA_MODERATOR_MERGE_PROMPT,
     AREA_MODERATOR_SYSTEM_MESSAGE,
 )
+from ..utils.json_utils import parse_llm_json_response
 from .messages import (
     AreaProposalRequest,
     Domain,
@@ -82,19 +83,27 @@ class AreaModerator(RoutedAgent):
     ) -> None:
         """Handle area proposals from scientists."""
         try:
+            if self._round != message.round:
+                log.error(
+                    f"Moderator received proposal for round {message.round} but current round is {self._round}"
+                )
+                raise Exception(
+                    f"Moderator received proposal for round {message.round} but current round is {self._round}"
+                )
+
             log.info(
-                f"Moderator received proposal from Scientist {message.scientist_id} for round {message.round}"
+                f"Moderator received proposal from Scientist {message.scientist_id} for round {self._round}"
             )
 
-            self._proposals_buffer.setdefault(message.round, []).append(message)
+            self._proposals_buffer.setdefault(self._round, []).append(message)
 
-            if len(self._proposals_buffer[message.round]) == self._num_scientists:
+            if len(self._proposals_buffer[self._round]) == self._num_scientists:
                 log.info(
-                    f"Moderator received all proposals for round {message.round}, proceeding to merge"
+                    f"Moderator received all proposals for round {self._round}, proceeding to merge"
                 )
 
                 # Get proposals from both scientists
-                proposals = self._proposals_buffer[message.round]
+                proposals = self._proposals_buffer[self._round]
                 scientist_a_proposal = next(
                     p.proposal for p in proposals if p.scientist_id == "A"
                 )
@@ -102,9 +111,7 @@ class AreaModerator(RoutedAgent):
                     p.proposal for p in proposals if p.scientist_id == "B"
                 )
 
-                await self._merge_proposals(
-                    scientist_a_proposal, scientist_b_proposal, message.round
-                )
+                await self._merge_proposals(scientist_a_proposal, scientist_b_proposal)
 
         except Exception as e:
             log.error(f"Error in Moderator handle_scientist_proposal: {e}")
@@ -112,11 +119,11 @@ class AreaModerator(RoutedAgent):
             raise
 
     async def _merge_proposals(
-        self, scientist_a_proposal: str, scientist_b_proposal: str, round_num: int
+        self, scientist_a_proposal: str, scientist_b_proposal: str
     ) -> None:
         """Merge scientist proposals using LLM."""
         try:
-            log.info(f"Moderator merging proposals for round {round_num}")
+            log.info(f"Moderator merging proposals for round {self._round}")
 
             prompt = AREA_MODERATOR_MERGE_PROMPT.format(
                 domain=self._domain,
@@ -132,44 +139,36 @@ class AreaModerator(RoutedAgent):
                 [system_message, user_message]
             )
 
-            raw_content = model_result.content
-            if not isinstance(raw_content, str):
-                raw_content = str(raw_content)
+            log.info("Moderator is parsing LLM response.")
+            parsed = parse_llm_json_response(model_result.content)
+            revised_areas = parsed.get("areas", {})
+            is_finalized = parsed.get("finalized", False)
 
-            # Check if finalized
-            is_finalized = False
-            try:
-                parsed = json.loads(raw_content)
-                revised_areas = parsed.get("areas", {})
-                is_finalized = parsed.get("finalized", False)
-
-            except Exception:
-                log.error(f"Error parsing merged areas JSON: {raw_content}")
-                raise
-
-            if is_finalized or round_num >= self._max_round - 1:
-                log.info(f"Moderator finalizing areas after round {round_num}")
+            if is_finalized or self._round >= self._max_round - 1:
+                log.info(f"Moderator finalizing areas after round {self._round}")
                 await self._finalize_areas(revised_areas)
             else:
                 log.info(
-                    f"Moderator sending merged proposal for revision in round {round_num}"
+                    f"Moderator sending merged proposal for revision in round {self._round}"
                 )
 
-                # Use the already parsed areas instead of parsing again
+                self._round += 1
                 revision_content = json.dumps(revised_areas)
 
                 # Send to scientists for revision
                 await self.publish_message(
                     ScientistRevisionRequest(
+                        scientist_id="A",
                         moderator_proposal=revision_content,
-                        round=round_num + 1,
+                        round=self._round,
                     ),
                     topic_id=DefaultTopicId(),
                 )
                 await self.publish_message(
                     ScientistRevisionRequest(
+                        scientist_id="B",
                         moderator_proposal=revision_content,
-                        round=round_num + 1,
+                        round=self._round,
                     ),
                     topic_id=DefaultTopicId(),
                 )

@@ -80,7 +80,6 @@ async def generate_areas(cfg: DictConfig) -> None:
                         seed=cfg.agents.scientist_a.seed,
                     ),
                     scientist_id="A",
-                    max_round=max_round,
                 ),
             )
 
@@ -93,7 +92,6 @@ async def generate_areas(cfg: DictConfig) -> None:
                         seed=cfg.agents.scientist_b.seed,
                     ),
                     scientist_id="B",
-                    max_round=max_round,
                 ),
             )
 

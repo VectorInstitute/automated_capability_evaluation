@@ -22,6 +22,7 @@ from ..utils.agentic_prompts import (
     AREA_SCIENTIST_REVISION_PROMPT,
     AREA_SCIENTIST_SYSTEM_MESSAGE,
 )
+from ..utils.json_utils import parse_llm_json_response
 from .messages import (
     AreaProposalRequest,
     ScientistAreaProposal,
@@ -40,13 +41,10 @@ class AreaScientist(RoutedAgent):
         self,
         model_client: ChatCompletionClient,
         scientist_id: str,
-        max_round: int,
     ) -> None:
         super().__init__(f"Area Scientist {scientist_id}")
-        self._scientist_id = scientist_id
         self._model_client = model_client
-        self._max_round = max_round
-        self._round = 0
+        self._scientist_id = scientist_id
 
     @message_handler
     async def handle_area_proposal_request(
@@ -71,25 +69,16 @@ class AreaScientist(RoutedAgent):
                 [system_message, user_message]
             )
 
-            raw_content = model_result.content
-            if not isinstance(raw_content, str):
-                raw_content = str(raw_content)
-
-            # Extract only the areas part for the proposal message
-            proposal_content = raw_content
-            try:
-                parsed = json.loads(raw_content)
-                proposal_content = json.dumps(parsed["areas"])
-            except Exception as e:
-                log.error(f"Could not parse scientist response as JSON: {e}")
-                raise
+            log.info(f"Scientist {self._scientist_id} is parsing LLM response.")
+            parsed = parse_llm_json_response(model_result.content)
+            proposal_content = json.dumps(parsed["areas"])
 
             log.info(f"Scientist {self._scientist_id} publishing area proposal")
             await self.publish_message(
                 ScientistAreaProposal(
                     scientist_id=self._scientist_id,
                     proposal=proposal_content,
-                    round=self._round,
+                    round=0,
                 ),
                 topic_id=DefaultTopicId(),
             )
@@ -110,8 +99,9 @@ class AreaScientist(RoutedAgent):
             if message.scientist_id != self._scientist_id:
                 return  # Not for this scientist
 
+            round_num = message.round
             log.info(
-                f"Scientist {self._scientist_id} handling revision request for round {message.round}"
+                f"Scientist {self._scientist_id} handling revision request for round {round_num}"
             )
 
             prompt = AREA_SCIENTIST_REVISION_PROMPT.format(
@@ -126,26 +116,18 @@ class AreaScientist(RoutedAgent):
                 [system_message, user_message]
             )
 
-            raw_content = model_result.content
-            if not isinstance(raw_content, str):
-                raw_content = str(raw_content)
-
-            proposal_content = raw_content
-            try:
-                parsed = json.loads(raw_content)
-                proposal_content = json.dumps(parsed["areas"])
-            except Exception as e:
-                log.error(f"Could not parse scientist revision response as JSON: {e}")
-                raise
+            log.info(f"Scientist {self._scientist_id} is parsing LLM response.")
+            parsed = parse_llm_json_response(model_result.content)
+            proposal_content = json.dumps(parsed["areas"])
 
             log.info(
-                f"Scientist {self._scientist_id} publishing revised proposal for round {message.round}"
+                f"Scientist {self._scientist_id} publishing revised proposal for round {round_num}"
             )
             await self.publish_message(
                 ScientistAreaProposal(
                     scientist_id=self._scientist_id,
                     proposal=proposal_content,
-                    round=message.round,
+                    round=round_num,
                 ),
                 topic_id=DefaultTopicId(),
             )

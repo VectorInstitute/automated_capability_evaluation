@@ -15,14 +15,15 @@ For each area, provide:
 1. A short name (a few words).
 2. A 2–3 sentence description that defines its boundaries and justifies its inclusion.
 
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. The JSON should be directly parseable.
+
 Please return your proposal and your thoughts and reasoning in the following format:
 {{
-  "thought": <STR>,
-  "areas":
-  {{
+  "thought": "Your reasoning and thought process here",
+  "areas": {{
     "area_0": {{
-      "name": <STR>,
-      "description": <STR>
+      "name": "Area Name",
+      "description": "Area description"
     }},
     ...
   }}
@@ -40,14 +41,15 @@ Please review the proposed areas carefully and suggest any of the following:
 
 Keep your feedback constructive and focused on improving clarity, coverage, and non-overlap. Avoid unnecessary changes.
 
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. The JSON should be directly parseable.
+
 Return your revised proposal and your thoughts and reasoning with the following format:
 {{
-  "thought": <STR>,
-  "areas":
-  {{
+  "thought": "Your reasoning and thought process here",
+  "areas": {{
     "area_0": {{
-      "name": <STR>,
-      "description": <STR>
+      "name": "Area Name",
+      "description": "Area description"
     }},
     ...
   }}
@@ -71,21 +73,22 @@ Your task is to merge their proposals into a unified set of {num_final_areas} ar
 
 Explain how you merge the above proposals. Be thoughtful and concise in your output.
 You will then submit this merged proposal for review by the scientist agents. If either scientist provides substantive suggestions, you may revise the proposal and initiate another round of review.
-If you judge the merged set to be clear, comprehensive, and non-overlapping, you may declare the area design finalized.
+If you judge the merged set to be clear, comprehensive, and non-overlapping, and scientists are have reached consensus, you may declare the area design finalized.
 To finalize, set the "finalized" field in your JSON response to true, otherwise set it to false.
+
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. The JSON should be directly parseable.
 
 Present the merged areas and your thoughts and reasoning in the following format:
 {{
-  "thought": <STR>,
-  "areas":
-  {{
+  "thought": "Your reasoning and thought process here",
+  "areas": {{
     "area_0": {{
-      "name": <STR>,
-      "description": <STR>
+      "name": "Area Name",
+      "description": "Area description"
     }},
     ...
-  }}
-  "finalized": <true|false>
+  }},
+  "finalized": true
 }}
 """
 
@@ -94,7 +97,7 @@ Present the merged areas and your thoughts and reasoning in the following format
 # =============================================================================
 
 CAPABILITY_SCIENTIST_INITIAL_PROMPT = """You are Scientist {scientist_id}. You have been assigned the area: "{area_name}".
-
+Area Description: {area_description}
 Your task is to propose {num_capabilities} specific, **non-overlapping capabilities** within this area that test different aspects of LLM performance.
 
 Each capability should:
@@ -106,18 +109,22 @@ Provide each capability with:
 1. A concise name (lowercase_with_underscores).
 2. A 2–3 sentence description justifying its purpose.
 
-Output format:
-RESPONSE JSON:
-{{
-  "capability_0": {{
-    "name": <STR>,
-    "description": <STR>,
-    "area": "{area_name}"
-  }},
-  ...
-}}
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. The JSON should be directly parseable.
 
-Area Description: {area_description}"""
+Please return your proposal and your thoughts and reasoning in the following format:
+
+{{
+  "thought": "Your reasoning and thought process here",
+  "capabilities": {{
+    "capability_0": {{
+      "name": "capability_name",
+      "description": "Capability description",
+      "area": "{area_name}"
+    }},
+    ...
+  }}
+}}
+"""
 
 CAPABILITY_SCIENTIST_REVISION_PROMPT = """You are Scientist {scientist_id}. The Moderator has proposed a merged list of capabilities for the area "{area_name}".
 
@@ -130,17 +137,21 @@ Please review and revise the merged capability list by:
 - Proposing any additions or deletions if you believe something important is missing or redundant.
 
 Detail the modifications you make to the above proposal and explain your reasoning.
+
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. The JSON should be directly parseable.
+
 Return the updated list in the following format:
 
-THOUGHT: <your thought and your reasoning>
-RESPONSE JSON:
 {{
-  "capability_0": {{
-    "name": <STR>,
-    "description": <STR>,
-    "area": "{area_name}"
-  }},
-  ...
+  "thought": "Your reasoning and thought process here",
+  "capabilities": {{
+    "capability_0": {{
+      "name": "capability_name",
+      "description": "Capability description",
+      "area": "{area_name}"
+    }},
+    ...
+  }}
 }}"""
 
 CAPABILITY_MODERATOR_MERGE_PROMPT = """You are the Moderator. Two scientist agents have independently proposed a list of capabilities within the capability area: "{area_name}".
@@ -159,17 +170,24 @@ Your task is to merge these proposals into a unified set of capabilities for the
 - Ensure all capabilities are distinct from one another.
 - Improve clarity and precision in naming and descriptions, where needed.
 
-You will then submit this merged capability list for review by the scientist agents. If either scientist provides substantive suggestions, you may revise the list and initiate another round of review.{finalized_instruction}
+You will then submit this merged capability list for review by the scientist agents. If either scientist provides substantive suggestions, you may revise the list and initiate another round of review.
+If, after incorporating feedback or upon review, you judge the merged set to be clear, comprehensive, and non-overlapping within the area, you may declare the capability design finalized.
+To finalize, set the "finalized" field to true, otherwise set it to false.
+
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. The JSON should be directly parseable.
 
 Present the merged capabilities in the following format:
-THOUGHT: <your thoughts and reasoning>
 {{
-  "capability_0": {{
-    "name": "<STR>",
-    "description": "<STR>",
-    "area": "{area_name}"
+  "thought": "Your reasoning and thought process here",
+  "capabilities": {{
+    "capability_0": {{
+      "name": "capability_name",
+      "description": "Capability description",
+      "area": "{area_name}"
+    }},
+    ...
   }},
-  "finalized": <true|false>
+  "finalized": true
 }}
 """
 
@@ -262,13 +280,3 @@ AREA_MODERATOR_SYSTEM_MESSAGE = "You are an expert in and designing and reviewin
 CAPABILITY_SCIENTIST_SYSTEM_MESSAGE = "You are an expert in and designing a taxonomy of capabilities/skills in this domain."
 
 CAPABILITY_MODERATOR_SYSTEM_MESSAGE = "You are an expert in and designing and reviewing a taxonomy of capabilities/skills in this domain."
-
-# =============================================================================
-# FINALIZATION INSTRUCTIONS
-# =============================================================================
-
-
-CAPABILITY_FINALIZATION_INSTRUCTION = """
-If, after incorporating feedback or upon review, you judge the merged set to be clear, comprehensive, and non-overlapping within the area, you may declare the capability design finalized.
-To finalize, set the "finalized" field to true, otherwise set it to false.
-"""
