@@ -5,7 +5,13 @@ from datetime import datetime
 from pathlib import Path
 
 import openlit
-from autogen_core import DefaultTopicId, SingleThreadedAgentRuntime
+from autogen_core import (
+    EVENT_LOGGER_NAME,
+    ROOT_LOGGER_NAME,
+    TRACE_LOGGER_NAME,
+    DefaultTopicId,
+    SingleThreadedAgentRuntime,
+)
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from langfuse import Langfuse
 from omegaconf import DictConfig
@@ -16,6 +22,9 @@ from .scientist import AreaScientist
 
 
 log = logging.getLogger("agentic_area_gen.generator")
+logging.getLogger(ROOT_LOGGER_NAME).setLevel(logging.WARNING)
+logging.getLogger(TRACE_LOGGER_NAME).setLevel(logging.WARNING)
+logging.getLogger(EVENT_LOGGER_NAME).setLevel(logging.WARNING)
 
 lf = Langfuse(blocked_instrumentation_scopes=["autogen SingleThreadedAgentRuntime"])
 

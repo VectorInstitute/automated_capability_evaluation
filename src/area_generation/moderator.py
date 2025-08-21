@@ -140,7 +140,6 @@ class AreaModerator(RoutedAgent):
             is_finalized = False
             try:
                 parsed = json.loads(raw_content)
-                log.info(f"Moderator parsed: {parsed}")
                 revised_areas = parsed.get("areas", {})
                 is_finalized = parsed.get("finalized", False)
 
