@@ -1,0 +1,49 @@
+defaults:
+  - _self_
+
+# Global configuration
+global_cfg:
+  domain: math
+  output_dir: /fs01/projects/aieng/public/ace/agentic_outputs/
+
+# Debate configuration (shared across all stages)
+debate_cfg:
+  max_round: 3
+
+# Agent configurations (shared across all stages)
+agents:
+  scientist_a:
+    model_name: o3-mini
+    seed: 8
+
+  scientist_b:
+    model_name: claude-3-5-sonnet-20241022
+    seed: 88  # If using same model as scientist_a, use different seed for diversity
+
+  moderator:
+    model_name: gpt-4o
+    seed: 888
+
+# Stage 1: Area Generation Configuration
+area_generation:
+  num_areas: 2                    # Number of top-level areas to generate
+
+# Stage 2: Capability Generation Configuration
+capability_generation:
+  num_capabilities_per_area: 3    # Number of capabilities to generate per area
+
+# Stage 3: Task Generation Configuration
+task_generation:
+  num_final_problems_per_capability: 3    # N: Number of final problems per capability
+  buffer_param: 2                         # B: Buffer parameter (extra problems each agent proposes)
+  agreement_threshold: 0.6                # S: Agreement threshold for solution consensus
+
+# Experiment configuration
+exp_cfg:
+  exp_id: test
+
+# Pipeline tags for chaining stages
+pipeline_tags:
+  areas_tag: null          # Set via pipeline_tags.areas_tag=<tag>
+  capabilities_tag: null   # Set via pipeline_tags.capabilities_tag=<tag>
+  tasks_tag: null          # Set via pipeline_tags.tasks_tag=<tag>
