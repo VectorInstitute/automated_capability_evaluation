@@ -1,13 +1,16 @@
 defaults:
   - _self_
 
-# Debate configuration
+# Global configuration
+global_cfg:
+  domain: math
+  output_dir: /fs01/projects/aieng/public/ace/agentic_outputs/
+
+# Debate configuration (shared across all stages)
 debate_cfg:
   max_round: 3
-  output_dir: ace_outputs/
 
-
-# Agent configurations
+# Agent configurations (shared across all stages)
 agents:
   scientist_a:
     model_name: o3-mini
@@ -21,18 +24,21 @@ agents:
     model_name: gpt-4o
     seed: 888
 
-capabilities_cfg:
-  domain: math
-  num_capability_areas: 2         # top-level areas
-  num_capabilities_per_area: 3       # number of capabilities per area
+# Stage 1: Area Generation Configuration
+area_generation:
+  num_areas: 2                    # Number of top-level areas to generate
 
-# Task generation configuration
-task_cfg:
-  num_scientists: 2               # M: Number of scientist agents
-  num_final_problems: 3           # N: Number of final problems per capability
-  buffer_param: 2                 # B: Buffer parameter (extra problems each agent proposes)
-  agreement_threshold: 0.6        # S: Agreement threshold for solution consensus
+# Stage 2: Capability Generation Configuration
+capability_generation:
+  num_capabilities_per_area: 3    # Number of capabilities to generate per area
 
+# Stage 3: Task Generation Configuration
+task_generation:
+  num_final_problems_per_capability: 3    # N: Number of final problems per capability
+  buffer_param: 2                         # B: Buffer parameter (extra problems each agent proposes)
+  agreement_threshold: 0.6                # S: Agreement threshold for solution consensus
+
+# Experiment configuration
 exp_cfg:
   exp_id: test
 
@@ -40,3 +46,4 @@ exp_cfg:
 pipeline_tags:
   areas_tag: null          # Set via pipeline_tags.areas_tag=<tag>
   capabilities_tag: null   # Set via pipeline_tags.capabilities_tag=<tag>
+  tasks_tag: null          # Set via pipeline_tags.tasks_tag=<tag>

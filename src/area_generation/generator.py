@@ -1,6 +1,7 @@
 """Main area generation orchestration function."""
 
 import logging
+import traceback
 from contextlib import nullcontext
 from datetime import datetime
 from pathlib import Path
@@ -16,9 +17,9 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 from langfuse import Langfuse
 from omegaconf import DictConfig
 
-from .messages import Domain
-from .moderator import AreaModerator
-from .scientist import AreaScientist
+from src.area_generation.messages import Domain
+from src.area_generation.moderator import AreaModerator
+from src.area_generation.scientist import AreaScientist
 
 
 log = logging.getLogger("agentic_area_gen.generator")
@@ -29,16 +30,15 @@ logging.getLogger(EVENT_LOGGER_NAME).setLevel(logging.WARNING)
 
 async def generate_areas(cfg: DictConfig, langfuse_client: Langfuse = None) -> None:
     """Generate areas using multi-agent debate system."""
-    domain_name = cfg.capabilities_cfg.domain
+    domain_name = cfg.global_cfg.domain
     exp_id = cfg.exp_cfg.exp_id
     max_round = cfg.debate_cfg.max_round
+    num_areas = cfg.area_generation.num_areas
     areas_tag = f"_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
     lf = langfuse_client
     if lf is None:
-        lf = Langfuse(
-            blocked_instrumentation_scopes=["autogen SingleThreadedAgentRuntime"]
-        )
+        lf = Langfuse()
 
     with (
         lf.start_as_current_span(
@@ -62,12 +62,13 @@ async def generate_areas(cfg: DictConfig, langfuse_client: Langfuse = None) -> N
 
             output_dir = (
                 Path.home()
-                / cfg.debate_cfg.output_dir
+                / cfg.global_cfg.output_dir
                 / domain_name.replace(" ", "_")
                 / exp_id
                 / "areas"
                 / f"{areas_tag}"
             )
+            output_dir.mkdir(parents=True, exist_ok=True)
 
             msg = f"Output directory: {output_dir}"
             log.info(msg)
@@ -85,11 +86,10 @@ async def generate_areas(cfg: DictConfig, langfuse_client: Langfuse = None) -> N
                         "domain": domain_name,
                         "exp_id": exp_id,
                         "max_round": max_round,
-                        "num_capability_areas": cfg.capabilities_cfg.num_capability_areas,
-                        "output_dir": str(output_dir),
+                        "num_areas": num_areas,
                         "areas_tag": areas_tag,
                     },
-                    tags=["area_generation", exp_id],
+                    tags=["area_generation_process", exp_id],
                 )
 
             runtime = SingleThreadedAgentRuntime()
@@ -129,41 +129,50 @@ async def generate_areas(cfg: DictConfig, langfuse_client: Langfuse = None) -> N
                         seed=cfg.agents.moderator.seed,
                     ),
                     num_scientists=2,
-                    num_final_areas=cfg.capabilities_cfg.num_capability_areas,
+                    num_final_areas=num_areas,
                     max_round=max_round,
                     output_dir=output_dir,
                     langfuse_client=lf,
                 ),
             )
 
-            if span:
-                span.update(
-                    metadata={
-                        "agents_registered": "All agents registered successfully",
-                        "scientists": ["A", "B"],
-                        "moderator": True,
-                        "max_rounds": max_round,
-                    }
-                )
-
-            domain = Domain(name=domain_name)
-            runtime.start()
-            await runtime.publish_message(domain, DefaultTopicId())
-
-            msg = f"Domain message published: {domain.name}"
+            msg = "All area agents registered successfully"
             log.info(msg)
             if span:
                 span.update(
-                    metadata={"domain_published": msg, "domain_name": domain.name}
+                    metadata={
+                        "agents_registered": msg,
+                        "scientists": ["A", "B"],
+                        "moderator": True,
+                        "max_rounds": max_round,
+                        "expected_areas": num_areas,
+                    }
+                )
+
+            runtime.start()
+
+            domain_message = Domain(name=domain_name)
+            await runtime.publish_message(domain_message, DefaultTopicId())
+
+            msg = f"Domain message published: {domain_name}"
+            log.info(msg)
+            if span:
+                span.update(
+                    metadata={
+                        "domain_published": msg,
+                        "domain_name": domain_name,
+                    }
                 )
 
             try:
                 await runtime.stop_when_idle()
 
-                msg = "Runtime stopped when idle"
+                msg = "Runtime stopped - area generation completed"
                 log.info(msg)
                 if span:
                     span.update(metadata={"runtime_completed": msg})
+
+                print(f"Areas generated with tag: {areas_tag}")
             except Exception as e:
                 msg = f"Error while waiting for runtime to stop: {e}"
                 log.error(msg)
@@ -171,26 +180,31 @@ async def generate_areas(cfg: DictConfig, langfuse_client: Langfuse = None) -> N
                     span.update(
                         level="ERROR",
                         status_message=str(e),
-                        metadata={"runtime_error": msg, "error": str(e)},
+                        metadata={
+                            "runtime_error": msg,
+                            "error": str(e),
+                        },
                     )
                 raise
 
-            msg = f"Areas generated with tag: {areas_tag}"
-            print(msg)
-            if span:
-                span.update(
-                    metadata={"generation_completed": msg, "areas_tag": areas_tag}
-                )
-
         except Exception as e:
-            msg = f"Error in generate_areas: {e}"
-            log.error(msg)
+            error_msg = f"Error in generate_areas: {e}"
+            traceback_msg = f"Traceback: {traceback.format_exc()}"
+
+            log.error(error_msg)
+            log.error(traceback_msg)
+
             if span:
                 span.update(
                     level="ERROR",
                     status_message=str(e),
-                    metadata={"generation_error": msg, "error": str(e)},
+                    metadata={
+                        "generation_error": error_msg,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
                 )
+
             if langfuse_client is None:
                 lf.flush()
             raise

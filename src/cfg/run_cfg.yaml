@@ -59,9 +59,9 @@ prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.
 
 capabilities_cfg:
-  capabilities_dir: /h/fkohankh/automated_capability_evaluation_logs
-  results_dir: /h/fkohankh/automated_capability_evaluation_logs/results
-  inspect_evals_dir: /h/fkohankh/automated_capability_evaluation_logs/inspect_evals
+  capabilities_dir: /fs01/projects/aieng/public/ace/artifacts
+  results_dir: gs://ace-artifacts
+  inspect_evals_dir: /fs01/projects/aieng/public/ace/inspect_evals/src/ace_evals
   domain: personal_finance
   method: "hierarchical"
   num_seed_capabilities: 1
