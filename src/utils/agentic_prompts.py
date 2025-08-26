@@ -202,13 +202,16 @@ You will be particularly rewarded for:
 - Avoiding overlap or redundancy,
 - Proposing tasks that vary in difficulty and structure.
 
-Your response must follow this format exactly:
-THOUGHT: <brief reasoning about the kind of tasks you're proposing>
-RESPONSE JSON:
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. The JSON should be directly parseable.
+
+Please return your proposal and your thoughts and reasoning in the following format:
 {{
-  "task_1": "<TASK_TEXT_1>",
-  "task_2": "<TASK_TEXT_2>",
-  ...
+  "thought": "Your reasoning and thought process about the kind of tasks you're proposing",
+  "problems": {{
+    "problem_0": "TASK_TEXT_1",
+    "problem_1": "TASK_TEXT_2",
+    ...
+  }}
 }}
 
 Make sure:
@@ -227,13 +230,25 @@ Sample tasks:
 
 TASK_SCIENTIST_SOLUTION_SYSTEM_PROMPT = """You are Scientist {scientist_id}, an expert in {capability_domain}. You are solving a task related to the capability: {capability_name}.
 
-Provide a clear, accurate, and complete solution to the given problem. Your solution should be correct and well-reasoned."""
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. The JSON should be directly parseable.
 
-TASK_SCIENTIST_SOLUTION_USER_PROMPT = """Solve the following problem:
+Please return your solution and your thoughts and reasoning in the following format:
+{{
+  "thought": "Your reasoning and thought process about solving this problem",
+  "solutions": {{
+    "solution_0": "SOLUTION_TEXT_1",
+    "solution_1": "SOLUTION_TEXT_2",
+    ...
+  }}
+}}
 
-{problem_text}
+Provide clear, accurate, and complete solutions. Your solutions should be correct and well-reasoned."""
 
-Provide your solution clearly and concisely."""
+TASK_SCIENTIST_SOLUTION_USER_PROMPT = """Solve the following problems:
+
+{problems}
+
+Provide your solutions clearly and concisely."""
 
 TASK_MODERATOR_PROBLEM_SYSTEM_PROMPT = """You are the Moderator overseeing capability-based task design. Your task is to review proposed tasks from multiple scientist agents and synthesize a final, high-quality task set for the capability.
 
@@ -243,22 +258,27 @@ Your responsibilities:
 - Ensure that the final set of tasks is diverse, non-trivial, and tests different facets of the capability.
 - Include a brief justification for each rejected or significantly modified task.
 
-Your response should follow this format exactly:
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. Do not include any prefixes or prose. The JSON should be directly parseable.
 
-THOUGHT: <your summary of strengths and weaknesses of the proposed tasks and your curation plan>
-RESPONSE JSON:
-{{
-  "final_tasks": {{
+CRITICAL: When including LaTeX expressions or backslashes in your JSON strings, you must properly escape them by using double backslashes (\\\\). For example:
+- Write \\\\(x^2\\\\) instead of \\(x^2\\)
+- Write \\\\[equation\\\\] instead of \\[equation\\]
+- Write \\\\times instead of \\times
+
+Please return your curation and your thoughts and reasoning in the following format:
+{
+  "thought": "Your reasoning and curation plan here",
+  "final_tasks": {
     "task_1": "<FINAL_TASK_1>",
     "task_2": "<FINAL_TASK_2>",
     ...
-  }},
-  "rejected_tasks": {{
+  },
+  "rejected_tasks": {
     "task_from_scientist_A": "Reason for rejection or modification",
     "task_from_scientist_B": "Reason for rejection or modification",
     ...
-  }}
-}}"""
+  }
+}"""
 
 TASK_MODERATOR_PROBLEM_USER_PROMPT = """Below is a capability and task proposals from multiple scientist agents. Curate the final task set by filtering, editing, or merging as needed.
 
