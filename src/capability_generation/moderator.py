@@ -3,7 +3,6 @@
 import json
 import logging
 import traceback
-from contextlib import nullcontext
 from pathlib import Path
 from typing import Dict, List
 
@@ -68,24 +67,19 @@ class CapabilityModerator(RoutedAgent):
     @message_handler
     async def handle_area(self, message: Area, ctx: MessageContext) -> None:
         """Handle the area message and initiate capability proposal process."""
-        with (
-            self._langfuse_client.start_as_current_span(
-                name="capability_moderator_handle_area"
-            )
-            if self._langfuse_client
-            else nullcontext() as span
-        ):
+        with self._langfuse_client.start_as_current_span(
+            name="capability_moderator_handle_area"
+        ) as span:
             try:
                 msg = f"Capability Moderator received area: {message.name}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "area_received": msg,
-                            "area_name": message.name,
-                            "area_description": message.description,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "area_received": msg,
+                        "area_name": message.name,
+                        "area_description": message.description,
+                    }
+                )
 
                 self._current_area = message.name
                 self._round = 0
@@ -100,14 +94,13 @@ class CapabilityModerator(RoutedAgent):
                     topic_id=DefaultTopicId(),
                 )
 
-                if span:
-                    span.update(
-                        metadata={
-                            "proposal_request_sent": f"Sent capability proposal request for {self._num_capabilities} capabilities",
-                            "num_capabilities": self._num_capabilities,
-                            "area_name": message.name,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "proposal_request_sent": f"Sent capability proposal request for {self._num_capabilities} capabilities",
+                        "num_capabilities": self._num_capabilities,
+                        "area_name": message.name,
+                    }
+                )
 
             except Exception as e:
                 error_msg = f"Error in Capability Moderator handle_area: {e}"
@@ -116,16 +109,15 @@ class CapabilityModerator(RoutedAgent):
                 log.error(error_msg)
                 log.error(traceback_msg)
 
-                if span:
-                    span.update(
-                        level="ERROR",
-                        status_message=str(e),
-                        metadata={
-                            "handle_area_error": error_msg,
-                            "error": str(e),
-                            "traceback": traceback_msg,
-                        },
-                    )
+                span.update(
+                    level="ERROR",
+                    status_message=str(e),
+                    metadata={
+                        "handle_area_error": error_msg,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
+                )
                 raise
 
     @message_handler
@@ -133,25 +125,20 @@ class CapabilityModerator(RoutedAgent):
         self, message: ScientistCapabilityProposal, ctx: MessageContext
     ) -> None:
         """Handle capability proposals from scientists."""
-        with (
-            self._langfuse_client.start_as_current_span(
-                name="capability_moderator_handle_proposal"
-            )
-            if self._langfuse_client
-            else nullcontext() as span
-        ):
+        with self._langfuse_client.start_as_current_span(
+            name="capability_moderator_handle_proposal"
+        ) as span:
             try:
                 msg = f"Capability Moderator received proposal from Scientist {message.scientist_id} for area: {message.area_name}, round {message.round}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "proposal_received": msg,
-                            "scientist_id": message.scientist_id,
-                            "area_name": message.area_name,
-                            "round": message.round,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "proposal_received": msg,
+                        "scientist_id": message.scientist_id,
+                        "area_name": message.area_name,
+                        "round": message.round,
+                    }
+                )
 
                 area_key = message.area_name
                 if area_key not in self._proposals_buffer:
@@ -167,17 +154,16 @@ class CapabilityModerator(RoutedAgent):
                 ):
                     msg = f"Capability Moderator received all proposals for area: {message.area_name}, round {message.round}, proceeding to merge"
                     log.info(msg)
-                    if span:
-                        span.update(
-                            metadata={
-                                "all_proposals_received": msg,
-                                "area_name": message.area_name,
-                                "round": message.round,
-                                "num_proposals": len(
-                                    self._proposals_buffer[area_key][message.round]
-                                ),
-                            }
-                        )
+                    span.update(
+                        metadata={
+                            "all_proposals_received": msg,
+                            "area_name": message.area_name,
+                            "round": message.round,
+                            "num_proposals": len(
+                                self._proposals_buffer[area_key][message.round]
+                            ),
+                        }
+                    )
 
                     proposals = self._proposals_buffer[area_key][message.round]
                     scientist_a_proposal = next(
@@ -203,16 +189,15 @@ class CapabilityModerator(RoutedAgent):
                 log.error(error_msg)
                 log.error(traceback_msg)
 
-                if span:
-                    span.update(
-                        level="ERROR",
-                        status_message=str(e),
-                        metadata={
-                            "proposal_handling_error": error_msg,
-                            "error": str(e),
-                            "traceback": traceback_msg,
-                        },
-                    )
+                span.update(
+                    level="ERROR",
+                    status_message=str(e),
+                    metadata={
+                        "proposal_handling_error": error_msg,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
+                )
                 raise
 
     async def _merge_proposals(
@@ -223,24 +208,19 @@ class CapabilityModerator(RoutedAgent):
         round_num: int,
     ) -> None:
         """Merge scientist capability proposals using LLM."""
-        with (
-            self._langfuse_client.start_as_current_span(
-                name="capability_moderator_merge_proposals"
-            )
-            if self._langfuse_client
-            else nullcontext() as span
-        ):
+        with self._langfuse_client.start_as_current_span(
+            name="capability_moderator_merge_proposals"
+        ) as span:
             try:
                 msg = f"Capability Moderator merging proposals for area: {area_name}, round {round_num}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "merge_started": msg,
-                            "area_name": area_name,
-                            "round": round_num,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "merge_started": msg,
+                        "area_name": area_name,
+                        "round": round_num,
+                    }
+                )
 
                 prompt = CAPABILITY_MODERATOR_MERGE_PROMPT.format(
                     domain=self._domain,
@@ -261,8 +241,7 @@ class CapabilityModerator(RoutedAgent):
 
                 msg = "Capability Moderator is parsing LLM response"
                 log.info(msg)
-                if span:
-                    span.update(metadata={"llm_response_received": msg})
+                span.update(metadata={"llm_response_received": msg})
 
                 parsed = parse_llm_json_response(model_result.content)
                 revised_capabilities = parsed.get("capabilities", {})
@@ -271,30 +250,28 @@ class CapabilityModerator(RoutedAgent):
                 if is_finalized or round_num >= self._max_round - 1:
                     msg = f"Capability Moderator finalizing capabilities for area: {area_name} after round {round_num}"
                     log.info(msg)
-                    if span:
-                        span.update(
-                            metadata={
-                                "decision_finalize": msg,
-                                "area_name": area_name,
-                                "round": round_num,
-                                "is_finalized": is_finalized,
-                                "reached_max_rounds": round_num >= self._max_round - 1,
-                            }
-                        )
+                    span.update(
+                        metadata={
+                            "decision_finalize": msg,
+                            "area_name": area_name,
+                            "round": round_num,
+                            "is_finalized": is_finalized,
+                            "reached_max_rounds": round_num >= self._max_round - 1,
+                        }
+                    )
 
                     await self._finalize_capabilities(revised_capabilities, area_name)
                 else:
                     msg = f"Capability Moderator sending merged proposal for revision for area: {area_name} in round {round_num}"
                     log.info(msg)
-                    if span:
-                        span.update(
-                            metadata={
-                                "decision_continue": msg,
-                                "area_name": area_name,
-                                "round": round_num,
-                                "next_round": round_num + 1,
-                            }
-                        )
+                    span.update(
+                        metadata={
+                            "decision_continue": msg,
+                            "area_name": area_name,
+                            "round": round_num,
+                            "next_round": round_num + 1,
+                        }
+                    )
 
                     next_round = round_num + 1
                     revision_content = json.dumps(revised_capabilities)
@@ -318,14 +295,13 @@ class CapabilityModerator(RoutedAgent):
                         topic_id=DefaultTopicId(),
                     )
 
-                    if span:
-                        span.update(
-                            metadata={
-                                "revision_requests_sent": f"Sent revision requests for round {next_round}",
-                                "round": next_round,
-                                "scientists": ["A", "B"],
-                            }
-                        )
+                    span.update(
+                        metadata={
+                            "revision_requests_sent": f"Sent revision requests for round {next_round}",
+                            "round": next_round,
+                            "scientists": ["A", "B"],
+                        }
+                    )
 
             except Exception as e:
                 error_msg = f"Error in Capability Moderator _merge_proposals: {e}"
@@ -334,36 +310,30 @@ class CapabilityModerator(RoutedAgent):
                 log.error(error_msg)
                 log.error(traceback_msg)
 
-                if span:
-                    span.update(
-                        level="ERROR",
-                        status_message=str(e),
-                        metadata={
-                            "merge_error": error_msg,
-                            "error": str(e),
-                            "traceback": traceback_msg,
-                        },
-                    )
+                span.update(
+                    level="ERROR",
+                    status_message=str(e),
+                    metadata={
+                        "merge_error": error_msg,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
+                )
                 raise
 
     async def _finalize_capabilities(
         self, final_capabilities: dict, area_name: str
     ) -> None:
         """Save final capabilities to file."""
-        with (
-            self._langfuse_client.start_as_current_span(
-                name="capability_moderator_finalize"
-            )
-            if self._langfuse_client
-            else nullcontext() as span
-        ):
+        with self._langfuse_client.start_as_current_span(
+            name="capability_moderator_finalize"
+        ) as span:
             try:
                 msg = f"Capability Moderator finalizing and saving capabilities for area: {area_name}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={"finalization_started": msg, "area_name": area_name}
-                    )
+                span.update(
+                    metadata={"finalization_started": msg, "area_name": area_name}
+                )
 
                 capabilities_list = []
                 i = 0
@@ -378,14 +348,13 @@ class CapabilityModerator(RoutedAgent):
 
                 msg = f"Capability generation completed successfully for area: {area_name}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "capabilities_finalized": msg,
-                            "area_name": area_name,
-                            "num_capabilities": len(capabilities_list),
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "capabilities_finalized": msg,
+                        "area_name": area_name,
+                        "num_capabilities": len(capabilities_list),
+                    }
+                )
 
             except Exception as e:
                 error_msg = f"Error in Capability Moderator _finalize_capabilities: {e}"
@@ -394,16 +363,15 @@ class CapabilityModerator(RoutedAgent):
                 log.error(error_msg)
                 log.error(traceback_msg)
 
-                if span:
-                    span.update(
-                        level="ERROR",
-                        status_message=str(e),
-                        metadata={
-                            "finalize_error": error_msg,
-                            "error": str(e),
-                            "traceback": traceback_msg,
-                        },
-                    )
+                span.update(
+                    level="ERROR",
+                    status_message=str(e),
+                    metadata={
+                        "finalize_error": error_msg,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
+                )
                 raise
 
     def _save_capabilities_to_file(self, capabilities: str, area_name: str) -> None:
