@@ -3,7 +3,6 @@
 import json
 import logging
 import traceback
-from contextlib import nullcontext
 
 from autogen_core import (
     DefaultTopicId,
@@ -55,25 +54,20 @@ class AreaScientist(RoutedAgent):
         self, message: AreaProposalRequest, ctx: MessageContext
     ) -> None:
         """Handle initial area proposal request."""
-        with (
-            self._langfuse_client.start_as_current_span(
-                name=f"scientist_{self._scientist_id}_initial_proposal"
-            )
-            if self._langfuse_client
-            else nullcontext() as span
-        ):
+        with self._langfuse_client.start_as_current_span(
+            name=f"scientist_{self._scientist_id}_initial_proposal"
+        ) as span:
             try:
                 msg = f"Scientist {self._scientist_id} handling area proposal request for domain: {message.domain}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "proposal_request_received": msg,
-                            "scientist_id": self._scientist_id,
-                            "domain": message.domain,
-                            "num_areas": message.num_areas,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "proposal_request_received": msg,
+                        "scientist_id": self._scientist_id,
+                        "domain": message.domain,
+                        "num_areas": message.num_areas,
+                    }
+                )
 
                 prompt = AREA_SCIENTIST_INITIAL_PROMPT.format(
                     scientist_id=self._scientist_id,
@@ -90,27 +84,25 @@ class AreaScientist(RoutedAgent):
 
                 msg = f"Scientist {self._scientist_id} is parsing LLM response"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "llm_response_received": msg,
-                            "scientist_id": self._scientist_id,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "llm_response_received": msg,
+                        "scientist_id": self._scientist_id,
+                    }
+                )
 
                 parsed = parse_llm_json_response(model_result.content)
                 proposal_content = json.dumps(parsed["areas"])
 
                 msg = f"Scientist {self._scientist_id} publishing area proposal"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "proposal_published": msg,
-                            "scientist_id": self._scientist_id,
-                            "round": 0,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "proposal_published": msg,
+                        "scientist_id": self._scientist_id,
+                        "round": 0,
+                    }
+                )
 
                 await self.publish_message(
                     ScientistAreaProposal(
@@ -128,17 +120,16 @@ class AreaScientist(RoutedAgent):
                 log.error(error_msg)
                 log.error(traceback_msg)
 
-                if span:
-                    span.update(
-                        level="ERROR",
-                        status_message=str(e),
-                        metadata={
-                            "proposal_request_error": error_msg,
-                            "scientist_id": self._scientist_id,
-                            "error": str(e),
-                            "traceback": traceback_msg,
-                        },
-                    )
+                span.update(
+                    level="ERROR",
+                    status_message=str(e),
+                    metadata={
+                        "proposal_request_error": error_msg,
+                        "scientist_id": self._scientist_id,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
+                )
                 raise
 
     @message_handler
@@ -149,26 +140,21 @@ class AreaScientist(RoutedAgent):
         if message.scientist_id != self._scientist_id:
             return
 
-        with (
-            self._langfuse_client.start_as_current_span(
-                name=f"scientist_{self._scientist_id}_revision"
-            )
-            if self._langfuse_client
-            else nullcontext() as span
-        ):
+        with self._langfuse_client.start_as_current_span(
+            name=f"scientist_{self._scientist_id}_revision"
+        ) as span:
             try:
                 round_num = message.round
 
                 msg = f"Scientist {self._scientist_id} handling revision request for round {round_num}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "revision_request_received": msg,
-                            "scientist_id": self._scientist_id,
-                            "round": round_num,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "revision_request_received": msg,
+                        "scientist_id": self._scientist_id,
+                        "round": round_num,
+                    }
+                )
 
                 prompt = AREA_SCIENTIST_REVISION_PROMPT.format(
                     scientist_id=self._scientist_id,
@@ -184,28 +170,26 @@ class AreaScientist(RoutedAgent):
 
                 msg = f"Scientist {self._scientist_id} is parsing LLM response"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "llm_response_received": msg,
-                            "scientist_id": self._scientist_id,
-                            "round": round_num,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "llm_response_received": msg,
+                        "scientist_id": self._scientist_id,
+                        "round": round_num,
+                    }
+                )
 
                 parsed = parse_llm_json_response(model_result.content)
                 proposal_content = json.dumps(parsed["areas"])
 
                 msg = f"Scientist {self._scientist_id} publishing revised proposal for round {round_num}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "revised_proposal_published": msg,
-                            "scientist_id": self._scientist_id,
-                            "round": round_num,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "revised_proposal_published": msg,
+                        "scientist_id": self._scientist_id,
+                        "round": round_num,
+                    }
+                )
 
                 await self.publish_message(
                     ScientistAreaProposal(
@@ -223,15 +207,14 @@ class AreaScientist(RoutedAgent):
                 log.error(error_msg)
                 log.error(traceback_msg)
 
-                if span:
-                    span.update(
-                        level="ERROR",
-                        status_message=str(e),
-                        metadata={
-                            "revision_request_error": error_msg,
-                            "scientist_id": self._scientist_id,
-                            "error": str(e),
-                            "traceback": traceback_msg,
-                        },
-                    )
+                span.update(
+                    level="ERROR",
+                    status_message=str(e),
+                    metadata={
+                        "revision_request_error": error_msg,
+                        "scientist_id": self._scientist_id,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
+                )
                 raise

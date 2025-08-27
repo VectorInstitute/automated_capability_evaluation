@@ -29,6 +29,7 @@ openlit.init(tracer=lf._otel_tracer, disable_batch=True, disable_metrics=True)
 def main(cfg: DictConfig) -> None:
     """Run the multi-agent debate-based capability generation system."""
     areas_tag = cfg.pipeline_tags.areas_tag
+    resume_tag = getattr(cfg.pipeline_tags, "resume_capabilities_tag", None)
     domain_name = cfg.global_cfg.domain
     exp_id = cfg.exp_cfg.exp_id
     num_capabilities_per_area = cfg.capability_generation.num_capabilities_per_area
@@ -68,18 +69,26 @@ def main(cfg: DictConfig) -> None:
                 )
                 return
 
+            if resume_tag:
+                msg = f"Resuming capability generation from tag: {resume_tag}"
+                log.info(msg)
+                span.update(
+                    metadata={"resume_tag_found": msg, "resume_tag": resume_tag}
+                )
+
             span.update_trace(
                 metadata={
                     "domain": domain_name,
                     "exp_id": exp_id,
                     "areas_tag": areas_tag,
+                    "resume_tag": resume_tag,
                     "num_capabilities_per_area": num_capabilities_per_area,
                     "config": config_yaml,
                 },
                 tags=["agentic_capability_generation", exp_id],
             )
 
-            asyncio.run(generate_capabilities(cfg, areas_tag, lf))
+            asyncio.run(generate_capabilities(cfg, areas_tag, lf, resume_tag))
 
             msg = (
                 "Multi-agent debate-based capability generation completed successfully"

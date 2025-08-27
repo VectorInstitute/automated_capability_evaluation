@@ -36,7 +36,26 @@ def parse_llm_json_response(raw_content: Union[str, Any]) -> Dict[str, Any]:
 
     except json.JSONDecodeError as e:
         log.error(f"Failed to parse JSON response: {e}")
-        log.error(f"Raw content: {raw_content}")
+        log.error(f"Content length: {len(cleaned_content)} characters")
+
+        # Try to fix common JSON issues
+        try:
+            # Attempt to fix unterminated strings by finding the last complete entry
+            if "Unterminated string" in str(e):
+                # Find the last complete capability entry
+                last_complete = cleaned_content.rfind('"},')
+                if last_complete > 0:
+                    # Truncate to last complete entry and close the JSON
+                    fixed_content = cleaned_content[: last_complete + 2] + "\n  }\n}"
+                    log.warning(
+                        "Attempting to fix unterminated JSON by truncating to last complete entry"
+                    )
+                    return json.loads(fixed_content)
+        except Exception as fix_error:
+            log.error(f"Failed to fix JSON: {fix_error}")
+
+        # If we can't fix it, log more details and re-raise
+        log.error(f"Raw content (last 500 chars): {raw_content[-500:]}")
         raise
     except Exception as e:
         log.error(f"Unexpected error parsing JSON: {e}")
