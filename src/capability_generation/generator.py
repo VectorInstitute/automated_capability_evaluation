@@ -151,13 +151,24 @@ async def generate_capabilities_for_area(
 
 
 async def generate_capabilities(
-    cfg: DictConfig, areas_tag: str, langfuse_client: Langfuse = None
+    cfg: DictConfig,
+    areas_tag: str,
+    langfuse_client: Langfuse = None,
+    resume_tag: str = None,
 ) -> None:
     """Generate capabilities using multi-agent debate system for each area."""
     domain_name = cfg.global_cfg.domain
     exp_id = cfg.exp_cfg.exp_id
     max_round = cfg.debate_cfg.max_round
-    capabilities_tag = f"_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+    # Use resume_tag if provided, otherwise create new tag
+    if resume_tag:
+        capabilities_tag = resume_tag
+        log.info(
+            f"Resuming capability generation with existing tag: {capabilities_tag}"
+        )
+    else:
+        capabilities_tag = f"_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
     lf = langfuse_client
     if lf is None:
@@ -277,7 +288,40 @@ async def generate_capabilities(
                 }
             )
 
+            # Check for existing capabilities if resuming
+            existing_capabilities = set()
+            if resume_tag and output_dir.exists():
+                for area_dir in output_dir.iterdir():
+                    if area_dir.is_dir() and (area_dir / "capabilities.json").exists():
+                        existing_capabilities.add(area_dir.name)
+
+                if existing_capabilities:
+                    msg = f"Found {len(existing_capabilities)} existing capabilities: {list(existing_capabilities)}"
+                    log.info(msg)
+                    span.update(metadata={"existing_capabilities": msg})
+                else:
+                    log.info("No existing capabilities found, will generate all areas")
+
+            processed_areas = 0
+            skipped_areas = 0
+
             for i, area in enumerate(areas):
+                area_dir_name = area.name.replace(" ", "_")
+
+                # Skip if capabilities already exist for this area
+                if resume_tag and area_dir_name in existing_capabilities:
+                    msg = f"Skipping area {i + 1}/{len(areas)}: {area.name} (already exists)"
+                    log.info(msg)
+                    span.update(
+                        metadata={
+                            f"area_{i + 1}_skipped": msg,
+                            "skipped_area": area.name,
+                            "progress": f"{i + 1}/{len(areas)}",
+                        }
+                    )
+                    skipped_areas += 1
+                    continue
+
                 msg = f"Processing area {i + 1}/{len(areas)}: {area.name}"
                 log.info(msg)
                 span.update(
@@ -299,15 +343,23 @@ async def generate_capabilities(
                     }
                 )
 
+                processed_areas += 1
                 await asyncio.sleep(1)
 
-            msg = f"Capabilities generated with tag: {capabilities_tag}"
+            if resume_tag:
+                msg = f"Capability generation resumed with tag: {capabilities_tag} - Processed: {processed_areas}, Skipped: {skipped_areas}, Total: {len(areas)}"
+            else:
+                msg = f"Capabilities generated with tag: {capabilities_tag} - Processed: {processed_areas} areas"
+
             print(msg)
             span.update(
                 metadata={
                     "generation_completed": msg,
                     "capabilities_tag": capabilities_tag,
-                    "total_areas_processed": len(areas),
+                    "total_areas": len(areas),
+                    "processed_areas": processed_areas,
+                    "skipped_areas": skipped_areas,
+                    "resumed": bool(resume_tag),
                 }
             )
 
