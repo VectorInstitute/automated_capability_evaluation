@@ -25,8 +25,6 @@ from src.task_generation.messages import (
     Capability,
     ProblemProposalRequest,
     ScientistProblemProposal,
-    ScientistSolutionProposal,
-    SolutionRequest,
 )
 from src.utils.agentic_prompts import (
     TASK_MODERATOR_PROBLEM_SYSTEM_PROMPT,
@@ -48,7 +46,6 @@ class TaskModerator(RoutedAgent):
         num_scientists: int,
         num_final_problems: int,
         buffer_param: int,
-        agreement_threshold: float,
         output_dir: Path,
         domain: str,
         langfuse_client: Langfuse,
@@ -58,7 +55,6 @@ class TaskModerator(RoutedAgent):
         self._num_scientists = num_scientists
         self._num_final_problems = num_final_problems
         self._buffer_param = buffer_param
-        self._agreement_threshold = agreement_threshold
         self._output_dir = output_dir
         self._domain = domain
         self._langfuse_client = langfuse_client
@@ -75,10 +71,7 @@ class TaskModerator(RoutedAgent):
             str, List[ScientistProblemProposal]
         ] = {}  # capability -> proposals
 
-        # Solution design state
-        self._solution_proposals: Dict[
-            str, List[ScientistSolutionProposal]
-        ] = {}  # capability -> solutions
+
 
     @message_handler
     async def handle_capability(self, message: Capability, ctx: MessageContext) -> None:
@@ -266,13 +259,11 @@ class TaskModerator(RoutedAgent):
             try:
                 parsed = parse_llm_json_response(raw_content)
                 final_tasks = parsed.get("final_tasks", {})
-                rejected_tasks = parsed.get("rejected_tasks", {})
             except Exception as e:
                 log.error(
                     f"Error parsing JSON from moderator: {e}\nOutput: {raw_content}"
                 )
                 final_tasks = {}
-                rejected_tasks = {}
 
             # Update Algorithm 1 state
             num_remaining = self._num_remaining[capability_name]
@@ -294,9 +285,6 @@ class TaskModerator(RoutedAgent):
             log.info(
                 f"Task Moderator selected {selected_count} problems for {capability_name}, {self._num_remaining[capability_name]} remaining"
             )
-            log.info(
-                f"Rejected {len(rejected_tasks)} problems: {list(rejected_tasks.keys())}"
-            )
 
             # Continue Algorithm 1 or move to solution design
             if self._num_remaining[capability_name] > 0:
@@ -304,138 +292,42 @@ class TaskModerator(RoutedAgent):
                 capability = self._capabilities[capability_name]
                 await self._start_problem_iteration(capability)
             else:
-                # Problem design complete, start solution design
-                capability = self._capabilities[capability_name]
-                await self._start_solution_design(capability)
+                # Problem design complete, finalize tasks without solutions
+                await self._finalize_tasks_without_solutions(capability_name)
 
         except Exception as e:
             log.error(f"Error in Task Moderator _filter_and_select_problems: {e}")
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
-    async def _start_solution_design(self, capability: Capability) -> None:
-        """Start solution design phase."""
+    async def _finalize_tasks_without_solutions(self, capability_name: str) -> None:
+        """Finalize tasks with problems only (no solutions)."""
         try:
             log.info(
-                f"Task Moderator starting solution design for capability: {capability.name}"
+                f"Task Moderator finalizing tasks for capability: {capability_name}"
             )
 
-            final_problems = self._final_problems[capability.name]
+            final_problems = self._final_problems[capability_name]
             if not final_problems:
                 log.error(
-                    f"No final problems available for capability: {capability.name}"
+                    f"No final problems available for capability: {capability_name}"
                 )
                 return
 
-            # Send solution requests to all scientists
-            await self.publish_message(
-                SolutionRequest(
-                    capability_name=capability.name,
-                    capability_description=capability.description,
-                    capability_domain=capability.domain,
-                    capability_area=capability.area,
-                    problems=final_problems,
-                ),
-                topic_id=DefaultTopicId(),
-            )
-
-        except Exception as e:
-            log.error(f"Error in Task Moderator _start_solution_design: {e}")
-            log.error(f"Traceback: {traceback.format_exc()}")
-            raise
-
-    @message_handler
-    async def handle_scientist_solution_proposal(
-        self, message: ScientistSolutionProposal, ctx: MessageContext
-    ) -> None:
-        """Handle solution proposals from scientists."""
-        try:
-            log.info(
-                f"Task Moderator received solution proposal from Scientist {message.scientist_id} for capability: {message.capability_name}"
-            )
-
-            capability_name = message.capability_name
-            if capability_name not in self._solution_proposals:
-                self._solution_proposals[capability_name] = []
-
-            self._solution_proposals[capability_name].append(message)
-
-            # Check if we have all solutions
-            if len(self._solution_proposals[capability_name]) == self._num_scientists:
-                log.info(
-                    f"Task Moderator received all solutions for capability: {capability_name}, determining consensus"
-                )
-                await self._determine_solution_consensus(capability_name)
-
-        except Exception as e:
-            log.error(
-                f"Error in Task Moderator handle_scientist_solution_proposal: {e}"
-            )
-            log.error(f"Traceback: {traceback.format_exc()}")
-            raise
-
-    async def _determine_solution_consensus(self, capability_name: str) -> None:
-        """Determine solution consensus and finalize tasks."""
-        try:
-            log.info(
-                f"Task Moderator determining solution consensus for capability: {capability_name}"
-            )
-
-            solutions_by_task: Dict[
-                str, Dict[str, str]
-            ] = {}  # task_id -> [scientist_id -> solution]
-
-            for proposal in self._solution_proposals[capability_name]:
-                for task_id, solution in proposal.solutions.items():
-                    if task_id not in solutions_by_task:
-                        solutions_by_task[task_id] = {}
-                    solutions_by_task[task_id][proposal.scientist_id] = solution
-
+            # Create tasks with problems only
             final_tasks = {}
-
-            for task_id, problem_text in self._final_problems[capability_name].items():
-                if task_id in solutions_by_task:
-                    scientist_solutions = solutions_by_task[task_id]
-
-                    # Simple consensus: find most common solution
-                    solution_counts: Dict[str, int] = {}
-                    for solution in scientist_solutions.values():
-                        solution_counts[solution] = solution_counts.get(solution, 0) + 1
-
-                    if solution_counts:
-                        most_common_solution = max(
-                            solution_counts.keys(), key=lambda x: solution_counts[x]
-                        )
-                        agreement_rate = solution_counts[most_common_solution] / len(
-                            scientist_solutions
-                        )
-
-                        if agreement_rate >= self._agreement_threshold:
-                            final_tasks[task_id] = {
-                                "problem": problem_text,
-                                "answer": most_common_solution,
-                            }
-                            log.info(
-                                f"Task {task_id}: consensus achieved ({agreement_rate:.2f} agreement)"
-                            )
-                        else:
-                            log.warning(
-                                f"Task {task_id}: low agreement ({agreement_rate:.2f}), requires human review"
-                            )
-                            # For now, use most common solution but mark it
-                            final_tasks[task_id] = {
-                                "problem": problem_text,
-                                "answer": most_common_solution,
-                                "requires_human_review": "true",
-                                "agreement_rate": str(agreement_rate),
-                            }
+            for task_id, problem_text in final_problems.items():
+                final_tasks[task_id] = {
+                    "task": problem_text,
+                    "capability_id": capability_name,
+                }
 
             # Save final tasks
             await self._save_tasks_to_file(capability_name, final_tasks)
-            log.info(f"Task generation completed for capability: {capability_name}")
+            log.info(f"Task generation completed for capability: {capability_name} ({len(final_tasks)} tasks)")
 
         except Exception as e:
-            log.error(f"Error in Task Moderator _determine_solution_consensus: {e}")
+            log.error(f"Error in Task Moderator _finalize_tasks_without_solutions: {e}")
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
