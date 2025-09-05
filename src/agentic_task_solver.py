@@ -67,7 +67,7 @@ def main(cfg: DictConfig) -> None:
 
         if not tasks_file.exists():
             raise FileNotFoundError(f"Tasks file not found: {tasks_file}")
-        
+
         log.info(f"Loading tasks from: {tasks_file}")
         tasks = load_tasks_from_file(tasks_file)
         log.info(f"Loaded {len(tasks)} tasks")
@@ -87,11 +87,11 @@ def main(cfg: DictConfig) -> None:
             tasks=tasks,
                 langfuse_client=lf,
             ))
-        
+
         # Print summary
         consensus_count = sum(1 for result in results.values() if result.get("consensus_reached", False))
         no_consensus_count = len(results) - consensus_count
-        
+
             msg = f"Task solving completed. Consensus: {consensus_count}, No consensus: {no_consensus_count}"
             log.info(msg)
             span.update(
@@ -102,7 +102,7 @@ def main(cfg: DictConfig) -> None:
                     "no_consensus": no_consensus_count,
                 }
             )
-        
+
         # Print detailed results if requested
             if cfg.task_solving.get("print_results", False):
             for task_id, result in results.items():
@@ -122,4 +122,4 @@ def main(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    main() 
+    main()

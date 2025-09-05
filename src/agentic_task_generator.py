@@ -22,9 +22,8 @@ os.environ["OTEL_PYTHON_LOG_LEVEL"] = "ERROR"
 log = logging.getLogger("agentic_task_gen")
 
 lf = Langfuse()
-openlit.init(
-    tracer=lf._otel_tracer, disable_batch=True, disable_metrics=True
-)
+openlit.init(tracer=lf._otel_tracer, disable_batch=True, disable_metrics=True)
+
 
 @hydra.main(version_base=None, config_path="cfg", config_name="agentic_config")
 def main(cfg: DictConfig) -> None:
@@ -72,12 +71,13 @@ def main(cfg: DictConfig) -> None:
                     metadata={"capabilities_tag_missing": error_msg},
                 )
                 return
-                
+
             if resume_tag:
                 msg = f"Resuming task generation from tag: {resume_tag}"
                 log.info(msg)
-                span.update(metadata={"resume_tag_found": msg, "resume_tag": resume_tag})
-                
+                span.update(
+                    metadata={"resume_tag_found": msg, "resume_tag": resume_tag}
+                )
 
             span.update_trace(
                 metadata={

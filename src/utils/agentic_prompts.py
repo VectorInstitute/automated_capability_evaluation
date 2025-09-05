@@ -228,27 +228,6 @@ Domain: {capability_domain}
 Sample tasks:
 {sample_tasks_text}"""
 
-TASK_SCIENTIST_SOLUTION_SYSTEM_PROMPT = """You are Scientist {scientist_id}, an expert in {capability_domain}. You are solving a task related to the capability: {capability_name}.
-
-IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. The JSON should be directly parseable.
-
-Please return your solution and your thoughts and reasoning in the following format:
-{{
-  "thought": "Your reasoning and thought process about solving this problem",
-  "solutions": {{
-    "solution_0": "SOLUTION_TEXT_1",
-    "solution_1": "SOLUTION_TEXT_2",
-    ...
-  }}
-}}
-
-Provide clear, accurate, and complete solutions. Your solutions should be correct and well-reasoned."""
-
-TASK_SCIENTIST_SOLUTION_USER_PROMPT = """Solve the following problems:
-
-{problems}
-
-Provide your solutions clearly and concisely."""
 
 TASK_MODERATOR_PROBLEM_SYSTEM_PROMPT = """You are the Moderator overseeing capability-based task design. Your task is to review proposed tasks from multiple scientist agents and synthesize a final, high-quality task set for the capability.
 
@@ -256,7 +235,7 @@ Your responsibilities:
 - Eliminate any task that is not clearly aligned with the capability.
 - Merge or remove tasks that are redundant or overly similar.
 - Ensure that the final set of tasks is diverse, non-trivial, and tests different facets of the capability.
-- Include a brief justification for each rejected or significantly modified task.
+- Select only the highest quality tasks that best represent the capability.
 
 IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. Do not include any prefixes or prose. The JSON should be directly parseable.
 
@@ -272,11 +251,6 @@ Please return your curation and your thoughts and reasoning in the following for
     "task_1": "<FINAL_TASK_1>",
     "task_2": "<FINAL_TASK_2>",
     ...
-  },
-  "rejected_tasks": {
-    "task_from_scientist_A": "Reason for rejection or modification",
-    "task_from_scientist_B": "Reason for rejection or modification",
-    ...
   }
 }"""
 
@@ -288,6 +262,56 @@ Domain: {capability_domain}
 
 Proposed Tasks:
 {problems_text}"""
+
+# =============================================================================
+# TASK SOLVING DEBATE PROMPTS
+# =============================================================================
+
+TASK_SOLVER_SYSTEM_MESSAGE = """You are an expert problem solver participating in a collaborative debate to solve tasks. You will work with other agents to find the best solution through structured discussion and reasoning."""
+
+TASK_SOLVER_ROUND_1_PROMPT = """Can you solve the following problem?
+
+PROBLEM: {problem_text}
+
+Explain your reasoning step by step. Your final answer should be clearly stated at the end of your response.
+
+Respond using this format:
+THOUGHT: <your reasoning and thought process for solving the task>
+FINAL ANSWER: <answer>"""
+
+TASK_SOLVER_SUBSEQUENT_ROUNDS_PROMPT = """These are the reasoning and solutions to the problem from other agents:
+
+{other_solutions}
+
+Using the solutions from other agents as additional information, can you provide your answer to the problem? 
+
+The original problem is: {problem_text}
+
+Explain your reasoning step by step. Your final answer should be clearly stated at the end of your response.
+
+Respond using this format:
+THOUGHT: <your reasoning and thought process for solving the task>
+FINAL ANSWER: <answer>"""
+
+TASK_MODERATOR_SYSTEM_MESSAGE = """You are a moderator overseeing a collaborative problem-solving debate. Your role is to check for consensus among agents and determine the final solution."""
+
+TASK_MODERATOR_CONSENSUS_PROMPT = """Review the following solutions from different agents for the same problem:
+
+PROBLEM: {problem_text}
+
+SOLUTIONS:
+{all_solutions}
+
+Determine if there is consensus among the agents. Consensus is reached when:
+1. All agents provide the same final answer, OR
+2. The majority of agents agree on the same answer with similar reasoning
+
+If consensus is reached, provide the agreed-upon solution. If not, indicate that another round of debate is needed.
+
+Respond using this format:
+CONSENSUS_REACHED: <true/false>
+FINAL_SOLUTION: <the agreed solution if consensus reached, otherwise "NONE">
+REASONING: <explanation of your decision>"""
 
 # =============================================================================
 # SYSTEM MESSAGES
