@@ -3,7 +3,6 @@
 import json
 import logging
 import traceback
-from contextlib import nullcontext
 from pathlib import Path
 from typing import Dict, List
 
@@ -64,18 +63,13 @@ class AreaModerator(RoutedAgent):
     @message_handler
     async def handle_domain(self, message: Domain, ctx: MessageContext) -> None:
         """Handle the domain message and initiate area proposal process."""
-        with (
-            self._langfuse_client.start_as_current_span(name="moderator_handle_domain")
-            if self._langfuse_client
-            else nullcontext() as span
-        ):
+        with self._langfuse_client.start_as_current_span(
+            name="moderator_handle_domain"
+        ) as span:
             try:
                 msg = f"Moderator received domain: {message.name}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={"domain_received": msg, "domain": message.name}
-                    )
+                span.update(metadata={"domain_received": msg, "domain": message.name})
 
                 self._domain = message.name
 
@@ -86,14 +80,13 @@ class AreaModerator(RoutedAgent):
                     topic_id=DefaultTopicId(),
                 )
 
-                if span:
-                    span.update(
-                        metadata={
-                            "proposal_request_sent": f"Sent proposal request for {self._num_final_areas} areas",
-                            "num_areas": self._num_final_areas,
-                            "domain": message.name,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "proposal_request_sent": f"Sent proposal request for {self._num_final_areas} areas",
+                        "num_areas": self._num_final_areas,
+                        "domain": message.name,
+                    }
+                )
 
             except Exception as e:
                 error_msg = f"Error in Moderator handle_domain: {e}"
@@ -102,16 +95,15 @@ class AreaModerator(RoutedAgent):
                 log.error(error_msg)
                 log.error(traceback_msg)
 
-                if span:
-                    span.update(
-                        level="ERROR",
-                        status_message=str(e),
-                        metadata={
-                            "handle_domain_error": error_msg,
-                            "error": str(e),
-                            "traceback": traceback_msg,
-                        },
-                    )
+                span.update(
+                    level="ERROR",
+                    status_message=str(e),
+                    metadata={
+                        "handle_domain_error": error_msg,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
+                )
                 raise
 
     @message_handler
@@ -119,57 +111,48 @@ class AreaModerator(RoutedAgent):
         self, message: ScientistAreaProposal, ctx: MessageContext
     ) -> None:
         """Handle area proposals from scientists."""
-        with (
-            self._langfuse_client.start_as_current_span(
-                name="moderator_handle_proposal"
-            )
-            if self._langfuse_client
-            else nullcontext() as span
-        ):
+        with self._langfuse_client.start_as_current_span(
+            name="moderator_handle_proposal"
+        ) as span:
             try:
                 if self._round != message.round:
                     error_msg = f"Moderator received proposal for round {message.round} but current round is {self._round}"
                     log.error(error_msg)
 
-                    if span:
-                        span.update(
-                            level="ERROR",
-                            status_message=error_msg,
-                            metadata={
-                                "round_mismatch": error_msg,
-                                "received_round": message.round,
-                                "current_round": self._round,
-                            },
-                        )
+                    span.update(
+                        level="ERROR",
+                        status_message=error_msg,
+                        metadata={
+                            "round_mismatch": error_msg,
+                            "received_round": message.round,
+                            "current_round": self._round,
+                        },
+                    )
 
                     raise Exception(error_msg)
 
                 msg = f"Moderator received proposal from Scientist {message.scientist_id} for round {self._round}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "proposal_received": msg,
-                            "scientist_id": message.scientist_id,
-                            "round": self._round,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "proposal_received": msg,
+                        "scientist_id": message.scientist_id,
+                        "round": self._round,
+                    }
+                )
 
                 self._proposals_buffer.setdefault(self._round, []).append(message)
 
                 if len(self._proposals_buffer[self._round]) == self._num_scientists:
                     msg = f"Moderator received all proposals for round {self._round}, proceeding to merge"
                     log.info(msg)
-                    if span:
-                        span.update(
-                            metadata={
-                                "all_proposals_received": msg,
-                                "round": self._round,
-                                "num_proposals": len(
-                                    self._proposals_buffer[self._round]
-                                ),
-                            }
-                        )
+                    span.update(
+                        metadata={
+                            "all_proposals_received": msg,
+                            "round": self._round,
+                            "num_proposals": len(self._proposals_buffer[self._round]),
+                        }
+                    )
 
                     proposals = self._proposals_buffer[self._round]
                     scientist_a_proposal = next(
@@ -190,34 +173,28 @@ class AreaModerator(RoutedAgent):
                 log.error(error_msg)
                 log.error(traceback_msg)
 
-                if span:
-                    span.update(
-                        level="ERROR",
-                        status_message=str(e),
-                        metadata={
-                            "proposal_handling_error": error_msg,
-                            "error": str(e),
-                            "traceback": traceback_msg,
-                        },
-                    )
+                span.update(
+                    level="ERROR",
+                    status_message=str(e),
+                    metadata={
+                        "proposal_handling_error": error_msg,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
+                )
                 raise
 
     async def _merge_proposals(
         self, scientist_a_proposal: str, scientist_b_proposal: str
     ) -> None:
         """Merge scientist proposals using LLM."""
-        with (
-            self._langfuse_client.start_as_current_span(
-                name="moderator_merge_proposals"
-            )
-            if self._langfuse_client
-            else nullcontext() as span
-        ):
+        with self._langfuse_client.start_as_current_span(
+            name="moderator_merge_proposals"
+        ) as span:
             try:
                 msg = f"Moderator merging proposals for round {self._round}"
                 log.info(msg)
-                if span:
-                    span.update(metadata={"merge_started": msg, "round": self._round})
+                span.update(metadata={"merge_started": msg, "round": self._round})
 
                 prompt = AREA_MODERATOR_MERGE_PROMPT.format(
                     domain=self._domain,
@@ -235,8 +212,7 @@ class AreaModerator(RoutedAgent):
 
                 msg = "Moderator is parsing LLM response."
                 log.info(msg)
-                if span:
-                    span.update(metadata={"llm_response_received": msg})
+                span.update(metadata={"llm_response_received": msg})
 
                 parsed = parse_llm_json_response(model_result.content)
                 revised_areas = parsed.get("areas", {})
@@ -245,29 +221,26 @@ class AreaModerator(RoutedAgent):
                 if is_finalized or self._round >= self._max_round - 1:
                     msg = f"Moderator finalizing areas after round {self._round}"
                     log.info(msg)
-                    if span:
-                        span.update(
-                            metadata={
-                                "decision_finalize": msg,
-                                "round": self._round,
-                                "is_finalized": is_finalized,
-                                "reached_max_rounds": self._round
-                                >= self._max_round - 1,
-                            }
-                        )
+                    span.update(
+                        metadata={
+                            "decision_finalize": msg,
+                            "round": self._round,
+                            "is_finalized": is_finalized,
+                            "reached_max_rounds": self._round >= self._max_round - 1,
+                        }
+                    )
 
                     await self._finalize_areas(revised_areas)
                 else:
                     msg = f"Moderator sending merged proposal for revision in round {self._round}"
                     log.info(msg)
-                    if span:
-                        span.update(
-                            metadata={
-                                "decision_continue": msg,
-                                "round": self._round,
-                                "next_round": self._round + 1,
-                            }
-                        )
+                    span.update(
+                        metadata={
+                            "decision_continue": msg,
+                            "round": self._round,
+                            "next_round": self._round + 1,
+                        }
+                    )
 
                     self._round += 1
                     revision_content = json.dumps(revised_areas)
@@ -289,14 +262,13 @@ class AreaModerator(RoutedAgent):
                         topic_id=DefaultTopicId(),
                     )
 
-                    if span:
-                        span.update(
-                            metadata={
-                                "revision_requests_sent": f"Sent revision requests for round {self._round}",
-                                "round": self._round,
-                                "scientists": ["A", "B"],
-                            }
-                        )
+                    span.update(
+                        metadata={
+                            "revision_requests_sent": f"Sent revision requests for round {self._round}",
+                            "round": self._round,
+                            "scientists": ["A", "B"],
+                        }
+                    )
 
             except Exception as e:
                 error_msg = f"Error in Moderator _merge_proposals: {e}"
@@ -305,30 +277,26 @@ class AreaModerator(RoutedAgent):
                 log.error(error_msg)
                 log.error(traceback_msg)
 
-                if span:
-                    span.update(
-                        level="ERROR",
-                        status_message=str(e),
-                        metadata={
-                            "merge_error": error_msg,
-                            "error": str(e),
-                            "traceback": traceback_msg,
-                        },
-                    )
+                span.update(
+                    level="ERROR",
+                    status_message=str(e),
+                    metadata={
+                        "merge_error": error_msg,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
+                )
                 raise
 
     async def _finalize_areas(self, final_areas: dict) -> None:
         """Save final areas to file."""
-        with (
-            self._langfuse_client.start_as_current_span(name="moderator_finalize_areas")
-            if self._langfuse_client
-            else nullcontext() as span
-        ):
+        with self._langfuse_client.start_as_current_span(
+            name="moderator_finalize_areas"
+        ) as span:
             try:
                 msg = "Moderator finalizing and saving areas"
                 log.info(msg)
-                if span:
-                    span.update(metadata={"finalization_started": msg})
+                span.update(metadata={"finalization_started": msg})
 
                 areas_list = []
                 i = 0
@@ -343,10 +311,9 @@ class AreaModerator(RoutedAgent):
 
                 msg = "Area generation completed successfully"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={"areas_finalized": msg, "num_areas": len(areas_list)}
-                    )
+                span.update(
+                    metadata={"areas_finalized": msg, "num_areas": len(areas_list)}
+                )
 
             except Exception as e:
                 error_msg = f"Error in Moderator _finalize_areas: {e}"
@@ -355,16 +322,15 @@ class AreaModerator(RoutedAgent):
                 log.error(error_msg)
                 log.error(traceback_msg)
 
-                if span:
-                    span.update(
-                        level="ERROR",
-                        status_message=str(e),
-                        metadata={
-                            "finalize_error": error_msg,
-                            "error": str(e),
-                            "traceback": traceback_msg,
-                        },
-                    )
+                span.update(
+                    level="ERROR",
+                    status_message=str(e),
+                    metadata={
+                        "finalize_error": error_msg,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
+                )
                 raise
 
     def _save_areas_to_file(self, areas: str) -> None:

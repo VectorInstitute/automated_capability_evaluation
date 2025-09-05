@@ -3,7 +3,6 @@
 import json
 import logging
 import traceback
-from contextlib import nullcontext
 
 from autogen_core import (
     DefaultTopicId,
@@ -55,26 +54,21 @@ class CapabilityScientist(RoutedAgent):
         self, message: CapabilityProposalRequest, ctx: MessageContext
     ) -> None:
         """Handle initial capability proposal request."""
-        with (
-            self._langfuse_client.start_as_current_span(
-                name=f"capability_scientist_{self._scientist_id}_initial_proposal"
-            )
-            if self._langfuse_client
-            else nullcontext() as span
-        ):
+        with self._langfuse_client.start_as_current_span(
+            name=f"capability_scientist_{self._scientist_id}_initial_proposal"
+        ) as span:
             try:
                 msg = f"Capability Scientist {self._scientist_id} handling proposal request for area: {message.area_name}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "proposal_request_received": msg,
-                            "scientist_id": self._scientist_id,
-                            "area_name": message.area_name,
-                            "area_description": message.area_description,
-                            "num_capabilities": message.num_capabilities,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "proposal_request_received": msg,
+                        "scientist_id": self._scientist_id,
+                        "area_name": message.area_name,
+                        "area_description": message.area_description,
+                        "num_capabilities": message.num_capabilities,
+                    }
+                )
 
                 prompt = CAPABILITY_SCIENTIST_INITIAL_PROMPT.format(
                     scientist_id=self._scientist_id,
@@ -96,28 +90,26 @@ class CapabilityScientist(RoutedAgent):
                     f"Capability Scientist {self._scientist_id} is parsing LLM response"
                 )
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "llm_response_received": msg,
-                            "scientist_id": self._scientist_id,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "llm_response_received": msg,
+                        "scientist_id": self._scientist_id,
+                    }
+                )
 
                 parsed = parse_llm_json_response(model_result.content)
                 proposal_content = json.dumps(parsed["capabilities"])
 
                 msg = f"Capability Scientist {self._scientist_id} publishing capability proposal for area: {message.area_name}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "proposal_published": msg,
-                            "scientist_id": self._scientist_id,
-                            "area_name": message.area_name,
-                            "round": 0,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "proposal_published": msg,
+                        "scientist_id": self._scientist_id,
+                        "area_name": message.area_name,
+                        "round": 0,
+                    }
+                )
 
                 await self.publish_message(
                     ScientistCapabilityProposal(
@@ -136,17 +128,16 @@ class CapabilityScientist(RoutedAgent):
                 log.error(error_msg)
                 log.error(traceback_msg)
 
-                if span:
-                    span.update(
-                        level="ERROR",
-                        status_message=str(e),
-                        metadata={
-                            "proposal_request_error": error_msg,
-                            "scientist_id": self._scientist_id,
-                            "error": str(e),
-                            "traceback": traceback_msg,
-                        },
-                    )
+                span.update(
+                    level="ERROR",
+                    status_message=str(e),
+                    metadata={
+                        "proposal_request_error": error_msg,
+                        "scientist_id": self._scientist_id,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
+                )
                 raise
 
     @message_handler
@@ -157,25 +148,20 @@ class CapabilityScientist(RoutedAgent):
         if message.scientist_id != self._scientist_id:
             return
 
-        with (
-            self._langfuse_client.start_as_current_span(
-                name=f"capability_scientist_{self._scientist_id}_revision"
-            )
-            if self._langfuse_client
-            else nullcontext() as span
-        ):
+        with self._langfuse_client.start_as_current_span(
+            name=f"capability_scientist_{self._scientist_id}_revision"
+        ) as span:
             try:
                 msg = f"Capability Scientist {self._scientist_id} handling revision request for area: {message.area_name}, round {message.round}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "revision_request_received": msg,
-                            "scientist_id": self._scientist_id,
-                            "area_name": message.area_name,
-                            "round": message.round,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "revision_request_received": msg,
+                        "scientist_id": self._scientist_id,
+                        "area_name": message.area_name,
+                        "round": message.round,
+                    }
+                )
 
                 prompt = CAPABILITY_SCIENTIST_REVISION_PROMPT.format(
                     scientist_id=self._scientist_id,
@@ -196,29 +182,27 @@ class CapabilityScientist(RoutedAgent):
                     f"Capability Scientist {self._scientist_id} is parsing LLM response"
                 )
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "llm_response_received": msg,
-                            "scientist_id": self._scientist_id,
-                            "round": message.round,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "llm_response_received": msg,
+                        "scientist_id": self._scientist_id,
+                        "round": message.round,
+                    }
+                )
 
                 parsed = parse_llm_json_response(model_result.content)
                 proposal_content = json.dumps(parsed["capabilities"])
 
                 msg = f"Capability Scientist {self._scientist_id} publishing revised proposal for area: {message.area_name}, round {message.round}"
                 log.info(msg)
-                if span:
-                    span.update(
-                        metadata={
-                            "revised_proposal_published": msg,
-                            "scientist_id": self._scientist_id,
-                            "area_name": message.area_name,
-                            "round": message.round,
-                        }
-                    )
+                span.update(
+                    metadata={
+                        "revised_proposal_published": msg,
+                        "scientist_id": self._scientist_id,
+                        "area_name": message.area_name,
+                        "round": message.round,
+                    }
+                )
 
                 await self.publish_message(
                     ScientistCapabilityProposal(
@@ -237,15 +221,14 @@ class CapabilityScientist(RoutedAgent):
                 log.error(error_msg)
                 log.error(traceback_msg)
 
-                if span:
-                    span.update(
-                        level="ERROR",
-                        status_message=str(e),
-                        metadata={
-                            "revision_request_error": error_msg,
-                            "scientist_id": self._scientist_id,
-                            "error": str(e),
-                            "traceback": traceback_msg,
-                        },
-                    )
+                span.update(
+                    level="ERROR",
+                    status_message=str(e),
+                    metadata={
+                        "revision_request_error": error_msg,
+                        "scientist_id": self._scientist_id,
+                        "error": str(e),
+                        "traceback": traceback_msg,
+                    },
+                )
                 raise
