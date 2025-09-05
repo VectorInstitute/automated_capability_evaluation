@@ -14,13 +14,13 @@ from autogen_core import (
     DefaultTopicId,
     SingleThreadedAgentRuntime,
 )
-from src.utils.model_client_utils import get_model_client
 from langfuse import Langfuse
 from omegaconf import DictConfig
 
 from src.task_generation.messages import Capability
 from src.task_generation.moderator import TaskModerator
 from src.task_generation.scientist import TaskScientist
+from src.utils.model_client_utils import get_model_client
 
 
 log = logging.getLogger("agentic_task_gen.generator")
@@ -160,15 +160,16 @@ async def generate_tasks_for_capability(
 
 
 async def generate_tasks(
-    cfg: DictConfig, 
-    capabilities_tag: str, 
+    cfg: DictConfig,
+    capabilities_tag: str,
     langfuse_client: Langfuse,
-    resume_tag: str = None,
+    resume_tag: str,
 ) -> None:
     """Generate tasks for all capabilities."""
     domain_name = cfg.global_cfg.domain
     exp_id = cfg.exp_cfg.exp_id
-    
+
+    # Use resume_tag if provided, otherwise create new tag
     if resume_tag:
         tasks_tag = resume_tag
         log.info(f"Resuming task generation with existing tag: {tasks_tag}")
@@ -237,6 +238,7 @@ async def generate_tasks(
                     if capabilities_file.exists():
                         with open(capabilities_file, "r", encoding="utf-8") as f:
                             capabilities_data = json.load(f)
+
                         if (
                             isinstance(capabilities_data, dict)
                             and "capabilities" in capabilities_data
@@ -297,6 +299,9 @@ async def generate_tasks(
                 }
             )
 
+            # Print the timestamp for future reference
+            print(f"Tasks generated with tag: {tasks_tag}")
+
             # Check for existing tasks if resuming
             existing_tasks = set()
             if resume_tag and output_dir.exists():
@@ -309,7 +314,7 @@ async def generate_tasks(
                     log.info(msg)
                     span.update(metadata={"existing_tasks": msg})
                 else:
-                    log.info("No existing tasks found, will generate tasks all capabilities")
+                    log.info("No existing tasks found, will generate all capabilities")
 
             processed_capabilities = 0
             skipped_capabilities = 0
@@ -317,7 +322,7 @@ async def generate_tasks(
             # Process each capability individually
             for i, capability in enumerate(capabilities):
                 capability_dir_name = capability.name.replace(" ", "_")
-                
+
                 # Skip if tasks already exist for this capability
                 if resume_tag and capability_dir_name in existing_tasks:
                     msg = f"Skipping capability {i + 1}/{len(capabilities)}: {capability.name} (already exists)"
@@ -331,7 +336,7 @@ async def generate_tasks(
                     )
                     skipped_capabilities += 1
                     continue
-                    
+
                 msg = f"Processing capability {i + 1}/{len(capabilities)}: {capability.name}"
                 log.info(msg)
                 span.update(
@@ -354,10 +359,10 @@ async def generate_tasks(
                         "completed_capability": capability.name,
                     }
                 )
-                
+
                 processed_capabilities += 1
                 await asyncio.sleep(1)
-                
+
             # Final summary
             msg = f"Task generation completed. Processed: {processed_capabilities}, Skipped: {skipped_capabilities}, Total: {len(capabilities)}"
             log.info(msg)

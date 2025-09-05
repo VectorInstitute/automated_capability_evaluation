@@ -8,11 +8,11 @@ global_cfg:
 
 # Debate configuration (shared across all stages)
 debate_cfg:
-  max_round: 3
+  max_round: 5
 
 # Agent configurations (shared across all stages)
 agents:
-  scientist_a: 
+  scientist_a:
     model_name: gpt-5
     seed: 8
 
@@ -34,10 +34,10 @@ capability_generation:
 
 # Stage 3: Task Generation Configuration
 task_generation:
-  num_final_tasks_per_capability: 10    # N: Number of final problems per capability
+  num_final_problems_per_capability: 10    # N: Number of final problems per capability
   buffer_param: 5                         # B: Buffer parameter (extra problems each agent proposes)
 
-# Stage 4: Task Solving Configuration  
+# Stage 4: Task Solving Configuration
 task_solving:
   max_tasks: 0                            # Maximum number of tasks to process (0 = all)
   print_results: false                    # Whether to print detailed results to console

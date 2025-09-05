@@ -59,7 +59,6 @@ class TaskModerator(RoutedAgent):
         self._domain = domain
         self._langfuse_client = langfuse_client
 
-        # Algorithm 1 state
         self._num_remaining: Dict[str, int] = {}
         self._final_problems: Dict[
             str, Dict[str, str]
@@ -71,11 +70,9 @@ class TaskModerator(RoutedAgent):
             str, List[ScientistProblemProposal]
         ] = {}  # capability -> proposals
 
-
-
     @message_handler
     async def handle_capability(self, message: Capability, ctx: MessageContext) -> None:
-        """Handle capability and start Algorithm 1 for problem design."""
+        """Start problem design for a capability."""
         with self._langfuse_client.start_as_current_span(
             name="task_moderator_handle_capability"
         ) as span:
@@ -91,12 +88,9 @@ class TaskModerator(RoutedAgent):
                     }
                 )
 
-                # Initialize Algorithm 1 state
                 self._num_remaining[message.name] = self._num_final_problems
                 self._final_problems[message.name] = {}
-                self._capabilities[message.name] = (
-                    message  # Store original capability info
-                )
+                self._capabilities[message.name] = message
 
                 await self._start_problem_iteration(message)
 
@@ -119,14 +113,12 @@ class TaskModerator(RoutedAgent):
                 raise
 
     async def _start_problem_iteration(self, capability: Capability) -> None:
-        """Start a problem generation iteration (Algorithm 1)."""
+        """Start a problem generation iteration."""
         try:
             num_remaining = self._num_remaining[capability.name]
             if num_remaining <= 0:
-                log.info(
-                    f"Problem design completed for capability: {capability.name}, starting solution design"
-                )
-                await self._start_solution_design(capability)
+                log.info(f"Problem design completed for capability: {capability.name}")
+                await self._finalize_tasks_without_solutions(capability.name)
                 return
 
             # Calculate problems per scientist: ceil(num_remaining / M) + B
@@ -265,7 +257,6 @@ class TaskModerator(RoutedAgent):
                 )
                 final_tasks = {}
 
-            # Update Algorithm 1 state
             num_remaining = self._num_remaining[capability_name]
             num_selected = min(len(final_tasks), num_remaining)
 
@@ -286,13 +277,10 @@ class TaskModerator(RoutedAgent):
                 f"Task Moderator selected {selected_count} problems for {capability_name}, {self._num_remaining[capability_name]} remaining"
             )
 
-            # Continue Algorithm 1 or move to solution design
             if self._num_remaining[capability_name] > 0:
-                # Need more problems, start another iteration
                 capability = self._capabilities[capability_name]
                 await self._start_problem_iteration(capability)
             else:
-                # Problem design complete, finalize tasks without solutions
                 await self._finalize_tasks_without_solutions(capability_name)
 
         except Exception as e:
@@ -301,7 +289,7 @@ class TaskModerator(RoutedAgent):
             raise
 
     async def _finalize_tasks_without_solutions(self, capability_name: str) -> None:
-        """Finalize tasks with problems only (no solutions)."""
+        """Finalize tasks with problems only."""
         try:
             log.info(
                 f"Task Moderator finalizing tasks for capability: {capability_name}"
@@ -324,7 +312,9 @@ class TaskModerator(RoutedAgent):
 
             # Save final tasks
             await self._save_tasks_to_file(capability_name, final_tasks)
-            log.info(f"Task generation completed for capability: {capability_name} ({len(final_tasks)} tasks)")
+            log.info(
+                f"Task generation completed for capability: {capability_name} ({len(final_tasks)} tasks)"
+            )
 
         except Exception as e:
             log.error(f"Error in Task Moderator _finalize_tasks_without_solutions: {e}")
