@@ -24,6 +24,7 @@ class ProblemProposalRequest:
     capability_area: str
     num_problems: int
     sample_tasks: List[str]
+    iteration: int = 1
 
 
 @dataclass
@@ -34,9 +35,3 @@ class ScientistProblemProposal:
     capability_name: str
     problems: Dict[str, str]  # task_id -> task_text
     iteration: int
-
-
-
-
-
-

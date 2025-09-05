@@ -49,6 +49,7 @@ class TaskModerator(RoutedAgent):
         output_dir: Path,
         domain: str,
         langfuse_client: Langfuse,
+        max_round: int = 5,
     ) -> None:
         super().__init__("Task Moderator")
         self._model_client = model_client
@@ -58,17 +59,17 @@ class TaskModerator(RoutedAgent):
         self._output_dir = output_dir
         self._domain = domain
         self._langfuse_client = langfuse_client
+        self._max_round = max_round
 
-        self._num_remaining: Dict[str, int] = {}
-        self._final_problems: Dict[
-            str, Dict[str, str]
-        ] = {}  # capability -> {task_id: problem_text}
-        self._capabilities: Dict[str, Capability] = {}  # Store original capability info
+        self._num_remaining = self._num_final_problems
+        self._final_problems: Dict[str, str] = {}  # {task_id: problem_text}
+        self._capability: (
+            Capability  # Store original capability info (set in first message)
+        )
+        self._current_round = 0
 
         # Problem design state
-        self._problem_proposals: Dict[
-            str, List[ScientistProblemProposal]
-        ] = {}  # capability -> proposals
+        self._problem_proposals: Dict[int, List[ScientistProblemProposal]] = {}
 
     @message_handler
     async def handle_capability(self, message: Capability, ctx: MessageContext) -> None:
@@ -77,22 +78,22 @@ class TaskModerator(RoutedAgent):
             name="task_moderator_handle_capability"
         ) as span:
             try:
-                msg = f"Task Moderator starting problem design for capability: {message.name}"
+                capability_name = message.name
+                msg = f"Task Moderator starting problem design for capability: {capability_name}"
                 log.info(msg)
                 span.update(
                     metadata={
                         "capability_received": msg,
-                        "capability_name": message.name,
+                        "capability_name": capability_name,
                         "capability_description": message.description,
                         "capability_area": message.area,
                     }
                 )
 
-                self._num_remaining[message.name] = self._num_final_problems
-                self._final_problems[message.name] = {}
-                self._capabilities[message.name] = message
+                self._capability = message
+                self._problem_proposals[self._current_round] = []
 
-                await self._start_problem_iteration(message)
+                await self._start_problem_iteration()
 
             except Exception as e:
                 error_msg = f"Error in Task Moderator handle_capability: {e}"
@@ -112,38 +113,50 @@ class TaskModerator(RoutedAgent):
                 )
                 raise
 
-    async def _start_problem_iteration(self, capability: Capability) -> None:
+    async def _start_problem_iteration(self) -> None:
         """Start a problem generation iteration."""
         try:
-            num_remaining = self._num_remaining[capability.name]
-            if num_remaining <= 0:
-                log.info(f"Problem design completed for capability: {capability.name}")
-                await self._finalize_tasks_without_solutions(capability.name)
+            # Check if we've reached the maximum number of rounds
+            if self._current_round >= self._max_round:
+                log.info(
+                    f"Maximum rounds ({self._max_round}) reached for capability: {self._capability.name}.\
+                    Finalizing with {len(self._final_problems)} problems."
+                )
+                await self._finalize_tasks_without_solutions()
+                return
+
+            if self._num_remaining <= 0:
+                log.info(
+                    f"Problem design completed for capability: {self._capability.name}"
+                )
+                await self._finalize_tasks_without_solutions()
                 return
 
             # Calculate problems per scientist: ceil(num_remaining / M) + B
             problems_per_scientist = (
-                math.ceil(num_remaining / self._num_scientists) + self._buffer_param
+                math.ceil(self._num_remaining / self._num_scientists)
+                + self._buffer_param
             )
 
             log.info(
-                f"Task Moderator requesting {problems_per_scientist} problems per scientist for capability: {capability.name} (remaining: {num_remaining})"
+                f"Task Moderator requesting {problems_per_scientist} problems per scientist for capability: {self._capability.name} (remaining: {self._num_remaining}, round: {self._current_round}/{self._max_round})"
             )
 
             # Get sample tasks from existing final problems
-            sample_tasks = list(self._final_problems[capability.name].values())[
+            sample_tasks = list(self._final_problems.values())[
                 :3
             ]  # Use up to 3 existing problems as samples
 
             # Send problem proposal requests to all scientists
             await self.publish_message(
                 ProblemProposalRequest(
-                    capability_name=capability.name,
-                    capability_description=capability.description,
-                    capability_domain=capability.domain,
-                    capability_area=capability.area,
+                    capability_name=self._capability.name,
+                    capability_description=self._capability.description,
+                    capability_domain=self._capability.domain,
+                    capability_area=self._capability.area,
                     num_problems=problems_per_scientist,
                     sample_tasks=sample_tasks,
+                    iteration=self._current_round,
                 ),
                 topic_id=DefaultTopicId(),
             )
@@ -163,46 +176,30 @@ class TaskModerator(RoutedAgent):
                 f"Task Moderator received problem proposal from Scientist {message.scientist_id} for capability: {message.capability_name}"
             )
 
-            capability_name = message.capability_name
-            if capability_name not in self._problem_proposals:
-                self._problem_proposals[capability_name] = []
-
-            self._problem_proposals[capability_name].append(message)
+            self._problem_proposals[self._current_round].append(message)
 
             # Check if we have all proposals for this iteration
-            current_proposals = [
-                p
-                for p in self._problem_proposals[capability_name]
-                if p.iteration == message.iteration
-            ]
+            current_proposals = self._problem_proposals[self._current_round]
             if len(current_proposals) == self._num_scientists:
                 log.info(
-                    f"Task Moderator received all problem proposals for capability: {capability_name}, proceeding to filter"
+                    f"Task Moderator received all problem proposals for capability: {self._capability.name}, proceeding to filter"
                 )
-                await self._filter_and_select_problems(
-                    capability_name, message.iteration
-                )
+                await self._filter_and_select_problems()
 
         except Exception as e:
             log.error(f"Error in Task Moderator handle_scientist_problem_proposal: {e}")
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
-    async def _filter_and_select_problems(
-        self, capability_name: str, iteration: int
-    ) -> None:
+    async def _filter_and_select_problems(self) -> None:
         """Filter and select problems using moderator LLM."""
         try:
             log.info(
-                f"Task Moderator filtering problems for capability: {capability_name}"
+                f"Task Moderator filtering problems for capability: {self._capability.name}"
             )
 
             # Collect all proposed problems
-            current_proposals = [
-                p
-                for p in self._problem_proposals[capability_name]
-                if p.iteration == iteration
-            ]
+            current_proposals = self._problem_proposals[self._current_round]
             all_problems = {}
             scientist_attribution = {}
 
@@ -213,7 +210,9 @@ class TaskModerator(RoutedAgent):
                     scientist_attribution[unique_id] = proposal.scientist_id
 
             if not all_problems:
-                log.warning(f"No problems received for capability: {capability_name}")
+                log.warning(
+                    f"No problems received for capability: {self._capability.name}"
+                )
                 return
 
             # Format problems for moderator
@@ -226,17 +225,14 @@ class TaskModerator(RoutedAgent):
                         problems_text += f"- {task_name}: {problem}\n"
                 problems_text += "\n"
 
-            system_prompt = TASK_MODERATOR_PROBLEM_SYSTEM_PROMPT
-
-            capability_info = self._capabilities[capability_name]
             user_prompt = TASK_MODERATOR_PROBLEM_USER_PROMPT.format(
-                capability_name=capability_info.name,
-                capability_description=capability_info.description,
-                capability_domain=capability_info.domain,
+                capability_name=self._capability.name,
+                capability_description=self._capability.description,
+                capability_domain=self._capability.domain,
                 problems_text=problems_text,
             )
 
-            system_message = SystemMessage(content=system_prompt)
+            system_message = SystemMessage(content=TASK_MODERATOR_PROBLEM_SYSTEM_PROMPT)
             user_message = UserMessage(content=user_prompt, source="user")
 
             model_result = await self._model_client.create(
@@ -257,63 +253,60 @@ class TaskModerator(RoutedAgent):
                 )
                 final_tasks = {}
 
-            num_remaining = self._num_remaining[capability_name]
-            num_selected = min(len(final_tasks), num_remaining)
+            num_selected = min(len(final_tasks), self._num_remaining)
 
             # Add selected problems to final set
             selected_count = 0
             for _, problem_text in final_tasks.items():
                 if selected_count < num_selected:
-                    final_task_id = (
-                        f"task_{len(self._final_problems[capability_name]) + 1}"
-                    )
-                    self._final_problems[capability_name][final_task_id] = problem_text
+                    final_task_id = f"task_{len(self._final_problems) + 1}"
+                    self._final_problems[final_task_id] = problem_text
                     selected_count += 1
 
             # Update remaining count
-            self._num_remaining[capability_name] = num_remaining - selected_count
+            self._num_remaining = self._num_remaining - selected_count
 
             log.info(
-                f"Task Moderator selected {selected_count} problems for {capability_name}, {self._num_remaining[capability_name]} remaining"
+                f"Task Moderator selected {selected_count} problems for {self._capability.name}, {self._num_remaining} remaining"
             )
 
-            if self._num_remaining[capability_name] > 0:
-                capability = self._capabilities[capability_name]
-                await self._start_problem_iteration(capability)
+            if self._num_remaining > 0:
+                # Increment round counter before starting next iteration
+                self._current_round += 1
+                await self._start_problem_iteration()
             else:
-                await self._finalize_tasks_without_solutions(capability_name)
+                await self._finalize_tasks_without_solutions()
 
         except Exception as e:
             log.error(f"Error in Task Moderator _filter_and_select_problems: {e}")
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
-    async def _finalize_tasks_without_solutions(self, capability_name: str) -> None:
+    async def _finalize_tasks_without_solutions(self) -> None:
         """Finalize tasks with problems only."""
         try:
             log.info(
-                f"Task Moderator finalizing tasks for capability: {capability_name}"
+                f"Task Moderator finalizing tasks for capability: {self._capability.name}"
             )
 
-            final_problems = self._final_problems[capability_name]
-            if not final_problems:
+            if not self._final_problems:
                 log.error(
-                    f"No final problems available for capability: {capability_name}"
+                    f"No final problems available for capability: {self._capability.name}"
                 )
                 return
 
             # Create tasks with problems only
             final_tasks = {}
-            for task_id, problem_text in final_problems.items():
+            for task_id, problem_text in self._final_problems.items():
                 final_tasks[task_id] = {
                     "task": problem_text,
-                    "capability_id": capability_name,
+                    "capability_id": self._capability.name,
                 }
 
             # Save final tasks
-            await self._save_tasks_to_file(capability_name, final_tasks)
+            await self._save_tasks_to_file(final_tasks)
             log.info(
-                f"Task generation completed for capability: {capability_name} ({len(final_tasks)} tasks)"
+                f"Task generation completed for capability: {self._capability.name} ({len(final_tasks)} tasks)"
             )
 
         except Exception as e:
@@ -321,13 +314,11 @@ class TaskModerator(RoutedAgent):
             log.error(f"Traceback: {traceback.format_exc()}")
             raise
 
-    async def _save_tasks_to_file(
-        self, capability_name: str, tasks: Dict[str, Dict[str, str]]
-    ) -> None:
+    async def _save_tasks_to_file(self, tasks: Dict[str, Dict[str, str]]) -> None:
         """Save final tasks to file."""
         try:
             # Create capability directory
-            capability_dir = self._output_dir / capability_name
+            capability_dir = self._output_dir / self._capability.name
             capability_dir.mkdir(parents=True, exist_ok=True)
 
             # Save tasks
@@ -336,9 +327,9 @@ class TaskModerator(RoutedAgent):
                 json.dump({"tasks": tasks}, f, indent=2, ensure_ascii=False)
 
             log.info(
-                f"Saved {len(tasks)} tasks for capability '{capability_name}' to {tasks_file}"
+                f"Saved {len(tasks)} tasks for capability '{self._capability.name}' to {tasks_file}"
             )
         except Exception as e:
-            log.error(f"Error saving tasks for capability {capability_name}: {e}")
+            log.error(f"Error saving tasks for capability {self._capability.name}: {e}")
             log.error(f"Traceback: {traceback.format_exc()}")
             raise

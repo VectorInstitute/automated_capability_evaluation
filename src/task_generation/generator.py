@@ -95,6 +95,7 @@ async def generate_tasks_for_capability(
                     output_dir=output_dir,
                     domain=domain_name,
                     langfuse_client=langfuse_client,
+                    max_round=cfg.task_generation.max_rounds,
                 ),
             )
 

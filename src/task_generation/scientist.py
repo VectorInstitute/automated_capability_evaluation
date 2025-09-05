@@ -1,6 +1,5 @@
 """Task scientist agent for generating problems and solutions."""
 
-import json
 import logging
 import traceback
 
@@ -125,7 +124,7 @@ class TaskScientist(RoutedAgent):
                         scientist_id=self._scientist_id,
                         capability_name=message.capability_name,
                         problems=problems,
-                        iteration=0,
+                        iteration=getattr(message, "iteration", 0),
                     ),
                     topic_id=DefaultTopicId(),
                 )
@@ -148,5 +147,3 @@ class TaskScientist(RoutedAgent):
                     },
                 )
                 raise
-
-
