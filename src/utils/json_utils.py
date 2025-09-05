@@ -13,12 +13,30 @@ def extract_json_from_markdown(content: str) -> str:
     """Extract JSON from markdown if present and clean control characters."""
     content = content.strip()
 
-    if content.startswith("```json") and content.endswith("```"):
+    # Handle Gemini's format: "```json\n...\n```"
+    if content.startswith('"```json') and content.endswith('```"'):
+        content = content[8:-4].strip()
+    elif content.startswith('"```') and content.endswith('```"'):
+        content = content[4:-4].strip()
+    # Handle standard markdown format: ```json\n...\n```
+    elif content.startswith("```json") and content.endswith("```"):
         content = content[7:-3].strip()
     elif content.startswith("```") and content.endswith("```"):
         content = content[3:-3].strip()
 
     return re.sub(r"[\x00-\x1f\x7f-\x9f]", "", content)
+
+
+def fix_common_json_errors(content: str) -> str:
+    """Fix common JSON syntax errors."""
+    # Fix extra equals signs (e.g., "area":="value" -> "area":"value")
+    content = re.sub(r':\s*=\s*"', ':"', content)
+
+    # Fix missing quotes around keys
+    content = re.sub(r'(\w+):\s*"', r'"\1":"', content)
+
+    # Fix trailing commas
+    return re.sub(r",(\s*[}\]])", r"\1", content)
 
 
 def parse_llm_json_response(raw_content: Union[str, Any]) -> Dict[str, Any]:
@@ -31,8 +49,12 @@ def parse_llm_json_response(raw_content: Union[str, Any]) -> Dict[str, Any]:
         # Clean the content first
         cleaned_content = extract_json_from_markdown(raw_content)
 
+        # Fix common JSON errors
+        cleaned_content = fix_common_json_errors(cleaned_content)
+
         # Parse the JSON
-        return json.loads(cleaned_content)
+        result = json.loads(cleaned_content)
+        return result if isinstance(result, dict) else {}
 
     except json.JSONDecodeError as e:
         log.error(f"Failed to parse JSON response: {e}")
@@ -50,7 +72,8 @@ def parse_llm_json_response(raw_content: Union[str, Any]) -> Dict[str, Any]:
                     log.warning(
                         "Attempting to fix unterminated JSON by truncating to last complete entry"
                     )
-                    return json.loads(fixed_content)
+                    result = json.loads(fixed_content)
+                    return result if isinstance(result, dict) else {}
         except Exception as fix_error:
             log.error(f"Failed to fix JSON: {fix_error}")
 

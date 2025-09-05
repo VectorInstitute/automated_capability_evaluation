@@ -20,6 +20,8 @@ from tenacity import (
 )
 
 
+MAX_TOKENS = 1024 * 10
+
 logger = logging.getLogger(__name__)
 
 GEMINI_STUDIO_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -48,30 +50,31 @@ class RetryableModelClient:
         before_sleep=before_sleep_log(logger, logging.WARNING),
         reraise=True,
     )
-    async def create(self, *args, **kwargs):
+    async def create(self, *args: Any, **kwargs: Any) -> Any:
         """Create with retry logic for transient errors."""
         return await self.client.create(*args, **kwargs)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         """Delegate all other attributes to the wrapped client."""
         return getattr(self.client, name)
 
 
-def get_model_client(model_name: str, seed: Optional[int] = None, **kwargs) -> Any:
-    """Return a model client for the given model name with retry logic."""
+def get_model_client(model_name: str, seed: Optional[int] = None, **kwargs: Any) -> Any:
+    """Get a model client for the given model name."""
     n = model_name.lower()
 
-    if n.startswith(("gpt-", "o1-", "o3-")):
-        # Add max_tokens to prevent truncated responses
-        kwargs.setdefault("max_tokens", 4096)
-        client = OpenAIChatCompletionClient(model=model_name, seed=seed, **kwargs)
-        return RetryableModelClient(client)
+    if n.startswith(("gpt-", "o1-", "o3-", "gpt-5")):
+        kwargs.setdefault("max_completion_tokens", MAX_TOKENS)
+        openai_client = OpenAIChatCompletionClient(
+            model=model_name, seed=seed, **kwargs
+        )
+        return RetryableModelClient(openai_client)
 
     if "claude" in n:
-        # Add max_tokens to prevent truncated responses
-        kwargs.setdefault("max_tokens", 4096)
-        client = AnthropicChatCompletionClient(model=model_name, **kwargs)
-        return RetryableModelClient(client)
+        kwargs.setdefault("max_tokens", MAX_TOKENS)
+        kwargs.setdefault("timeout", None)
+        anthropic_client = AnthropicChatCompletionClient(model=model_name, **kwargs)
+        return RetryableModelClient(anthropic_client)
 
     if "gemini" in n:
         api_key = kwargs.pop("api_key", os.getenv("GOOGLE_API_KEY"))
@@ -88,6 +91,8 @@ def get_model_client(model_name: str, seed: Optional[int] = None, **kwargs) -> A
                 family="unknown",
             ),
         )
+
+        kwargs.setdefault("max_completion_tokens", MAX_TOKENS)
 
         client = OpenAIChatCompletionClient(
             model=model_name,
