@@ -34,13 +34,14 @@ capability_generation:
 
 # Stage 3: Task Generation Configuration
 task_generation:
-  num_final_problems_per_capability: 10    # N: Number of final problems per capability
-  buffer_param: 5                         # B: Buffer parameter (extra problems each agent proposes)
+  num_final_problems_per_capability: 5    # N: Number of final problems per capability
+  buffer_param: 2                         # B: Buffer parameter (extra problems each agent proposes)
+  max_rounds: 2                           # Maximum number of rounds for task generation
 
 # Stage 4: Task Solving Configuration
-task_solving:
+task_solver:
   max_tasks: 0                            # Maximum number of tasks to process (0 = all)
-  print_results: false                    # Whether to print detailed results to console
+  max_rounds: 3                           # Maximum number of debate rounds for task solving
 
 # Experiment configuration
 exp_cfg:

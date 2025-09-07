@@ -86,12 +86,13 @@ python -m src.agentic_area_generator
 python -m src.agentic_capability_generator
 
 # Generate tasks for each capability
-python -m src.agentic_task_generator 
+python -m src.agentic_task_generator
 
 # Generate tasks for all capabilities
 python -m src.agentic_task_generator pipeline_tags.capabilities_tag=_20250902_030203
 
-# Generate solutions for tasks
-# python -m sr
+# Generate solutions for tasks using multi-agent debate
+python -m src.agentic_task_solver pipeline_tags.tasks_tag=_20250905_153532
+
 
 ```

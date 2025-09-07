@@ -273,25 +273,50 @@ TASK_SOLVER_ROUND_1_PROMPT = """Can you solve the following problem?
 
 PROBLEM: {problem_text}
 
-Explain your reasoning step by step. Your final answer should be clearly stated at the end of your response.
+Provide your solution in JSON format with the following structure:
+- thought: Your detailed reasoning and step-by-step solution process
+- final_answer: Your complete answer with explanation
+- numerical_answer: The final numerical result (if applicable, otherwise null)
 
-Respond using this format:
-THOUGHT: <your reasoning and thought process for solving the task>
-FINAL ANSWER: <answer>"""
+Example for a math problem:
+{{
+    "thought": "To solve this problem, I need to...",
+    "final_answer": "The solution is 42 because...",
+    "numerical_answer": 42
+}}
+
+Example for a non-numerical problem:
+{{
+    "thought": "To approach this problem, I should consider...",
+    "final_answer": "The answer is that we should use method X because...",
+    "numerical_answer": null
+}}
+
+Respond with valid JSON only."""
 
 TASK_SOLVER_SUBSEQUENT_ROUNDS_PROMPT = """These are the reasoning and solutions to the problem from other agents:
 
 {other_solutions}
 
-Using the solutions from other agents as additional information, can you provide your answer to the problem? 
+Using the solutions from other agents as additional information, can you provide your answer to the problem?
 
 The original problem is: {problem_text}
 
-Explain your reasoning step by step. Your final answer should be clearly stated at the end of your response.
+Consider the other agents' approaches and reasoning. You may agree with them, disagree, or provide a synthesis of different approaches.
 
-Respond using this format:
-THOUGHT: <your reasoning and thought process for solving the task>
-FINAL ANSWER: <answer>"""
+Provide your solution in JSON format with the following structure:
+- thought: Your detailed reasoning, considering other agents' solutions
+- final_answer: Your complete answer with explanation
+- numerical_answer: The final numerical result (if applicable, otherwise null)
+
+Example:
+{{
+    "thought": "Looking at the other solutions, Agent A used method X which is correct, but Agent B made an error in step 2. My approach is...",
+    "final_answer": "The solution is 42 because...",
+    "numerical_answer": 42
+}}
+
+Respond with valid JSON only."""
 
 TASK_MODERATOR_SYSTEM_MESSAGE = """You are a moderator overseeing a collaborative problem-solving debate. Your role is to check for consensus among agents and determine the final solution."""
 
@@ -305,13 +330,19 @@ SOLUTIONS:
 Determine if there is consensus among the agents. Consensus is reached when:
 1. All agents provide the same final answer, OR
 2. The majority of agents agree on the same answer with similar reasoning
+3. For numerical problems, the numerical answers should match or be very close
 
 If consensus is reached, provide the agreed-upon solution. If not, indicate that another round of debate is needed.
 
-Respond using this format:
-CONSENSUS_REACHED: <true/false>
-FINAL_SOLUTION: <the agreed solution if consensus reached, otherwise "NONE">
-REASONING: <explanation of your decision>"""
+Provide your assessment in JSON format:
+{{
+    "consensus_reached": true/false,
+    "final_solution": "the agreed solution if consensus reached, otherwise null",
+    "numerical_answer": final_numerical_result_if_applicable_otherwise_null,
+    "reasoning": "explanation of your decision"
+}}
+
+Respond with valid JSON only."""
 
 # =============================================================================
 # SYSTEM MESSAGES

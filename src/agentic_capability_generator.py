@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import traceback
+from typing import Optional
 
 import hydra
 import openlit
@@ -29,7 +30,9 @@ openlit.init(tracer=lf._otel_tracer, disable_batch=True, disable_metrics=True)
 def main(cfg: DictConfig) -> None:
     """Run the multi-agent debate-based capability generation system."""
     areas_tag = cfg.pipeline_tags.areas_tag
-    resume_tag = getattr(cfg.pipeline_tags, "resume_capabilities_tag", None)
+    resume_tag: Optional[str] = getattr(
+        cfg.pipeline_tags, "resume_capabilities_tag", None
+    )
     domain_name = cfg.global_cfg.domain
     exp_id = cfg.exp_cfg.exp_id
     num_capabilities_per_area = cfg.capability_generation.num_capabilities_per_area
@@ -63,7 +66,7 @@ def main(cfg: DictConfig) -> None:
                 error_msg = "No areas_tag provided. Please provide pipeline_tags.areas_tag=<tag> to specify which areas to use."
                 log.warning(error_msg)
                 span.update(
-                    level="WARNING",
+                    level="ERROR",
                     status_message="Missing areas_tag",
                     metadata={"areas_tag_missing": error_msg},
                 )
