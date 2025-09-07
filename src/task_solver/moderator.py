@@ -403,7 +403,8 @@ class TaskSolverModerator(RoutedAgent):
         try:
             self._output_dir.mkdir(parents=True, exist_ok=True)
             output_file = (
-                self._output_dir / f"task_{final_solution.task_id}_solution.json"
+                self._output_dir
+                / f"{final_solution.task_id}_{final_solution.capability_name}_solution.json"
             )
 
             solution_data = {
