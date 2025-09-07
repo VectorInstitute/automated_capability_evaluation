@@ -6,6 +6,7 @@ import logging
 import traceback
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from autogen_core import (
     EVENT_LOGGER_NAME,
@@ -164,7 +165,7 @@ async def generate_tasks(
     cfg: DictConfig,
     capabilities_tag: str,
     langfuse_client: Langfuse,
-    resume_tag: str,
+    resume_tag: Optional[str] = None,
 ) -> None:
     """Generate tasks for all capabilities."""
     domain_name = cfg.global_cfg.domain
