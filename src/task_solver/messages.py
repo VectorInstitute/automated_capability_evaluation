@@ -33,6 +33,7 @@ class AgentSolution:
     final_answer: str
     numerical_answer: str
     round_number: int
+    capability_name: str
 
     def to_dict(self) -> Dict[str, str]:
         """Convert to dictionary."""
@@ -43,6 +44,7 @@ class AgentSolution:
             "final_answer": self.final_answer,
             "numerical_answer": self.numerical_answer,
             "round_number": str(self.round_number),
+            "capability_name": self.capability_name,
         }
 
 

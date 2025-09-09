@@ -112,6 +112,7 @@ class TaskSolverScientist(RoutedAgent):
                     final_answer=final_answer,
                     numerical_answer=numerical_answer,
                     round_number=message.round_number,
+                    capability_name=message.capability_name,
                 )
 
                 await self.publish_message(solution, topic_id=DefaultTopicId())
@@ -182,6 +183,7 @@ class TaskSolverScientist(RoutedAgent):
                     final_answer=final_answer,
                     numerical_answer=numerical_answer,
                     round_number=message.round_number,
+                    capability_name=message.capability_name,
                 )
 
                 await self.publish_message(solution, topic_id=DefaultTopicId())

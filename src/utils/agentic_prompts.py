@@ -273,6 +273,13 @@ TASK_SOLVER_ROUND_1_PROMPT = """Can you solve the following problem?
 
 PROBLEM: {problem_text}
 
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. Do not include any prefixes or prose. The JSON should be directly parseable.
+
+CRITICAL: When including LaTeX expressions or backslashes in your JSON strings, you must properly escape them by using double backslashes (\\\\). For example:
+- Write \\\\(x^2\\\\) instead of \\(x^2\\)
+- Write \\\\[equation\\\\] instead of \\[equation\\]
+- Write \\\\times instead of \\times
+
 Provide your solution in JSON format with the following structure:
 - thought: Your detailed reasoning and step-by-step solution process
 - final_answer: Your complete answer with explanation
@@ -303,6 +310,13 @@ Using the solutions from other agents as additional information, can you provide
 The original problem is: {problem_text}
 
 Consider the other agents' approaches and reasoning. You may agree with them, disagree, or provide a synthesis of different approaches.
+
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. Do not include any prefixes or prose. The JSON should be directly parseable.
+
+CRITICAL: When including LaTeX expressions or backslashes in your JSON strings, you must properly escape them by using double backslashes (\\\\). For example:
+- Write \\\\(x^2\\\\) instead of \\(x^2\\)
+- Write \\\\[equation\\\\] instead of \\[equation\\]
+- Write \\\\times instead of \\times
 
 Provide your solution in JSON format with the following structure:
 - thought: Your detailed reasoning, considering other agents' solutions

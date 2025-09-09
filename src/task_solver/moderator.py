@@ -2,7 +2,6 @@
 
 import json
 import logging
-import re
 import traceback
 from pathlib import Path
 from typing import Dict, List
@@ -83,35 +82,10 @@ class TaskSolverModerator(RoutedAgent):
             return consensus_reached, final_solution, reasoning, numerical_answer
 
         except Exception as e:
-            # Fallback to old text parsing if JSON parsing fails
-            log.warning(
-                f"Failed to parse JSON response from moderator, falling back to text parsing: {e}"
-            )
-            consensus_match = re.search(
-                r"CONSENSUS_REACHED:\s*(true|false)", response, re.IGNORECASE
-            )
-            solution_match = re.search(
-                r"FINAL_SOLUTION:\s*(.*?)(?=REASONING:|$)",
-                response,
-                re.DOTALL | re.IGNORECASE,
-            )
-            reasoning_match = re.search(
-                r"REASONING:\s*(.*?)$", response, re.DOTALL | re.IGNORECASE
-            )
-
-            consensus_reached = (
-                consensus_match.group(1).lower() == "true" if consensus_match else False
-            )
-            final_solution = (
-                solution_match.group(1).strip() if solution_match else "NONE"
-            )
-            reasoning = (
-                reasoning_match.group(1).strip()
-                if reasoning_match
-                else "No reasoning provided"
-            )
-
-            return consensus_reached, final_solution, reasoning, "null"
+            msg = f"Error extracting consensus components: {e}"
+            log.error(msg)
+            log.error(traceback.format_exc())
+            raise
 
     def _check_simple_consensus(
         self, solutions: List[AgentSolution]
@@ -144,7 +118,7 @@ class TaskSolverModerator(RoutedAgent):
             name=f"moderator_handle_task_{message.task_id}"
         ) as span:
             try:
-                msg = f"Moderator received task: {message.task_id}"
+                msg = f"Moderator received task: {message.task_id}, {message.capability_name} round {self._current_round}"
                 log.info(msg)
                 span.update(
                     metadata={
@@ -164,14 +138,14 @@ class TaskSolverModerator(RoutedAgent):
                         task_id=message.task_id,
                         problem=message.problem,
                         capability_name=message.capability_name,
-                        round_number=1,
+                        round_number=self._current_round,
                     ),
                     topic_id=DefaultTopicId(),
                 )
 
                 span.update(
                     metadata={
-                        "solution_request_sent": f"Round 1 solution request sent for task {message.task_id}"
+                        "solution_request_sent": f"Round {self._current_round} solution request sent for task {message.task_id}"
                     }
                 )
 
@@ -193,7 +167,7 @@ class TaskSolverModerator(RoutedAgent):
                 task_id = message.task_id
                 round_num = message.round_number
 
-                msg = f"Moderator received solution from agent {message.agent_id} for task {task_id}, round {round_num}"
+                msg = f"Moderator received solution from agent {message.agent_id} for task {task_id}, {message.capability_name} round {round_num}"
                 log.info(msg)
                 span.update(
                     metadata={
@@ -204,22 +178,28 @@ class TaskSolverModerator(RoutedAgent):
                     }
                 )
 
+                if round_num != self._current_round:
+                    msg = f"Moderator received solution from agent {message.agent_id} for task {task_id}, {message.capability_name} round {round_num} but current round is {self._current_round}"
+                    log.error(msg)
+                    span.update(metadata={"error": msg})
+                    raise Exception(msg)
+
                 # Initialize round buffer if needed
-                if round_num not in self._solutions_buffer:
-                    self._solutions_buffer[round_num] = []
+                if self._current_round not in self._solutions_buffer:
+                    self._solutions_buffer[self._current_round] = []
 
                 # Add solution to buffer
-                self._solutions_buffer[round_num].append(message)
+                self._solutions_buffer[self._current_round].append(message)
 
-                # Check if we have all solutions for this round
-                if len(self._solutions_buffer[round_num]) == self._num_solvers:
-                    await self._check_consensus_and_proceed(task_id, round_num, ctx)
+                msg = f"{len(self._solutions_buffer[self._current_round])}/{self._num_solvers} solutions collected for round {self._current_round}"
+                log.info(msg)
+                span.update(metadata={"solutions_collected": msg})
 
-                span.update(
-                    metadata={
-                        "solutions_collected": f"{len(self._solutions_buffer[round_num])}/{self._num_solvers} for round {round_num}"
-                    }
-                )
+                if (
+                    len(self._solutions_buffer[self._current_round])
+                    == self._num_solvers
+                ):
+                    await self._check_consensus_and_proceed(task_id, ctx)
 
             except Exception as e:
                 error_msg = (
@@ -230,14 +210,14 @@ class TaskSolverModerator(RoutedAgent):
                 span.update(metadata={"error": error_msg})
 
     async def _check_consensus_and_proceed(
-        self, task_id: str, round_num: int, ctx: MessageContext
+        self, task_id: str, ctx: MessageContext
     ) -> None:
         """Check for consensus and either finalize or start next round."""
         with self._langfuse_client.start_as_current_span(
-            name=f"moderator_consensus_check_{task_id}_round_{round_num}"
+            name=f"moderator_consensus_check_{task_id}_round_{self._current_round}"
         ) as span:
             try:
-                solutions = self._solutions_buffer[round_num]
+                solutions = self._solutions_buffer[self._current_round]
 
                 # First try simple consensus check
                 simple_consensus, simple_solution, simple_numerical = (
@@ -245,7 +225,6 @@ class TaskSolverModerator(RoutedAgent):
                 )
 
                 if simple_consensus:
-                    # Simple consensus reached
                     final_solution = FinalSolution(
                         task_id=task_id,
                         capability_name=self._tasks.capability_name,
@@ -254,7 +233,7 @@ class TaskSolverModerator(RoutedAgent):
                         numerical_answer=simple_numerical,
                         reasoning="All agents provided the same answer",
                         consensus_reached=True,
-                        total_rounds=round_num,
+                        total_rounds=self._current_round,
                         all_solutions=self._get_all_solutions(),
                     )
 
@@ -270,9 +249,8 @@ class TaskSolverModerator(RoutedAgent):
                     )
                     return
 
-                if round_num < self._max_rounds:
-                    # Use LLM moderator to check for consensus
-                    stored_task = self._tasks  # Get original task
+                if self._current_round < self._max_rounds:
+                    stored_task = self._tasks
 
                     # Format solutions for LLM
                     all_solutions_text = "\n\n".join(
@@ -314,7 +292,7 @@ class TaskSolverModerator(RoutedAgent):
                             numerical_answer=numerical_answer,
                             reasoning=reasoning,
                             consensus_reached=True,
-                            total_rounds=round_num,
+                            total_rounds=self._current_round,
                             all_solutions=self._get_all_solutions(),
                         )
 
@@ -330,8 +308,7 @@ class TaskSolverModerator(RoutedAgent):
                         )
                         return
                     # No consensus, start next round
-                    next_round = round_num + 1
-                    self._current_round = next_round
+                    self._current_round += 1
 
                     # Send revision request with flattened task data
                     stored_task = self._tasks  # Get the original task
@@ -352,7 +329,7 @@ class TaskSolverModerator(RoutedAgent):
                                 }
                                 for sol in solutions
                             ],
-                            round_number=next_round,
+                            round_number=self._current_round,
                         ),
                         topic_id=DefaultTopicId(),
                     )
@@ -360,7 +337,7 @@ class TaskSolverModerator(RoutedAgent):
                     span.update(
                         metadata={
                             "consensus_reached": False,
-                            "next_round_started": next_round,
+                            "next_round_started": self._current_round,
                         }
                     )
                 else:
@@ -373,7 +350,7 @@ class TaskSolverModerator(RoutedAgent):
                         numerical_answer="null",
                         reasoning=f"Maximum rounds ({self._max_rounds}) reached without consensus",
                         consensus_reached=False,
-                        total_rounds=round_num,
+                        total_rounds=self._current_round,
                         all_solutions=self._get_all_solutions(),
                     )
 
