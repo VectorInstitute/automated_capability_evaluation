@@ -115,7 +115,7 @@ def generate_and_set_capabilities_embeddings(
     capabilities: List[Capability],
     embedding_model_name: str,
     embed_dimensions: int,
-    rep_string_order = "and"
+    rep_string_order="and",
 ) -> None:
     """Generate the capabilities embeddings using the OpenAI embedding model.
 
@@ -147,9 +147,9 @@ def generate_and_set_capabilities_embeddings(
             if char == "a":
                 rep_string += capability.area + ", "
             elif char == "n":
-                rep_string += capability_dict['name'] + ", "
+                rep_string += capability_dict["name"] + ", "
             elif char == "d":
-                rep_string += capability_dict['description'] + ", "
+                rep_string += capability_dict["description"] + ", "
             else:
                 raise ValueError(f"Invalid field code: {char}")
         rep_string = rep_string.rstrip(", ")

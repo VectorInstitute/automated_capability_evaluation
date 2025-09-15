@@ -106,7 +106,7 @@ def main(cfg: DictConfig) -> None:
                 embedding_model_name=cfg.embedding_cfg.embedding_model,
                 random_seed=cfg.exp_cfg.seed,
             )
-            # Fit model to training capabilities 
+            # Fit model to training capabilities
             # acquisition_function is unused.
             lbo = fit_lbo(
                 capabilities=train_capabilities,
