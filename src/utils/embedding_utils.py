@@ -126,8 +126,8 @@ def generate_and_set_capabilities_embeddings(
         capabilities (List[Capability]): The list of capabilities.
         embedding_model_name (str): The name of the embedding model to use.
         embed_dimensions (int): The number of dimensions for the embeddings.
-        rep_string_order (str): the order of fields that create the representation string.
-            Here, "a": Area, "n": Name, "d": Description.
+        rep_string_order (str): the order of fields that create the representation
+            string. Here, "a": Area, "n": Name, "d": Description.
     """
     # Convert the embedding model name to `EmbeddingModelName` to ensure
     # that the provided model name is valid and supported.
