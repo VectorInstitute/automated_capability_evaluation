@@ -72,7 +72,7 @@ def main(cfg: DictConfig) -> None:
         logger.info(f"Capability: {capability.name}, scores: {capability.scores}")
 
     # Number of runs to calculate confidence intervals.
-    num_runs = 20
+    num_runs = 100
 
     rmse_dict = defaultdict(list)
     avg_std_dict = defaultdict(list)
