@@ -6,7 +6,7 @@ from enum import Enum
 
 BASE_ARTIFACTS_DIR = "/fs01/projects/aieng/public/ace/artifacts"
 GCP_BASE_ARTIFACTS_DIR = "gs://ace-artifacts"
-BASE_INSPECT_EVALS_DIR = "/fs01/projects/aieng/public/ace/inspect_evals/src/ace_evals"
+BASE_INSPECT_EVALS_DIR = "/h/fkohankh/automated_capability_evaluation_logs"
 
 SEED_CAPABILITIES_SCORE_DIR = os.path.join(
     GCP_BASE_ARTIFACTS_DIR, "seed_capabilities_results"

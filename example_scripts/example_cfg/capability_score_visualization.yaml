@@ -1,11 +1,11 @@
 scientist_llm:
-  name: o4-mini
+  name: o3-mini
   provider: openai
 exp_cfg:
-  exp_id: o4-mini_C100_R5_A10_T100
+  exp_id: XXX0
 # The capabilities directory should contain the LLM generated capability files.
 capabilities_cfg:
-  saved_capabilities_dir: /fs01/projects/aieng/public/ace/artifacts/gcp_artifacts/capabilities_o4-mini_C100_R5_A10_T100
+  saved_capabilities_dir: /h/fkohankh/ace_logs/o3-mini
   domain: math
   # Method used to generate capabilities
   method: "hierarchical"

@@ -3,6 +3,8 @@
 import json
 import logging
 import os
+import re
+from collections import defaultdict
 
 import hydra
 import matplotlib.pyplot as plt
@@ -28,71 +30,121 @@ def main(cfg: DictConfig) -> None:
         cfg (DictConfig): Configuration for the model.
     """
     lbo_results_dir = os.path.join(
-        constants.BASE_ARTIFACTS_DIR,
-        "lbo_results",
+        constants.BASE_ARTIFACTS_DIR, "lbo_results", "per_area"
     )
     output_dir = os.path.join(
         constants.BASE_ARTIFACTS_DIR,
-        "paper_artifacts",
+        "farnaz_plots",
     )
+    os.makedirs(output_dir, exist_ok=True)
 
-    # Load the LBO results from the JSON file
-    all_results = {}  # type: ignore
-    for subject_llm_name in cfg.subject_llms:
-        all_results[subject_llm_name] = {}
-        for acquisition_function in cfg.lbo_cfg.acquisition_functions:
-            results_file_name = f"lbo_results_{cfg.exp_cfg.exp_id}_{subject_llm_name}_{cfg.lbo_cfg.pipeline_id}_F{cfg.lbo_cfg.train_frac}_I{cfg.lbo_cfg.num_initial_train}_LR{cfg.lbo_cfg.num_lbo_runs}_AF{acquisition_function}_K{cfg.lbo_cfg.select_k}.json"
-            with open(os.path.join(lbo_results_dir, results_file_name), "r") as f:
+    all_results: dict[str, dict[str, dict[str, dict[str, list[float]]]]]
+    all_results = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+
+    def _area_slug(name: str) -> str:
+        return re.sub(r"[^0-9A-Za-z_-]", "_", name.lower())
+
+    def _discover_areas(subject_name: str, acquisition_fn: str) -> list[str]:
+        if cfg.lbo_cfg.pipeline_id != "no_discovery":
+            return ["all"]
+        areas_found = set()
+        prefix = f"lbo_results_{cfg.exp_cfg.exp_id}_{subject_name}_{cfg.lbo_cfg.pipeline_id}_"
+        for file in os.listdir(lbo_results_dir):
+            if not file.startswith(prefix):
+                continue
+            if f"AF{acquisition_fn}" not in file:
+                continue
+            with open(os.path.join(lbo_results_dir, file), "r") as f:
                 results_dict = json.load(f)
-            all_results[subject_llm_name][results_dict["acquisition_function_tag"]] = {}
-            for metric in cfg.lbo_cfg.metrics:
-                all_results[subject_llm_name][results_dict["acquisition_function_tag"]][
-                    metric
-                ] = results_dict["lbo_error_dict"][metric]
-            num_entries = len(results_dict["new_capabilities"])
-            if num_entries < cfg.lbo_cfg.num_lbo_runs:
-                logger.warning(
-                    f"[{results_file_name}] Number of iterations in the results file ({num_entries}) is less than the number of LBO runs ({cfg.lbo_cfg.num_lbo_runs})."
-                )
+            area_value = results_dict.get("area")
+            if area_value:
+                areas_found.add(area_value)
+        return sorted(areas_found)
 
-    methods = ["ALC"]
-
-    for method in methods:
-        for metric in cfg.lbo_cfg.metrics:
-            plt.figure(figsize=(6, 4))
-            x_ub = cfg.lbo_cfg.num_lbo_runs + 1
-            x_vals = np.arange(0, x_ub)
-
-            for subject_llm_name in cfg.subject_llms:
-                mean_values = np.array(all_results[subject_llm_name][method][metric])[
-                    :x_ub
+    for subject_llm_name in cfg.subject_llms:
+        for acquisition_function in cfg.lbo_cfg.acquisition_functions:
+            for area_name in _discover_areas(subject_llm_name, acquisition_function):
+                print(f"area_name: {area_name}")
+                suffix_parts = [
+                    f"lbo_results_{cfg.exp_cfg.exp_id}_{subject_llm_name}_{cfg.lbo_cfg.pipeline_id}"
                 ]
-                if mean_values.shape[0] < x_vals.shape[0]:
-                    plt.plot(
-                        x_vals[: mean_values.shape[0]],
-                        mean_values,
-                        label=subject_llm_name,
+                if cfg.lbo_cfg.pipeline_id == "no_discovery":
+                    suffix_parts.append(_area_slug(area_name))
+
+                suffix_parts.append(f"F{cfg.lbo_cfg.train_frac}")
+                suffix_parts.append(f"I{cfg.lbo_cfg.num_initial_train}")
+                suffix_parts.append(f"LR{cfg.lbo_cfg.num_lbo_runs}")
+                suffix_parts.append(f"AF{acquisition_function}")
+                file_glob = "_".join(suffix_parts)
+                print(f"file_glob: {file_glob}")
+                candidates = [
+                    file
+                    for file in os.listdir(lbo_results_dir)
+                    if file.startswith(file_glob)
+                ]
+                if not candidates:
+                    logger.warning(
+                        "No results file found for subject=%s, area=%s, acquisition=%s",
+                        subject_llm_name,
+                        area_name,
+                        acquisition_function,
                     )
-                else:
-                    plt.plot(x_vals, mean_values, label=subject_llm_name)
+                    continue
 
-            y_label = "RMSE" if metric == "rmse" else "Average Standard Deviation"
-            plt_file_name = f"lbo_plot_{cfg.exp_cfg.exp_id}_{cfg.lbo_cfg.pipeline_id}_F{cfg.lbo_cfg.train_frac}_I{cfg.lbo_cfg.num_initial_train}_LR{cfg.lbo_cfg.num_lbo_runs}_{method}_{metric}.pdf"
+                results_file_name = sorted(candidates)[-1]
+                with open(os.path.join(lbo_results_dir, results_file_name), "r") as f:
+                    results_dict = json.load(f)
 
-            plt.xlabel("Active Learning Iteration", fontsize=14)
-            plt.ylabel(y_label, fontsize=14)
-            x_ticks = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-            plt.xticks(x_ticks, fontsize=12)
-            plt.yticks(fontsize=12)
-            plt.legend(
-                fontsize=12, loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=2
-            )
-            plt.grid(True)
-            plt.savefig(
-                os.path.join(output_dir, plt_file_name),
-                format="pdf",
-                bbox_inches="tight",
-            )
+                acquisition_tag = results_dict.get(
+                    "acquisition_function_tag", acquisition_function.upper()
+                )
+                area_key = area_name
+                for metric in cfg.lbo_cfg.metrics:
+                    metric_values = results_dict["lbo_error_dict"].get(metric, [])
+                    all_results[area_key][acquisition_tag][subject_llm_name][metric] = (
+                        metric_values
+                    )
+
+    for area_name, acquisition_dict in all_results.items():
+        for acquisition_tag, subject_dict in acquisition_dict.items():
+            for metric in cfg.lbo_cfg.metrics:
+                plt.figure(figsize=(6, 4))
+                for subject_llm_name, metric_dict in subject_dict.items():
+                    values = metric_dict.get(metric, [])
+                    if not values:
+                        logger.warning(
+                            "No %s values for subject=%s, area=%s, acquisition=%s",
+                            metric,
+                            subject_llm_name,
+                            area_name,
+                            acquisition_tag,
+                        )
+                        continue
+                    x_vals = np.arange(len(values))
+                    plt.plot(x_vals, values, label=subject_llm_name)
+
+                y_label = "RMSE" if metric == "rmse" else "Average Standard Deviation"
+                plt.xlabel("Active Learning Iteration", fontsize=14)
+                plt.ylabel(y_label, fontsize=14)
+                plt.xticks(fontsize=12)
+                plt.yticks(fontsize=12)
+                plt.legend(
+                    fontsize=12, loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=2
+                )
+                plt.grid(True)
+                area_slug = _area_slug(area_name)
+                plt_file_name = f"lbo_plot_{cfg.exp_cfg.exp_id}_{cfg.lbo_cfg.pipeline_id}_{area_slug}_{acquisition_tag}_{metric}.pdf"
+                plt.savefig(
+                    os.path.join(output_dir, plt_file_name),
+                    format="pdf",
+                    bbox_inches="tight",
+                )
+                plt.savefig(
+                    os.path.join(output_dir, plt_file_name.replace(".pdf", ".png")),
+                    format="png",
+                    bbox_inches="tight",
+                )
+                print(f"Saved plot to {os.path.join(output_dir, plt_file_name)}")
 
 
 if __name__ == "__main__":

@@ -100,28 +100,22 @@ capabilities_cfg:
   inspect_eval_log_level: "info"
 
 lbo_cfg:
-  # Number of capabilities to generate/select using LBO
-  num_lbo_runs: 20
-  # Type of LBO pipeline to use
-  pipeline_id: "discover_new_lbo_knn" # "no_discovery", "discover_new_llm" or "discover_new_lbo_knn"
+  num_lbo_runs: 5
+  pipeline_id: "no_discovery" # "no_discovery", "discover_new_llm" or "discover_new_lbo_knn"
   # Train args for "no_discovery" pipeline
-  train_frac: 0.5
-  num_initial_train: 10
+  train_frac: 0.8
+  num_initial_train: 2
   # Acquisition function that guides selecting the next query point.
   # "variance" and "expected_variance_reduction" is supported.
-  acquisition_function: "expected_variance_reduction"
+  acquisition_function: "variance"
   # Value of k for "discover_new_lbo_knn" pipeline
-  select_k: 5
-  discover_new_llm_retry_attempts: 3
-  discover_new_lbo_knn_retry_attempts: 5
-  discover_new_retry_attempts: 3
 
 embedding_cfg:
   # The embedding model name used to generate capability embeddings used for filtering.
   embedding_model: "text-embedding-3-small" # "text-embedding-3-small" or "text-embedding-3-large"
-  embedding_size: 512
+  embedding_size: 256
   # The cosine similarity threshold for filtering capabilities based on their embeddings.
-  filtering_similarity_threshold: 0.85
+  filtering_similarity_threshold: 0.7
 
 dimensionality_reduction_cfg:
   # dimensionality reduction method generates the low dimensional encodings.
@@ -136,8 +130,8 @@ exp_cfg:
   # Set this flag to true to run test experiments during development
   seed: 37
   trial_run: false
-  exp_id:
-
+  exp_id: "o4-mini_C100_R5_A10_T100"
+# /fs01/projects/aieng/public/ace/artifacts/capabilities_o4-mini_C100_R5_A10_T100/math/gcd_lcm_valuations
 defaults:
   - _self_
   - capabilities: math

@@ -3,7 +3,9 @@
 import json
 import logging
 import os
+import re
 import shutil
+from collections import defaultdict
 
 import hydra
 from omegaconf import DictConfig
@@ -39,6 +41,11 @@ def main(cfg: DictConfig) -> None:
     """
     check_cfg(cfg, logger)
     run_id = get_run_id(cfg)
+
+    print(f"cfg.exp_cfg: {cfg.exp_cfg}")
+    print(f"constants.BASE_ARTIFACTS_DIR: {constants.BASE_ARTIFACTS_DIR}")
+    print(f"f'capabilities_{run_id}': {f'capabilities_{run_id}'}")
+    print(f"cfg.capabilities_cfg.domain: {cfg.capabilities_cfg.domain}")
 
     # Set the base capability directory
     base_capability_dir = os.path.join(
@@ -77,85 +84,208 @@ def main(cfg: DictConfig) -> None:
             subject_llm_name=cfg.subject_llm.name,
         )
 
-    # Obtain test set
-    train_capabilities, test_capabilities = get_lbo_train_set(
-        input_data=capabilities,
-        train_frac=cfg.lbo_cfg.train_frac,
-        stratified=cfg.capabilities_cfg.method == "hierarchical",
-        input_categories=[capability.area for capability in capabilities],
-        seed=cfg.exp_cfg.seed,
-    )
-    # Obtain initial train set
-    train_capabilities, candidate_capabilities = get_lbo_train_set(
-        input_data=train_capabilities,
-        num_train=cfg.lbo_cfg.num_initial_train,
-        stratified=cfg.capabilities_cfg.method == "hierarchical",
-        input_categories=[capability.area for capability in train_capabilities],
-        seed=cfg.exp_cfg.seed,
-    )
-    logger.info(
-        f"Initial Train capabilities ({len(train_capabilities)}):\n{train_capabilities}"
-    )
-    logger.info(
-        f"Candidate capabilities ({len(candidate_capabilities)}):\n{candidate_capabilities}"
-    )
-    logger.info(f"Test capabilities ({len(test_capabilities)}):\n{test_capabilities}")
-
-    num_lbo_runs = cfg.lbo_cfg.num_lbo_runs
-    if cfg.lbo_cfg.pipeline_id == "no_discovery":
-        # Reduce the dimensionality of all capability embeddings
-        dim_reduction_method_name = (
-            cfg.dimensionality_reduction_cfg.no_discovery_reduced_dimensionality_method
+    train_capabilities = []
+    candidate_capabilities = []
+    test_capabilities = []
+    if cfg.lbo_cfg.pipeline_id != "no_discovery":
+        train_capabilities, test_capabilities = get_lbo_train_set(
+            input_data=capabilities,
+            train_frac=cfg.lbo_cfg.train_frac,
+            stratified=cfg.capabilities_cfg.method == "hierarchical",
+            input_categories=[capability.area for capability in capabilities],
+            seed=cfg.exp_cfg.seed,
         )
-        if dim_reduction_method_name == "t-sne":
-            # Fit the dimensionality reduction model and transform all capabilities
-            _ = apply_dimensionality_reduction(
-                capabilities=capabilities,
-                dim_reduction_method_name=dim_reduction_method_name,
-                output_dimension_size=cfg.dimensionality_reduction_cfg.no_discovery_reduced_dimensionality_size,
-                embedding_model_name=cfg.embedding_cfg.embedding_model,
-                random_seed=cfg.exp_cfg.seed,
-            )
-        else:
-            # For pca and cut-embedding
-            # Fit the dimensionality reduction model on the
-            # train + candidate capabilities since the
-            # set if train capabilities is small
-            dim_reduction_model = apply_dimensionality_reduction(
-                capabilities=train_capabilities + candidate_capabilities,
-                dim_reduction_method_name=dim_reduction_method_name,
-                output_dimension_size=cfg.dimensionality_reduction_cfg.discover_new_reduced_dimensionality_size,
-                embedding_model_name=cfg.embedding_cfg.embedding_model,
-                random_seed=cfg.exp_cfg.seed,
-            )
-            # Apply the dimensionality reduction to the test capabilities
-            apply_dimensionality_reduction_to_test_capabilities(
-                capabilities=test_capabilities,
-                dim_reduction_method=dim_reduction_model,
-                embedding_model_name=cfg.embedding_cfg.embedding_model,
-            )
+        train_capabilities, candidate_capabilities = get_lbo_train_set(
+            input_data=train_capabilities,
+            num_train=cfg.lbo_cfg.num_initial_train,
+            stratified=cfg.capabilities_cfg.method == "hierarchical",
+            input_categories=[capability.area for capability in train_capabilities],
+            seed=cfg.exp_cfg.seed,
+        )
         logger.info(
             f"Initial Train capabilities ({len(train_capabilities)}):\n{train_capabilities}"
         )
-        if num_lbo_runs > len(candidate_capabilities):
-            logger.warning(
-                f"Number of LBO runs ({num_lbo_runs}) exceeds the number of "
-                + f"candidate capabilities ({len(candidate_capabilities)}). "
-                + f"Setting the number of LBO runs to {len(candidate_capabilities)}."
-            )
-            num_lbo_runs = len(candidate_capabilities)
-        # Run LBO to select capabilities
-        new_capabilities, lbo_error_dict = select_capabilities_using_lbo(
-            capabilities=train_capabilities,
-            embedding_name=dim_reduction_method_name,  # Since this embedding is reduced
-            capabilities_pool=candidate_capabilities,
-            test_capabilities=test_capabilities,
-            subject_llm_name=cfg.subject_llm.name,
-            acquisition_function=cfg.lbo_cfg.acquisition_function,
-            num_lbo_iterations=num_lbo_runs,
+        logger.info(
+            f"Candidate capabilities ({len(candidate_capabilities)}):\n{candidate_capabilities}"
+        )
+        logger.info(
+            f"Test capabilities ({len(test_capabilities)}):\n{test_capabilities}"
         )
 
-    elif "discover_new" in cfg.lbo_cfg.pipeline_id:
+    num_lbo_runs = cfg.lbo_cfg.num_lbo_runs
+    if cfg.lbo_cfg.pipeline_id == "no_discovery":
+        area_to_capabilities: dict[str, list] = defaultdict(list)
+        missing_area_capabilities = []
+        for capability in capabilities:
+            if capability.area:
+                area_to_capabilities[capability.area].append(capability)
+            else:
+                missing_area_capabilities.append(capability)
+        if missing_area_capabilities:
+            logger.warning(
+                "Skipping %d capabilities without an area: %s",
+                len(missing_area_capabilities),
+                [cap.name for cap in missing_area_capabilities],
+            )
+
+        per_area_results: dict[str, dict[str, object]] = {}
+        lbo_results_dir = os.path.join(
+            constants.BASE_ARTIFACTS_DIR, "lbo_results", "per_area"
+        )
+        os.makedirs(lbo_results_dir, exist_ok=True)
+        for area_idx, (area_name, area_capabilities) in enumerate(
+            sorted(area_to_capabilities.items())
+        ):
+            logger.info(
+                "[%s] Running LBO with %d capabilities",
+                area_name,
+                len(area_capabilities),
+            )
+            if len(area_capabilities) < 2:
+                logger.warning(
+                    "[%s] Skipping area because it has fewer than two capabilities",
+                    area_name,
+                )
+                continue
+
+            area_seed = cfg.exp_cfg.seed + area_idx
+            train_capabilities_area, test_capabilities_area = get_lbo_train_set(
+                input_data=area_capabilities,
+                train_frac=cfg.lbo_cfg.train_frac,
+                stratified=False,
+                seed=area_seed,
+            )
+            if not train_capabilities_area or not test_capabilities_area:
+                logger.warning(
+                    "[%s] Skipping area because the train/test split was empty",
+                    area_name,
+                )
+                continue
+
+            effective_initial_train = min(
+                cfg.lbo_cfg.num_initial_train, len(train_capabilities_area)
+            )
+            if effective_initial_train == 0:
+                logger.warning(
+                    "[%s] Skipping area because there are not enough training points",
+                    area_name,
+                )
+                continue
+
+            train_capabilities_area, candidate_capabilities_area = get_lbo_train_set(
+                input_data=train_capabilities_area,
+                num_train=effective_initial_train,
+                stratified=False,
+                seed=area_seed,
+            )
+            if not candidate_capabilities_area:
+                logger.warning(
+                    "[%s] Skipping area because there are no candidate capabilities",
+                    area_name,
+                )
+                continue
+
+            area_num_lbo_runs = min(num_lbo_runs, len(candidate_capabilities_area))
+            if area_num_lbo_runs < num_lbo_runs:
+                logger.warning(
+                    "[%s] Reducing num_lbo_runs to %d to match candidate pool size",
+                    area_name,
+                    area_num_lbo_runs,
+                )
+
+            dim_reduction_method_name = cfg.dimensionality_reduction_cfg.no_discovery_reduced_dimensionality_method
+            if dim_reduction_method_name == "t-sne":
+                apply_dimensionality_reduction(
+                    capabilities=train_capabilities_area
+                    + candidate_capabilities_area
+                    + test_capabilities_area,
+                    dim_reduction_method_name=dim_reduction_method_name,
+                    output_dimension_size=cfg.dimensionality_reduction_cfg.no_discovery_reduced_dimensionality_size,
+                    embedding_model_name=cfg.embedding_cfg.embedding_model,
+                    random_seed=area_seed,
+                )
+            else:
+                dim_reduction_model = apply_dimensionality_reduction(
+                    capabilities=train_capabilities_area + candidate_capabilities_area,
+                    dim_reduction_method_name=dim_reduction_method_name,
+                    output_dimension_size=cfg.dimensionality_reduction_cfg.discover_new_reduced_dimensionality_size,
+                    embedding_model_name=cfg.embedding_cfg.embedding_model,
+                    random_seed=area_seed,
+                )
+                apply_dimensionality_reduction_to_test_capabilities(
+                    capabilities=test_capabilities_area,
+                    dim_reduction_method=dim_reduction_model,
+                    embedding_model_name=cfg.embedding_cfg.embedding_model,
+                )
+
+            selected_capabilities, lbo_error_dict = select_capabilities_using_lbo(
+                capabilities=train_capabilities_area,
+                embedding_name=dim_reduction_method_name,
+                capabilities_pool=list(candidate_capabilities_area),
+                test_capabilities=test_capabilities_area,
+                subject_llm_name=cfg.subject_llm.name,
+                acquisition_function=cfg.lbo_cfg.acquisition_function,
+                num_lbo_iterations=area_num_lbo_runs,
+            )
+
+            per_area_results[area_name] = {
+                "selected_capabilities": [cap.name for cap in selected_capabilities],
+                "lbo_error_dict": lbo_error_dict,
+            }
+            acquisition_function_tag = (
+                "ALM" if cfg.lbo_cfg.acquisition_function == "variance" else "ALC"
+            )
+            area_slug = re.sub(r"[^0-9A-Za-z_-]", "_", area_name.lower())
+            lbo_results_dict = {
+                "area": area_name,
+                "run_id": run_id,
+                "subject_llm_name": cfg.subject_llm.name,
+                "pipeline_id": cfg.lbo_cfg.pipeline_id,
+                "acquisition_function": str(cfg.lbo_cfg.acquisition_function),
+                "acquisition_function_tag": acquisition_function_tag,
+                "train_frac": cfg.lbo_cfg.train_frac,
+                "num_initial_train": effective_initial_train,
+                "num_lbo_runs": area_num_lbo_runs,
+                "initial_train_capabilities": [
+                    cap.name for cap in train_capabilities_area
+                ],
+                "candidate_capabilities": [
+                    cap.name for cap in candidate_capabilities_area
+                ],
+                "test_capabilities": [cap.name for cap in test_capabilities_area],
+                "selected_capabilities": per_area_results[area_name][
+                    "selected_capabilities"
+                ],
+                "lbo_error_dict": lbo_error_dict,
+            }
+            results_file_name = (
+                f"lbo_results_{run_id}_{cfg.subject_llm.name}_{cfg.lbo_cfg.pipeline_id}_"
+                f"{area_slug}_F{cfg.lbo_cfg.train_frac}_I{cfg.lbo_cfg.num_initial_train}_"
+                f"LR{area_num_lbo_runs}_AF{cfg.lbo_cfg.acquisition_function}.json"
+            )
+            with open(os.path.join(lbo_results_dir, results_file_name), "w") as f:
+                json.dump(lbo_results_dict, f, indent=4)
+            logger.info(
+                "[%s] LBO results saved to %s",
+                area_name,
+                os.path.join(lbo_results_dir, results_file_name),
+            )
+            logger.info(
+                "[%s] Selected capabilities: %s",
+                area_name,
+                per_area_results[area_name]["selected_capabilities"],
+            )
+            logger.info(
+                "[%s] RMSE per iteration: %s",
+                area_name,
+                lbo_error_dict["rmse"],
+            )
+
+        if not per_area_results:
+            logger.warning("No areas were processed successfully.")
+        return
+
+    if "discover_new" in cfg.lbo_cfg.pipeline_id:
         # Define vars for storing output of runs for "discover_new" pipelines
         lbo_error_dict = {"rmse": [], "avg_std": []}
         knn_capabilities_list = []
@@ -210,10 +340,7 @@ def main(cfg: DictConfig) -> None:
             f"capabilities_{extended_run_id}",
         )
         os.makedirs(base_new_capability_dir, exist_ok=True)
-        lbo_results_dir = os.path.join(
-            constants.BASE_ARTIFACTS_DIR,
-            "lbo_results",
-        )
+        lbo_results_dir = os.path.join(constants.BASE_ARTIFACTS_DIR, "lbo_results")
 
         if cfg.lbo_cfg.pipeline_id == "discover_new_lbo_knn":
             # Create LBO model by fitting on initial train capabilities
