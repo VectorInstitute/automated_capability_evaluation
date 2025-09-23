@@ -1,9 +1,9 @@
 subject_llms:
-  - o1-mini
+  - o3-mini
 
 
 lbo_cfg:
-  num_lbo_runs: 5
+  num_lbo_runs: 50
   pipeline_id: "no_discovery"
   train_frac: 0.8
   num_initial_train: 2
@@ -15,4 +15,4 @@ lbo_cfg:
 
 exp_cfg:
   seed: 37
-  exp_id: "o4-mini_C100_R5_A10_T100"
+  exp_id: "o3-mini_farnaz"

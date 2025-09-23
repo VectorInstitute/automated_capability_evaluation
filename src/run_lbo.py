@@ -64,10 +64,11 @@ def main(cfg: DictConfig) -> None:
     capabilities = select_complete_capabilities(
         capabilities=capabilities,
         strict=False,
-        num_tasks_lower_bound=int(
-            cfg.capabilities_cfg.num_gen_tasks_per_capability
-            * (1 - cfg.capabilities_cfg.num_gen_tasks_buffer)
-        ),
+        # num_tasks_lower_bound=int(
+        #     cfg.capabilities_cfg.num_gen_tasks_per_capability
+        #     * (1 - cfg.capabilities_cfg.num_gen_tasks_buffer)
+        # ),
+        num_tasks_lower_bound=20
     )
     capabilities = sorted(capabilities, key=lambda x: x.name)
     logger.info(f"Selected capability names:\n{capabilities}")

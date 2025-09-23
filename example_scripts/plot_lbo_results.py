@@ -71,12 +71,12 @@ def main(cfg: DictConfig) -> None:
                 if cfg.lbo_cfg.pipeline_id == "no_discovery":
                     suffix_parts.append(_area_slug(area_name))
 
-                suffix_parts.append(f"F{cfg.lbo_cfg.train_frac}")
-                suffix_parts.append(f"I{cfg.lbo_cfg.num_initial_train}")
-                suffix_parts.append(f"LR{cfg.lbo_cfg.num_lbo_runs}")
-                suffix_parts.append(f"AF{acquisition_function}")
+                # suffix_parts.append(f"F{cfg.lbo_cfg.train_frac}")
+                # suffix_parts.append(f"I{cfg.lbo_cfg.num_initial_train}")
+                # suffix_parts.append(f"LR{cfg.lbo_cfg.num_lbo_runs}")
+                # suffix_parts.append(f"AF{acquisition_function}")
                 file_glob = "_".join(suffix_parts)
-                print(f"file_glob: {file_glob}")
+                print(f"file_glob: {lbo_results_dir}/{file_glob}")
                 candidates = [
                     file
                     for file in os.listdir(lbo_results_dir)
