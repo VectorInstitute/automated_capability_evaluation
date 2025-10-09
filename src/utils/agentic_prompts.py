@@ -206,10 +206,10 @@ IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown cod
 
 Please return your proposal and your thoughts and reasoning in the following format:
 {{
-  "thought": "Your reasoning and thought process about the kind of tasks you're proposing",
+  "thought": "Your reasoning and thought process for designing the tasks and ensuring diversity in content and difficulty of tasks",
   "problems": {{
-    "problem_0": "TASK_TEXT_1",
-    "problem_1": "TASK_TEXT_2",
+    "problem_0": "PROBLEM_0_DESCRIPTION",
+    "problem_1": "PROBLEM_1_DESCRIPTION",
     ...
   }}
 }}
@@ -285,7 +285,7 @@ Provide your solution in JSON format with the following structure:
 - final_answer: Your complete answer with explanation
 - numerical_answer: The final numerical result (if applicable, otherwise null)
 
-Example for a math problem:
+Example for a numerical problem:
 {{
     "thought": "To solve this problem, I need to...",
     "final_answer": "The solution is 42 because...",
