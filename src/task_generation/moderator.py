@@ -301,6 +301,7 @@ class TaskModerator(RoutedAgent):
                 final_tasks[task_id] = {
                     "task": problem_text,
                     "capability_id": self._capability.name,
+                    "area_id": self._capability.area,
                 }
 
             # Save final tasks
@@ -317,12 +318,11 @@ class TaskModerator(RoutedAgent):
     async def _save_tasks_to_file(self, tasks: Dict[str, Dict[str, str]]) -> None:
         """Save final tasks to file."""
         try:
-            # Create capability directory
-            capability_dir = self._output_dir / self._capability.name
-            capability_dir.mkdir(parents=True, exist_ok=True)
+            # Create task output directory
+            self._output_dir.mkdir(parents=True, exist_ok=True)
 
             # Save tasks
-            tasks_file = capability_dir / "tasks.json"
+            tasks_file = self._output_dir / "tasks.json"
             with open(tasks_file, "w", encoding="utf-8") as f:
                 json.dump({"tasks": tasks}, f, indent=2, ensure_ascii=False)
 

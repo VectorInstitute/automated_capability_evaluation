@@ -31,7 +31,10 @@ logging.getLogger(EVENT_LOGGER_NAME).setLevel(logging.WARNING)
 
 
 async def generate_tasks_for_capability(
-    cfg: DictConfig, capability: Capability, output_dir: Path, langfuse_client: Langfuse
+    cfg: DictConfig,
+    capability: Capability,
+    task_output_dir_name: Path,
+    langfuse_client: Langfuse,
 ) -> None:
     """Generate tasks for a single capability."""
     with langfuse_client.start_as_current_span(
@@ -93,7 +96,7 @@ async def generate_tasks_for_capability(
                     num_scientists=2,
                     num_final_problems=cfg.task_generation.num_final_problems_per_capability,
                     buffer_param=cfg.task_generation.buffer_param,
-                    output_dir=output_dir,
+                    output_dir=task_output_dir_name,
                     domain=domain_name,
                     langfuse_client=langfuse_client,
                     max_round=cfg.task_generation.max_rounds,
@@ -324,9 +327,11 @@ async def generate_tasks(
             # Process each capability individually
             for i, capability in enumerate(capabilities):
                 capability_dir_name = capability.name.replace(" ", "_")
-
+                area_dir_name = capability.area.replace(" ", "_").lower()
+                task_output_dir_name = f"[{area_dir_name}]-[{capability_dir_name}]"
+                tasks_output_dir = output_dir / task_output_dir_name
                 # Skip if tasks already exist for this capability
-                if resume_tag and capability_dir_name in existing_tasks:
+                if resume_tag and task_output_dir_name in existing_tasks:
                     msg = f"Skipping capability {i + 1}/{len(capabilities)}: {capability.name} (already exists)"
                     log.info(msg)
                     span.update(
@@ -350,7 +355,7 @@ async def generate_tasks(
                 )
 
                 await generate_tasks_for_capability(
-                    cfg, capability, output_dir, langfuse_client
+                    cfg, capability, tasks_output_dir, langfuse_client
                 )
 
                 msg = f"Completed capability {i + 1}/{len(capabilities)}: {capability.name}"
