@@ -11,6 +11,7 @@ class Task:
     task_id: str
     problem: str
     capability_name: str
+    area_name: str
 
 
 @dataclass
@@ -20,6 +21,7 @@ class TaskSolutionRequest:
     task_id: str
     problem: str
     capability_name: str
+    area_name: str
     round_number: int = 1
 
 
@@ -34,6 +36,7 @@ class AgentSolution:
     numerical_answer: str
     round_number: int
     capability_name: str
+    area_name: str
 
     def to_dict(self) -> Dict[str, str]:
         """Convert to dictionary."""
@@ -45,6 +48,7 @@ class AgentSolution:
             "numerical_answer": self.numerical_answer,
             "round_number": str(self.round_number),
             "capability_name": self.capability_name,
+            "area_name": self.area_name,
         }
 
 
@@ -55,6 +59,7 @@ class AgentRevisionRequest:
     task_id: str
     problem: str
     capability_name: str
+    area_name: str
     other_solutions: List[Dict[str, str]]
     round_number: int
 
@@ -74,6 +79,7 @@ class FinalSolution:
 
     task_id: str
     capability_name: str
+    area_name: str
     problem: str
     solution: str
     numerical_answer: str

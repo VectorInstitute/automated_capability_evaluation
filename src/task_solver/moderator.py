@@ -91,7 +91,7 @@ class TaskSolverModerator(RoutedAgent):
         self, solutions: List[AgentSolution]
     ) -> tuple[bool, str, str]:
         """Check consensus; if all agents have the same final answer."""
-        if not solutions:
+        if not solutions or len(solutions) < self._num_solvers:
             return False, "", "null"
 
         # First check numerical answers if they exist
@@ -125,6 +125,7 @@ class TaskSolverModerator(RoutedAgent):
                         "task_received": msg,
                         "task_id": message.task_id,
                         "capability_name": message.capability_name,
+                        "area_name": message.area_name,
                     }
                 )
 
@@ -138,6 +139,7 @@ class TaskSolverModerator(RoutedAgent):
                         task_id=message.task_id,
                         problem=message.problem,
                         capability_name=message.capability_name,
+                        area_name=message.area_name,
                         round_number=self._current_round,
                     ),
                     topic_id=DefaultTopicId(),
@@ -167,7 +169,7 @@ class TaskSolverModerator(RoutedAgent):
                 task_id = message.task_id
                 round_num = message.round_number
 
-                msg = f"Moderator received solution from agent {message.agent_id} for task {task_id}, {message.capability_name} round {round_num}"
+                msg = f"Moderator received solution from agent {message.agent_id} for task {task_id}, {message.capability_name}, {message.area_name} round {round_num}"
                 log.info(msg)
                 span.update(
                     metadata={
@@ -179,7 +181,7 @@ class TaskSolverModerator(RoutedAgent):
                 )
 
                 if round_num != self._current_round:
-                    msg = f"Moderator received solution from agent {message.agent_id} for task {task_id}, {message.capability_name} round {round_num} but current round is {self._current_round}"
+                    msg = f"Moderator received solution from agent {message.agent_id} for task {task_id}, {message.capability_name}, {message.area_name} round {round_num} but current round is {self._current_round}"
                     log.error(msg)
                     span.update(metadata={"error": msg})
                     raise Exception(msg)
@@ -228,6 +230,7 @@ class TaskSolverModerator(RoutedAgent):
                     final_solution = FinalSolution(
                         task_id=task_id,
                         capability_name=self._tasks.capability_name,
+                        area_name=self._tasks.area_name,
                         problem=self._tasks.problem,
                         solution=simple_solution,
                         numerical_answer=simple_numerical,
@@ -287,6 +290,7 @@ class TaskSolverModerator(RoutedAgent):
                         final_solution = FinalSolution(
                             task_id=task_id,
                             capability_name=self._tasks.capability_name,
+                            area_name=self._tasks.area_name,
                             problem=self._tasks.problem,
                             solution=final_solution_text,
                             numerical_answer=numerical_answer,
@@ -318,6 +322,7 @@ class TaskSolverModerator(RoutedAgent):
                             task_id=stored_task.task_id,
                             problem=stored_task.problem,
                             capability_name=stored_task.capability_name,
+                            area_name=stored_task.area_name,
                             other_solutions=[
                                 {
                                     "agent_id": sol.agent_id,
@@ -345,6 +350,7 @@ class TaskSolverModerator(RoutedAgent):
                     final_solution = FinalSolution(
                         task_id=task_id,
                         capability_name=self._tasks.capability_name,
+                        area_name=self._tasks.area_name,
                         problem=self._tasks.problem,
                         solution="No consensus reached",
                         numerical_answer="null",
@@ -379,14 +385,12 @@ class TaskSolverModerator(RoutedAgent):
         """Save the final solution to a file."""
         try:
             self._output_dir.mkdir(parents=True, exist_ok=True)
-            output_file = (
-                self._output_dir
-                / f"{final_solution.task_id}_{final_solution.capability_name}_solution.json"
-            )
+            output_file = self._output_dir / f"{final_solution.task_id}_solution.json"
 
             solution_data = {
                 "task_id": final_solution.task_id,
                 "capability_name": final_solution.capability_name,
+                "area_name": final_solution.area_name,
                 "problem": final_solution.problem,
                 "solution": final_solution.solution,
                 "numerical_answer": final_solution.numerical_answer,

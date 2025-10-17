@@ -36,12 +36,13 @@ async def solve_task(
     max_rounds = cfg.task_solver.max_rounds
     task_id = task.task_id
     capability_name = task.capability_name
+    area_name = task.area_name
 
     with langfuse_client.start_as_current_span(
-        name=f"task_solver_for_task:{task_id}, capability:{capability_name}"
+        name=f"task_solver_for_task:{task_id}, capability:{capability_name}, area: {area_name}"
     ) as span:
         try:
-            msg = f"Generating solutions for task: {task_id}, capability: {capability_name}"
+            msg = f"Generating solutions for task: {task_id}, capability: {capability_name}, area: {area_name}"
             log.info(msg)
             span.update(
                 metadata={
@@ -49,6 +50,7 @@ async def solve_task(
                     "task_id": task_id,
                     "problem": task.problem,
                     "capability_name": capability_name,
+                    "area_name": area_name,
                 }
             )
 
@@ -110,25 +112,24 @@ async def solve_task(
 
             await runtime.publish_message(task, DefaultTopicId())
 
-            msg = f"Task message published: {task_id}, capability: {capability_name}"
+            msg = f"Task message published: {task_id}, capability: {capability_name}, area: {area_name}"
             log.info(msg)
             span.update(
                 metadata={
                     "task_published": msg,
                     "task_id": task_id,
                     "capability_name": capability_name,
+                    "area_name": area_name,
                 }
             )
 
             try:
                 await runtime.stop_when_idle()
-                msg = (
-                    f"Completed solving task: {task_id}, capability: {capability_name}"
-                )
+                msg = f"Completed solving task: {task_id}, capability: {capability_name}, area: {area_name}"
                 log.info(msg)
                 span.update(metadata={"runtime_completed": msg})
             except Exception as e:
-                msg = f"Error while solving task {task_id}, capability: {capability_name}: {e}"
+                msg = f"Error while solving task {task_id}, capability: {capability_name}, area: {area_name}: {e}"
                 log.error(msg)
                 span.update(
                     level="ERROR",
@@ -138,6 +139,7 @@ async def solve_task(
                         "error": str(e),
                         "task_id": task_id,
                         "capability_name": capability_name,
+                        "area_name": {area_name},
                     },
                 )
                 raise
@@ -208,7 +210,6 @@ async def solve_tasks(
                 log.error(error_msg)
                 span.update(
                     level="ERROR",
-                    status_message="Capabilities directory not found",
                     metadata={
                         "directory_not_found_error": error_msg,
                         "tasks_dir": str(tasks_dir),
@@ -216,27 +217,37 @@ async def solve_tasks(
                 )
                 raise FileNotFoundError(error_msg)
 
-            for capability_dir in tasks_dir.iterdir():
-                if capability_dir.is_dir():
-                    # Check if the last part of capability_dir exists in output_dir
-                    output_solver_dir = Path(output_dir) / capability_dir.name
-                    if output_solver_dir.exists():
-                        msg = f"Solutions for tasks under capability {capability_dir.name} already exist: {output_solver_dir}"
-                        log.info(msg)
-                        span.update(metadata={"task_solver_skipped": msg})
-                        continue
+            for per_area_capability_dir in tasks_dir.iterdir():
+                tasks_file = per_area_capability_dir / "tasks.json"
 
-                    tasks_file = capability_dir / "tasks.json"
-                    if tasks_file.exists():
-                        with open(tasks_file, "r", encoding="utf-8") as f:
-                            tasks = json.load(f)["tasks"]
-                            for task_id, task_data in tasks.items():
-                                task = Task(
-                                    task_id=task_id,
-                                    problem=task_data["task"],
-                                    capability_name=task_data["capability_id"],
-                                )
-                                await solve_task(cfg, task, output_dir, langfuse_client)
+                if not tasks_file.exists():
+                    msg = f"Tasks file not found: {tasks_file}"
+                    log.error(msg)
+                    span.update(metadata={"warning": msg})
+                    continue
+
+                with open(tasks_file, "r", encoding="utf-8") as f:
+                    tasks = json.load(f)["tasks"]
+                    output_solver_dir = Path(output_dir) / per_area_capability_dir.name
+
+                    for task_id, task_data in tasks.items():
+                        if (
+                            output_solver_dir.exists()
+                            and f"{task_id}_solution.json"
+                            in list(output_solver_dir.iterdir())
+                        ):
+                            msg = f"Task {task_id} already solved"
+                            log.info(msg)
+                            span.update(metadata={"task_solver_skipped": msg})
+                            continue
+
+                        task = Task(
+                            task_id=task_id,
+                            problem=task_data["task"],
+                            capability_name=task_data["capability_id"],
+                            area_name=task_data["area_id"],
+                        )
+                        await solve_task(cfg, task, output_solver_dir, langfuse_client)
 
         except Exception as e:
             error_msg = f"Error in task solver: {str(e)}"
