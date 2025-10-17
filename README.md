@@ -73,26 +73,77 @@ Utilize the capability and the corresponding subject LLM score to select or gene
 ```bash
 python -m src.run_lbo
 ```
-
 ### Agentic Generation Scripts
 
-Generate areas, capabilities, and tasks using multi-agent debate systems. Configure parameters in `src/cfg/agentic_config.yaml`.
+These scripts implement the multi-agent debate workflow for automated generation of areas, capabilities, tasks, and solutions.
+All configurable parameters are defined in `src/cfg/agentic_config.yaml`.
 
+---
+
+#### 1. Generate Areas
+Generate domain areas using the scientist–moderator debate system:
 ```bash
-# Generate capability areas
 python -m src.agentic_area_generator
-
-# Generate capabilities for each area
-python -m src.agentic_capability_generator
-
-# Generate tasks for each capability
-python -m src.agentic_task_generator
-
-# Generate tasks for all capabilities
-python -m src.agentic_task_generator pipeline_tags.capabilities_tag=_20250902_030203
-
-# Generate solutions for tasks using multi-agent debate
-python -m src.agentic_task_solver pipeline_tags.tasks_tag=_20250905_153532
-
-
 ```
+
+Output location:
+```
+~/<output_dir>/<domain>/<exp_id>/areas/<areas_tag>/areas.json
+```
+Where:
+- <output_dir> comes from `global_cfg.output_dir`
+- <domain> comes from `global_cfg.domain` (spaces replaced with underscores)
+- <exp_id> comes from `exp_cfg.exp_id`
+- <areas_tag> is the tag used for the generated areas
+
+#### 2. Generate Capabilities
+Generate capabilities for each area:
+```bash
+python -m src.agentic_capability_generator pipeline_tags.areas_tag=_YYYYMMDD_HHMMSS pipeline_tags.resume_capabilities_tag=_YYYYMMDD_HHMMSS
+```
+
+**Options:**
+- `pipeline_tags.areas_tag` specifies which set of areas to use when generating capabilities.
+- `pipeline_tags.resume_capabilities_tag` (optional) resumes a previous capability generation run.
+
+**Output location:**
+```
+~/<output_dir>/<domain>/<exp_id>/capabilities/<capabilities_tag>/<area>/capabilities.json
+```
+Where:
+- <capabilities_tag> is the tag used for the generated capabilities (either resumed or auto-generated)
+
+
+#### 3. Generate Tasks
+Generate evaluation tasks for a specific capabilities tag:
+```bash
+python -m src.agentic_task_generator pipeline_tags.capabilities_tag=_YYYYMMDD_HHMMSS pipeline_tags.resume_tasks_tag=_YYYYMMDD_HHMMSS
+```
+
+**Options:**
+- `pipeline_tags.capabilities_tag` specifies which set of capabilities to use when generating tasks.
+- `pipeline_tags.resume_tasks_tag` (optional) resumes a previous task generation run.
+
+**Output location:**
+```
+~/<output_dir>/<domain>/<exp_id>/tasks/<tasks_tag>/[<area>]-[<capability>]/tasks.json
+```
+Where:
+- <tasks_tag> is the tag used for the generated tasks (either resumed or auto-generated)
+
+#### 4. Generate Solutions
+Solve generated tasks using the multi-agent debate system:
+```bash
+python -m src.agentic_task_solver pipeline_tags.tasks_tag=_YYYYMMDD_HHMMSS pipeline_tags.resume_solutions_tag=_YYYYMMDD_HHMMSS
+```
+
+**Options:**
+- `pipeline_tags.tasks_tag` specifies which set of tasks to solve.
+- `pipeline_tags.resume_solutions_tag` (optional) resumes a previous solution generation run.
+
+**Output location:**
+```
+~/<output_dir>/<domain>/<exp_id>/task_solutions/<solutions_tag>/[<area>]-[<capability>]/<task_id>_solution.json
+```
+Where:
+- <solutions_tag> is the tag used for the generated solutions (either resumed or auto-generated)
