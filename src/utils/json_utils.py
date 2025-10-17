@@ -24,35 +24,42 @@ def extract_json_from_markdown(content: str) -> str:
     elif content.startswith("```") and content.endswith("```"):
         content = content[3:-3].strip()
 
-    return re.sub(r"[\x00-\x1f\x7f-\x9f]", "", content)
+    content = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", content)
+
+    if content and not content.lstrip().startswith(("{", "[")):
+        brace_start = content.find("{")
+        brace_end = content.rfind("}")
+        bracket_start = content.find("[")
+        bracket_end = content.rfind("]")
+
+        if brace_start != -1 and brace_end > brace_start:
+            content = content[brace_start : brace_end + 1].strip()
+        elif bracket_start != -1 and bracket_end > bracket_start:
+            content = content[bracket_start : bracket_end + 1].strip()
+
+    return content
 
 
 def fix_common_json_errors(content: str) -> str:
     """Fix common JSON syntax errors."""
-    # Fix extra equals signs (e.g., "area":="value" -> "area":"value")
     content = re.sub(r':\s*=\s*"', ':"', content)
-
-    # Fix missing quotes around keys
     content = re.sub(r'(\w+):\s*"', r'"\1":"', content)
-
-    # Fix trailing commas
+    content = re.sub(r'\\(?!["\\/bfnrtu])', r"\\\\", content)
     return re.sub(r",(\s*[}\]])", r"\1", content)
 
 
 def parse_llm_json_response(raw_content: Union[str, Any]) -> Dict[str, Any]:
     """Parse LLM JSON response."""
     try:
-        # Ensure content is a string
         if not isinstance(raw_content, str):
             raw_content = str(raw_content)
 
-        # Clean the content first
         cleaned_content = extract_json_from_markdown(raw_content)
-
-        # Fix common JSON errors
         cleaned_content = fix_common_json_errors(cleaned_content)
 
-        # Parse the JSON
+        if not cleaned_content:
+            raise json.JSONDecodeError("Empty JSON content", cleaned_content or "", 0)
+
         result = json.loads(cleaned_content)
         return result if isinstance(result, dict) else {}
 
@@ -60,14 +67,10 @@ def parse_llm_json_response(raw_content: Union[str, Any]) -> Dict[str, Any]:
         log.error(f"Failed to parse JSON response: {e}")
         log.error(f"Content length: {len(cleaned_content)} characters")
 
-        # Try to fix common JSON issues
         try:
-            # Attempt to fix unterminated strings by finding the last complete entry
             if "Unterminated string" in str(e):
-                # Find the last complete capability entry
                 last_complete = cleaned_content.rfind('"},')
                 if last_complete > 0:
-                    # Truncate to last complete entry and close the JSON
                     fixed_content = cleaned_content[: last_complete + 2] + "\n  }\n}"
                     log.warning(
                         "Attempting to fix unterminated JSON by truncating to last complete entry"
@@ -77,9 +80,9 @@ def parse_llm_json_response(raw_content: Union[str, Any]) -> Dict[str, Any]:
         except Exception as fix_error:
             log.error(f"Failed to fix JSON: {fix_error}")
 
-        # If we can't fix it, log more details and re-raise
         log.error(f"Raw content (last 500 chars): {raw_content[-500:]}")
         raise
+
     except Exception as e:
         log.error(f"Unexpected error parsing JSON: {e}")
         log.error(f"Raw content: {raw_content}")

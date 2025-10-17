@@ -20,7 +20,7 @@ from tenacity import (
 )
 
 
-MAX_TOKENS = 1024 * 10
+MAX_TOKENS = 1024 * 30
 
 logger = logging.getLogger(__name__)
 
