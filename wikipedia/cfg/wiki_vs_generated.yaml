@@ -1,0 +1,35 @@
+# Configuration for Wikipedia-Generated Matcher
+# This configuration matches Wikipedia capabilities with generated capabilities using Qwen2.5-32B-Instruct
+
+data_cfg:
+  # Path to the Wikipedia pages directory containing .json files
+  wikipedia_dir: /projects/DeepLesion/projects/automated_capability_evaluation/wikipedia/pages
+  
+  # Path to the generated capabilities directory containing capability.json files
+  generated_dir: /projects/DeepLesion/projects/automated_capability_evaluation/artifacts/capabilities_gpt-claude-math/math
+
+llm_cfg:
+  # LLM model name for similarity checking
+  # model_name: "Qwen2.5-14B-Instruct"
+  model_name: "Qwen2.5-7B-Instruct"
+  # LLM model provider (local for vec-inf)
+  model_provider: "local"
+  qos: "a100_arashaf"
+  partition: "a100"
+  # Time limit for local LLM (format: HH:MM:SS)
+  time: "72:00:00"
+
+output_cfg:
+  # Directory to save the matching results
+  results_dir: /projects/DeepLesion/projects/automated_capability_evaluation/wiki/results
+  # Name of the output JSON file
+  output_filename: wikipedia_generated_matching_results.json
+
+processing_cfg:
+  # Logging level for the matching process
+  log_level: "info"
+  # Whether to save intermediate results
+  save_intermediate: false
+
+defaults:
+  - _self_

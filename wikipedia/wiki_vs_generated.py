@@ -1,0 +1,591 @@
+"""
+Wikipedia Generated Matcher V2 Fixed (Reversed Version)
+
+This script matches Wikipedia capabilities with generated capabilities using the pre-categorized
+Wikipedia data from the area_categorization results. It loads the categorized Wikipedia capabilities
+and matches them to generated capabilities using batching to handle context length limitations.
+
+This is the REVERSED version - it matches Wikipedia capabilities to generated capabilities.
+"""
+
+import json
+import logging
+import os
+import glob
+from typing import Dict, List, Optional, Tuple
+
+import hydra
+from omegaconf import DictConfig
+
+from src.model import Model
+
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class WikipediaCapability:
+    """Represents a Wikipedia capability."""
+    def __init__(self, name, description, area="mathematics"):
+        self.name = name
+        self.description = description
+        self.area = area
+
+
+class GeneratedCapability:
+    """Represents a generated capability."""
+    def __init__(self, name, description, area="mathematics"):
+        self.name = name
+        self.description = description
+        self.area = area
+
+
+class GeneratedWikipediaMatcherV2Fixed:
+    """Matches Wikipedia capabilities with generated capabilities using batching (reversed version)."""
+    
+    def __init__(self, cfg: DictConfig):
+        self.cfg = cfg
+        self.model = Model(
+            model_name=cfg.llm_cfg.model_name,
+            model_provider=cfg.llm_cfg.model_provider
+        )
+        self.results = {}
+        
+    def load_wikipedia_capabilities(self) -> Dict[str, List[WikipediaCapability]]:
+        """
+        Load Wikipedia capabilities from the new JSON format in wikipedia/pages/ directory.
+        
+        Returns:
+            Dictionary mapping area names to lists of WikipediaCapability objects
+        """
+        capabilities_by_area = {}
+        
+        # Path to the Wikipedia pages directory
+        wikipedia_pages_dir = "wikipedia/pages"
+        
+        if not os.path.exists(wikipedia_pages_dir):
+            logger.error(f"Wikipedia pages directory not found: {wikipedia_pages_dir}")
+            return capabilities_by_area
+        
+        try:
+            # Load all JSON files from the Wikipedia pages directory
+            json_files = glob.glob(os.path.join(wikipedia_pages_dir, "*.json"))
+            
+            for json_file in json_files:
+                try:
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    
+                    # Extract capability information from the new format
+                    cap_name = data.get('capability_name', '')
+                    description = data.get('description', '')
+                    area = data.get('area', 'Unknown')
+                    
+                    if cap_name and description:
+                # Create capability object
+                        capability = WikipediaCapability(
+                    name=cap_name,
+                    description=description,
+                            area=area
+                )
+                
+                # Group by area
+                        if area not in capabilities_by_area:
+                            capabilities_by_area[area] = []
+                        capabilities_by_area[area].append(capability)
+                        
+                except Exception as e:
+                    logger.warning(f"Error loading {json_file}: {e}")
+                    continue
+            
+            logger.info(f"Loaded {sum(len(caps) for caps in capabilities_by_area.values())} Wikipedia capabilities")
+            logger.info(f"Areas: {list(capabilities_by_area.keys())}")
+            
+        except Exception as e:
+            logger.error(f"Error loading Wikipedia capabilities: {e}")
+        
+        return capabilities_by_area
+    
+    def load_generated_capabilities(self, generated_dir: str) -> List[GeneratedCapability]:
+        """
+        Load capabilities from generated directory structure.
+        
+        Args:
+            generated_dir: Directory containing generated capabilities
+            
+        Returns:
+            List of GeneratedCapability objects
+        """
+        capabilities = []
+        
+        # Look for capability.json files in the directory structure
+        capability_files = glob.glob(os.path.join(generated_dir, "**/capability.json"), recursive=True)
+        
+        logger.info(f"Found {len(capability_files)} generated capability files")
+        
+        for file_path in capability_files:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    cap_data = json.load(f)
+                
+                capability = GeneratedCapability(
+                    name=cap_data.get('capability_name', ''),
+                    description=cap_data.get('capability_description', ''),
+                    area=cap_data.get('capability_area', 'mathematics')
+                )
+                
+                capabilities.append(capability)
+                
+            except Exception as e:
+                logger.warning(f"Error loading {file_path}: {e}")
+                continue
+        
+        logger.info(f"Successfully loaded {len(capabilities)} generated capabilities")
+        return capabilities
+    
+    def categorize_wikipedia_capability_to_area(self, wikipedia_cap: WikipediaCapability, available_areas: List[str]) -> str:
+        """
+        Categorize Wikipedia capability into one of the available generated areas.
+        
+        Args:
+            wikipedia_cap: Wikipedia capability to categorize
+            available_areas: List of available generated areas
+            
+        Returns:
+            Name of the matched area or "none" if no match
+        """
+        areas_list = "\n".join([f"- {area}" for area in available_areas])
+        
+        prompt = f"""You are an expert in mathematical categorization. Your task is to determine which mathematical area a capability belongs to.
+
+Wikipedia Capability:
+Name: {wikipedia_cap.name}
+Description: {wikipedia_cap.description}
+
+Available Areas:
+{areas_list}
+
+Instructions:
+- Analyze the Wikipedia capability carefully
+- Determine which area it best fits into
+- Only return the exact area name if it clearly belongs to one of them
+- Return "none" if it doesn't clearly belong to any of the listed areas
+- Be very strict - only match if it clearly fits the area
+
+Answer with only the area name or "none":"""
+
+        try:
+            response, metadata = self.model.generate(
+                sys_prompt="You are an expert in mathematical categorization.",
+                user_prompt=prompt,
+                generation_config={
+                    "temperature": 0.0,
+                    "max_tokens": 50
+                }
+            )
+            
+            # Clean the response
+            response = response.strip()
+            
+            # Check if the response matches one of the available areas
+            if response in available_areas:
+                return response
+            else:
+                return "none"
+                
+        except Exception as e:
+            logger.error(f"Error categorizing Wikipedia capability to area: {e}")
+            return "none"
+    
+    def match_to_capability_batch(self, wikipedia_cap: WikipediaCapability, generated_caps_batch: List[GeneratedCapability]) -> str:
+        """
+        Match Wikipedia capability to generated capabilities in a batch.
+        
+        Args:
+            wikipedia_cap: Wikipedia capability
+            generated_caps_batch: List of generated capabilities in the batch
+            
+        Returns:
+            Name of the matched capability or "none" if no match
+        """
+        if not generated_caps_batch:
+            return "none"
+            
+        capabilities_list = "\n".join([f"- {cap.name}: {cap.description}" for cap in generated_caps_batch])
+        
+        prompt = f"""You are an expert in mathematical capabilities. Your task is to determine which specific capability a Wikipedia entry matches.
+
+Wikipedia Capability:
+Name: {wikipedia_cap.name}
+Description: {wikipedia_cap.description}
+
+Available Capabilities:
+{capabilities_list}
+
+Instructions:
+- Compare the Wikipedia capability with each available capability.
+- Return the exact capability name if ANY of the following is true:
+  * The Wikipedia capability and the available capability describe the same concept, OR
+  * The Wikipedia capability is a SUBSET/PART of the available capability (i.e., the available capability includes the Wikipedia capability as one of its components or subskills), OR
+  * The available capability is a broader superset that clearly contains the Wikipedia capability.
+- Prefer the most specific matching capability when multiple candidates qualify.
+- Return "none" only if no capability clearly contains or equals the Wikipedia capability.
+
+Answer with only the capability name or "none":"""
+
+        try:
+            response, metadata = self.model.generate(
+                sys_prompt="You are an expert in mathematical capabilities.",
+                user_prompt=prompt,
+                generation_config={
+                    "temperature": 0.0,
+                    "max_tokens": 100
+                }
+            )
+            
+            # Clean the response
+            response = response.strip()
+            
+            # Check if the response matches one of the available capabilities
+            capability_names = [cap.name for cap in generated_caps_batch]
+            if response in capability_names:
+                return response
+            else:
+                return "none"
+                
+        except Exception as e:
+            logger.error(f"Error matching to capability batch: {e}")
+            return "none"
+    
+    def match_wikipedia_to_generated_capabilities(self, wikipedia_cap: WikipediaCapability, generated_caps: List[GeneratedCapability]) -> str:
+        """
+        Match Wikipedia capability to generated capabilities using batching.
+        
+        Args:
+            wikipedia_cap: Wikipedia capability
+            generated_caps: List of generated capabilities in the matched area
+            
+        Returns:
+            Name of the matched capability or "none" if no match
+        """
+        if not generated_caps:
+            return "none"
+        
+        # Batch size to avoid context length issues
+        batch_size = 20
+        
+        logger.info(f"  Processing {len(generated_caps)} capabilities in batches of {batch_size}")
+        
+        # Process capabilities in batches
+        for i in range(0, len(generated_caps), batch_size):
+            batch = generated_caps[i:i + batch_size]
+            logger.info(f"  Processing batch {i//batch_size + 1}/{(len(generated_caps) + batch_size - 1)//batch_size}")
+            
+            result = self.match_to_capability_batch(wikipedia_cap, batch)
+            
+            # If we found a match in this batch, return it
+            if result != "none":
+                logger.info(f"  Found match in batch: {result}")
+                return result
+        
+        # No match found in any batch
+        logger.info(f"  No match found in any batch")
+        return "none"
+    
+    def match_generated_to_wikipedia_capabilities(self, generated_cap: GeneratedCapability, wikipedia_caps: List[WikipediaCapability]) -> str:
+        """
+        Match generated capability to Wikipedia capabilities using batching.
+        
+        Args:
+            generated_cap: Generated capability
+            wikipedia_caps: List of Wikipedia capabilities in the matched area
+            
+        Returns:
+            Name of the matched Wikipedia capability or "none" if no match
+        """
+        if not wikipedia_caps:
+            return "none"
+        
+        # Batch size to avoid context length issues
+        batch_size = 20
+        
+        logger.info(f"  Processing {len(wikipedia_caps)} Wikipedia capabilities in batches of {batch_size}")
+        
+        # Process capabilities in batches
+        for i in range(0, len(wikipedia_caps), batch_size):
+            batch = wikipedia_caps[i:i + batch_size]
+            logger.info(f"  Processing batch {i//batch_size + 1}/{(len(wikipedia_caps) + batch_size - 1)//batch_size}")
+            
+            result = self.match_generated_to_wikipedia_batch(generated_cap, batch)
+            
+            # If we found a match in this batch, return it
+            if result != "none":
+                logger.info(f"  Found match in batch: {result}")
+                return result
+        
+        # No match found in any batch
+        logger.info(f"  No match found in any batch")
+        return "none"
+    
+    def match_generated_to_wikipedia_batch(self, generated_cap: GeneratedCapability, wikipedia_caps_batch: List[WikipediaCapability]) -> str:
+        """
+        Match generated capability to a batch of Wikipedia capabilities.
+        
+        Args:
+            generated_cap: Generated capability to match
+            wikipedia_caps_batch: Batch of Wikipedia capabilities to match against
+            
+        Returns:
+            Name of the matched Wikipedia capability or "none" if no match
+        """
+        if not wikipedia_caps_batch:
+            return "none"
+            
+        capabilities_list = "\n".join([f"- {cap.name}: {cap.description}" for cap in wikipedia_caps_batch])
+        
+        prompt = f"""You are an expert in mathematical capabilities. Your task is to determine which specific Wikipedia capability a generated capability matches.
+
+Generated Capability:
+Name: {generated_cap.name}
+Description: {generated_cap.description}
+
+Available Wikipedia Capabilities:
+{capabilities_list}
+
+Instructions:
+- Compare the generated capability with each available Wikipedia capability.
+- Return the exact Wikipedia capability name if ANY of the following is true:
+  * The generated capability and the Wikipedia capability describe the same concept, OR
+  * The generated capability is a SUBSET/PART of the Wikipedia capability (i.e., the Wikipedia capability includes the generated capability as one of its components or subskills), OR
+  * The Wikipedia capability is a broader superset that clearly contains the generated capability.
+- Prefer the most specific matching capability when multiple candidates qualify.
+- Return "none" only if no Wikipedia capability clearly contains or equals the generated capability.
+
+Answer with only the Wikipedia capability name or "none":"""
+
+        try:
+            response, metadata = self.model.generate(
+                sys_prompt="You are an expert in mathematical capabilities.",
+                user_prompt=prompt,
+                generation_config={
+                    "temperature": 0.0,
+                    "max_tokens": 100
+                }
+            )
+            
+            # Clean the response
+            response = response.strip()
+            
+            # Check if the response matches one of the available capabilities
+            capability_names = [cap.name for cap in wikipedia_caps_batch]
+            if response in capability_names:
+                return response
+            else:
+                return "none"
+                
+        except Exception as e:
+            logger.error(f"Error matching artifact to Wikipedia batch: {e}")
+            return "none"
+    
+    def match_capabilities(self, generated_caps: List[GeneratedCapability], 
+                          categorized_wikipedia_caps: Dict[str, List[WikipediaCapability]]) -> Dict[str, str]:
+        """
+        Match generated capabilities with Wikipedia capabilities (generated -> Wikipedia matching).
+        
+        Args:
+            generated_caps: List of generated capabilities
+            categorized_wikipedia_caps: Dictionary mapping areas to Wikipedia capabilities
+            
+        Returns:
+            Dictionary mapping generated capability names to matched Wikipedia capability names
+        """
+        results = {}
+        
+        # Get all Wikipedia capabilities and group generated capabilities by area
+        all_wikipedia_caps = []
+        for area_caps in categorized_wikipedia_caps.values():
+            all_wikipedia_caps.extend(area_caps)
+        
+        # Group generated capabilities by area
+        generated_caps_by_area = {}
+        for cap in generated_caps:
+            area = cap.area
+            if area not in generated_caps_by_area:
+                generated_caps_by_area[area] = []
+            generated_caps_by_area[area].append(cap)
+        
+        logger.info(f"Starting two-step matching process (GENERATED -> WIKIPEDIA):")
+        logger.info(f"  - {len(generated_caps)} generated capabilities")
+        logger.info(f"  - {len(all_wikipedia_caps)} Wikipedia capabilities")
+        logger.info(f"  - {len(generated_caps_by_area)} generated areas: {list(generated_caps_by_area.keys())}")
+        
+        for i, generated_cap in enumerate(generated_caps):
+            logger.info(f"\nProcessing generated capability {i+1}/{len(generated_caps)}: {generated_cap.name}")
+            logger.info(f"  Generated area: {generated_cap.area}")
+            
+            # Step 1: Get Wikipedia capabilities in the same area (direct mapping)
+            logger.info(f"  Step 1: Getting Wikipedia capabilities in {generated_cap.area}...")
+            # Use direct area mapping since Wikipedia capabilities already have proper areas
+            wikipedia_area = generated_cap.area
+            logger.info(f"  Using generated area '{generated_cap.area}' directly for Wikipedia area")
+            area_wikipedia_caps = categorized_wikipedia_caps.get(wikipedia_area, [])
+            
+            if not area_wikipedia_caps:
+                logger.info(f"  ✗ NO WIKIPEDIA CAPABILITIES in area '{wikipedia_area}'")
+                results[generated_cap.name] = "none"
+                continue
+            
+            logger.info(f"  ✓ Found {len(area_wikipedia_caps)} Wikipedia capabilities in area '{wikipedia_area}'")
+            
+            # Step 2: Match to specific Wikipedia capability within the area
+            logger.info(f"  Step 2: Matching to specific Wikipedia capability within area '{wikipedia_area}'...")
+            matched_capability = self.match_generated_to_wikipedia_capabilities(generated_cap, area_wikipedia_caps)
+            
+            if matched_capability == "none":
+                logger.info(f"  ✗ NO WIKIPEDIA MATCH: {generated_cap.name} in area '{wikipedia_area}'")
+                results[generated_cap.name] = "none"
+            else:
+                logger.info(f"  ✓ WIKIPEDIA MATCH: {generated_cap.name} -> {matched_capability} (in area '{wikipedia_area}')")
+                results[generated_cap.name] = matched_capability
+        
+        return results
+    
+    def save_results(self, results: Dict[str, str], output_path: str, 
+                    generated_caps: List[GeneratedCapability], 
+                    categorized_wikipedia_caps: Dict[str, List[WikipediaCapability]]) -> None:
+        """
+        Save results to JSON file with detailed information.
+        
+        Args:
+            results: Dictionary of matching results
+            output_path: Path to save the results
+            generated_caps: List of generated capabilities
+            categorized_wikipedia_caps: Dictionary of categorized Wikipedia capabilities
+        """
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        # Flatten Wikipedia capabilities for output
+        all_wikipedia_caps = []
+        for area, caps in categorized_wikipedia_caps.items():
+            all_wikipedia_caps.extend(caps)
+        
+        # Create detailed results with metadata
+        detailed_results = {
+            "metadata": {
+                "total_generated_capabilities": len(generated_caps),
+                "total_wikipedia_capabilities": len(all_wikipedia_caps),
+                "categorized_wikipedia_areas": len(categorized_wikipedia_caps),
+                "matched_capabilities": sum(1 for v in results.values() if v != "none"),
+                "unmatched_capabilities": sum(1 for v in results.values() if v == "none"),
+                "match_rate": sum(1 for v in results.values() if v != "none") / len(results) if results else 0,
+                "matching_direction": "generated_to_wikipedia"
+            },
+            "matching_results": results,
+            "generated_capabilities": [
+                {
+                    "name": cap.name,
+                    "description": cap.description,
+                    "area": cap.area
+                } for cap in generated_caps
+            ],
+            "wikipedia_capabilities": [
+                {
+                    "name": cap.name,
+                    "description": cap.description,
+                    "area": cap.area
+                } for cap in all_wikipedia_caps
+            ],
+            "wikipedia_capabilities_by_area": {
+                area: [
+                    {
+                        "name": cap.name,
+                        "description": cap.description,
+                        "area": cap.area
+                    } for cap in caps
+                ] for area, caps in categorized_wikipedia_caps.items()
+            }
+        }
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(detailed_results, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"Detailed results saved to: {output_path}")
+    
+    def print_results(self, results: Dict[str, str]) -> None:
+        """
+        Print results in a formatted way.
+        
+        Args:
+            results: Dictionary of matching results
+        """
+        print("\n" + "="*80)
+        print("WIKIPEDIA-GENERATED MATCHING RESULTS (REVERSED V2 FIXED)")
+        print("="*80)
+        
+        for wikipedia_name, generated_name in results.items():
+            if generated_name == "none":
+                print(f"❌ {wikipedia_name} -> NO MATCH")
+            else:
+                print(f"✅ {wikipedia_name} -> {generated_name}")
+        
+        print("="*80)
+        print(f"Total Wikipedia capabilities: {len(results)}")
+        matched_count = sum(1 for v in results.values() if v != "none")
+        print(f"Matched capabilities: {matched_count}")
+        print(f"Unmatched capabilities: {len(results) - matched_count}")
+        print("="*80)
+
+
+@hydra.main(
+    version_base=None,
+    config_path="cfg",
+    config_name="wiki_vs_generated"
+)
+def main(cfg: DictConfig) -> None:
+    """
+    Main function to run generated-Wikipedia matching (generated -> Wikipedia direction).
+    
+    Args:
+        cfg: Configuration for the matching process
+    """
+    logger.info("Starting Generated-Wikipedia Matcher V2 Fixed (Generated -> Wikipedia Version)")
+    
+    # Initialize matcher
+    matcher = GeneratedWikipediaMatcherV2Fixed(cfg)
+    
+    # Load capabilities
+    logger.info("Loading generated capabilities...")
+    generated_caps = matcher.load_generated_capabilities(cfg.data_cfg.generated_dir)
+    
+    logger.info("Loading Wikipedia capabilities...")
+    categorized_wikipedia_caps = matcher.load_wikipedia_capabilities()
+    
+    if not generated_caps:
+        logger.error("No generated capabilities found!")
+        return
+    
+    if not categorized_wikipedia_caps:
+        logger.error("No categorized Wikipedia capabilities found!")
+        return
+    
+    # Match capabilities (generated -> Wikipedia direction)
+    logger.info("Starting capability matching (generated -> Wikipedia)...")
+    results = matcher.match_capabilities(generated_caps, categorized_wikipedia_caps)
+    
+    # Print results
+    matcher.print_results(results)
+    
+    # Save results (append _generated_to_wikipedia to filename)
+    orig_filename = cfg.output_cfg.output_filename
+    name, ext = os.path.splitext(orig_filename)
+    filename_with_suffix = f"{name}_generated_to_wikipedia{ext or '.json'}"
+    output_path = os.path.join(cfg.output_cfg.results_dir, filename_with_suffix)
+    matcher.save_results(results, output_path, generated_caps, categorized_wikipedia_caps)
+    print(f"Output saved to: {output_path}")
+    
+    logger.info("Generated-Wikipedia matching completed!")
+
+
+if __name__ == "__main__":
+    main()
