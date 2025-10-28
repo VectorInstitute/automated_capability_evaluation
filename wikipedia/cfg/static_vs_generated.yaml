@@ -1,0 +1,40 @@
+# Configuration for question categorization using generated capabilities extraction
+data_cfg:
+  # Path to the generated capabilities directory containing capabilities
+  generated_dir: /projects/DeepLesion/projects/automated_capability_evaluation/artifacts/capabilities_gpt-claude-math/math
+  
+  # Dataset selection
+  # Supported dataset_name values: "gsm8k", "math"
+  dataset_name: gsm8k
+  # For gsm8k: path to combined JSONL; For math: root directory with JSON files (recursive)
+  dataset_path: /projects/DeepLesion/projects/automated_capability_evaluation/static_datasets/math/gsm8k-main/test.jsonl
+  
+  # Path to the existing Wikipedia categorization results file (not used in generated mode)
+  wikipedia_dir: /projects/DeepLesion/projects/automated_capability_evaluation/wikipedia/pages
+
+categorization_cfg:
+  # Method to use for extracting areas and capabilities
+  # Options: "generated" (extract from capability.json files) or "wikipedia" (use predefined Wikipedia categorization)
+  extraction_method: "generated"
+
+llm_cfg:
+  # LLM model name for categorization
+  # model_name: "Qwen2.5-14B-Instruct"
+  model_name: "Qwen2.5-7B-Instruct"
+  # LLM model provider
+  model_provider: "local"
+
+
+output_cfg:
+  # Directory to save the categorization results
+  results_dir: /projects/DeepLesion/projects/automated_capability_evaluation/results/GSM8K
+  # Name of the output file
+  output_filename: gsm8k_vs_generated.json
+
+processing_cfg:
+  # Save checkpoint every N questions
+  save_every_n: 20
+
+defaults:
+  - _self_
+
