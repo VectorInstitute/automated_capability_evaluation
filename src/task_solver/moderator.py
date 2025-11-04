@@ -39,7 +39,30 @@ log = logging.getLogger("task_solver.moderator")
 
 @default_subscription
 class TaskSolverModerator(RoutedAgent):
-    """Moderator that manages task solver debate and checks for consensus."""
+    """Moderator that manages task solver debate and checks for consensus.
+
+    Attributes
+    ----------
+    _model_client : ChatCompletionClient
+        ChatCompletionClient for LLM interactions.
+    _num_solvers : int
+        Number of solver agents participating in the debate.
+    _max_rounds : int
+        Maximum number of debate rounds allowed before forcing a conclusion.
+    _output_dir : Path
+        Directory path where final solutions are saved.
+    _langfuse_client : Langfuse
+        Langfuse client for tracing and logging debate activity.
+    _solutions_buffer : Dict[int, List[AgentSolution]]
+        Buffer storing solutions from all agents, keyed by task_id and
+        organized by round number.
+    _current_round : int
+        Counter tracking the current debate round (0-indexed).
+    _final_solutions : FinalSolution
+        Storage for the final consensus solution once reached.
+    _tasks : Task
+        Original task data used for consensus checking and validation.
+    """
 
     def __init__(
         self,

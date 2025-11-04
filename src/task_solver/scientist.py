@@ -38,7 +38,17 @@ MAX_MODEL_ATTEMPTS = 3
 
 @default_subscription
 class TaskSolverScientist(RoutedAgent):
-    """A scientist that solves tasks through debate."""
+    """A scientist that solves tasks through debate.
+
+    Attributes
+    ----------
+    _model_client : ChatCompletionClient
+        ChatCompletionClient for generating solutions via LLM.
+    _scientist_id : str
+        Unique identifier for this scientist agent in the debate.
+    _langfuse_client : Langfuse
+        Langfuse client for tracing and logging scientist activity.
+    """
 
     def __init__(
         self,
