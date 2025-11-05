@@ -22,60 +22,6 @@ output:
 input:
   capability_json_path: capability.json  # Default capability JSON file path
 
-# Bloom's Taxonomy definitions
-# Source: Revised Bloom's Taxonomy (Anderson & Krathwohl, 2001)
-blooms_taxonomy:
-  Remember:
-    description: "Retrieving relevant knowledge from long-term memory. Involves recognizing and recalling facts, terms, basic concepts, or answers."
-    keywords: ["define", "list", "identify", "recall", "name", "state"]
-
-  Understand:
-    description: "Constructing meaning from instructional messages. Involves interpreting, exemplifying, classifying, summarizing, inferring, comparing, and explaining."
-    keywords: ["explain", "describe", "interpret", "summarize", "compare", "contrast"]
-
-  Apply:
-    description: "Carrying out or using a procedure in a given situation. Involves executing or implementing a method, technique, or process."
-    keywords: ["apply", "use", "implement", "execute", "solve", "demonstrate"]
-
-  Analyze:
-    description: "Breaking material into constituent parts and determining how parts relate to one another and to an overall structure. Involves differentiating, organizing, and attributing."
-    keywords: ["analyze", "differentiate", "organize", "distinguish", "examine", "compare"]
-
-  Evaluate:
-    description: "Making judgments based on criteria and standards. Involves checking for internal consistency or logical fallacies, and critiquing based on external criteria."
-    keywords: ["evaluate", "judge", "critique", "assess", "justify", "argue"]
-
-  Create:
-    description: "Putting elements together to form a novel, coherent whole or make an original product. Involves generating, planning, and producing."
-    keywords: ["create", "design", "construct", "develop", "formulate", "generate"]
-
-# Difficulty level definitions
-difficulty_levels:
-  easy:
-    description: "Basic, straightforward problems requiring minimal steps and fundamental knowledge."
-    characteristics:
-      - "Single concept application"
-      - "Direct recall or simple calculation"
-      - "Clear and unambiguous"
-      - "Minimal prerequisite knowledge"
-
-  medium:
-    description: "Moderate complexity requiring multiple steps, integration of concepts, or non-trivial reasoning."
-    characteristics:
-      - "Multiple concept integration"
-      - "Multi-step solution required"
-      - "Some prerequisite knowledge needed"
-      - "May involve edge cases"
-
-  hard:
-    description: "Complex, challenging problems requiring deep understanding, multiple concepts, edge cases, or sophisticated reasoning."
-    characteristics:
-      - "Complex multi-concept integration"
-      - "Multiple challenging steps"
-      - "Deep domain knowledge required"
-      - "Edge cases and exceptions"
-      - "May require insight or creative approach"
-
 # Verification criteria
 verification:
   pass_threshold: 0.8  # Minimum pass rate to consider successful

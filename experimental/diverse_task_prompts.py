@@ -10,7 +10,9 @@ The main script can import these instead of using hardcoded prompts.
 # =============================================================================
 
 SUBTOPIC_SYSTEM_PROMPT = """
-You are an expert educational scientist responsible for identifying comprehensible sub-topics for a given capability.
+You are an expert in {capability_domain} responsible for identifying comprehensible sub-topics for a given capability.
+
+A domain is a broad subject area (e.g., Mathematics), an area is a specialized field within that domain (e.g., Linear Algebra), and a capability is a specific topic within that area (e.g., representing graphs using matrices).
 
 The name, description, and domain/area of the capability will be provided.
 
@@ -19,13 +21,13 @@ Your goal is to decompose the capability into meaningful sub-topics that togethe
 Respond precisely in the following format, including the JSON start and end markers:
 
 RESPONSE JSON:
-{
+{{{{
   "sub_topics": [
     "<Sub-topic 1>",
     "<Sub-topic 2>",
     "<Sub-topic 3>"
   ]
-}
+}}}}
 
 List each sub-topic as a concise noun phrase (5–10 words).
 
@@ -36,7 +38,7 @@ SUBTOPIC_USER_PROMPT_TEMPLATE = """
 Identify the key sub-topics required to assess the following capability.
 
 Domain: {capability_domain}
-Area: {area_text}
+Area: {capability_area}
 Capability Name: {capability_name}
 Capability Description: {capability_description}
 
@@ -49,7 +51,9 @@ Depending on the granularity of the capability, generate 2–10 sub-topics that 
 # =============================================================================
 
 COMBINATION_SYSTEM_PROMPT = """
-You are an educational scientist responsible for determining which combinations of (Content, Difficulty, Reasoning) are valid and meaningful for task generation.
+You are an expert in {capability_domain} responsible for determining which combinations of (Content, Difficulty, Reasoning) are valid and meaningful for task generation.
+
+A domain is a broad subject area (e.g., Mathematics), an area is a specialized field within that domain (e.g., Linear Algebra), a capability is a specific concept or topic within that area (e.g., representing graphs using matrices), and a sub-topic is a concrete skill of that capability that can be assessed (e.g., constructing an adjacency matrix for a given graph).
 
 The list of available sub-topics (Content dimension), difficulty levels, and reasoning categories (based on Bloom's taxonomy) will be provided.
 
@@ -58,16 +62,16 @@ Your goal is to select combinations that make pedagogical sense — i.e., combin
 Respond precisely in the following format, including the JSON start and end markers:
 
 RESPONSE JSON:
-{
+{{{{
   "valid_combinations": [
-    {
+    {{{{
       "content": "<Sub-topic>",
       "difficulty": "<easy|medium|hard>",
       "reasoning": "<Bloom category>"
-    },
+    }}}},
     ...
   ]
-}
+}}}}
 
 For example, extremely high reasoning levels like "Create" may not apply to simple factual sub-topics, and very easy difficulties may not pair with "Evaluate" or "Analyze" levels.
 
@@ -88,7 +92,7 @@ Capability Name: {capability_name}
 Capability Description: {capability_description}
 
 Sub-topics (Content dimension):
-{subtopics_desc}
+{content_list}
 
 Difficulty levels:
 - Easy: Involves direct recall, recognition, or simple application of knowledge and procedures.
@@ -119,7 +123,9 @@ Ensure each selected combination could correspond to a feasible assessment task.
 BLUEPRINT_SYSTEM_PROMPT = """
 You are an expert educational scientist designing task blueprints for an assessment generation framework.
 
-Given a (Content, Difficulty, Reasoning) combination for a specific capability, you must produce a clear and detailed blueprint describing what kind of question should be designed for that combination.
+A domain is a broad subject area (e.g., Mathematics), an area is a specialized field within that domain (e.g., Linear Algebra), a capability is a specific concept or topic within that area (e.g., representing graphs using matrices), and a sub-topic is a concrete skill of that capability that can be assessed (e.g., constructing an adjacency matrix for a given graph).
+
+Given a (Content (sub-topic), Difficulty, Reasoning) combination for a specific capability, you must produce a clear and detailed blueprint describing what kind of question should be designed for that combination.
 
 A task blueprint is a natural-language description that specifies:
 1. The core skill or concept being tested (based on the content/sub-topic).
@@ -128,16 +134,22 @@ A task blueprint is a natural-language description that specifies:
 
 3. The intended level of challenge or complexity (based on difficulty).
 
-4. The type of task or question that would fit these criteria (e.g., conceptual explanation, computation, real-world application, analysis of case, critique, design, etc.).
-
 Respond precisely in the following format, including the JSON start and end markers:
 
 RESPONSE JSON:
-{
+{{{{
   "blueprint": "<Natural-language description of the task blueprint>"
-}
+}}}}
 
-In <blueprint>, write a single coherent paragraph (3–5 sentences) describing how the task should look — what the student should be asked to do, what level of reasoning it should involve, and how difficulty manifests (e.g., unfamiliar data, abstract setting, multi-step reasoning, creative synthesis).
+In <blueprint>, write a single coherent paragraph (3–5 sentences) describing how the task should look — what the task evaluates, what the student should be asked to do, what level of reasoning it should involve (based on the bloom's taxonomy provided below), and how difficulty manifests (e.g., unfamiliar data, abstract setting, multi-step reasoning, creative synthesis).
+
+Reasoning types (Bloom's Taxonomy):
+1. Remember – Recall or recognize facts, terms, and basic concepts. Example verbs: define, list, identify.
+2. Understand – Explain ideas or concepts and interpret information in one's own words. Example verbs: summarize, describe, classify.
+3. Apply – Use knowledge or methods in new but familiar situations. Example verbs: calculate, demonstrate, use, implement.
+4. Analyze – Break information into parts and examine relationships or patterns. Example verbs: differentiate, compare, examine, infer.
+5. Evaluate – Make judgments based on criteria and standards. Example verbs: justify, critique, assess, argue.
+6. Create – Combine elements to form a new pattern, structure, or product. Example verbs: design, compose, formulate, generate.
 
 Ensure the blueprint is descriptive, not a question itself.
 """
@@ -151,9 +163,9 @@ Capability Name: {capability_name}
 Capability Description: {capability_description}
 
 Selected Combination:
-- Content (Sub-topic): {subtopic}
-- Difficulty: {difficulty} — {difficulty_description}
-- Reasoning Type (Bloom's Taxonomy): {reasoning} — {reasoning_description}
+- Content (Sub-topic): {content_value}
+- Difficulty: {difficulty_value} — {difficulty_definition}
+- Reasoning Type (Bloom's Taxonomy): {reasoning_value} — {reasoning_definition}
 
 Write a detailed blueprint describing what kind of question should be generated for this combination.
 
@@ -171,7 +183,9 @@ The blueprint should explain:
 TASK_SYSTEM_PROMPT = """
 You are an expert educational scientist responsible for generating high-quality multiple-choice tasks.
 
-Given a task blueprint that describes what the question should assess, your goal is to write a complete multiple-choice question that:
+A domain is a broad subject area (e.g., Mathematics), an area is a specialized field within that domain (e.g., Linear Algebra), a capability is a specific concept or topic within that area (e.g., representing graphs using matrices), and a sub-topic is a concrete skill of that capability that can be assessed (e.g., constructing an adjacency matrix for a given graph).
+
+Given a task blueprint that describes what the question should assess, difficulty level and reasoning type based on bloom's taxonomy, your goal is to write a complete multiple-choice question that:
 
 1. Accurately reflects the blueprint and capability description.
 
@@ -186,22 +200,36 @@ Given a task blueprint that describes what the question should assess, your goal
 Respond precisely in the following format, including the JSON start and end markers:
 
 RESPONSE JSON:
-{
+{{{{
   "question": "<Question text>",
-  "options": {
+  "options": {{{{
     "A": "<Option A>",
     "B": "<Option B>",
     "C": "<Option C>",
     "D": "<Option D>"
-  },
+  }}}},
   "correct_answer": "<A/B/C/D>"
-}
+}}}}
+
+Difficulty levels:
+- Easy: Involves direct recall, recognition, or simple application of knowledge and procedures.
+- Medium: Requires connecting multiple ideas, performing multi-step reasoning, or applying knowledge in new but familiar contexts.
+- Hard: Involves complex reasoning, integration of several sub-topics, or solving non-trivial problems that demand deeper conceptual understanding.
+
+Reasoning types (Bloom's Taxonomy):
+1. Remember – Recall or recognize facts, terms, and basic concepts. Example verbs: define, list, identify.
+2. Understand – Explain ideas or concepts and interpret information in one's own words. Example verbs: summarize, describe, classify.
+3. Apply – Use knowledge or methods in new but familiar situations. Example verbs: calculate, demonstrate, use, implement.
+4. Analyze – Break information into parts and examine relationships or patterns. Example verbs: differentiate, compare, examine, infer.
+5. Evaluate – Make judgments based on criteria and standards. Example verbs: justify, critique, assess, argue.
+6. Create – Combine elements to form a new pattern, structure, or product. Example verbs: design, compose, formulate, generate.
+
 
 Ensure that the correct answer is consistent with the capability description and reasoning category.
 
 Avoid using vague words like "always," "never," or "most likely" unless the blueprint specifies such nuance.
 
-If mathematical notation is included, ensure all LaTeX symbols use escaped backslashes (e.g., "$\\\\frac{{1}}{{2}}$").
+If mathematical notation is included, ensure all LaTeX symbols use escaped backslashes (e.g., "$\\\\frac{1}{2}$").
 """
 
 TASK_USER_PROMPT_TEMPLATE = """
@@ -213,7 +241,7 @@ Capability Name: {capability_name}
 Capability Description: {capability_description}
 
 Task Blueprint:
-{blueprint_description}
+{task_blueprint}
 
 Requirements:
 - Write exactly one well-formed multiple-choice question.
@@ -252,14 +280,14 @@ You must check the following aspects:
 Respond precisely in the following format, including the JSON start and end markers:
 
 RESPONSE JSON:
-{
+{{{{
   "blueprint_alignment": "<Yes/No>",
   "capability_alignment": "<Yes/No>",
   "difficulty_reasoning_match": "<Yes/No>",
   "single_correct_answer": "<Yes/No>",
   "overall_verdict": "<Pass/Fail>",
   "explanation": "<Brief justification of your verdict>"
-}
+}}}}
 
 Be specific about any mismatch in reasoning level, scope, or difficulty.
 
@@ -280,13 +308,13 @@ Task Blueprint:
 {task_blueprint}
 
 Generated Task:
-Question: {question}
+Question: {question_text}
 Options:
 A. {option_a}
 B. {option_b}
 C. {option_c}
 D. {option_d}
-Correct Answer: {correct_answer}
+
 
 Check:
 1. Does the task align with the blueprint description?
@@ -310,14 +338,18 @@ def format_subtopic_prompt(
     """Format subtopic extraction prompts."""
     area_text = capability_area if capability_area else "N/A"
 
+    system_prompt = SUBTOPIC_SYSTEM_PROMPT.format(
+        capability_domain=capability_domain,
+    )
+
     user_prompt = SUBTOPIC_USER_PROMPT_TEMPLATE.format(
         capability_name=capability_name,
         capability_description=capability_description,
         capability_domain=capability_domain,
-        area_text=area_text,
+        capability_area=area_text,
     )
 
-    return SUBTOPIC_SYSTEM_PROMPT, user_prompt
+    return system_prompt, user_prompt
 
 
 def format_combination_prompt(
@@ -325,18 +357,22 @@ def format_combination_prompt(
     capability_description,
     capability_domain,
     capability_area,
-    subtopics_desc,
+    content_list,
 ):
     """Format combination finding prompts."""
+    system_prompt = COMBINATION_SYSTEM_PROMPT.format(
+        capability_domain=capability_domain,
+    )
+
     user_prompt = COMBINATION_USER_PROMPT_TEMPLATE.format(
         capability_name=capability_name,
         capability_description=capability_description,
         capability_domain=capability_domain,
         capability_area=capability_area if capability_area else "N/A",
-        subtopics_desc=subtopics_desc,
+        content_list=content_list,
     )
 
-    return COMBINATION_SYSTEM_PROMPT, user_prompt
+    return system_prompt, user_prompt
 
 
 def format_blueprint_prompt(
@@ -356,11 +392,11 @@ def format_blueprint_prompt(
         capability_description=capability_description,
         capability_domain=capability_domain,
         capability_area=capability_area if capability_area else "N/A",
-        subtopic=subtopic,
-        difficulty=difficulty,
-        difficulty_description=difficulty_description,
-        reasoning=reasoning,
-        reasoning_description=reasoning_description,
+        content_value=subtopic,
+        difficulty_value=difficulty,
+        difficulty_definition=difficulty_description,
+        reasoning_value=reasoning,
+        reasoning_definition=reasoning_description,
     )
 
     return BLUEPRINT_SYSTEM_PROMPT, user_prompt
@@ -379,7 +415,7 @@ def format_task_prompt(
         capability_description=capability_description,
         capability_domain=capability_domain,
         capability_area=capability_area if capability_area else "N/A",
-        blueprint_description=blueprint_description,
+        task_blueprint=blueprint_description,
     )
 
     return TASK_SYSTEM_PROMPT, user_prompt
@@ -405,12 +441,11 @@ def format_verification_prompt(
         capability_name=capability_name,
         capability_description=capability_description,
         task_blueprint=task_blueprint,
-        question=question,
+        question_text=question,
         option_a=option_a,
         option_b=option_b,
         option_c=option_c,
         option_d=option_d,
-        correct_answer=correct_answer,
     )
 
     return VERIFICATION_SYSTEM_PROMPT, user_prompt

@@ -4,6 +4,7 @@ import json
 import logging
 from typing import Callable
 
+from diverse_task_constants import BLOOMS_TAXONOMY, DIFFICULTY_LEVELS
 from diverse_task_dataclasses import Blueprint, Capability, Combination
 from diverse_task_prompts import format_blueprint_prompt
 
@@ -35,13 +36,11 @@ def generate_blueprints(
             capability_area=capability.area,
             subtopic=combo.content,
             difficulty=combo.difficulty,
-            difficulty_description=config["difficulty_levels"][
-                combo.difficulty.lower()
-            ]["description"],
-            reasoning=combo.reasoning,
-            reasoning_description=config["blooms_taxonomy"][combo.reasoning][
+            difficulty_description=DIFFICULTY_LEVELS[combo.difficulty.lower()][
                 "description"
             ],
+            reasoning=combo.reasoning,
+            reasoning_description=BLOOMS_TAXONOMY[combo.reasoning]["description"],
         )
 
         response = call_llm(

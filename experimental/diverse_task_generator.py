@@ -127,7 +127,7 @@ class DiverseTaskGenerator:
     ) -> list[Combination]:
         """Find valid combinations and save results."""
         combinations = find_valid_combinations(
-            self.capability, subtopics, self._call_api
+            self.capability, subtopics, self._call_api, self.config
         )
         self._save_json("combinations.json", "valid_combinations", combinations)
         return combinations
