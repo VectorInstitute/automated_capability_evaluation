@@ -3,8 +3,8 @@ defaults:
 
 # Global configuration
 global_cfg:
-  domain: math
-  output_dir: agentic_outputs/
+  domain: personal finance
+  output_dir: agentic_outputs/ #Base output directory for all agentic outputs
 
 # Debate configuration (shared across all stages)
 debate_cfg:
@@ -26,29 +26,32 @@ agents:
 
 # Stage 1: Area Generation Configuration
 area_generation:
-  num_areas: 20                    # Number of top-level areas to generate
+  num_areas: 10                    # Number of top-level areas to generate
 
 # Stage 2: Capability Generation Configuration
 capability_generation:
-  num_capabilities_per_area: 20    # Number of capabilities to generate per area
+  num_capabilities_per_area: 5    # Number of capabilities to generate per area
 
 # Stage 3: Task Generation Configuration
 task_generation:
-  num_final_problems_per_capability: 5    # N: Number of final problems per capability
+  num_final_problems_per_capability: 3    # N: Number of final problems per capability
   buffer_param: 2                         # B: Buffer parameter (extra problems each agent proposes)
-  max_rounds: 2                           # Maximum number of rounds for task generation
+  max_rounds: 3                           # Maximum number of rounds for task generation
 
 # Stage 4: Task Solving Configuration
 task_solver:
   max_tasks: 0                            # Maximum number of tasks to process (0 = all)
-  max_rounds: 3                           # Maximum number of debate rounds for task solving
+  max_rounds: 1                           # Maximum number of debate rounds for task solving
 
 # Experiment configuration
 exp_cfg:
-  exp_id: r0_20x20
+  exp_id: r0_10x10
 
 # Pipeline tags for chaining stages
 pipeline_tags:
   areas_tag: null          # Set via pipeline_tags.areas_tag=<tag>
+  resume_capabilities_tag: null   # Set via pipeline_tags.resume_capabilities_tag=<tag>
   capabilities_tag: null   # Set via pipeline_tags.capabilities_tag=<tag>
+  resume_tasks_tag: null          # Set via pipeline_tags.resume_tasks_tag=<tag>
   tasks_tag: null          # Set via pipeline_tags.tasks_tag=<tag>
+  resume_solutions_tag: null          # Set via pipeline_tags.resume_solutions_tag=<tag>
