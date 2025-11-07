@@ -28,52 +28,86 @@ def verify_tasks(
     for i, task in enumerate(tasks):
         logger.info(f"Verifying task {i + 1}/{len(tasks)}: {task.task_id}")
 
-        # Get blueprint for this task
-        blueprint = blueprint_dict.get(task.blueprint_id)
-        blueprint_text = blueprint.blueprint if blueprint else "N/A"
+        try:
+            # Skip verification for tasks that failed generation
+            if task.question.startswith("ERROR:"):
+                logger.warning("  Skipping verification (task generation failed)")
+                verification = VerificationResult(
+                    task_id=task.task_id,
+                    subtopic_aligned=False,
+                    difficulty_aligned=False,
+                    reasoning_aligned=False,
+                    choices_appropriate=False,
+                    overall_aligned=False,
+                    feedback="Task generation failed - verification skipped",
+                )
+                verification_results.append(verification)
+                logger.info("  ✗ SKIPPED")
+                continue
 
-        system_prompt, user_prompt = format_verification_prompt(
-            capability_domain=capability.domain,
-            capability_area=capability.area,
-            capability_name=capability.name,
-            capability_description=capability.description,
-            task_blueprint=blueprint_text,
-            question=task.question,
-            option_a=task.choices.get("A", ""),
-            option_b=task.choices.get("B", ""),
-            option_c=task.choices.get("C", ""),
-            option_d=task.choices.get("D", ""),
-            correct_answer=task.correct_answer,
-        )
+            # Get blueprint for this task
+            blueprint = blueprint_dict.get(task.blueprint_id)
+            blueprint_text = blueprint.blueprint if blueprint else "N/A"
 
-        response = call_llm(
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            response_format={"type": "json_object"},
-        )
+            system_prompt, user_prompt = format_verification_prompt(
+                capability_domain=capability.domain,
+                capability_area=capability.area,
+                capability_name=capability.name,
+                capability_description=capability.description,
+                task_blueprint=blueprint_text,
+                question=task.question,
+                option_a=task.choices.get("A", ""),
+                option_b=task.choices.get("B", ""),
+                option_c=task.choices.get("C", ""),
+                option_d=task.choices.get("D", ""),
+                correct_answer=task.correct_answer,
+            )
 
-        verification_data = json.loads(response)
+            response = call_llm(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                response_format={"type": "json_object"},
+            )
 
-        # Map new verification format to old format
-        overall_aligned = verification_data.get("overall_verdict", "Fail") == "Pass"
+            verification_data = json.loads(response)
 
-        verification = VerificationResult(
-            task_id=task.task_id,
-            subtopic_aligned=verification_data.get("blueprint_alignment", "No")
-            == "Yes",
-            difficulty_aligned=verification_data.get("difficulty_reasoning_match", "No")
-            == "Yes",
-            reasoning_aligned=verification_data.get("capability_alignment", "No")
-            == "Yes",
-            choices_appropriate=verification_data.get("single_correct_answer", "No")
-            == "Yes",
-            overall_aligned=overall_aligned,
-            feedback=verification_data.get("explanation", ""),
-        )
-        verification_results.append(verification)
+            # Map new verification format to old format
+            overall_aligned = verification_data.get("overall_verdict", "Fail") == "Pass"
 
-        status = "✓ PASS" if verification.overall_aligned else "✗ FAIL"
-        logger.info(f"  {status}")
+            verification = VerificationResult(
+                task_id=task.task_id,
+                subtopic_aligned=verification_data.get("blueprint_alignment", "No")
+                == "Yes",
+                difficulty_aligned=verification_data.get(
+                    "difficulty_reasoning_match", "No"
+                )
+                == "Yes",
+                reasoning_aligned=verification_data.get("capability_alignment", "No")
+                == "Yes",
+                choices_appropriate=verification_data.get("single_correct_answer", "No")
+                == "Yes",
+                overall_aligned=overall_aligned,
+                feedback=verification_data.get("explanation", ""),
+            )
+            verification_results.append(verification)
+
+            status = "✓ PASS" if verification.overall_aligned else "✗ FAIL"
+            logger.info(f"  {status}")
+
+        except Exception as e:
+            logger.error(f"  Failed to verify {task.task_id}: {e}")
+            # Create a verification result with error information
+            verification = VerificationResult(
+                task_id=task.task_id,
+                subtopic_aligned=False,
+                difficulty_aligned=False,
+                reasoning_aligned=False,
+                choices_appropriate=False,
+                overall_aligned=False,
+                feedback=f"Verification failed: {str(e)}",
+            )
+            verification_results.append(verification)
+            logger.info("  ✗ ERROR")
 
     # Calculate statistics
     total = len(verification_results)

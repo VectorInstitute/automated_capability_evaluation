@@ -5,6 +5,8 @@ model:
   name: gpt-4o  # OpenAI model to use
   temperature: 1.0  # Temperature for all steps
   max_tokens: 8192  # Max tokens for all steps
+  max_retries: 3  # Number of retry attempts for API calls
+  retry_delay: 2.0  # Initial delay between retries in seconds (exponential backoff)
 
 # Task generation settings
 generation:

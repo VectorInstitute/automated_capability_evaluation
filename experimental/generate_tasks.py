@@ -31,35 +31,52 @@ def generate_tasks(
 
         # Generate multiple tasks for this blueprint
         for j in range(tasks_per_blueprint):
-            system_prompt, user_prompt = format_task_prompt(
-                capability_name=capability.name,
-                capability_description=capability.description,
-                capability_domain=capability.domain,
-                capability_area=capability.area,
-                blueprint_description=blueprint.blueprint,
-            )
-
-            response = call_llm(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                response_format={"type": "json_object"},
-            )
-
-            task_data = json.loads(response)
-
-            # Create Task object
             task_id = f"task_{blueprint.combination_id}_{j}"
-            task = Task(
-                task_id=task_id,
-                blueprint_id=blueprint.combination_id,
-                subtopic=blueprint.subtopic,
-                difficulty=blueprint.difficulty,
-                reasoning=blueprint.reasoning,
-                question=task_data["question"],
-                choices=task_data["options"],
-                correct_answer=task_data["correct_answer"],
-            )
-            all_tasks.append(task)
+
+            try:
+                system_prompt, user_prompt = format_task_prompt(
+                    capability_name=capability.name,
+                    capability_description=capability.description,
+                    capability_domain=capability.domain,
+                    capability_area=capability.area,
+                    blueprint_description=blueprint.blueprint,
+                )
+
+                response = call_llm(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    response_format={"type": "json_object"},
+                )
+
+                task_data = json.loads(response)
+
+                # Create Task object
+                task = Task(
+                    task_id=task_id,
+                    blueprint_id=blueprint.combination_id,
+                    subtopic=blueprint.subtopic,
+                    difficulty=blueprint.difficulty,
+                    reasoning=blueprint.reasoning,
+                    question=task_data["question"],
+                    choices=task_data["options"],
+                    correct_answer=task_data["correct_answer"],
+                )
+                all_tasks.append(task)
+
+            except Exception as e:
+                logger.error(f"  Failed to generate {task_id}: {e}")
+                # Create a task with error information
+                task = Task(
+                    task_id=task_id,
+                    blueprint_id=blueprint.combination_id,
+                    subtopic=blueprint.subtopic,
+                    difficulty=blueprint.difficulty,
+                    reasoning=blueprint.reasoning,
+                    question=f"ERROR: Failed to generate task - {str(e)}",
+                    choices={"A": "N/A", "B": "N/A", "C": "N/A", "D": "N/A"},
+                    correct_answer="A",
+                )
+                all_tasks.append(task)
 
         logger.info(f"  Generated {tasks_per_blueprint} tasks")
 
