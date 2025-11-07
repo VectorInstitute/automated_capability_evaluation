@@ -88,3 +88,46 @@ python -m src.agentic_capability_generator
 # Generate tasks for each capability
 python -m src.agentic_task_generator
 ```
+
+### Wikipedia-Based Analysis Tools
+
+Tools for extracting, processing, and matching mathematical capabilities from Wikipedia. All prompts are centralized in `wikipedia/prompts.py`.
+
+#### Wikipedia Glossary Scraper
+
+Scrapes Wikipedia's "Glossary of areas of mathematics", extracts capability descriptions, and generates summaries with LLM-powered categorization.
+
+```bash
+cd wikipedia
+python wikipedia_scraper.py
+```
+
+Outputs JSON files to `wikipedia/pages/` containing `capability_name`, `description`, `summary`, `area`, `url`, and `timestamp`.
+
+#### Wikipedia-Generated Capability Matcher
+
+Matches Wikipedia capabilities with generated capabilities using LLM-based similarity analysis. Supports bidirectional matching.
+
+Configure `wikipedia/cfg/wiki_vs_generated.yaml`:
+- `data_cfg.wikipedia_pages_dir`: Wikipedia pages directory
+- `data_cfg.generated_dir`: Generated capabilities directory
+- `processing_cfg.match_direction`: `generated_to_wikipedia` or `wikipedia_to_generated`
+
+```bash
+cd wikipedia
+python wiki_vs_generated.py
+```
+
+#### Dataset Question Categorizer
+
+Categorizes questions from GSM8K or MATH datasets into mathematical areas using generated or Wikipedia taxonomies. Supports checkpoint-based resume.
+
+Configure `wikipedia/cfg/static_vs_generated.yaml`:
+- `data_cfg.dataset_name`: `gsm8k` or `math`
+- `data_cfg.dataset_path`: Dataset file (GSM8K) or directory (MATH)
+- `categorization_cfg.extraction_method`: `generated` or `wikipedia`
+
+```bash
+cd wikipedia
+python static_vs_generated.py
+```
