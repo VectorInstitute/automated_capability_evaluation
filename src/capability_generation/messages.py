@@ -37,4 +37,4 @@ class CapabilityRevisionRequest:
     scientist_id: str
     moderator_proposal: str
     area_name: str
-    round: int 
+    round: int

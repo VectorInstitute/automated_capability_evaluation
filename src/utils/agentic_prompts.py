@@ -202,13 +202,16 @@ You will be particularly rewarded for:
 - Avoiding overlap or redundancy,
 - Proposing tasks that vary in difficulty and structure.
 
-Your response must follow this format exactly:
-THOUGHT: <brief reasoning about the kind of tasks you're proposing>
-RESPONSE JSON:
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. The JSON should be directly parseable.
+
+Please return your proposal and your thoughts and reasoning in the following format:
 {{
-  "task_1": "<TASK_TEXT_1>",
-  "task_2": "<TASK_TEXT_2>",
-  ...
+  "thought": "Your reasoning and thought process for designing the tasks and ensuring diversity in content and difficulty of tasks",
+  "problems": {{
+    "problem_0": "PROBLEM_0_DESCRIPTION",
+    "problem_1": "PROBLEM_1_DESCRIPTION",
+    ...
+  }}
 }}
 
 Make sure:
@@ -225,15 +228,6 @@ Domain: {capability_domain}
 Sample tasks:
 {sample_tasks_text}"""
 
-TASK_SCIENTIST_SOLUTION_SYSTEM_PROMPT = """You are Scientist {scientist_id}, an expert in {capability_domain}. You are solving a task related to the capability: {capability_name}.
-
-Provide a clear, accurate, and complete solution to the given problem. Your solution should be correct and well-reasoned."""
-
-TASK_SCIENTIST_SOLUTION_USER_PROMPT = """Solve the following problem:
-
-{problem_text}
-
-Provide your solution clearly and concisely."""
 
 TASK_MODERATOR_PROBLEM_SYSTEM_PROMPT = """You are the Moderator overseeing capability-based task design. Your task is to review proposed tasks from multiple scientist agents and synthesize a final, high-quality task set for the capability.
 
@@ -241,24 +235,24 @@ Your responsibilities:
 - Eliminate any task that is not clearly aligned with the capability.
 - Merge or remove tasks that are redundant or overly similar.
 - Ensure that the final set of tasks is diverse, non-trivial, and tests different facets of the capability.
-- Include a brief justification for each rejected or significantly modified task.
+- Select only the highest quality tasks that best represent the capability.
 
-Your response should follow this format exactly:
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. Do not include any prefixes or prose. The JSON should be directly parseable.
 
-THOUGHT: <your summary of strengths and weaknesses of the proposed tasks and your curation plan>
-RESPONSE JSON:
-{{
-  "final_tasks": {{
+CRITICAL: When including LaTeX expressions or backslashes in your JSON strings, you must properly escape them by using double backslashes (\\\\). For example:
+- Write \\\\(x^2\\\\) instead of \\(x^2\\)
+- Write \\\\[equation\\\\] instead of \\[equation\\]
+- Write \\\\times instead of \\times
+
+Please return your curation and your thoughts and reasoning in the following format:
+{
+  "thought": "Your reasoning and curation plan here",
+  "final_tasks": {
     "task_1": "<FINAL_TASK_1>",
     "task_2": "<FINAL_TASK_2>",
     ...
-  }},
-  "rejected_tasks": {{
-    "task_from_scientist_A": "Reason for rejection or modification",
-    "task_from_scientist_B": "Reason for rejection or modification",
-    ...
-  }}
-}}"""
+  }
+}"""
 
 TASK_MODERATOR_PROBLEM_USER_PROMPT = """Below is a capability and task proposals from multiple scientist agents. Curate the final task set by filtering, editing, or merging as needed.
 
@@ -268,6 +262,101 @@ Domain: {capability_domain}
 
 Proposed Tasks:
 {problems_text}"""
+
+# =============================================================================
+# TASK SOLVING DEBATE PROMPTS
+# =============================================================================
+
+TASK_SOLVER_SYSTEM_MESSAGE = """You are an expert problem solver participating in a collaborative debate to solve tasks. You will work with other agents to find the best solution through structured discussion and reasoning."""
+
+TASK_SOLVER_ROUND_1_PROMPT = """Can you solve the following problem?
+
+PROBLEM: {problem_text}
+
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. Do not include any prefixes or prose. The JSON should be directly parseable.
+
+CRITICAL: When including LaTeX expressions or backslashes in your JSON strings, you must properly escape them by using double backslashes (\\\\). For example:
+- Write \\\\(x^2\\\\) instead of \\(x^2\\)
+- Write \\\\[equation\\\\] instead of \\[equation\\]
+- Write \\\\times instead of \\times
+
+Provide your solution in JSON format with the following structure:
+- thought: Your detailed reasoning and step-by-step solution process
+- final_answer: Your complete answer with explanation
+- numerical_answer: The final numerical result (if applicable, otherwise null)
+
+Example for a numerical problem:
+{{
+    "thought": "To solve this problem, I need to...",
+    "final_answer": "The solution is 42 because...",
+    "numerical_answer": 42
+}}
+
+Example for a non-numerical problem:
+{{
+    "thought": "To approach this problem, I should consider...",
+    "final_answer": "The answer is that we should use method X because...",
+    "numerical_answer": null
+}}
+
+Respond with valid JSON only."""
+
+TASK_SOLVER_SUBSEQUENT_ROUNDS_PROMPT = """These are the reasoning and solutions to the problem from other agents:
+
+{other_solutions}
+
+Using the solutions from other agents as additional information, can you provide your answer to the problem?
+
+The original problem is: {problem_text}
+
+Consider the other agents' approaches and reasoning. You may agree with them, disagree, or provide a synthesis of different approaches.
+
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. Do not include any prefixes or prose. The JSON should be directly parseable.
+
+CRITICAL: When including LaTeX expressions or backslashes in your JSON strings, you must properly escape them by using double backslashes (\\\\). For example:
+- Write \\\\(x^2\\\\) instead of \\(x^2\\)
+- Write \\\\[equation\\\\] instead of \\[equation\\]
+- Write \\\\times instead of \\times
+
+Provide your solution in JSON format with the following structure:
+- thought: Your detailed reasoning, considering other agents' solutions
+- final_answer: Your complete answer with explanation
+- numerical_answer: The final numerical result (if applicable, otherwise null)
+
+Example:
+{{
+    "thought": "Looking at the other solutions, Agent A used method X which is correct, but Agent B made an error in step 2. My approach is...",
+    "final_answer": "The solution is 42 because...",
+    "numerical_answer": 42
+}}
+
+Respond with valid JSON only."""
+
+TASK_MODERATOR_SYSTEM_MESSAGE = """You are a moderator overseeing a collaborative problem-solving debate. Your role is to check for consensus among agents and determine the final solution."""
+
+TASK_MODERATOR_CONSENSUS_PROMPT = """Review the following solutions from different agents for the same problem:
+
+PROBLEM: {problem_text}
+
+SOLUTIONS:
+{all_solutions}
+
+Determine if there is consensus among the agents. Consensus is reached when:
+1. All agents provide the same final answer, OR
+2. The majority of agents agree on the same answer with similar reasoning
+3. For numerical problems, the numerical answers should match or be very close
+
+If consensus is reached, provide the agreed-upon solution. If not, indicate that another round of debate is needed.
+
+Provide your assessment in JSON format:
+{{
+    "consensus_reached": true/false,
+    "final_solution": "the agreed solution if consensus reached, otherwise null",
+    "numerical_answer": final_numerical_result_if_applicable_otherwise_null,
+    "reasoning": "explanation of your decision"
+}}
+
+Respond with valid JSON only."""
 
 # =============================================================================
 # SYSTEM MESSAGES

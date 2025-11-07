@@ -6,6 +6,7 @@ import logging
 import traceback
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from autogen_core import (
     EVENT_LOGGER_NAME,
@@ -30,7 +31,7 @@ logging.getLogger(EVENT_LOGGER_NAME).setLevel(logging.WARNING)
 
 
 async def generate_capabilities_for_area(
-    cfg: DictConfig, area: Area, output_dir: Path, langfuse_client: Langfuse = None
+    cfg: DictConfig, area: Area, output_dir: Path, langfuse_client: Langfuse
 ) -> None:
     """Generate capabilities for a single area."""
     with langfuse_client.start_as_current_span(
@@ -153,8 +154,8 @@ async def generate_capabilities_for_area(
 async def generate_capabilities(
     cfg: DictConfig,
     areas_tag: str,
-    langfuse_client: Langfuse = None,
-    resume_tag: str = None,
+    langfuse_client: Langfuse,
+    resume_tag: Optional[str] = None,
 ) -> None:
     """Generate capabilities using multi-agent debate system for each area."""
     domain_name = cfg.global_cfg.domain
