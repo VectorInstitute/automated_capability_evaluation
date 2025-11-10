@@ -1,5 +1,5 @@
 scientist_llm:
-  name: o3-mini
+  name: o4-mini
   provider: openai
   generation_cfg:
     capability_generation:
@@ -62,14 +62,14 @@ capabilities_cfg:
   capabilities_dir: /fs01/projects/aieng/public/ace/artifacts
   results_dir: gs://ace-artifacts
   inspect_evals_dir: /fs01/projects/aieng/public/ace/inspect_evals/src/ace_evals
-  domain: personal_finance
+  domain: math
   method: "hierarchical"
   num_seed_capabilities: 1
-  num_gen_capabilities: 20
+  num_gen_capabilities: 100
   num_gen_capabilities_buffer: 0.0
-  num_capability_areas: 5
-  num_gen_capabilities_per_run: 1
-  num_gen_tasks_per_capability: 1
+  num_capability_areas: 10
+  num_gen_capabilities_per_run: 5
+  num_gen_tasks_per_capability: 100
   num_gen_tasks_buffer: 0.0
   task_gen_few_shot: false
   task_gen_prompt_version: "v1"
@@ -102,7 +102,7 @@ dimensionality_reduction_cfg:
 exp_cfg:
   seed: 37
   trial_run: false
-  exp_id: "personal_finance_o3-mini_r1"
+  exp_id: ""
 
 defaults:
   - _self_

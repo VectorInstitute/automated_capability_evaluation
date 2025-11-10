@@ -4,7 +4,7 @@ import os
 from enum import Enum
 
 
-BASE_ARTIFACTS_DIR = "/h/fkohankh/automated_capability_evaluation_logs"
+BASE_ARTIFACTS_DIR = "/fs01/projects/aieng/public/ace/artifacts"
 GCP_BASE_ARTIFACTS_DIR = "gs://ace-artifacts"
 BASE_INSPECT_EVALS_DIR = "/h/fkohankh/automated_capability_evaluation_logs"
 
