@@ -2,20 +2,9 @@
 
 This document defines the standardized input and output formats for each stage of the ACE pipeline. These schemas ensure consistency across different implementations and enable interoperability between pipeline stages.
 
-## Implementation Approach
-
-**Pipeline Pattern:**
-Each stage follows a consistent pattern:
-1. **Stage Implementation**: Produces dataclass objects (or lists of dataclasses) + metadata
-2. **Save Function**: Takes dataclass objects + metadata → saves to JSON file
-
-**Functions (to be provided):**
-- **Save functions**: `save_<stage>_output(data, metadata, output_path)` - Handle JSON serialization, file writing, directory creation
-- **Load functions**: `load_<stage>_output(file_path) -> <OutputDataclass>` - Load dataclass objects from JSON files
-
-Dataclasses provide type safety, validation, and clear structure. JSON is the serialization format.
-
 ## Pipeline Stages
+
+The ACE pipeline consists of multiple stages, where each stage consumes the output from the previous stage:
 
 0. **Experiment Setup** - Initialize experiment and create domain metadata
 1. **Area Generation** - Generate domain areas
@@ -26,34 +15,94 @@ Dataclasses provide type safety, validation, and clear structure. JSON is the se
 
 **Note:** Experiment configuration must remain consistent throughout the pipeline. Once set during experiment setup, it should not be changed to avoid inconsistencies.
 
+## Implementation Approach
+
+**Pipeline Pattern:**
+Each stage follows a consistent pattern:
+1. **Consumes Previous Stage Output**: Each stage (except Stage 0) loads data from the previous stage's output files using provided load functions
+2. **Stage Implementation**: Produces dataclass objects (or lists of dataclasses) + metadata
+3. **Save Function**: Takes dataclass objects + metadata → saves to JSON file using provided save functions
+
+**Important:** All stage implementations must follow this pattern to ensure the pipeline is clean, consistent, and maintainable. This enables interoperability between different implementations, resumability of failed runs, and clear traceability through the pipeline.
+
+**Note:** The dataclasses, save functions (`save_<stage>_output(data, metadata, output_path)`), and load functions (`load_<stage>_output(file_path) -> <OutputDataclass>`) for each stage will be provided and must be used. Do not implement custom serialization or data structures - use the standardized schemas to ensure consistency across the pipeline. Dataclasses provide type safety, validation, and clear structure. JSON is the serialization format.
+
+**Iteration Note:** Some stages operate on subsets (one area, capability, or task at a time) and require an outer orchestrator/loop script to iterate over all items:
+- **Stage 2 (Capability Generation)**: Operates on one area at a time - orchestrator loops over all areas from Stage 1
+- **Stage 3 (Task Generation)**: Operates on one capability at a time - orchestrator loops over all capabilities from Stage 2
+- **Stage 4 (Solution Generation)**: Operates on one task at a time - orchestrator loops over all tasks from Stage 3
+- **Stage 5 (Validation)**: Operates on one task at a time - orchestrator loops over all solutions from Stage 4
+
+The stage implementation itself handles a single item, and the orchestrator manages the iteration across all items.
+
+---
+
+## Naming Conventions
+
+All identifiers and tags in the pipeline follow standardized formats:
+
+### Tags
+- **Format**: `_YYYYMMDD_HHMMSS` (e.g., `_20251009_122040`)
+- **Usage**: Used for versioning outputs in Stages 1-5
+- **Generation**: Automatically generated when a new run is created (timestamp-based)
+
+### Domain IDs
+- **Format**: `domain_` + zero-padded 3-digit number (e.g., `domain_000`)
+- **Assignment**: Sequential starting from `domain_000`
+- **Scope**: Unique within an experiment (typically only one domain per experiment)
+
+### Area IDs
+- **Format**: `area_` + zero-padded 3-digit number (e.g., `area_000`, `area_001`)
+- **Assignment**: Sequential starting from `area_000` when areas are generated
+- **Scope**: Unique within an experiment
+
+### Capability IDs
+- **Format**: `cap_` + zero-padded 3-digit number (e.g., `cap_000`, `cap_001`)
+- **Assignment**: Sequential starting from `cap_000` within each area when capabilities are generated
+- **Scope**: Unique within an area (but can repeat across areas, e.g., `area_000/cap_000/` and `area_001/cap_000/`)
+
+### Task IDs
+- **Format**: `task_` + zero-padded 3-digit number (e.g., `task_000`, `task_001`)
+- **Assignment**: Sequential starting from `task_000` within each capability when tasks are generated
+- **Scope**: Unique within a capability
+
+
 ---
 
 ## Directory Structure
 
-All outputs are stored in the following directory structure, organized hierarchically by area and capability for easy resumability, with versioning support:
+All outputs are stored in the following flat directory structure, with each stage having its own top-level directory and tags for different generation runs:
 
 ```
 <output_dir>/
   <experiment_id>/
     experiment.json                  # Experiment metadata (all configuration)
-    domain.json                      # Domain metadata (contains domain_id)
+    domain/
+      domain.json                    # Domain metadata (contains domain_id)
     areas/
-      <tag>/
-        areas.json                   # All areas for this experiment run
-    <area_id>/
-      capabilities/
-        <tag>/
-          capabilities.json          # All capabilities for this area run
-      <capability_id>/
-        tasks/
-          <tag>/
-            tasks.json               # All tasks for this capability run
-        solutions/
-          <tag>/
-            <task_id>_solution.json  # Individual solution files (e.g., task_000_solution.json)
-        validation/
-          <tag>/
-            <task_id>_validation.json  # Validation results per task (e.g., task_000_validation.json)
+      <area_tag>/                   # Tag from area generation (e.g., _20251009_122040)
+        areas.json                  # All areas for this area generation run (output from Stage 1)
+    capabilities/
+      <cap_tag>/                    # Tag from capability generation (e.g., _20251009_131252)
+        <area_id>/                 # One directory per area (e.g., area_000, area_001)
+          capabilities.json         # All capabilities for this area in this generation run
+    tasks/
+      <task_tag>/                   # Tag from task generation (e.g., _20251014_114358)
+        <area_id>/                  # One directory per area (e.g., area_000, area_001)
+          <capability_id>/          # One directory per capability (e.g., cap_000, cap_001)
+            tasks.json              # All tasks for this capability in this generation run
+    solutions/
+      <solution_tag>/               # Tag from solution generation (e.g., _20251016_182128)
+        <area_id>/                  # One directory per area (e.g., area_000, area_001)
+          <capability_id>/          # One directory per capability (e.g., cap_000, cap_001)
+            <task_id>/              # One directory per task (e.g., task_000, task_001)
+              solution.json         # Solution for this task
+    validation/
+      <validation_tag>/             # Tag from validation run (e.g., _20251017_091500)
+        <area_id>/                  # One directory per area (e.g., area_000, area_001)
+          <capability_id>/          # One directory per capability (e.g., cap_000, cap_001)
+            <task_id>/              # One directory per task (e.g., task_000, task_001)
+              validation.json       # Validation result for this task
 ```
 
 **Example:**
@@ -61,80 +110,70 @@ All outputs are stored in the following directory structure, organized hierarchi
 agentic_outputs/
   r0_10x10/
     experiment.json                  # Experiment configuration
-    domain.json
+    domain/
+      domain.json                    # Domain metadata
     areas/
-      _20251009_122040/
-        areas.json
-      _20251010_143022/
-        areas.json
-    area_000/                           # area_id = "area_000" (first area)
-      capabilities/
-        _20251009_131252/
-          capabilities.json
-      cap_000/                          # capability_id = "cap_000" (first capability in area_000)
-        tasks/
-          _20251014_114358/
-            tasks.json
-        solutions/
-          _20251016_182128/
-            task_000_solution.json
-            task_001_solution.json
-            task_002_solution.json
-        validation/
-          _20251017_091500/
-            task_000_validation.json
-            task_001_validation.json
-            task_002_validation.json
-      cap_001/                          # capability_id = "cap_001" (second capability in area_000)
-        tasks/
-          _20251014_114358/
-            tasks.json
-    area_001/                           # area_id = "area_001" (second area)
-      capabilities/
-        _20251009_131252/
-          capabilities.json
-      cap_000/                          # capability_id = "cap_000" (first capability in area_001)
-        tasks/
-          _20251014_114358/
-            tasks.json
+      _20251009_122040/              # Tag from first area generation
+        areas.json                   # All areas from this generation
+      _20251010_143022/              # Tag from second area generation (different set of areas)
+        areas.json                   # All areas from this generation
+    capabilities/
+      _20251009_131252/              # Tag from first capability generation
+        area_000/
+          capabilities.json          # Capabilities for area_000
+        area_001/
+          capabilities.json          # Capabilities for area_001
+      _20251011_091500/              # Tag from second capability generation
+        area_000/
+          capabilities.json          # Capabilities for area_000
+    tasks/
+      _20251014_114358/              # Tag from first task generation
+        area_000/
+          cap_000/
+            tasks.json               # Tasks for area_000/cap_000
+          cap_001/
+            tasks.json               # Tasks for area_000/cap_001
+        area_001/
+          cap_000/
+            tasks.json               # Tasks for area_001/cap_000
+      _20251015_120000/              # Tag from second task generation
+        area_000/
+          cap_000/
+            tasks.json               # Tasks for area_000/cap_000
+    solutions/
+      _20251016_182128/              # Tag from solution generation
+        area_000/
+          cap_000/
+            task_000/
+              solution.json
+            task_001/
+              solution.json
+        area_001/
+          cap_000/
+            task_000/
+              solution.json
+    validation/
+      _20251017_091500/              # Tag from validation run
+        area_000/
+          cap_000/
+            task_000/
+              validation.json
+            task_001/
+              validation.json
+        area_001/
+          cap_000/
+            task_000/
+              validation.json
 ```
-
-**Directory Naming Rules:**
-- `<output_dir>`: Base output directory (e.g., `agentic_outputs`)
-- `<experiment_id>`: Experiment identifier (e.g., `r0_10x10`)
-- `<tag>`: Timestamp tag in format `_YYYYMMDD_HHMMSS` (e.g., `_20251009_122040`)
-  - Generated automatically when a stage is run
-  - Allows multiple versions/runs of the same stage
-  - Each stage has its own tag (independent versioning)
-- `<area_id>`: String identifier in format `area_` + zero-padded 3-digit number (e.g., `area_000`, `area_001`)
-  - Format: `area_` prefix + zero-padded 3-digit number (000, 001, 002, ...)
-  - Assigned sequentially starting from 000 when areas are generated
-  - Example: First area → `area_000`, Second area → `area_001`, etc.
-  - Unique within an experiment
-  - Used in directory paths for clean, explicit paths
-  - Human-readable name stored in `areas.json`
-- `<capability_id>`: String identifier in format `cap_` + zero-padded 3-digit number (e.g., `cap_000`, `cap_001`)
-  - Format: `cap_` prefix + zero-padded 3-digit number (000, 001, 002, ...)
-  - Assigned sequentially starting from 000 within each area when capabilities are generated
-  - Example: First capability in area_000 → `cap_000`, Second capability → `cap_001`, etc.
-  - Unique within an area (but can repeat across areas, e.g., `area_000/cap_000/` and `area_001/cap_000/`)
-  - Used in directory paths for clean, explicit paths
-  - Human-readable name stored in `capabilities.json`
-- `<task_id>`: String identifier in format `task_` + zero-padded 3-digit number (e.g., `task_000`, `task_001`)
-  - Format: `task_` prefix + zero-padded 3-digit number (000, 001, 002, ...)
-  - Assigned sequentially starting from 000 within each capability when tasks are generated
-  - Example: First task in cap_000 → `task_000`, Second task → `task_001`, etc.
-  - Unique within a capability
-
 
 **File Naming:**
 - Experiment: `experiment.json` (no versioning, one file per experiment, contains all configuration)
 - Domain: `domain.json` (no versioning, one file per experiment)
-- Areas: `areas.json` (versioned by tag: `areas/<tag>/areas.json`)
-- Capabilities: `capabilities.json` (versioned by tag: `<area_id>/capabilities/<tag>/capabilities.json`)
-- Tasks: `tasks.json` (versioned by tag: `<area_id>/<capability_id>/tasks/<tag>/tasks.json`)
-- Solutions: `<task_id>_solution.json` (versioned by tag: `<area_id>/<capability_id>/solutions/<tag>/<task_id>_solution.json`, e.g., `task_000_solution.json`)
-- Validation: `<task_id>_validation.json` (versioned by tag: `<area_id>/<capability_id>/validation/<tag>/<task_id>_validation.json`, e.g., `task_000_validation.json`)
+- Areas: `areas.json` (versioned by tag: `areas/<area_tag>/areas.json`)
+- Capabilities: `capabilities.json` (versioned by tag: `capabilities/<cap_tag>/<area_id>/capabilities.json`)
+- Tasks: `tasks.json` (versioned by tag: `tasks/<task_tag>/<area_id>/<capability_id>/tasks.json`)
+- Solutions: `solution.json` (versioned by tag: `solutions/<solution_tag>/<area_id>/<capability_id>/<task_id>/solution.json`)
+- Validation: `validation.json` (versioned by tag: `validation/<validation_tag>/<area_id>/<capability_id>/<task_id>/validation.json`)
 
 **Resumability Benefits:**
 - Each area has its own directory - easy to see which areas are processed
@@ -145,14 +184,14 @@ agentic_outputs/
 - Can check latest tag to determine most recent run
 
 **Versioning Strategy:**
-- Each stage generates a new tag when run (format: `_YYYYMMDD_HHMMSS`)
+- Each stage generates a new tag when run (see Tags in Naming Conventions section)
 - Tags are independent per stage (areas can have different tag than capabilities)
 - **Input tags**: Each stage requires tag(s) from previous stage(s) to load input data
   - Stage 1 (Areas): No input tag (uses domain.json)
   - Stage 2 (Capabilities): Requires `areas_tag` from Stage 1
   - Stage 3 (Tasks): Requires `capabilities_tag` from Stage 2
   - Stage 4 (Solutions): Requires `tasks_tag` from Stage 3
-  - Stage 5 (Validation): Requires both `tasks_tag` (Stage 3) and `solutions_tag` (Stage 4)
+  - Stage 5 (Validation): Requires `solutions_tag` from Stage 4 (task information is included in solution files)
 - **Resume tags**: Optional - If provided, stage loads existing output and continues incomplete generation
   - Checks for existing files with resume tag
   - Identifies which items are incomplete (e.g., missing capabilities, tasks, solutions)
@@ -162,23 +201,142 @@ agentic_outputs/
 
 ---
 
+## Dataclasses
+
+All dataclasses used across pipeline stages are defined below. Stage implementations must use these standardized dataclasses.
+
+**Note:** All ID and tag formats (domain_id, area_id, capability_id, task_id, tags) are defined in the [Naming Conventions](#naming-conventions) section. Individual field descriptions below do not repeat these format definitions.
+
+### PipelineMetadata
+
+All pipeline outputs include a `metadata` object (represented by the `PipelineMetadata` dataclass) that provides pipeline execution context and traceability.
+
+**Required Fields:**
+- `experiment_id`: String (required, experiment identifier)
+- `output_base_dir`: String (required, base output directory for all pipeline outputs)
+- `timestamp`: String (required, ISO 8601 format, e.g., "2025-11-06T12:00:00Z")
+- `input_stage_tag`: String (optional, tag of the input data used from previous stage) - Present when stage uses input from previous stage, null for Stage 0
+- `output_stage_tag`: String (optional, tag for this output) - Present for versioned stages (Stages 1-5), null for Stage 0 (not versioned)
+- `resume`: Boolean (required, indicates if this run was resumed from a previous checkpoint)
+
+**Optional Fields:**
+- Additional optional fields may be added as needed for pipeline-specific metadata
+
+**Note:**
+- Stage-specific identifiers (domain_id, area_id, capability_id, task_id) are stored in the actual data objects (Domain, Area, Capability, Task), NOT in PipelineMetadata
+- PipelineMetadata focuses on pipeline execution context, not the content being processed
+
+### Experiment
+
+**Fields:**
+- `experiment_id`: String (required, experiment identifier)
+- `domain`: String (required, human-readable domain name)
+- `domain_id`: String (required)
+- `pipeline_type`: String (optional, e.g., "agentic", "diverse_task") - identifies the pipeline variant
+- `configuration`: Dict[str, Any] (required, complete configuration used for this experiment - structure varies by pipeline type)
+
+### Domain
+
+**Fields:**
+- `name`: String (required, human-readable domain name)
+- `domain_id`: String (required)
+- `description`: String (optional, domain description)
+
+### Area
+
+**Fields:**
+- `name`: String (required, human-readable area name)
+- `area_id`: String (required)
+- `description`: String (optional, area description)
+- `domain`: String (required, domain name)
+- `domain_id`: String (required)
+- `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
+  - This field can contain any generation-specific data (e.g., generation method, parameters, intermediate steps)
+  - Structure is flexible and depends on the generation method
+
+### Capability
+
+**Fields:**
+- `name`: String (required, capability name)
+- `capability_id`: String (required)
+- `description`: String (optional, capability description)
+- `area`: String (required, area name)
+- `area_id`: String (required)
+- `domain`: String (required, domain name)
+- `domain_id`: String (required)
+- `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
+  - This field can contain any generation-specific data (e.g., generation method, parameters, intermediate steps)
+  - Structure is flexible and depends on the generation method
+
+### Task
+
+**Fields:**
+- `task_id`: String (required, unique within capability)
+- `task`: String (required, the task/problem text)
+- `capability_id`: String (required)
+- `capability`: String (required, capability name)
+- `area`: String (required, area name)
+- `area_id`: String (required)
+- `domain`: String (required, domain name)
+- `domain_id`: String (required)
+
+### TaskSolution
+
+**Fields:**
+- `task_id`: String (required)
+- `task`: String (required, the task/problem text from Stage 3)
+- `capability`: String (required, capability name)
+- `capability_id`: String (required)
+- `area`: String (required, area name)
+- `area_id`: String (required)
+- `domain`: String (required, domain name)
+- `domain_id`: String (required)
+- `solution`: String (required, the final solution)
+- `reasoning`: String (required, explanation of the solution)
+- `numerical_answer`: String (optional, JSON string with numerical results)
+- `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
+  - This field can contain any generation-specific data (e.g., debate rounds, agent interactions, pipeline type)
+  - Structure is flexible and depends on the generation method (agentic, single-agent, etc.)
+
+### ValidationResult
+
+**Fields:**
+- `task_id`: String (required)
+- `task`: String (required, the task/problem text from Stage 3)
+- `capability`: String (required, capability name)
+- `capability_id`: String (required)
+- `area`: String (required, area name)
+- `area_id`: String (required)
+- `domain`: String (required, domain name)
+- `domain_id`: String (required)
+- `verification`: Boolean (required, overall validation status - whether the solution is verified/valid)
+- `feedback`: String (required, detailed feedback on the validation)
+- `score`: Float (optional, validation score, typically 0.0 to 1.0)
+- `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
+  - This field can contain any validation-specific data (e.g., validation method, criteria details, error details)
+  - Structure is flexible and depends on the validation method
+
+---
+
 ## Stage 0: Experiment Setup
 
 ### Input
-All inputs come from the configuration file. Important fields:
+All inputs come from a configuration YAML file (e.g., `src/cfg/agentic_config.yaml`). Important fields include:
 - **Experiment ID**: String - The experiment identifier (e.g., "r0_10x10")
 - **Domain Name**: String - The domain name (e.g., "personal finance", "mathematics")
 - **Description**: String (optional) - Domain description
-- **Configuration**: Dict - Complete experiment configuration (all config sections: `global_cfg`, `debate_cfg`, `agents`, `area_generation`, `capability_generation`, `task_generation`, `task_solver`, `exp_cfg`, etc.)
+- **Output Base Directory**: String - Base output directory for all pipeline outputs (e.g., `global_cfg.output_dir` in agentic pipeline)
+
+**Note:** The `experiment_id` and `output_base_dir` from the config YAML file are consistent across all stages. All stage-specific configurations (e.g., `num_areas`, `num_capabilities_per_area`, `num_tasks_per_capability`) also come from this same config YAML file.
 
 ### Tag Handling
 - **No input tag required** (first stage)
-- **No resume tag** - Always creates new files (overwrites if exists)
+- **No resume tag** - Not applicable (single domain JSON, always creates new files)
 
 ### Outputs
 
 This stage creates two files:
-1. `experiment.json` - Experiment metadata and complete configuration
+1. `experiment.json` - Experiment metadata
 2. `domain.json` - Domain metadata
 
 #### Output 1: `experiment.json`
@@ -186,215 +344,131 @@ This stage creates two files:
 **Stage Output:** Experiment dataclass + PipelineMetadata
 **Save Function:** `save_experiment_output(experiment: Experiment, metadata: PipelineMetadata, output_path: Path)`
 
-**Implementation:**
-- Stage creates `Experiment` dataclass object with experiment information and configuration
-- Stage creates `PipelineMetadata` dataclass object with metadata
-- Pass both to `save_experiment_output(experiment, metadata, output_path)` which creates `ExperimentMetadata` dataclass, serializes to JSON, and writes to file
-
 **File Path:** `<output_dir>/<experiment_id>/experiment.json`
 
 ```json
 {
   "metadata": {
     "experiment_id": "r0_10x10",
-    "stage": "experiment_setup",
-    "timestamp": "2025-11-06T12:00:00Z"
+    "output_base_dir": "agentic_outputs",
+    "timestamp": "2025-11-06T12:00:00Z",
+    "input_stage_tag": null,
+    "output_stage_tag": null,
+    "resume": false
   },
   "experiment": {
     "experiment_id": "r0_10x10",
     "domain": "personal finance",
-    "domain_id": "personal_finance",
+    "domain_id": "domain_000",
+    "pipeline_type": "agentic",
     "configuration": {
-      "global_cfg": {
-        "domain": "personal finance",
-        "output_dir": "agentic_outputs"
-      },
-      "debate_cfg": {
-        "max_round": 5
-      },
-      "agents": {
-        "scientist_a": {
-          "model_name": "gpt-5",
-          "seed": 8
-        },
-        "scientist_b": {
-          "model_name": "gemini-2.5-pro",
-          "seed": 88
-        },
-        "moderator": {
-          "model_name": "claude-opus-4-1-20250805",
-          "seed": 888
-        }
-      },
-      "area_generation": {
-        "num_areas": 10
-      },
-      "capability_generation": {
-        "num_capabilities_per_area": 5
-      },
-      "task_generation": {
-        "num_final_problems_per_capability": 3,
-        "buffer_param": 2,
-        "max_rounds": 3
-      },
-      "task_solver": {
-        "max_tasks": 0,
-        "max_rounds": 1
-      },
-      "exp_cfg": {
-        "exp_id": "r0_10x10"
-      }
+      ...
     }
   }
 }
 ```
 
-**Schema (JSON representation of ExperimentMetadata dataclass):**
-- `metadata`: Object containing pipeline metadata
-  - `experiment_id`: String (required, experiment identifier)
-  - `stage`: String (required, value: "experiment_setup")
-  - `timestamp`: String (required, ISO 8601 format)
-- `experiment`: Object containing experiment information
-  - `experiment_id`: String (required, experiment identifier)
-  - `domain`: String (required, human-readable domain name)
-  - `domain_id`: String (required, slugified domain identifier)
-  - `configuration`: Object (required, all configuration used for this experiment)
-    - Contains all config sections: `global_cfg`, `debate_cfg`, `agents`, `area_generation`, `capability_generation`, `task_generation`, `task_solver`, `exp_cfg`, etc.
-    - Structure matches the input configuration format exactly
+**Schema:** See `Experiment` and `PipelineMetadata` dataclasses in the Dataclasses section above.
 
 #### Output 2: `domain.json`
 
 **Stage Output:** Domain dataclass object + PipelineMetadata
 **Save Function:** `save_domain_output(domain: Domain, metadata: PipelineMetadata, output_path: Path)`
 
-**Implementation:**
-- Stage creates `Domain` dataclass object with domain information
-- Stage creates `PipelineMetadata` dataclass object with metadata
-- Pass both to `save_domain_output(domain, metadata, output_path)` which serializes to JSON and writes to file
-
-**File Path:** `<output_dir>/<experiment_id>/domain.json`
+**File Path:** `<output_dir>/<experiment_id>/domain/domain.json`
 
 ```json
 {
   "metadata": {
-    "domain": "personal finance",
-    "domain_id": "personal_finance",
-    "stage": "experiment_setup",
-    "timestamp": "2025-11-06T12:00:00Z"
+    "experiment_id": "r0_10x10",
+    "output_base_dir": "agentic_outputs",
+    "timestamp": "2025-11-06T12:00:00Z",
+    "input_stage_tag": null,
+    "output_stage_tag": null,
+    "resume": false
   },
   "domain": {
     "name": "personal finance",
-    "domain_id": "personal_finance",
+    "domain_id": "domain_000",
     "description": "Personal finance domain covering budgeting, investing, retirement planning, etc."
   }
 }
 ```
-
-**Schema (JSON representation of Domain dataclass):**
-- `metadata`: Object containing pipeline metadata
-  - `domain`: String (required, human-readable domain name)
-  - `domain_id`: String (required, slugified domain identifier)
-  - `stage`: String (required, value: "experiment_setup")
-  - `timestamp`: String (required, ISO 8601 format)
-- `domain`: Object containing domain information
-  - `name`: String (required, human-readable domain name)
-  - `domain_id`: String (required, slugified identifier, filesystem-safe)
-  - `description`: String (optional, domain description)
 
 ---
 
 ## Stage 1: Area Generation
 
 ### Input
-- **Domain**: Domain object (from Stage 0) - Loaded from `domain.json`
-- **Configuration**: Dict - Stage-specific configuration (e.g., `num_areas`)
+- **Domain**: Domain object (from Stage 0) - Loaded from `domain/domain.json`
+- **Configuration**: Dict - Stage-specific configuration from config YAML file (e.g., `num_areas`)
 
 ### Tag Handling
-- **Input tag**: Not applicable (uses domain.json which has no tag)
-- **Resume tag**: Optional - If provided, loads from `areas/<resume_tag>/areas.json` and continues incomplete area generation
-- **New tag**: If no resume tag provided, generates new tag (format: `_YYYYMMDD_HHMMSS`) and creates `areas/<new_tag>/areas.json`
+- **Input tag**: Not applicable (uses `domain/domain.json` from Stage 0, which has no tag)
+- **Resume tag**: Not applicable (single `areas.json` file with all areas, always creates new files)
+- **New tag**: Generates new tag and creates `areas/<new_tag>/areas.json`
 
 ### Output: `areas.json`
 
 **Stage Output:** List[Area] dataclasses + PipelineMetadata
 **Save Function:** `save_areas_output(areas: List[Area], metadata: PipelineMetadata, output_path: Path)`
 
-**Implementation:**
-- Stage generates list of `Area` dataclass objects
-- Stage creates `PipelineMetadata` dataclass object with metadata
-- Pass both to `save_areas_output(areas, metadata, output_path)` which creates `AreaGenerationOutput` dataclass, serializes to JSON, and writes to file
-
 **File Path:** `<output_dir>/<experiment_id>/areas/<tag>/areas.json`
 ```json
 {
   "metadata": {
-    "domain": "personal finance",
-    "domain_id": "personal_finance",
-    "stage": "area_generation",
-    "tag": "_20251009_122040",
-    "timestamp": "2025-11-06T12:00:00Z"
+    "experiment_id": "r0_10x10",
+    "output_base_dir": "agentic_outputs",
+    "timestamp": "2025-11-06T12:00:00Z",
+    "input_stage_tag": null,
+    "output_stage_tag": "_20251009_122040",
+    "resume": false
   },
   "areas": [
     {
       "name": "Cash Flow & Budget Management",
       "area_id": "area_000",
-      "description": "Design and monitor budgets using various methodologies..."
+      "description": "Design and monitor budgets using various methodologies...",
+      "domain": "personal finance",
+      "domain_id": "domain_000"
     }
   ]
 }
 ```
-
-**Schema (JSON representation of AreaGenerationOutput dataclass):**
-- `metadata`: Object containing pipeline metadata
-  - `domain`: String (required, human-readable domain name)
-  - `domain_id`: String (required, slugified domain identifier)
-  - `stage`: String (required, value: "area_generation")
-  - `tag`: String (required, format `_YYYYMMDD_HHMMSS`, the tag used for this run's output)
-  - `timestamp`: String (required, ISO 8601 format)
-  - Note: No `input_tag` field (Stage 1 uses `domain.json` which has no tag)
-- `areas`: Array of Area objects
-  - `name`: String (required, human-readable name, unique within domain)
-  - `area_id`: String (required, format `area_` + zero-padded 3-digit number, unique within experiment)
-  - `description`: String (required, detailed description)
 
 ---
 
 ## Stage 2: Capability Generation
 
 ### Input
-- **Areas**: Array of Area objects (from Stage 1) - Loaded from `areas/<areas_tag>/areas.json`
 - **Areas tag**: String - Tag from Stage 1 output (e.g., `_20251009_122040`)
-- **Configuration**: Dict - Stage-specific configuration (e.g., `num_capabilities_per_area`)
+  - Loads areas from `areas/<areas_tag>/areas.json`
+- **Configuration**: Dict - Stage-specific configuration from config YAML file (e.g., `num_capabilities_per_area`)
 
 ### Tag Handling
-- **Input tag**: Required - `areas_tag` from Stage 1 output (e.g., `_20251009_122040`)
-  - Loads areas from `areas/<areas_tag>/areas.json`
-- **Resume tag**: Optional - If provided, loads from `<area_id>/capabilities/<resume_tag>/capabilities.json` for each area and continues incomplete capability generation
-- **New tag**: If no resume tag provided, generates new tag (format: `_YYYYMMDD_HHMMSS`) and creates `<area_id>/capabilities/<new_tag>/capabilities.json` for each area
+- **Resume tag**: Optional - If provided, goes to `capabilities/<resume_tag>/` directory
+  - For each area_id, checks if `capabilities/<resume_tag>/<area_id>/capabilities.json` exists
+  - If file exists, capabilities for that area were already generated successfully, so skip it
+  - If file doesn't exist, creates `<area_id>/` subdirectory and generates capabilities for that area
+- **New tag**: If no resume tag provided, generates new tag (cap_tag) for this capability generation run
+  - For each area, creates `capabilities/<cap_tag>/<area_id>/capabilities.json`
 
 ### Output: `capabilities.json` (one per area)
 
 **Stage Output:** List[Capability] dataclasses + PipelineMetadata
 **Save Function:** `save_capabilities_output(capabilities: List[Capability], metadata: PipelineMetadata, output_path: Path)`
 
-**Implementation:**
-- Stage generates list of `Capability` dataclass objects for an area
-- Stage creates `PipelineMetadata` dataclass object with metadata (includes area_id)
-- Pass both to `save_capabilities_output(capabilities, metadata, output_path)` which creates `CapabilityGenerationOutput` dataclass, serializes to JSON, and writes to file
+**File Path:** `<output_dir>/<experiment_id>/capabilities/<cap_tag>/<area_id>/capabilities.json`
 
-**File Path:** `<output_dir>/<experiment_id>/<area_id>/capabilities/<tag>/capabilities.json`
-Where `<area_id>` is a string in format `area_` + zero-padded 3-digit number (e.g., `area_000`, `area_001`)
 ```json
 {
   "metadata": {
-    "domain": "personal finance",
-    "domain_id": "personal_finance",
-    "area": "Cash Flow & Budget Management",
-    "area_id": "area_000",
-    "stage": "capability_generation",
-    "input_tag": "_20251009_122040",
-    "tag": "_20251009_131252",
-    "timestamp": "2025-11-06T12:30:00Z"
+    "experiment_id": "r0_10x10",
+    "output_base_dir": "agentic_outputs",
+    "timestamp": "2025-11-06T12:30:00Z",
+    "input_stage_tag": "_20251009_122040",
+    "output_stage_tag": "_20251009_131252",
+    "resume": false
   },
   "capabilities": [
     {
@@ -402,321 +476,199 @@ Where `<area_id>` is a string in format `area_` + zero-padded 3-digit number (e.
       "capability_id": "cap_000",
       "description": "Define the strategic framework and methodology for budgeting...",
       "area": "Cash Flow & Budget Management",
-      "area_id": "area_000"
+      "area_id": "area_000",
+      "domain": "personal finance",
+      "domain_id": "domain_000"
     }
   ]
 }
 ```
-
-**Schema (JSON representation of CapabilityGenerationOutput dataclass):**
-- `metadata`: Object containing pipeline metadata
-  - `domain`: String (required, human-readable domain name)
-  - `domain_id`: String (required, slugified domain identifier)
-  - `area`: String (required, human-readable area name, must match an area name from Stage 1)
-  - `area_id`: String (required, format `area_` + zero-padded 3-digit number, must match an area_id from Stage 1)
-  - `stage`: String (required, value: "capability_generation")
-  - `input_tag`: String (required, format `_YYYYMMDD_HHMMSS`, the areas tag from Stage 1 used as input)
-  - `tag`: String (required, format `_YYYYMMDD_HHMMSS`, the tag used for this run's output)
-  - `timestamp`: String (required, ISO 8601 format)
-- `capabilities`: Array of Capability objects
-  - `name`: String (required, human-readable name, unique within area)
-  - `capability_id`: String (required, format `cap_` + zero-padded 3-digit number starting from 000, unique within area)
-  - `description`: String (required, detailed description)
-  - `area`: String (required, human-readable area name, must match parent area name)
-  - `area_id`: String (required, format `area_` + zero-padded 3-digit number, must match parent area_id)
 
 ---
 
 ## Stage 3: Task Generation
 
 ### Input
-- **Capabilities**: Array of Capability objects (from Stage 2) - Loaded from `<area_id>/capabilities/<capabilities_tag>/capabilities.json`
 - **Capabilities tag**: String - Tag from Stage 2 output (e.g., `_20251009_131252`)
-- **Configuration**: Dict - Stage-specific configuration (e.g., `num_final_problems_per_capability`)
+  - Loads capabilities from `capabilities/<capabilities_tag>/<area_id>/capabilities.json` for each area
+- **Configuration**: Dict - Stage-specific configuration from config YAML file (e.g., `num_final_problems_per_capability`)
 
 ### Tag Handling
-- **Input tag**: Required - `capabilities_tag` from Stage 2 output (e.g., `_20251009_131252`)
-  - Loads capabilities from `<area_id>/capabilities/<capabilities_tag>/capabilities.json` for each area
-- **Resume tag**: Optional - If provided, loads from `<area_id>/<capability_id>/tasks/<resume_tag>/tasks.json` for each capability and continues incomplete task generation
-- **New tag**: If no resume tag provided, generates new tag (format: `_YYYYMMDD_HHMMSS`) and creates `<area_id>/<capability_id>/tasks/<new_tag>/tasks.json` for each capability
+- **Resume tag**: Optional - If provided, goes to `tasks/<resume_tag>/` directory
+  - For each `<area_id>` and `<capability_id>`, checks if `tasks/<resume_tag>/<area_id>/<capability_id>/tasks.json` exists
+  - If file exists, tasks for that capability were already generated successfully, so skip it
+  - If file doesn't exist, creates `<area_id>/<capability_id>/` subdirectories and generates tasks for that capability
+- **New tag**: If no resume tag provided, generates new tag (task_tag) for this task generation run
+  - For each capability, creates `tasks/<task_tag>/<area_id>/<capability_id>/tasks.json`
 
 ### Output: `tasks.json` (one per capability)
 
-**Stage Output:** Dict[str, Task] (mapping task_id to Task dataclass) + PipelineMetadata
-**Save Function:** `save_tasks_output(tasks: Dict[str, Task], metadata: PipelineMetadata, output_path: Path)`
+**Stage Output:** List[Task] dataclasses + PipelineMetadata
+**Save Function:** `save_tasks_output(tasks: List[Task], metadata: PipelineMetadata, output_path: Path)`
 
-**Implementation:**
-- Stage generates dictionary mapping `task_id` strings to `Task` dataclass objects
-- Stage creates `PipelineMetadata` dataclass object with metadata (includes area_id, capability_id)
-- Pass both to `save_tasks_output(tasks, metadata, output_path)` which creates `TaskGenerationOutput` dataclass, serializes to JSON, and writes to file
+**File Path:** `<output_dir>/<experiment_id>/tasks/<task_tag>/<area_id>/<capability_id>/tasks.json`
 
-**File Path:** `<output_dir>/<experiment_id>/<area_id>/<capability_id>/tasks/<tag>/tasks.json`
-Where `<area_id>` is format `area_` + zero-padded 3-digit number, `<capability_id>` is format `cap_` + zero-padded 3-digit number (e.g., `area_000/cap_000/`)
 ```json
 {
   "metadata": {
-    "domain": "personal finance",
-    "domain_id": "personal_finance",
-    "area": "Cash Flow & Budget Management",
-    "area_id": "area_000",
-    "capability": "budget_policy_and_structure",
-    "capability_id": "cap_000",
-    "stage": "task_generation",
-    "input_tag": "_20251009_131252",
-    "tag": "_20251014_114358",
-    "timestamp": "2025-11-06T13:00:00Z"
+    "experiment_id": "r0_10x10",
+    "output_base_dir": "agentic_outputs",
+    "timestamp": "2025-11-06T13:00:00Z",
+    "input_stage_tag": "_20251009_131252",
+    "output_stage_tag": "_20251014_114358",
+    "resume": false
   },
-  "tasks": {
-    "task_000": {
+  "tasks": [
+    {
+      "task_id": "task_000",
       "task": "You are advising a client who wants to set up a zero-based budget...",
-      "capability_id": "cap_000"
+      "capability_id": "cap_000",
+      "capability": "budget_policy_and_structure",
+      "area": "Cash Flow & Budget Management",
+      "area_id": "area_000",
+      "domain": "personal finance",
+      "domain_id": "domain_000"
     },
-    "task_001": {
+    {
+      "task_id": "task_001",
       "task": "A family of four needs to restructure their budget...",
-      "capability_id": "cap_000"
+      "capability_id": "cap_000",
+      "capability": "budget_policy_and_structure",
+      "area": "Cash Flow & Budget Management",
+      "area_id": "area_000",
+      "domain": "personal finance",
+      "domain_id": "domain_000"
     }
-  }
+  ]
 }
 ```
-
-**Schema (JSON representation of TaskGenerationOutput dataclass):**
-- `metadata`: Object containing pipeline metadata
-  - `domain`: String (required, human-readable domain name)
-  - `domain_id`: String (required, slugified domain identifier)
-  - `area`: String (required, human-readable area name, must match an area name from Stage 1)
-  - `area_id`: String (required, format `area_` + zero-padded 3-digit number, must match an area_id from Stage 1)
-  - `capability`: String (required, human-readable capability name, must match a capability name from Stage 2)
-  - `capability_id`: String (required, format `cap_` + zero-padded 3-digit number, must match a capability_id from Stage 2)
-  - `stage`: String (required, value: "task_generation")
-  - `input_tag`: String (required, format `_YYYYMMDD_HHMMSS`, the capabilities tag from Stage 2 used as input)
-  - `tag`: String (required, format `_YYYYMMDD_HHMMSS`, the tag used for this run's output)
-  - `timestamp`: String (required, ISO 8601 format)
-- `tasks`: Object mapping task_id to Task object
-  - `task_id`: String (required, format: `task_` + zero-padded 3-digit number, unique within capability)
-  - `task`: String (required, the task/problem text)
-  - `capability_id`: String (required, format `cap_` + zero-padded 3-digit number, must match parent capability_id)
 
 ---
 
 ## Stage 4: Solution Generation
 
 ### Input
-- **Tasks**: Object mapping task_id to Task objects (from Stage 3) - Loaded from `<area_id>/<capability_id>/tasks/<tasks_tag>/tasks.json`
 - **Tasks tag**: String - Tag from Stage 3 output (e.g., `_20251014_114358`)
-- **Configuration**: Dict - Stage-specific configuration (e.g., `max_rounds`)
+  - For each area and capability, loads tasks from `tasks/<tasks_tag>/<area_id>/<capability_id>/tasks.json`
+- **Configuration**: Dict - Stage-specific configuration from config YAML file (e.g., `max_rounds`)
 
 ### Tag Handling
-- **Input tag**: Required - `tasks_tag` from Stage 3 output (e.g., `_20251014_114358`)
-  - Loads tasks from `<area_id>/<capability_id>/tasks/<tasks_tag>/tasks.json` for each capability
-- **Resume tag**: Optional - If provided, checks for existing solutions in `<area_id>/<capability_id>/solutions/<resume_tag>/<task_id>_solution.json` and continues incomplete solution generation
-- **New tag**: If no resume tag provided, generates new tag (format: `_YYYYMMDD_HHMMSS`) and creates `<area_id>/<capability_id>/solutions/<new_tag>/<task_id>_solution.json` for each task
+- **Resume tag**: Optional - If provided, goes to `solutions/<resume_tag>/` directory
+  - For each area_id, capability_id, and task_id combination, checks if `solutions/<resume_tag>/<area_id>/<capability_id>/<task_id>/solution.json` exists
+  - If file exists, solution for that task was already generated successfully, so skip it
+  - If file doesn't exist, creates `<area_id>/<capability_id>/<task_id>/` subdirectories and generates solution for that task
+- **New tag**: If no resume tag provided, generates new tag (solution_tag) for this solution generation run
+  - For each task, creates `solutions/<solution_tag>/<area_id>/<capability_id>/<task_id>/solution.json`
 
-### Output: `<task_id>_solution.json` (one per task)
+### Output: `solution.json` (one per task)
 
-**Stage Output:** TaskSolution dataclass + List[AgentSolution] dataclasses + PipelineMetadata
-**Save Function:** `save_solution_output(task_solution: TaskSolution, all_solutions: List[AgentSolution], metadata: PipelineMetadata, output_path: Path)`
+**Stage Output:** TaskSolution dataclass + PipelineMetadata
+**Save Function:** `save_solution_output(task_solution: TaskSolution, metadata: PipelineMetadata, output_path: Path)`
 
-**Implementation:**
-- Stage generates `TaskSolution` dataclass object with solution information
-- Stage generates list of `AgentSolution` dataclass objects
-- Stage creates `PipelineMetadata` dataclass object with metadata (includes area_id, capability_id, task_id)
-- Pass all to `save_solution_output(task_solution, all_solutions, metadata, output_path)` which creates `SolutionGenerationOutput` dataclass, serializes to JSON, and writes to file
+**File Path:** `<output_dir>/<experiment_id>/solutions/<solution_tag>/<area_id>/<capability_id>/<task_id>/solution.json`
 
-**File Path:** `<output_dir>/<experiment_id>/<area_id>/<capability_id>/solutions/<tag>/<task_id>_solution.json`
-Where `<area_id>` is format `area_` + zero-padded 3-digit number, `<capability_id>` is format `cap_` + zero-padded 3-digit number, `<task_id>` is format `task_` + zero-padded 3-digit number (e.g., `task_000_solution.json`)
 ```json
 {
   "metadata": {
-    "domain": "personal finance",
-    "domain_id": "personal_finance",
-    "area": "Cash Flow & Budget Management",
-    "area_id": "area_000",
-    "capability_name": "budget_policy_and_structure",
-    "capability_id": "cap_000",
-    "task_id": "task_000",
-    "stage": "solution_generation",
-    "input_tag": "_20251014_114358",
-    "tag": "_20251016_182128",
-    "timestamp": "2025-11-06T13:30:00Z"
+    "experiment_id": "r0_10x10",
+    "output_base_dir": "agentic_outputs",
+    "timestamp": "2025-11-06T13:30:00Z",
+    "input_stage_tag": "_20251014_114358",
+    "output_stage_tag": "_20251016_182128",
+    "resume": false
   },
   "task_id": "task_000",
-  "capability_name": "budget_policy_and_structure",
+  "task": "You are advising a client who wants to set up a zero-based budget...",
+  "capability": "budget_policy_and_structure",
   "capability_id": "cap_000",
-  "area_name": "Cash Flow & Budget Management",
+  "area": "Cash Flow & Budget Management",
   "area_id": "area_000",
-  "problem": "You are advising a client who wants to set up a zero-based budget...",
+  "domain": "personal finance",
+  "domain_id": "domain_000",
   "solution": "The optimal approach is to use a zero-based budgeting methodology...",
-  "numerical_answer": "{\"budget_allocation\": {...}}",
   "reasoning": "Both agents agreed on the zero-based approach because...",
-  "consensus_reached": true,
-  "total_rounds": 2,
-  "all_solutions": [
-    {
-      "agent_id": "A",
-      "task_id": "task_000",
-      "thought": "I need to analyze the client's financial situation...",
-      "final_answer": "{\"recommendation\": {...}}",
-      "numerical_answer": "null",
-      "round_number": "0"
-    },
-    {
-      "agent_id": "B",
-      "task_id": "task_000",
-      "thought": "The client's income and expenses suggest...",
-      "final_answer": "{\"recommendation\": {...}}",
-      "numerical_answer": "null",
-      "round_number": "0"
-    }
-  ]
+  "numerical_answer": "{\"budget_allocation\": {...}}",
+  "generation_metadata": {
+    "pipeline_type": "agentic",
+    "consensus_reached": true,
+    "total_rounds": 2,
+    "agents": [
+      {
+        "agent_id": "A",
+        "thought": "I need to analyze the client's financial situation...",
+        "final_answer": "{\"recommendation\": {...}}",
+        "round_number": 0
+      },
+      {
+        "agent_id": "B",
+        "thought": "The client's income and expenses suggest...",
+        "final_answer": "{\"recommendation\": {...}}",
+        "round_number": 0
+      }
+    ]
+  }
 }
 ```
-
-**Schema (JSON representation of SolutionGenerationOutput dataclass):**
-- `metadata`: Object containing pipeline metadata
-  - `domain`: String (required, human-readable domain name)
-  - `domain_id`: String (required, slugified domain identifier)
-  - `area`: String (required, human-readable area name, must match an area name from Stage 1)
-  - `area_id`: String (required, format `area_` + zero-padded 3-digit number, must match an area_id from Stage 1)
-  - `capability_name`: String (required, human-readable capability name, must match a capability name from Stage 2)
-  - `capability_id`: String (required, format `cap_` + zero-padded 3-digit number, must match a capability_id from Stage 2)
-  - `task_id`: String (required, must match a task_id from Stage 3)
-  - `stage`: String (required, value: "solution_generation")
-  - `input_tag`: String (required, format `_YYYYMMDD_HHMMSS`, the tasks tag from Stage 3 used as input)
-  - `tag`: String (required, format `_YYYYMMDD_HHMMSS`, the tag used for this run's output)
-  - `timestamp`: String (required, ISO 8601 format)
-- `task_id`: String (required, must match metadata.task_id)
-- `capability_name`: String (required, human-readable capability name, must match metadata.capability_name)
-- `capability_id`: String (required, format `cap_` + zero-padded 3-digit number, must match metadata.capability_id)
-- `area_name`: String (required, human-readable area name, must match metadata.area)
-- `area_id`: String (required, format `area_` + zero-padded 3-digit number, must match metadata.area_id)
-- `problem`: String (required, the task text from Stage 3)
-- `solution`: String (required, the final consensus solution)
-- `numerical_answer`: String (optional, JSON string with numerical results)
-- `reasoning`: String (required, explanation of consensus or disagreement)
-- `consensus_reached`: Boolean (required, whether agents reached consensus)
-- `total_rounds`: Integer (required, number of debate rounds)
-- `all_solutions`: Array of AgentSolution objects
-  - `agent_id`: String (required, "A" or "B")
-  - `task_id`: String (required, must match parent task_id)
-  - `thought`: String (required, agent's reasoning)
-  - `final_answer`: String (required, JSON string with agent's solution)
-  - `numerical_answer`: String (optional, JSON string or "null")
-  - `round_number`: String (required, round number as string)
 
 ---
 
 ## Stage 5: Validation
 
 ### Input
-- **Tasks**: Object mapping task_id to Task objects (from Stage 3) - Loaded from `<area_id>/<capability_id>/tasks/<tasks_tag>/tasks.json`
-- **Tasks tag**: String - Tag from Stage 3 output (e.g., `_20251014_114358`)
-- **Solutions**: Object mapping task_id to TaskSolution objects (from Stage 4) - Loaded from `<area_id>/<capability_id>/solutions/<solutions_tag>/<task_id>_solution.json`
 - **Solutions tag**: String - Tag from Stage 4 output (e.g., `_20251016_182128`)
-- **Configuration**: Dict - Validation criteria
+  - For each area, capability, and task, loads solutions from `solutions/<solutions_tag>/<area_id>/<capability_id>/<task_id>/solution.json`
+  - Task information is included in the solution files, so no separate tasks tag is needed
+- **Configuration**: Dict - Stage-specific configuration from config YAML file (e.g., validation criteria)
 
 ### Tag Handling
-- **Input tags**: Required - Both `tasks_tag` (from Stage 3) and `solutions_tag` (from Stage 4)
-  - Loads tasks from `<area_id>/<capability_id>/tasks/<tasks_tag>/tasks.json`
-  - Loads solutions from `<area_id>/<capability_id>/solutions/<solutions_tag>/<task_id>_solution.json`
-- **Resume tag**: Optional - If provided, checks for existing validations in `<area_id>/<capability_id>/validation/<resume_tag>/<task_id>_validation.json` and continues incomplete validation
-- **New tag**: If no resume tag provided, generates new tag (format: `_YYYYMMDD_HHMMSS`) and creates `<area_id>/<capability_id>/validation/<new_tag>/<task_id>_validation.json` for each task
+- **Input tag**: Required - `solutions_tag` from Stage 4
+  - For each area, capability, and task, loads solutions from `solutions/<solutions_tag>/<area_id>/<capability_id>/<task_id>/solution.json`
+  - Task information is included in the solution files
+- **Resume tag**: Optional - If provided, goes to `validation/<resume_tag>/` directory
+  - For each `<area_id>/<capability_id>/<task_id>/solution.json` in `solutions/<solutions_tag>`, checks if `validation/<resume_tag>/<area_id>/<capability_id>/<task_id>/validation.json` exists
+  - If file exists, validation for that task was already completed successfully, so skip it
+  - If file doesn't exist, creates `<area_id>/<capability_id>/<task_id>/` subdirectories and generates validation for that task
+- **New tag**: If no resume tag provided, generates new tag (validation_tag) for this validation run
+  - For each task, creates `validation/<validation_tag>/<area_id>/<capability_id>/<task_id>/validation.json`
 
-### Output: `<task_id>_validation.json` (one per task)
+### Output: `validation.json` (one per task)
 
-**Stage Output:** ValidationResult dataclass + ValidationCriteria dataclass + PipelineMetadata
-**Save Function:** `save_validation_output(validation_result: ValidationResult, criteria: ValidationCriteria, metadata: PipelineMetadata, output_path: Path)`
+**Stage Output:** ValidationResult dataclass + PipelineMetadata
+**Save Function:** `save_validation_output(validation_result: ValidationResult, metadata: PipelineMetadata, output_path: Path)`
 
-**Implementation:**
-- Stage generates `ValidationResult` dataclass object with validation information
-- Stage generates `ValidationCriteria` dataclass object with criteria results
-- Stage creates `PipelineMetadata` dataclass object with metadata (includes area_id, capability_id, task_id)
-- Pass all to `save_validation_output(validation_result, criteria, metadata, output_path)` which creates `ValidationOutput` dataclass, serializes to JSON, and writes to file
+**File Path:** `<output_dir>/<experiment_id>/validation/<validation_tag>/<area_id>/<capability_id>/<task_id>/validation.json`
 
-**File Path:** `<output_dir>/<experiment_id>/<area_id>/<capability_id>/validation/<tag>/<task_id>_validation.json`
-Where `<area_id>` is format `area_` + zero-padded 3-digit number, `<capability_id>` is format `cap_` + zero-padded 3-digit number, `<task_id>` is format `task_` + zero-padded 3-digit number (e.g., `task_000_validation.json`)
 ```json
 {
   "metadata": {
-    "domain": "personal finance",
-    "domain_id": "personal_finance",
-    "area": "Cash Flow & Budget Management",
-    "area_id": "area_000",
-    "capability": "budget_policy_and_structure",
-    "capability_id": "cap_000",
-    "task_id": "task_000",
-    "stage": "validation",
-    "input_tags": {
-      "tasks_tag": "_20251014_114358",
-      "solutions_tag": "_20251016_182128"
-    },
-    "tag": "_20251017_091500",
-    "timestamp": "2025-11-06T14:00:00Z"
+    "experiment_id": "r0_10x10",
+    "output_base_dir": "agentic_outputs",
+    "timestamp": "2025-11-06T14:00:00Z",
+    "input_stage_tag": "_20251016_182128",
+    "output_stage_tag": "_20251017_091500",
+    "resume": false
   },
   "task_id": "task_000",
-  "capability_name": "budget_policy_and_structure",
+  "task": "You are advising a client who wants to set up a zero-based budget...",
+  "capability": "budget_policy_and_structure",
   "capability_id": "cap_000",
-  "is_valid": true,
-  "validation_score": 0.95,
-  "criteria": {
-    "solution_completeness": true,
-    "solution_accuracy": true,
-    "reasoning_quality": true,
-    "consensus_quality": true
-  },
+  "area": "Cash Flow & Budget Management",
+  "area_id": "area_000",
+  "domain": "personal finance",
+  "domain_id": "domain_000",
+  "verification": true,
   "feedback": "Solution addresses all aspects of the task...",
-  "errors": []
+  "score": 0.95,
+  "generation_metadata": {
+    "validation_method": "llm_based",
+    "criteria": {
+      "solution_completeness": true,
+      "solution_accuracy": true,
+      "reasoning_quality": true
+    }
+  }
 }
 ```
 
-**Schema (JSON representation of ValidationOutput dataclass):**
-- `metadata`: Object containing pipeline metadata
-  - `domain`: String (required, human-readable domain name)
-  - `domain_id`: String (required, slugified domain identifier)
-  - `area`: String (required, human-readable area name, must match an area name from Stage 1)
-  - `area_id`: String (required, format `area_` + zero-padded 3-digit number, must match an area_id from Stage 1)
-  - `capability`: String (required, human-readable capability name, must match a capability name from Stage 2)
-  - `capability_id`: String (required, format `cap_` + zero-padded 3-digit number, must match a capability_id from Stage 2)
-  - `task_id`: String (required, format `task_` + zero-padded 3-digit number, must match a task_id from Stage 3)
-  - `stage`: String (required, value: "validation")
-  - `input_tags`: Object (required, contains the input tags used)
-    - `tasks_tag`: String (required, format `_YYYYMMDD_HHMMSS`, the tasks tag from Stage 3 used as input)
-    - `solutions_tag`: String (required, format `_YYYYMMDD_HHMMSS`, the solutions tag from Stage 4 used as input)
-  - `tag`: String (required, format `_YYYYMMDD_HHMMSS`, the tag used for this run's output)
-  - `timestamp`: String (required, ISO 8601 format)
-- `task_id`: String (required, must match metadata.task_id)
-- `capability_name`: String (required, human-readable capability name, must match metadata.capability)
-- `capability_id`: String (required, format `cap_` + zero-padded 3-digit number, must match metadata.capability_id)
-- `is_valid`: Boolean (required, overall validation status)
-- `validation_score`: Float (required, 0.0 to 1.0)
-- `criteria`: Object with boolean criteria (ValidationCriteria dataclass)
-  - `solution_completeness`: Boolean (required)
-  - `solution_accuracy`: Boolean (required)
-  - `reasoning_quality`: Boolean (required)
-  - `consensus_quality`: Boolean (required)
-- `feedback`: String (required, detailed feedback)
-- `errors`: Array of strings (required, list of errors if any)
 
 ---
-
-## ID Assignment Rules
-
-All IDs are string identifiers with explicit prefixes and sequential numbering:
-
-- **Area IDs**: Format `area_` + zero-padded 3-digit number (e.g., `area_000`, `area_001`)
-  - Assigned sequentially starting from `area_000` when areas are generated
-  - Unique within an experiment
-
-- **Capability IDs**: Format `cap_` + zero-padded 3-digit number (e.g., `cap_000`, `cap_001`)
-  - Assigned sequentially starting from `cap_000` within each area when capabilities are generated
-  - Unique within an area (but can repeat across areas, e.g., `area_000/cap_000/` and `area_001/cap_000/`)
-
-- **Task IDs**: Format `task_` + zero-padded 3-digit number (e.g., `task_000`, `task_001`)
-  - Assigned sequentially starting from `task_000` within each capability when tasks are generated
-  - Unique within a capability
-
-**ID Properties:**
-- String type with explicit prefixes (`area_`, `cap_`, `task_`)
-- Sequential assignment (000, 001, 002, ...)
-- Zero-padded 3-digit numbers ensure proper sorting
-- Stable once assigned (don't change if items are reordered)
-- Human-readable names are stored alongside IDs in JSON files
