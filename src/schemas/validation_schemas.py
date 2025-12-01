@@ -15,7 +15,7 @@ from src.schemas.task_schemas import Task
 
 @dataclass
 class ValidationResult:
-    """Validation result for a single task."""
+    """Dataclass for validation result."""
 
     task_id: str
     task: str

@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 
 @dataclass
 class Experiment:
-    """Represents experiment metadata and configuration."""
+    """Dataclass for experiment metadata and configuration."""
 
     experiment_id: str
     domain: str

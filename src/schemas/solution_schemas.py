@@ -15,7 +15,7 @@ from src.schemas.task_schemas import Task
 
 @dataclass
 class TaskSolution:
-    """Represents the complete solution for a task."""
+    """Dataclass for task solution."""
 
     task_id: str
     task: str

@@ -13,7 +13,7 @@ from src.schemas.domain_schemas import Domain
 
 @dataclass
 class Capability:
-    """Represents a capability within an area."""
+    """Dataclass for capability."""
 
     name: str
     capability_id: str

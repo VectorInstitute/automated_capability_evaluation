@@ -12,7 +12,7 @@ from src.schemas.domain_schemas import Domain
 
 @dataclass
 class Area:
-    """Represents a domain area."""
+    """Dataclass for domain area."""
 
     name: str
     area_id: str

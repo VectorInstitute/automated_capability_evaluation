@@ -14,7 +14,7 @@ from src.schemas.domain_schemas import Domain
 
 @dataclass
 class Task:
-    """Represents a task for a capability."""
+    """Dataclass for task."""
 
     task_id: str
     task: str

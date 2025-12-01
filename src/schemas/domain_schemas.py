@@ -9,7 +9,7 @@ from typing import Optional
 
 @dataclass
 class Domain:
-    """Represents a domain."""
+    """Dataclass for domain."""
 
     name: str
     domain_id: str
