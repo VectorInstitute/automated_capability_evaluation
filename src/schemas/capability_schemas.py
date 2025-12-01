@@ -1,6 +1,6 @@
 """Schemas for capability generation stage (Stage 2).
 
-Defines Capability dataclass representing a capability within an area. Capabilities
+Defines Capability dataclass for capability within an area. Capabilities
 are specific skills or abilities (e.g., "Budget Creation" within "Budgeting" area).
 """
 

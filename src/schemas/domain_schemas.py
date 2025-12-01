@@ -1,6 +1,6 @@
 """Schemas for domain (Stage 0).
 
-Defines Domain dataclass representing the domain being evaluated in the experiment.
+Defines Domain dataclass for domain.
 """
 
 from dataclasses import dataclass

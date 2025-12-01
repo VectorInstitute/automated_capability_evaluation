@@ -1,6 +1,6 @@
 """Schemas for area generation stage (Stage 1).
 
-Defines Area dataclass representing a domain area. Areas are high-level categories
+Defines Area dataclass for domain area. Areas are high-level categories
 within a domain (e.g., "Budgeting" within "Personal Finance").
 """
 

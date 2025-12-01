@@ -248,11 +248,12 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 - `name`: String (required, human-readable area name)
 - `area_id`: String (required)
 - `description`: String (optional, area description)
-- `domain`: String (required, domain name)
-- `domain_id`: String (required)
+- `domain`: Optional[Domain] (optional, Domain dataclass object)
 - `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
   - This field can contain any generation-specific data (e.g., generation method, parameters, intermediate steps)
   - Structure is flexible and depends on the generation method
+
+**Note:** When serialized to JSON, the `domain` object is flattened to `domain` (string) and `domain_id` (string) fields.
 
 ### Capability
 
@@ -260,61 +261,51 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 - `name`: String (required, capability name)
 - `capability_id`: String (required)
 - `description`: String (optional, capability description)
-- `area`: String (required, area name)
-- `area_id`: String (required)
-- `domain`: String (required, domain name)
-- `domain_id`: String (required)
+- `area`: Optional[Area] (optional, Area dataclass object)
 - `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
   - This field can contain any generation-specific data (e.g., generation method, parameters, intermediate steps)
   - Structure is flexible and depends on the generation method
+
+**Note:** When serialized to JSON, the `area` object is flattened to `area` (string), `area_id` (string), `domain` (string), and `domain_id` (string) fields.
 
 ### Task
 
 **Fields:**
 - `task_id`: String (required, unique within capability)
 - `task`: String (required, the task/problem text)
-- `capability_id`: String (required)
-- `capability`: String (required, capability name)
-- `area`: String (required, area name)
-- `area_id`: String (required)
-- `domain`: String (required, domain name)
-- `domain_id`: String (required)
+- `capability`: Optional[Capability] (optional, Capability dataclass object)
+
+**Note:** When serialized to JSON, the `capability` object is flattened to `capability` (string), `capability_id` (string), `area` (string), `area_id` (string), `domain` (string), and `domain_id` (string) fields.
 
 ### TaskSolution
 
 **Fields:**
 - `task_id`: String (required)
 - `task`: String (required, the task/problem text from Stage 3)
-- `capability`: String (required, capability name)
-- `capability_id`: String (required)
-- `area`: String (required, area name)
-- `area_id`: String (required)
-- `domain`: String (required, domain name)
-- `domain_id`: String (required)
 - `solution`: String (required, the final solution)
 - `reasoning`: String (required, explanation of the solution)
 - `numerical_answer`: String (optional, JSON string with numerical results)
 - `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
   - This field can contain any generation-specific data (e.g., debate rounds, agent interactions, pipeline type)
   - Structure is flexible and depends on the generation method (agentic, single-agent, etc.)
+- `task_obj`: Optional[Task] (optional, Task dataclass object with full hierarchy)
+
+**Note:** When serialized to JSON, the `task_obj` object is flattened to `capability` (string), `capability_id` (string), `area` (string), `area_id` (string), `domain` (string), and `domain_id` (string) fields.
 
 ### ValidationResult
 
 **Fields:**
 - `task_id`: String (required)
 - `task`: String (required, the task/problem text from Stage 3)
-- `capability`: String (required, capability name)
-- `capability_id`: String (required)
-- `area`: String (required, area name)
-- `area_id`: String (required)
-- `domain`: String (required, domain name)
-- `domain_id`: String (required)
 - `verification`: Boolean (required, overall validation status - whether the solution is verified/valid)
 - `feedback`: String (required, detailed feedback on the validation)
 - `score`: Float (optional, validation score, typically 0.0 to 1.0)
 - `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
   - This field can contain any validation-specific data (e.g., validation method, criteria details, error details)
   - Structure is flexible and depends on the validation method
+- `task_obj`: Optional[Task] (optional, Task dataclass object with full hierarchy)
+
+**Note:** When serialized to JSON, the `task_obj` object is flattened to `capability` (string), `capability_id` (string), `area` (string), `area_id` (string), `domain` (string), and `domain_id` (string) fields.
 
 ---
 

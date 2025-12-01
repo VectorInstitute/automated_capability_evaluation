@@ -1,7 +1,7 @@
 """Schemas for validation stage (Stage 5).
 
-Defines ValidationResult dataclass representing the validation outcome for a task,
-including verification status, feedback, and optional score.
+Defines ValidationResult dataclass for validation result, including
+verification status, feedback, and optional score.
 """
 
 from dataclasses import dataclass, field

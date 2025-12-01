@@ -1,7 +1,7 @@
 """Schemas for solution generation stage (Stage 4).
 
-Defines TaskSolution dataclass representing a complete solution for a task, including
-the solution text, reasoning, and optional numerical answer.
+Defines TaskSolution dataclass for task solution, including solution text,
+reasoning, and optional numerical answer.
 """
 
 from dataclasses import dataclass, field
