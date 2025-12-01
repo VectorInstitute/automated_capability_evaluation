@@ -6,22 +6,23 @@ ensuring consistent input/output formats regardless of internal implementation.
 
 from src.schemas.area_schemas import Area
 from src.schemas.capability_schemas import Capability
-from src.schemas.experiment_schemas import Domain, Experiment
+from src.schemas.domain_schemas import Domain
+from src.schemas.experiment_schemas import Experiment
 from src.schemas.io_utils import (
-    load_areas_output,
-    load_capabilities_output,
-    load_domain_output,
-    load_experiment_output,
-    load_solution_output,
-    load_tasks_output,
-    load_validation_output,
-    save_areas_output,
-    save_capabilities_output,
-    save_domain_output,
-    save_experiment_output,
-    save_solution_output,
-    save_tasks_output,
-    save_validation_output,
+    load_areas,
+    load_capabilities,
+    load_domain,
+    load_experiment,
+    load_solution,
+    load_tasks,
+    load_validation,
+    save_areas,
+    save_capabilities,
+    save_domain,
+    save_experiment,
+    save_solution,
+    save_tasks,
+    save_validation,
 )
 from src.schemas.metadata_schemas import PipelineMetadata
 from src.schemas.solution_schemas import TaskSolution
@@ -46,19 +47,19 @@ __all__ = [
     # Validation schemas
     "ValidationResult",
     # I/O functions - Save
-    "save_experiment_output",
-    "save_domain_output",
-    "save_areas_output",
-    "save_capabilities_output",
-    "save_tasks_output",
-    "save_solution_output",
-    "save_validation_output",
+    "save_experiment",
+    "save_domain",
+    "save_areas",
+    "save_capabilities",
+    "save_tasks",
+    "save_solution",
+    "save_validation",
     # I/O functions - Load
-    "load_experiment_output",
-    "load_domain_output",
-    "load_areas_output",
-    "load_capabilities_output",
-    "load_tasks_output",
-    "load_solution_output",
-    "load_validation_output",
+    "load_experiment",
+    "load_domain",
+    "load_areas",
+    "load_capabilities",
+    "load_tasks",
+    "load_solution",
+    "load_validation",
 ]

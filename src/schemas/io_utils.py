@@ -6,14 +6,15 @@ from typing import List, Tuple
 
 from src.schemas.area_schemas import Area
 from src.schemas.capability_schemas import Capability
-from src.schemas.experiment_schemas import Domain, Experiment
+from src.schemas.domain_schemas import Domain
+from src.schemas.experiment_schemas import Experiment
 from src.schemas.metadata_schemas import PipelineMetadata
 from src.schemas.solution_schemas import TaskSolution
 from src.schemas.task_schemas import Task
 from src.schemas.validation_schemas import ValidationResult
 
 
-def save_experiment_output(
+def save_experiment(
     experiment: Experiment, metadata: PipelineMetadata, output_path: Path
 ) -> None:
     """Save experiment output to JSON file.
@@ -32,9 +33,7 @@ def save_experiment_output(
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def save_domain_output(
-    domain: Domain, metadata: PipelineMetadata, output_path: Path
-) -> None:
+def save_domain(domain: Domain, metadata: PipelineMetadata, output_path: Path) -> None:
     """Save domain output to JSON file.
 
     Args:
@@ -51,7 +50,7 @@ def save_domain_output(
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def save_areas_output(
+def save_areas(
     areas: List[Area], metadata: PipelineMetadata, output_path: Path
 ) -> None:
     """Save areas output to JSON file.
@@ -70,7 +69,7 @@ def save_areas_output(
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def save_capabilities_output(
+def save_capabilities(
     capabilities: List[Capability], metadata: PipelineMetadata, output_path: Path
 ) -> None:
     """Save capabilities output to JSON file.
@@ -89,7 +88,7 @@ def save_capabilities_output(
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def save_tasks_output(
+def save_tasks(
     tasks: List[Task], metadata: PipelineMetadata, output_path: Path
 ) -> None:
     """Save tasks output to JSON file.
@@ -108,7 +107,7 @@ def save_tasks_output(
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def save_solution_output(
+def save_solution(
     task_solution: TaskSolution, metadata: PipelineMetadata, output_path: Path
 ) -> None:
     """Save solution output to JSON file.
@@ -127,7 +126,7 @@ def save_solution_output(
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def save_validation_output(
+def save_validation(
     validation_result: ValidationResult, metadata: PipelineMetadata, output_path: Path
 ) -> None:
     """Save validation output to JSON file.
@@ -149,7 +148,7 @@ def save_validation_output(
 # Load functions
 
 
-def load_experiment_output(file_path: Path) -> Tuple[Experiment, PipelineMetadata]:
+def load_experiment(file_path: Path) -> Tuple[Experiment, PipelineMetadata]:
     """Load experiment output from JSON file.
 
     Args:
@@ -166,7 +165,7 @@ def load_experiment_output(file_path: Path) -> Tuple[Experiment, PipelineMetadat
     return experiment, metadata
 
 
-def load_domain_output(file_path: Path) -> Tuple[Domain, PipelineMetadata]:
+def load_domain(file_path: Path) -> Tuple[Domain, PipelineMetadata]:
     """Load domain output from JSON file.
 
     Args:
@@ -183,7 +182,7 @@ def load_domain_output(file_path: Path) -> Tuple[Domain, PipelineMetadata]:
     return domain, metadata
 
 
-def load_areas_output(file_path: Path) -> Tuple[List[Area], PipelineMetadata]:
+def load_areas(file_path: Path) -> Tuple[List[Area], PipelineMetadata]:
     """Load areas output from JSON file.
 
     Args:
@@ -200,7 +199,7 @@ def load_areas_output(file_path: Path) -> Tuple[List[Area], PipelineMetadata]:
     return areas, metadata
 
 
-def load_capabilities_output(
+def load_capabilities(
     file_path: Path,
 ) -> Tuple[List[Capability], PipelineMetadata]:
     """Load capabilities output from JSON file.
@@ -219,7 +218,7 @@ def load_capabilities_output(
     return capabilities, metadata
 
 
-def load_tasks_output(file_path: Path) -> Tuple[List[Task], PipelineMetadata]:
+def load_tasks(file_path: Path) -> Tuple[List[Task], PipelineMetadata]:
     """Load tasks output from JSON file.
 
     Args:
@@ -236,7 +235,7 @@ def load_tasks_output(file_path: Path) -> Tuple[List[Task], PipelineMetadata]:
     return tasks, metadata
 
 
-def load_solution_output(file_path: Path) -> Tuple[TaskSolution, PipelineMetadata]:
+def load_solution(file_path: Path) -> Tuple[TaskSolution, PipelineMetadata]:
     """Load solution output from JSON file.
 
     Args:
@@ -256,7 +255,7 @@ def load_solution_output(file_path: Path) -> Tuple[TaskSolution, PipelineMetadat
     return task_solution, metadata
 
 
-def load_validation_output(
+def load_validation(
     file_path: Path,
 ) -> Tuple[ValidationResult, PipelineMetadata]:
     """Load validation output from JSON file.

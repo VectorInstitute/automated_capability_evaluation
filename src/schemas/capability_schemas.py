@@ -1,7 +1,14 @@
-"""Schemas for capability generation stage."""
+"""Schemas for capability generation stage (Stage 2).
+
+Defines Capability dataclass representing a capability within an area. Capabilities
+are specific skills or abilities (e.g., "Budget Creation" within "Budgeting" area).
+"""
 
 from dataclasses import dataclass, field
 from typing import Dict, Optional
+
+from src.schemas.area_schemas import Area
+from src.schemas.domain_schemas import Domain
 
 
 @dataclass
@@ -11,10 +18,7 @@ class Capability:
     name: str
     capability_id: str
     description: Optional[str] = None
-    area: str = ""
-    area_id: str = ""
-    domain: str = ""
-    domain_id: str = ""
+    area: Optional[Area] = None
     generation_metadata: Optional[Dict] = field(default_factory=dict)
 
     def to_dict(self):
@@ -22,11 +26,13 @@ class Capability:
         result = {
             "name": self.name,
             "capability_id": self.capability_id,
-            "area": self.area,
-            "area_id": self.area_id,
-            "domain": self.domain,
-            "domain_id": self.domain_id,
         }
+        if self.area is not None:
+            result["area"] = self.area.name
+            result["area_id"] = self.area.area_id
+            if self.area.domain is not None:
+                result["domain"] = self.area.domain.name
+                result["domain_id"] = self.area.domain.domain_id
         if self.description is not None:
             result["description"] = self.description
         if self.generation_metadata:
@@ -36,13 +42,25 @@ class Capability:
     @classmethod
     def from_dict(cls, data: dict):
         """Create from dictionary."""
+        area = None
+        if "area" in data and "area_id" in data:
+            domain = None
+            if "domain" in data and "domain_id" in data:
+                domain = Domain(
+                    name=data["domain"],
+                    domain_id=data["domain_id"],
+                    description=None,
+                )
+            area = Area(
+                name=data["area"],
+                area_id=data["area_id"],
+                description=None,
+                domain=domain,
+            )
         return cls(
             name=data["name"],
             capability_id=data["capability_id"],
             description=data.get("description"),
-            area=data.get("area", ""),
-            area_id=data.get("area_id", ""),
-            domain=data.get("domain", ""),
-            domain_id=data.get("domain_id", ""),
+            area=area,
             generation_metadata=data.get("generation_metadata", {}),
         )

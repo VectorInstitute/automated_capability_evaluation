@@ -6,7 +6,8 @@ This directory contains standardized schemas for all ACE pipeline stages, ensuri
 
 - **[`PIPELINE_SCHEMAS.md`](PIPELINE_SCHEMAS.md)** - Complete documentation of input/output formats for each stage
 - **Python Dataclasses** - Type-safe data structures for each stage:
-  - [`experiment_schemas.py`](experiment_schemas.py) - Experiment and Domain (Stage 0)
+  - [`experiment_schemas.py`](experiment_schemas.py) - Experiment (Stage 0)
+  - [`domain_schemas.py`](domain_schemas.py) - Domain (Stage 0)
   - [`metadata_schemas.py`](metadata_schemas.py) - Common metadata (PipelineMetadata)
   - [`area_schemas.py`](area_schemas.py) - Area generation (Stage 1)
   - [`capability_schemas.py`](capability_schemas.py) - Capability generation (Stage 2)
@@ -22,8 +23,8 @@ This directory contains standardized schemas for all ACE pipeline stages, ensuri
 
 ```python
 from src.schemas import (
-    Experiment,
     Domain,
+    Experiment,
     PipelineMetadata,
     Area,
     Capability,
@@ -33,12 +34,12 @@ from src.schemas import (
 )
 
 # Create area
+domain = Domain(name="Personal Finance", domain_id="domain_000")
 area = Area(
     name="Cash Flow & Budget Management",
     area_id="area_000",
     description="Design and monitor budgets...",
-    domain="personal finance",
-    domain_id="domain_000",
+    domain=domain,
     # generation_metadata is optional
 )
 
@@ -54,8 +55,8 @@ area = Area.from_dict(data)
 ```python
 from pathlib import Path
 from src.schemas import (
-    save_areas_output,
-    load_areas_output,
+    save_areas,
+    load_areas,
     PipelineMetadata,
     Area,
 )
@@ -68,10 +69,10 @@ metadata = PipelineMetadata(
     timestamp="2025-11-06T12:00:00Z",
     output_stage_tag="_20251009_122040"
 )
-save_areas_output(areas, metadata, Path("output/areas.json"))
+save_areas(areas, metadata, Path("output/areas.json"))
 
 # Load areas
-areas, metadata = load_areas_output(Path("output/areas.json"))
+areas, metadata = load_areas(Path("output/areas.json"))
 ```
 
 ## Pipeline Stages

@@ -1,6 +1,9 @@
-"""Schemas for experiment setup stage (Stage 0)."""
+"""Schemas for experiment setup stage (Stage 0).
 
-from dataclasses import dataclass
+Defines Experiment dataclass containing experiment configuration and metadata.
+"""
+
+from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 
@@ -12,12 +15,7 @@ class Experiment:
     domain: str
     domain_id: str
     pipeline_type: Optional[str] = None
-    configuration: Dict[str, Any] = None
-
-    def __post_init__(self):
-        """Initialize configuration if not provided."""
-        if self.configuration is None:
-            self.configuration = {}
+    configuration: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self):
         """Convert to dictionary."""
@@ -40,32 +38,4 @@ class Experiment:
             domain_id=data["domain_id"],
             pipeline_type=data.get("pipeline_type"),
             configuration=data.get("configuration", {}),
-        )
-
-
-@dataclass
-class Domain:
-    """Represents a domain."""
-
-    name: str
-    domain_id: str
-    description: Optional[str] = None
-
-    def to_dict(self):
-        """Convert to dictionary."""
-        result = {
-            "name": self.name,
-            "domain_id": self.domain_id,
-        }
-        if self.description is not None:
-            result["description"] = self.description
-        return result
-
-    @classmethod
-    def from_dict(cls, data: dict):
-        """Create from dictionary."""
-        return cls(
-            name=data["name"],
-            domain_id=data["domain_id"],
-            description=data.get("description"),
         )

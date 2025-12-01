@@ -25,7 +25,7 @@ Each stage follows a consistent pattern:
 
 **Important:** All stage implementations must follow this pattern to ensure the pipeline is clean, consistent, and maintainable. This enables interoperability between different implementations, resumability of failed runs, and clear traceability through the pipeline.
 
-**Note:** The dataclasses, save functions (`save_<stage>_output(data, metadata, output_path)`), and load functions (`load_<stage>_output(file_path) -> <OutputDataclass>`) for each stage will be provided and must be used. Do not implement custom serialization or data structures - use the standardized schemas to ensure consistency across the pipeline. Dataclasses provide type safety, validation, and clear structure. JSON is the serialization format.
+**Note:** The dataclasses, save functions (`save_<stage>(data, metadata, output_path)`), and load functions (`load_<stage>(file_path) -> <OutputDataclass>`) for each stage will be provided and must be used. Do not implement custom serialization or data structures - use the standardized schemas to ensure consistency across the pipeline. Dataclasses provide type safety, validation, and clear structure. JSON is the serialization format.
 
 **Iteration Note:** Some stages operate on subsets (one area, capability, or task at a time) and require an outer orchestrator/loop script to iterate over all items:
 - **Stage 2 (Capability Generation)**: Operates on one area at a time - orchestrator loops over all areas from Stage 1
@@ -342,7 +342,7 @@ This stage creates two files:
 #### Output 1: `experiment.json`
 
 **Stage Output:** Experiment dataclass + PipelineMetadata
-**Save Function:** `save_experiment_output(experiment: Experiment, metadata: PipelineMetadata, output_path: Path)`
+**Save Function:** `save_experiment(experiment: Experiment, metadata: PipelineMetadata, output_path: Path)`
 
 **File Path:** `<output_dir>/<experiment_id>/experiment.json`
 
@@ -373,7 +373,7 @@ This stage creates two files:
 #### Output 2: `domain.json`
 
 **Stage Output:** Domain dataclass object + PipelineMetadata
-**Save Function:** `save_domain_output(domain: Domain, metadata: PipelineMetadata, output_path: Path)`
+**Save Function:** `save_domain(domain: Domain, metadata: PipelineMetadata, output_path: Path)`
 
 **File Path:** `<output_dir>/<experiment_id>/domain/domain.json`
 
@@ -411,7 +411,7 @@ This stage creates two files:
 ### Output: `areas.json`
 
 **Stage Output:** List[Area] dataclasses + PipelineMetadata
-**Save Function:** `save_areas_output(areas: List[Area], metadata: PipelineMetadata, output_path: Path)`
+**Save Function:** `save_areas(areas: List[Area], metadata: PipelineMetadata, output_path: Path)`
 
 **File Path:** `<output_dir>/<experiment_id>/areas/<tag>/areas.json`
 ```json
@@ -456,7 +456,7 @@ This stage creates two files:
 ### Output: `capabilities.json` (one per area)
 
 **Stage Output:** List[Capability] dataclasses + PipelineMetadata
-**Save Function:** `save_capabilities_output(capabilities: List[Capability], metadata: PipelineMetadata, output_path: Path)`
+**Save Function:** `save_capabilities(capabilities: List[Capability], metadata: PipelineMetadata, output_path: Path)`
 
 **File Path:** `<output_dir>/<experiment_id>/capabilities/<cap_tag>/<area_id>/capabilities.json`
 
@@ -504,7 +504,7 @@ This stage creates two files:
 ### Output: `tasks.json` (one per capability)
 
 **Stage Output:** List[Task] dataclasses + PipelineMetadata
-**Save Function:** `save_tasks_output(tasks: List[Task], metadata: PipelineMetadata, output_path: Path)`
+**Save Function:** `save_tasks(tasks: List[Task], metadata: PipelineMetadata, output_path: Path)`
 
 **File Path:** `<output_dir>/<experiment_id>/tasks/<task_tag>/<area_id>/<capability_id>/tasks.json`
 
@@ -563,7 +563,7 @@ This stage creates two files:
 ### Output: `solution.json` (one per task)
 
 **Stage Output:** TaskSolution dataclass + PipelineMetadata
-**Save Function:** `save_solution_output(task_solution: TaskSolution, metadata: PipelineMetadata, output_path: Path)`
+**Save Function:** `save_solution(task_solution: TaskSolution, metadata: PipelineMetadata, output_path: Path)`
 
 **File Path:** `<output_dir>/<experiment_id>/solutions/<solution_tag>/<area_id>/<capability_id>/<task_id>/solution.json`
 
@@ -634,7 +634,7 @@ This stage creates two files:
 ### Output: `validation.json` (one per task)
 
 **Stage Output:** ValidationResult dataclass + PipelineMetadata
-**Save Function:** `save_validation_output(validation_result: ValidationResult, metadata: PipelineMetadata, output_path: Path)`
+**Save Function:** `save_validation(validation_result: ValidationResult, metadata: PipelineMetadata, output_path: Path)`
 
 **File Path:** `<output_dir>/<experiment_id>/validation/<validation_tag>/<area_id>/<capability_id>/<task_id>/validation.json`
 
