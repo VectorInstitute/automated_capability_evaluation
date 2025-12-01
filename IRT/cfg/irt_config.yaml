@@ -1,0 +1,26 @@
+# Configuration for IRT analysis of ACE evaluation scores
+
+data_cfg:
+  # Path to the scores directory containing evaluation JSON files
+  scores_dir: /projects/aieng/public/ace/artifacts/negin_ace/scores
+
+output_cfg:
+  # Directory to save IRT analysis results
+  output_dir: /projects/DeepLesion/projects/automated_capability_evaluation/IRT/results
+  # Name of the output JSON file
+  output_filename: irt_4pl_results.json
+
+irt_cfg:
+  # IRT model type (3PL, 2PL, 1PL)
+  model_type: 3PL
+  # Maximum iterations for model fitting
+  max_iterations: 1000
+  # Convergence tolerance
+  tolerance: 1e-6
+  # Number of quadrature points used in GIRTH for numerical integration
+  quadrature_n: 41
+
+defaults:
+  - _self_
+
+
