@@ -209,6 +209,8 @@ All dataclasses used across pipeline stages are defined below. Stage implementat
 
 ### PipelineMetadata
 
+**File:** [`metadata_schemas.py`](metadata_schemas.py)
+
 All pipeline outputs include a `metadata` object (represented by the `PipelineMetadata` dataclass) that provides pipeline execution context and traceability.
 
 **Required Fields:**
@@ -228,6 +230,8 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 
 ### Experiment
 
+**File:** [`experiment_schemas.py`](experiment_schemas.py)
+
 **Fields:**
 - `experiment_id`: String (required, experiment identifier)
 - `domain`: String (required, human-readable domain name)
@@ -237,6 +241,8 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 
 ### Domain
 
+**File:** [`domain_schemas.py`](domain_schemas.py)
+
 **Fields:**
 - `name`: String (required, human-readable domain name)
 - `domain_id`: String (required)
@@ -244,11 +250,13 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 
 ### Area
 
+**File:** [`area_schemas.py`](area_schemas.py)
+
 **Fields:**
 - `name`: String (required, human-readable area name)
 - `area_id`: String (required)
-- `description`: String (optional, area description)
-- `domain`: Optional[Domain] (optional, Domain dataclass object)
+- `domain`: Domain (required, Domain dataclass object)
+- `description`: String (required, area description)
 - `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
   - This field can contain any generation-specific data (e.g., generation method, parameters, intermediate steps)
   - Structure is flexible and depends on the generation method
@@ -257,11 +265,13 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 
 ### Capability
 
+**File:** [`capability_schemas.py`](capability_schemas.py)
+
 **Fields:**
 - `name`: String (required, capability name)
 - `capability_id`: String (required)
-- `description`: String (optional, capability description)
-- `area`: Optional[Area] (optional, Area dataclass object)
+- `area`: Area (required, Area dataclass object)
+- `description`: String (required, capability description)
 - `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
   - This field can contain any generation-specific data (e.g., generation method, parameters, intermediate steps)
   - Structure is flexible and depends on the generation method
@@ -270,40 +280,46 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 
 ### Task
 
+**File:** [`task_schemas.py`](task_schemas.py)
+
 **Fields:**
 - `task_id`: String (required, unique within capability)
 - `task`: String (required, the task/problem text)
-- `capability`: Optional[Capability] (optional, Capability dataclass object)
+- `capability`: Capability (required, Capability dataclass object)
 
 **Note:** When serialized to JSON, the `capability` object is flattened to `capability` (string), `capability_id` (string), `area` (string), `area_id` (string), `domain` (string), and `domain_id` (string) fields.
 
 ### TaskSolution
+
+**File:** [`solution_schemas.py`](solution_schemas.py)
 
 **Fields:**
 - `task_id`: String (required)
 - `task`: String (required, the task/problem text from Stage 3)
 - `solution`: String (required, the final solution)
 - `reasoning`: String (required, explanation of the solution)
+- `task_obj`: Task (required, Task dataclass object with full hierarchy)
 - `numerical_answer`: String (optional, JSON string with numerical results)
 - `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
   - This field can contain any generation-specific data (e.g., debate rounds, agent interactions, pipeline type)
   - Structure is flexible and depends on the generation method (agentic, single-agent, etc.)
-- `task_obj`: Optional[Task] (optional, Task dataclass object with full hierarchy)
 
 **Note:** When serialized to JSON, the `task_obj` object is flattened to `capability` (string), `capability_id` (string), `area` (string), `area_id` (string), `domain` (string), and `domain_id` (string) fields.
 
 ### ValidationResult
+
+**File:** [`validation_schemas.py`](validation_schemas.py)
 
 **Fields:**
 - `task_id`: String (required)
 - `task`: String (required, the task/problem text from Stage 3)
 - `verification`: Boolean (required, overall validation status - whether the solution is verified/valid)
 - `feedback`: String (required, detailed feedback on the validation)
+- `task_obj`: Task (required, Task dataclass object with full hierarchy)
 - `score`: Float (optional, validation score, typically 0.0 to 1.0)
 - `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
   - This field can contain any validation-specific data (e.g., validation method, criteria details, error details)
   - Structure is flexible and depends on the validation method
-- `task_obj`: Optional[Task] (optional, Task dataclass object with full hierarchy)
 
 **Note:** When serialized to JSON, the `task_obj` object is flattened to `capability` (string), `capability_id` (string), `area` (string), `area_id` (string), `domain` (string), and `domain_id` (string) fields.
 
@@ -333,7 +349,7 @@ This stage creates two files:
 #### Output 1: `experiment.json`
 
 **Stage Output:** Experiment dataclass + PipelineMetadata
-**Save Function:** `save_experiment(experiment: Experiment, metadata: PipelineMetadata, output_path: Path)`
+**Save Function:** `save_experiment(experiment: Experiment, metadata: PipelineMetadata, output_path: Path)` (see [`io_utils.py`](io_utils.py))
 
 **File Path:** `<output_dir>/<experiment_id>/experiment.json`
 
@@ -364,7 +380,7 @@ This stage creates two files:
 #### Output 2: `domain.json`
 
 **Stage Output:** Domain dataclass object + PipelineMetadata
-**Save Function:** `save_domain(domain: Domain, metadata: PipelineMetadata, output_path: Path)`
+**Save Function:** `save_domain(domain: Domain, metadata: PipelineMetadata, output_path: Path)` (see [`io_utils.py`](io_utils.py))
 
 **File Path:** `<output_dir>/<experiment_id>/domain/domain.json`
 
@@ -402,7 +418,7 @@ This stage creates two files:
 ### Output: `areas.json`
 
 **Stage Output:** List[Area] dataclasses + PipelineMetadata
-**Save Function:** `save_areas(areas: List[Area], metadata: PipelineMetadata, output_path: Path)`
+**Save Function:** `save_areas(areas: List[Area], metadata: PipelineMetadata, output_path: Path)` (see [`io_utils.py`](io_utils.py))
 
 **File Path:** `<output_dir>/<experiment_id>/areas/<tag>/areas.json`
 ```json
@@ -447,7 +463,7 @@ This stage creates two files:
 ### Output: `capabilities.json` (one per area)
 
 **Stage Output:** List[Capability] dataclasses + PipelineMetadata
-**Save Function:** `save_capabilities(capabilities: List[Capability], metadata: PipelineMetadata, output_path: Path)`
+**Save Function:** `save_capabilities(capabilities: List[Capability], metadata: PipelineMetadata, output_path: Path)` (see [`io_utils.py`](io_utils.py))
 
 **File Path:** `<output_dir>/<experiment_id>/capabilities/<cap_tag>/<area_id>/capabilities.json`
 
@@ -495,7 +511,7 @@ This stage creates two files:
 ### Output: `tasks.json` (one per capability)
 
 **Stage Output:** List[Task] dataclasses + PipelineMetadata
-**Save Function:** `save_tasks(tasks: List[Task], metadata: PipelineMetadata, output_path: Path)`
+**Save Function:** `save_tasks(tasks: List[Task], metadata: PipelineMetadata, output_path: Path)` (see [`io_utils.py`](io_utils.py))
 
 **File Path:** `<output_dir>/<experiment_id>/tasks/<task_tag>/<area_id>/<capability_id>/tasks.json`
 

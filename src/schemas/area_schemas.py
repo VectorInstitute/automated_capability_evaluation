@@ -1,7 +1,7 @@
 """Schemas for area generation stage (Stage 1).
 
 Defines Area dataclass for domain area. Areas are high-level categories
-within a domain (e.g., "Budgeting" within "Personal Finance").
+within a domain.
 """
 
 from dataclasses import dataclass, field
@@ -16,8 +16,8 @@ class Area:
 
     name: str
     area_id: str
-    description: Optional[str] = None
-    domain: Optional[Domain] = None
+    domain: Domain
+    description: str
     generation_metadata: Optional[Dict] = field(default_factory=dict)
 
     def to_dict(self):
@@ -25,12 +25,10 @@ class Area:
         result = {
             "name": self.name,
             "area_id": self.area_id,
+            "domain": self.domain.name,
+            "domain_id": self.domain.domain_id,
+            "description": self.description,
         }
-        if self.domain is not None:
-            result["domain"] = self.domain.name
-            result["domain_id"] = self.domain.domain_id
-        if self.description is not None:
-            result["description"] = self.description
         if self.generation_metadata:
             result["generation_metadata"] = self.generation_metadata
         return result
@@ -38,17 +36,15 @@ class Area:
     @classmethod
     def from_dict(cls, data: dict):
         """Create from dictionary."""
-        domain = None
-        if "domain" in data and "domain_id" in data:
-            domain = Domain(
-                name=data["domain"],
-                domain_id=data["domain_id"],
-                description=None,
-            )
+        domain = Domain(
+            name=data["domain"],
+            domain_id=data["domain_id"],
+            description=data.get("domain_description"),
+        )
         return cls(
             name=data["name"],
             area_id=data["area_id"],
-            description=data.get("description"),
             domain=domain,
+            description=data["description"],
             generation_metadata=data.get("generation_metadata", {}),
         )
