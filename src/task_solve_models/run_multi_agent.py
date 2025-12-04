@@ -1,4 +1,6 @@
-
+"""
+Run multi-agent debate solver on financial problems.
+"""
 import json
 import os
 import logging
@@ -31,19 +33,10 @@ SCRIPT_DIR = Path(__file__).parent
 DATASET_DIR = SCRIPT_DIR / "dataset" / "XFinBench"
 RESULTS_DIR = SCRIPT_DIR / "Results"
 
-# Dummy config class to mimic what the agents expect
-@dataclass
-class AgentConfig:
-    model_name: str
-    seed: int = 42
-    
-    def get(self, key, default=None):
-        return getattr(self, key, default)
-
 async def run_multi_agent_debate(
     problem_data: Dict[str, Any],
     output_dir: Path,
-    model_name: str,
+    model_specs: Dict[str, str],
     max_rounds: int,
     langfuse_client: Langfuse
 ) -> Dict[str, Any]:
@@ -64,7 +57,6 @@ async def run_multi_agent_debate(
     )
     
     # Setup output directory for this specific task solution
-    # The moderator saves the final solution to a file in this dir
     task_output_dir = output_dir / f"{task_id}_solution"
     task_output_dir.mkdir(parents=True, exist_ok=True)
     
@@ -75,7 +67,7 @@ async def run_multi_agent_debate(
         runtime,
         "TaskSolverModerator",
         lambda: TaskSolverModerator(
-            model_client=get_model_client(model_name=model_name, seed=888),
+            model_client=get_model_client(model_name=model_specs["moderator"], seed=888),
             num_solvers=2,
             max_rounds=max_rounds,
             output_dir=task_output_dir,
@@ -88,18 +80,18 @@ async def run_multi_agent_debate(
         runtime,
         "TaskSolverScientistA",
         lambda: TaskSolverScientist(
-            model_client=get_model_client(model_name=model_name, seed=8),
+            model_client=get_model_client(model_name=model_specs["scientist_a"], seed=8),
             scientist_id="A",
             langfuse_client=langfuse_client,
         ),
     )
 
-    # Register Scientist B (can use same model/different seed, or different model if we extended args)
+    # Register Scientist B
     await TaskSolverScientist.register(
         runtime,
         "TaskSolverScientistB",
         lambda: TaskSolverScientist(
-            model_client=get_model_client(model_name=model_name, seed=88),
+            model_client=get_model_client(model_name=model_specs["scientist_b"], seed=88),
             scientist_id="B",
             langfuse_client=langfuse_client,
         ),
@@ -115,8 +107,6 @@ async def run_multi_agent_debate(
     await runtime.stop_when_idle()
     
     # Retrieve the result
-    # The moderator saves the result to a JSON file in task_output_dir
-    # We need to read it back
     solution_file = task_output_dir / f"{task_id}_solution.json"
     if solution_file.exists():
         with open(solution_file, 'r', encoding='utf-8') as f:
@@ -127,21 +117,31 @@ async def main():
     parser = argparse.ArgumentParser(description="Run multi-agent debate solver on financial problems.")
     parser.add_argument("--batch-file", type=str, help="Specific batch file to run (e.g., batch_1.json).")
     parser.add_argument("--save-home", action="store_true", help="Also save results to user's home directory.")
-    parser.add_argument("--model", type=str, default="gpt-4o", help="Model to use.")
+    
+    # Model arguments
+    parser.add_argument("--model", type=str, default="gpt-4o", help="Default model to use for all agents if specific ones aren't set.")
+    parser.add_argument("--model-moderator", type=str, help="Model for Moderator.")
+    parser.add_argument("--model-scientist-a", type=str, help="Model for Scientist A.")
+    parser.add_argument("--model-scientist-b", type=str, help="Model for Scientist B.")
+    
     parser.add_argument("--max-rounds", type=int, default=3, help="Maximum debate rounds.")
     args = parser.parse_args()
+
+    # Construct model specs
+    model_specs = {
+        "moderator": args.model_moderator or args.model,
+        "scientist_a": args.model_scientist_a or args.model,
+        "scientist_b": args.model_scientist_b or args.model
+    }
 
     # Ensure results directory exists
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     
-    # Initialize Langfuse (try/except in case not configured)
+    # Initialize Langfuse
     try:
         langfuse_client = Langfuse()
     except Exception as e:
         log.warning(f"Langfuse initialization failed: {e}. Tracing disabled.")
-        # Create a dummy client if needed or handle None in agents (agents expect client)
-        # For now assuming it works or existing agents will crash. 
-        # If it crashes, we might need a DummyLangfuse class.
         return 
 
     all_results = []
@@ -157,8 +157,10 @@ async def main():
         log.error(f"No batch files found in {DATASET_DIR}")
         return
 
-    safe_model_name = args.model.replace("/", "-").replace(":", "-")
-    output_filename = f"multi_agent_results_{safe_model_name}{batch_suffix}.json"
+    # Create a safe name for the output file based on the models
+    models_str = f"mod_{model_specs['moderator']}_scA_{model_specs['scientist_a']}_scB_{model_specs['scientist_b']}"
+    safe_models_str = models_str.replace("/", "-").replace(":", "-")
+    output_filename = f"multi_agent_results_{safe_models_str}{batch_suffix}.json"
 
     total_correct = 0
     total_processed = 0
@@ -180,7 +182,7 @@ async def main():
                     debate_result = await run_multi_agent_debate(
                         problem, 
                         RESULTS_DIR / "temp_debate_outputs", 
-                        args.model, 
+                        model_specs, 
                         args.max_rounds, 
                         langfuse_client
                     )
@@ -189,12 +191,15 @@ async def main():
                     reasoning = ""
                     
                     if debate_result:
-                        # debate_result contains 'solution' (text), 'numerical_answer' (str/null), etc.
-                        # We need to decide which to use as 'prediction' for evaluation
-                        if problem.get("task") == "calcu":
+                        # Use the structured 'answer' field if available (New Feature)
+                        if debate_result.get("answer") and str(debate_result.get("answer")).lower() != "null":
+                             final_prediction = debate_result.get("answer")
+                        
+                        # Fallback to numerical_answer for calc tasks if answer is missing
+                        elif problem.get("task") == "calcu":
                             final_prediction = debate_result.get("numerical_answer")
                             if final_prediction == "null" or final_prediction is None:
-                                final_prediction = debate_result.get("solution") # Fallback
+                                final_prediction = debate_result.get("solution")
                         else:
                             final_prediction = debate_result.get("solution")
                             
@@ -232,7 +237,7 @@ async def main():
     # Metrics
     accuracy = total_correct / total_processed if total_processed > 0 else 0
     metrics = {
-        "model": args.model,
+        "model_specs": model_specs,
         "batch_info": batch_suffix.strip("_"),
         "total_processed": total_processed,
         "total_correct": total_correct,
@@ -242,7 +247,7 @@ async def main():
     
     log.info("="*30)
     log.info(f"Multi-Agent Run Results")
-    log.info(f"Model: {args.model}")
+    log.info(f"Models: {model_specs}")
     log.info(f"Total Processed: {total_processed}")
     log.info(f"Total Correct: {total_correct}")
     log.info(f"Accuracy: {accuracy:.2%}")
@@ -267,4 +272,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

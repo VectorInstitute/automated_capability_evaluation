@@ -33,6 +33,7 @@ class AgentSolution:
     task_id: str
     thought: str
     final_answer: str
+    answer: str
     numerical_answer: str
     round_number: int
     capability_name: str
@@ -45,6 +46,7 @@ class AgentSolution:
             "task_id": self.task_id,
             "thought": self.thought,
             "final_answer": self.final_answer,
+            "answer": self.answer,
             "numerical_answer": self.numerical_answer,
             "round_number": str(self.round_number),
             "capability_name": self.capability_name,
@@ -82,6 +84,7 @@ class FinalSolution:
     area_name: str
     problem: str
     solution: str
+    answer: str
     numerical_answer: str
     reasoning: str
     consensus_reached: bool

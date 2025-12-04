@@ -25,7 +25,7 @@ from tenacity import (
 )
 
 
-MAX_TOKENS = 1024 * 16  # Reduced to 16384 for gpt-4o compatibility
+MAX_TOKENS = 4096  # Reduced to 4096 for compatibility with Claude Opus and others
 
 logger = logging.getLogger(__name__)
 

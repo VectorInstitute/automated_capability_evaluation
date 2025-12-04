@@ -27,7 +27,7 @@ from src.task_solve_models.multi_agent_solver.messages import (
     Task,
     TaskSolutionRequest,
 )
-from src.utils.agentic_prompts import (
+from src.task_solve_models.multi_agent_solver.prompts import (
     TASK_MODERATOR_CONSENSUS_PROMPT,
     TASK_MODERATOR_SYSTEM_MESSAGE,
 )
@@ -87,12 +87,13 @@ class TaskSolverModerator(RoutedAgent):
 
     def _extract_consensus_components(
         self, response: str
-    ) -> tuple[bool, str, str, str]:
-        """Extract consensus, solution, reasoning, and numerical answer from JSON."""
+    ) -> tuple[bool, str, str, str, str]:
+        """Extract consensus, solution, answer, reasoning, and numerical answer from JSON."""
         try:
             parsed = parse_llm_json_response(response)
             consensus_reached = parsed.get("consensus_reached", False)
             final_solution = parsed.get("final_solution", "NONE")
+            answer = parsed.get("answer", "NONE")
             reasoning = parsed.get("reasoning", "No reasoning provided")
             numerical_answer = parsed.get("numerical_answer")
 
@@ -102,7 +103,7 @@ class TaskSolverModerator(RoutedAgent):
             else:
                 numerical_answer = "null"
 
-            return consensus_reached, final_solution, reasoning, numerical_answer
+            return consensus_reached, final_solution, answer, reasoning, numerical_answer
 
         except Exception as e:
             msg = f"Error extracting consensus components: {e}"
@@ -112,10 +113,15 @@ class TaskSolverModerator(RoutedAgent):
 
     def _check_simple_consensus(
         self, solutions: List[AgentSolution]
-    ) -> tuple[bool, str, str]:
+    ) -> tuple[bool, str, str, str]:
         """Check consensus; if all agents have the same final answer."""
         if not solutions or len(solutions) < self._num_solvers:
-            return False, "", "null"
+            return False, "", "null", "null"
+
+        # Check for strict consensus on the structured 'answer' field
+        answers = [sol.answer.strip().lower() for sol in solutions if sol.answer and sol.answer.strip().lower() != "no answer provided"]
+        if len(answers) == len(solutions) and len(set(answers)) == 1:
+             return True, solutions[0].final_answer, solutions[0].answer, solutions[0].numerical_answer
 
         # First check numerical answers if they exist
         numerical_answers = [
@@ -125,14 +131,14 @@ class TaskSolverModerator(RoutedAgent):
             len(numerical_answers) == len(solutions)
             and len(set(numerical_answers)) == 1
         ):
-            return True, solutions[0].final_answer, solutions[0].numerical_answer
+            return True, solutions[0].final_answer, solutions[0].answer, solutions[0].numerical_answer
 
         # Fallback to text-based consensus
-        answers = [sol.final_answer.strip().lower() for sol in solutions]
-        if len(set(answers)) == 1:
-            return True, solutions[0].final_answer, solutions[0].numerical_answer
+        # answers = [sol.final_answer.strip().lower() for sol in solutions] # Deprecated logic
+        # if len(set(answers)) == 1:
+        #    return True, solutions[0].final_answer, solutions[0].answer, solutions[0].numerical_answer
 
-        return False, "", "null"
+        return False, "", "null", "null"
 
     @message_handler
     async def handle_task(self, message: Task, ctx: MessageContext) -> None:
@@ -245,7 +251,7 @@ class TaskSolverModerator(RoutedAgent):
                 solutions = self._solutions_buffer[self._current_round]
 
                 # First try simple consensus check
-                simple_consensus, simple_solution, simple_numerical = (
+                simple_consensus, simple_solution, simple_answer, simple_numerical = (
                     self._check_simple_consensus(solutions)
                 )
 
@@ -256,6 +262,7 @@ class TaskSolverModerator(RoutedAgent):
                         area_name=self._tasks.area_name,
                         problem=self._tasks.problem,
                         solution=simple_solution,
+                        answer=simple_answer,
                         numerical_answer=simple_numerical,
                         reasoning="All agents provided the same answer",
                         consensus_reached=True,
@@ -281,7 +288,7 @@ class TaskSolverModerator(RoutedAgent):
                     # Format solutions for LLM
                     all_solutions_text = "\n\n".join(
                         [
-                            f"Agent {sol.agent_id}:\nReasoning: {sol.thought}\nFinal Answer: {sol.final_answer}"
+                            f"Agent {sol.agent_id}:\nReasoning: {sol.thought}\nFinal Answer: {sol.final_answer}\nStructured Answer: {sol.answer}"
                             for sol in solutions
                         ]
                     )
@@ -304,6 +311,7 @@ class TaskSolverModerator(RoutedAgent):
                     (
                         consensus_reached,
                         final_solution_text,
+                        answer,
                         reasoning,
                         numerical_answer,
                     ) = self._extract_consensus_components(str(response.content))
@@ -316,6 +324,7 @@ class TaskSolverModerator(RoutedAgent):
                             area_name=self._tasks.area_name,
                             problem=self._tasks.problem,
                             solution=final_solution_text,
+                            answer=answer,
                             numerical_answer=numerical_answer,
                             reasoning=reasoning,
                             consensus_reached=True,
@@ -352,6 +361,7 @@ class TaskSolverModerator(RoutedAgent):
                                     "task_id": sol.task_id,
                                     "thought": sol.thought,
                                     "final_answer": sol.final_answer,
+                                    "answer": sol.answer,
                                     "numerical_answer": sol.numerical_answer,
                                     "round_number": str(sol.round_number),
                                 }
@@ -376,6 +386,7 @@ class TaskSolverModerator(RoutedAgent):
                         area_name=self._tasks.area_name,
                         problem=self._tasks.problem,
                         solution="No consensus reached",
+                        answer="null",
                         numerical_answer="null",
                         reasoning=f"Maximum rounds ({self._max_rounds}) reached without consensus",
                         consensus_reached=False,
@@ -416,6 +427,7 @@ class TaskSolverModerator(RoutedAgent):
                 "area_name": final_solution.area_name,
                 "problem": final_solution.problem,
                 "solution": final_solution.solution,
+                "answer": final_solution.answer,
                 "numerical_answer": final_solution.numerical_answer,
                 "reasoning": final_solution.reasoning,
                 "consensus_reached": final_solution.consensus_reached,
@@ -426,6 +438,7 @@ class TaskSolverModerator(RoutedAgent):
                         "task_id": sol["task_id"],
                         "thought": sol["thought"],
                         "final_answer": sol["final_answer"],
+                        "answer": sol.get("answer", "null"),
                         "numerical_answer": sol["numerical_answer"],
                         "round_number": sol["round_number"],
                     }

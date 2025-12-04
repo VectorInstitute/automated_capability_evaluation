@@ -23,7 +23,7 @@ from src.task_solve_models.multi_agent_solver.messages import (
     AgentSolution,
     TaskSolutionRequest,
 )
-from src.utils.agentic_prompts import (
+from src.task_solve_models.multi_agent_solver.prompts import (
     TASK_SOLVER_ROUND_1_PROMPT,
     TASK_SOLVER_SUBSEQUENT_ROUNDS_PROMPT,
     TASK_SOLVER_SYSTEM_MESSAGE,
@@ -61,12 +61,18 @@ class TaskSolverScientist(RoutedAgent):
         self._scientist_id = scientist_id
         self._langfuse_client = langfuse_client
 
-    def _extract_solution_components(self, response: str) -> tuple[str, str, str]:
-        """Extract thought, final answer, and numerical answer from JSON response."""
+    def _extract_solution_components(self, response: str) -> tuple[str, str, str, str]:
+        """Extract thought, final answer, answer, and numerical answer from JSON response."""
         try:
+            # Local fix for common LLM JSON errors (like missing commas between fields)
+            # Matches: "value" \n "key": -> "value", \n "key":
+            import re
+            response = re.sub(r'"\s*\n\s*"(\w+)":', r'",\n"\1":', response)
+
             parsed = parse_llm_json_response(response)
             thought_raw = parsed.get("thought", response.strip())
             final_answer_raw = parsed.get("final_answer", "No clear answer provided")
+            answer_raw = parsed.get("answer", "No answer provided")
             numerical_answer = parsed.get("numerical_answer")
 
             thought = (
@@ -79,13 +85,18 @@ class TaskSolverScientist(RoutedAgent):
                 if isinstance(final_answer_raw, (dict, list))
                 else str(final_answer_raw).strip()
             )
+            answer = (
+                json.dumps(answer_raw, ensure_ascii=False, indent=2)
+                if isinstance(answer_raw, (dict, list))
+                else str(answer_raw).strip()
+            )
 
             if numerical_answer is not None:
                 numerical_answer = str(numerical_answer)
             else:
                 numerical_answer = "null"
 
-            return thought, final_answer, numerical_answer
+            return thought, final_answer, answer, numerical_answer
 
         except Exception as e:
             msg = f"Failed to parse JSON response: {e} \n Response: {response}"
@@ -95,7 +106,7 @@ class TaskSolverScientist(RoutedAgent):
 
     async def _generate_solution_payload(
         self, system_message: SystemMessage, user_message: UserMessage
-    ) -> tuple[str, str, str]:
+    ) -> tuple[str, str, str, str]:
         """Call the model with retries until valid JSON is returned."""
         last_error: Exception | None = None
         for attempt in range(1, MAX_MODEL_ATTEMPTS + 1):
@@ -175,6 +186,7 @@ class TaskSolverScientist(RoutedAgent):
                 (
                     thought,
                     final_answer,
+                    answer,
                     numerical_answer,
                 ) = await self._generate_solution_payload(system_message, user_message)
 
@@ -183,6 +195,7 @@ class TaskSolverScientist(RoutedAgent):
                     task_id=message.task_id,
                     thought=thought,
                     final_answer=final_answer,
+                    answer=answer,
                     numerical_answer=numerical_answer,
                     round_number=message.round_number,
                     capability_name=message.capability_name,
@@ -254,6 +267,7 @@ class TaskSolverScientist(RoutedAgent):
                 (
                     thought,
                     final_answer,
+                    answer,
                     numerical_answer,
                 ) = await self._generate_solution_payload(system_message, user_message)
 
@@ -262,6 +276,7 @@ class TaskSolverScientist(RoutedAgent):
                     task_id=message.task_id,
                     thought=thought,
                     final_answer=final_answer,
+                    answer=answer,
                     numerical_answer=numerical_answer,
                     round_number=message.round_number,
                     capability_name=message.capability_name,
