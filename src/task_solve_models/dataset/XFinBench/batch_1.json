@@ -1,0 +1,202 @@
+[
+  {
+    "id": "vali_0",
+    "task": "calcu",
+    "question": "\n\\begin{table}[h!]\n    \\centering\n    \\begin{tabular}{l|r|r}\n        \\textbf{SMOLIRA GOLF CORP.} & \\textbf{2006} & \\textbf{2007} \\\\\n        \\textbf{Balance Sheets} & & \\\\\n        \\hline\n        \\textbf{Assets} & & \\\\\n        Current assets & & \\\\\n        \\quad Cash & \\$ 18,270 & \\$ 22,150 \\\\\n        \\quad Accounts receivable & 12,315 & 13,865 \\\\\n        \\quad Inventory & 21,584 & 24,876 \\\\\n        \\quad Total & \\$ 52,169 & \\$ 60,891 \\\\\n        \\hline\n        Fixed assets & & \\\\\n        \\quad Net plant and equipment & \\$ 168,326 & \\$ 184,735 \\\\\n        \\hline\n        \\textbf{Total assets} & \\$ 220,495 & \\$ 245,626 \\\\\n        \\hline\n        \\textbf{Liabilities and Owners’ Equity} & & \\\\\n        Current liabilities & & \\\\\n        \\quad Accounts payable & \\$ 16,215 & \\$ 17,318 \\\\\n        \\quad Notes payable & 8,000 & 10,000 \\\\\n        \\quad Other & 11,145 & 14,451 \\\\\n        \\quad Total & \\$ 35,360 & \\$ 41,769 \\\\\n        \\hline\n        Long-term debt & & \\\\\n        \\quad & \\$ 80,000 & \\$ 85,000 \\\\\n        \\hline\n        Owners’ equity & & \\\\\n        \\quad Common stock and & & \\\\\n        \\quad paid-in surplus & \\$ 20,000 & \\$ 20,000 \\\\\n        \\quad Retained earnings & 85,135 & 98,857 \\\\\n        \\quad Total & \\$ 105,135 & \\$ 118,857 \\\\\n        \\hline\n        \\textbf{Total liabilities} & \\$ 220,495 & \\$ 245,626 \\\\\n        \\textbf{and owners’ equity} & & \\\\\n    \\end{tabular}\n\\end{table}\n\n\n\\begin{table}[h]\n    \\centering\n    \\caption{SMOLIRA GOLF CORP. 2007 Income Statement}\n    \\begin{tabular}{l r}\n        \\hline\n        Sales & \\$ 285,760 \\\\\n        Cost of goods sold & 205,132 \\\\\n        Depreciation & 21,950 \\\\\n        Earnings before interest and taxes & \\$ 58,678 \\\\\n        Interest paid & 9,875 \\\\\n        Taxable income & \\$ 48,803 \\\\\n        Taxes (35\\%) & 17,081 \\\\\n        Net income & \\$ 31,722 \\\\\n        \\\\\n        Dividends & \\$ 18,000 \\\\\n        Addition to retained earnings & 13,722 \\\\\n        \\hline\n    \\end{tabular}\n\\end{table}\n\nThe balance sheets and income statement for Smolira Golf Corp. for the years 2006 and 2007 are given.What was the net cash from operating activities for Smolira Golf Corp. in 2007? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "53239.00",
+    "figure": "",
+    "fin_capability": "NM",
+    "gold_fin_term_id": "term_2778"
+  },
+  {
+    "id": "vali_1",
+    "task": "bool",
+    "question": "Consider the difference between a total return swap and an asset swap.In a total return swap, the bond's promised payments are swapped for LIBOR plus a spread.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2649"
+  },
+  {
+    "id": "vali_2",
+    "task": "bool",
+    "question": "Consider a scenario where there is no asymmetry in the information that a borrower and a lender have.In this scenario, the problem of moral hazard would no longer exist.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_95;term_965"
+  },
+  {
+    "id": "vali_3",
+    "task": "calcu",
+    "question": "Brewer Industries had the following operating results for 2007: sales were $15,200, cost of goods sold was $11,400, depreciation expense was $2,700, interest expense was $520, and dividends paid were $600. At the beginning of the year, net fixed assets were $9,100, current assets were $3,200, and current liabilities were $1,800. At the end of the year, net fixed assets were $9,700, current assets were $3,850, and current liabilities were $2,100. The tax rate for 2007 was 34 percent.What was the cash flow to creditors for Brewer Industries in 2007? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "520.0",
+    "figure": "",
+    "fin_capability": "NM",
+    "gold_fin_term_id": "term_2683;term_2638;term_2784"
+  },
+  {
+    "id": "vali_4",
+    "task": "mcq",
+    "question": "A protective put combines a long position in a put option with a long position in the underlying shares, providing a form of investment insurance.What position in call options is equivalent to a protective put?",
+    "choice": "A. A short position in a call option plus a certain amount of cash\nB. A long position in a call option minus a certain amount of shares\nC. A long position in a call option plus a certain amount of cash",
+    "ground_truth": "C",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_695"
+  },
+  {
+    "id": "vali_5",
+    "task": "mcq",
+    "question": "Earnings announcements by companies frequently result in share price revisions.Which one of the following happens when unexpectedly low earnings are announced?",
+    "choice": "A. Market participants reduce estimates of future growth rates and cash flows.\nB. Market participants increase their estimates of the company's valuation.\nC. The company issues additional shares to raise capital.",
+    "ground_truth": "A",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1611"
+  },
+  {
+    "id": "vali_6",
+    "task": "bool",
+    "question": "In the primitive economy of cavemen, there was minimal need for trade.Cavemen did not need money due to the lack of specialization in producing one type of good.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_938"
+  },
+  {
+    "id": "vali_7",
+    "task": "bool",
+    "question": "Consider the role of financial markets in the economy.Financial markets are important to the health of the economy because they channel funds from people who have a productive use for them to people who do not.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1881"
+  },
+  {
+    "id": "vali_8",
+    "task": "bool",
+    "question": "Explain the characteristics and execution conditions of a market-if-touched order and a stop order.A market-if-touched order is executed at the best available price after there is a bid or offer at the specified price or at a price less favorable than the specified price.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1378"
+  },
+  {
+    "id": "vali_9",
+    "task": "bool",
+    "question": "The Phew Charitable Trust pays no taxes on its capital gains or on its dividend income or interest income.It would be rational for the Phew Charitable Trust to hold municipal bonds in its portfolio to benefit from the tax break associated with them.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2905"
+  },
+  {
+    "id": "vali_10",
+    "task": "calcu",
+    "question": "Teardrop Inc. wishes to expand its facilities by issuing new equity. The company currently has 10 million shares outstanding, each selling for $50, with a book value of $20 per share. Net income is currently $18 million. The new facility will cost $40 million and increase net income by $500,000.What will be the new earnings per share (EPS) for Teardrop after issuing new equity and financing the investment? (Unit: dollar per share)",
+    "choice": "",
+    "ground_truth": "1.71",
+    "figure": "",
+    "fin_capability": "NM; FF",
+    "gold_fin_term_id": "term_1253"
+  },
+  {
+    "id": "vali_11",
+    "task": "calcu",
+    "question": "The following table gives the prices of bonds. Half the stated coupon is paid every six months.\n\\begin{table}[]\n\\begin{tabular}{llll}\nBond Principal (\\$) & Time to Maturity (yrs) & Annual Coupon (\\$) & Bond Price (\\$) \\\\\n100                 & 0.5                    & 0.0                 & 98              \\\\\n100                 & 1.0                    & 0.0                 & 95              \\\\\n100                 & 1.5                    & 6.2                 & 101             \\\\\n100                 & 2.0                    & 8.0                 & 104            \n\\end{tabular}\n\\end{table}What is the price of a two-year bond providing a semiannual coupon of 7% per annum? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "102.13",
+    "figure": "",
+    "fin_capability": "NM; TR",
+    "gold_fin_term_id": "term_2571;term_1742;term_2362"
+  },
+  {
+    "id": "vali_12",
+    "task": "calcu",
+    "question": "Titan Mining Corporation has 8.5 million shares of common stock outstanding, 200,000 shares of 7 percent preferred stock outstanding, and 85,000 8.5 percent semiannual bonds outstanding, par value $1,000 each. The common stock currently sells for $34 per share, the preferred stock currently sells for $83 per share, and the bonds have 15 years to maturity and sell for 93 percent of par.What is the total market value of Titan Mining Corporation? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "384650000.0",
+    "figure": "",
+    "fin_capability": "NM",
+    "gold_fin_term_id": "term_1710;term_1608;term_2657"
+  },
+  {
+    "id": "vali_13",
+    "task": "bool",
+    "question": "A total return swap can be used as a financing tool.In the event of a default by the company, the financial institution does not own the assets.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2649"
+  },
+  {
+    "id": "vali_14",
+    "task": "calcu",
+    "question": "\n\\begin{table}[ht]\n\\centering\n\\caption{Bid and offer fixed rates in the swap market and swap rates (percent per annum).}\n\\begin{tabular}{cccc}\n\\hline\n\\textbf{Maturity (years)} & \\textbf{Bid} & \\textbf{Offer} & \\textbf{Swap rate} \\\\\n\\hline\n2                          & 6.03         & 6.06          & 6.045              \\\\\n3                          & 6.21         & 6.24          & 6.225              \\\\\n4                          & 6.35         & 6.39          & 6.370              \\\\\n5                          & 6.47         & 6.51          & 6.490              \\\\\n                          &              &                &                     \\\\\n7                          & 6.65         & 6.68          & 6.665              \\\\\n                          &              &                &                     \\\\\n10                         & 6.83         & 6.87          & 6.850              \\\\\n\\hline\n\\end{tabular}\n\\end{table}\n\nCompany A and Company B have been offered the rates shown in Table 7.3. Company A can borrow for three years at a fixed rate of 6.45%. Company B can borrow for five years at a floating rate of LIBOR plus 75 basis points.What fixed rate can Company B swap a floating rate of LIBOR plus 75 basis points into? (Unit: percent)",
+    "choice": "",
+    "ground_truth": "7.26",
+    "figure": "",
+    "fin_capability": "TR; SP",
+    "gold_fin_term_id": "term_1945"
+  },
+  {
+    "id": "vali_15",
+    "task": "bool",
+    "question": "In the context of the dividend growth model.The growth rate in dividends and the capital gains yield are different.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2868"
+  },
+  {
+    "id": "vali_16",
+    "task": "calcu",
+    "question": "Soprano, Inc., a litter recycling company, uses a residual dividend policy. A debt-equity ratio of 1.20 is considered optimal. Earnings for the period just ended were $1,500, and a dividend of $390 was declared.What were the total capital outlays? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "2442.0",
+    "figure": "",
+    "fin_capability": "NM",
+    "gold_fin_term_id": "term_35"
+  },
+  {
+    "id": "vali_17",
+    "task": "bool",
+    "question": "The Federal Reserve Act of 1913 placed two Federal Reserve Banks in Missouri.The placement of two banks in Missouri was likely intended to accommodate the demands of large urban populations.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_33"
+  },
+  {
+    "id": "vali_18",
+    "task": "bool",
+    "question": "Concerning payback period in evaluating cash flows.Payback analysis may be appropriate for short-term projects where liquidity is important.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_357"
+  },
+  {
+    "id": "vali_19",
+    "task": "mcq",
+    "question": "Broslofski Co. maintains a positive retention ratio and keeps its debt-equity ratio constant every year.What happens to Broslofski Co.'s projected EFN if the retention ratio is increased?",
+    "choice": "A. The EFN will remain unchanged\nB. The EFN will rise\nC. The EFN will decline",
+    "ground_truth": "C",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1917"
+  }
+]

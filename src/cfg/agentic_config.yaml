@@ -13,7 +13,7 @@ debate_cfg:
 # Agent configurations (shared across all stages)
 agents:
   scientist_a:
-    model_name: gpt-5
+    model_name: gpt-4o
     seed: 8
 
   scientist_b:
@@ -21,7 +21,7 @@ agents:
     seed: 88  # If using same model as scientist_a, use different seed for diversity
 
   moderator:
-    model_name: claude-opus-4-1-20250805
+    model_name: claude-3-5-sonnet-20241022
     seed: 888
 
 # Stage 1: Area Generation Configuration
