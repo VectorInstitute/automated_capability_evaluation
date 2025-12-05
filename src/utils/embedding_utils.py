@@ -115,6 +115,7 @@ def generate_and_set_capabilities_embeddings(
     capabilities: List[Capability],
     embedding_model_name: str,
     embed_dimensions: int,
+    rep_string_order="and",
 ) -> None:
     """Generate the capabilities embeddings using the OpenAI embedding model.
 
@@ -125,6 +126,8 @@ def generate_and_set_capabilities_embeddings(
         capabilities (List[Capability]): The list of capabilities.
         embedding_model_name (str): The name of the embedding model to use.
         embed_dimensions (int): The number of dimensions for the embeddings.
+        rep_string_order (str): the order of fields that create the representation
+            string. Here, "a": Area, "n": Name, "d": Description.
     """
     # Convert the embedding model name to `EmbeddingModelName` to ensure
     # that the provided model name is valid and supported.
@@ -139,7 +142,20 @@ def generate_and_set_capabilities_embeddings(
     texts = []
     for capability in capabilities:
         capability_dict = capability.to_dict(attribute_names=["name", "description"])
-        rep_string = f"{capability_dict['name']} - {capability.area}: {capability_dict['description']}"
+        rep_string = ""
+        for char in rep_string_order:
+            if char == "a":
+                rep_string += capability.area + ", "
+            elif char == "n":
+                rep_string += capability_dict["name"] + ", "
+            elif char == "d":
+                rep_string += capability_dict["description"] + ", "
+            else:
+                raise ValueError(f"Invalid field code: {char}")
+        rep_string = rep_string.rstrip(", ")
+        if not rep_string:
+            raise ValueError("Representation string cannot be empty.")
+        print(f"Representation string: {rep_string}")
         texts.append(rep_string)
     embeddings = embedding_generator.generate_embeddings(texts)
     # Set embeddings for capabilities.
