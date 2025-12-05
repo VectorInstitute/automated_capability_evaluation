@@ -43,16 +43,28 @@
 *   **Updated `TASK_MODERATOR_SYSTEM_MESSAGE`**: Instructed Moderator to act as a **JUDGE** and break ties based on reasoning quality.
 *   **Problem Solved**: Resolved infinite loop / stalemate scenarios (e.g., `vali_34`) where agents would politely swap sides or refuse to agree, ensuring a decision is reached.
 
-### 2. "Two-Step" Reasoning & "Stickiness" (Prompt Only)
-*   **Updated `TASK_SOLVER_SYSTEM_MESSAGE`**: Enforced "Think first, then answer" and added "Stickiness" instructions.
-*   **Problem Solved**: Aimed to improve calculation accuracy and prevent "polite flip-flopping" where agents abandoned correct answers too easily.
+### 2. \"Two-Step\" Reasoning & \"Stickiness\" (Prompt Only)
+*   **Updated `TASK_SOLVER_SYSTEM_MESSAGE`**: Enforced \"Think first, then answer\" and added \"Stickiness\" instructions.
+*   **Problem Solved**: Aimed to improve calculation accuracy and prevent \"polite flip-flopping\" where agents abandoned correct answers too easily.
 
-## 2025-12-04: "Formatter Agent" Architecture (Robust 2-Step Generation)
+## 2025-12-04: \"Formatter Agent\" Architecture (Robust 2-Step Generation)
 
 ### 1. Two-Step Generation Pipeline
 *   **Modified `scientist.py`**: Refactored `_generate_solution_payload` to use two steps: (1) Free-text reasoning, (2) Strict JSON formatting.
-*   **Problem Solved**: Permanently fixed persistent JSON crashes on complex math problems (e.g., `vali_40`, `vali_44`). Models often failed to generate valid JSON when the reasoning contained complex LaTeX or unescaped characters; this architecture separates the "thinking" from the "formatting."
+*   **Problem Solved**: Permanently fixed persistent JSON crashes on complex math problems (e.g., `vali_40`, `vali_44`). Models often failed to generate valid JSON when the reasoning contained complex LaTeX or unescaped characters; this architecture separates the \"thinking\" from the \"formatting.\"
 
 ### 2. Prompt Architecture Update
 *   **Updated `prompts.py`**: Simplified solver prompts and added dedicated formatter prompts.
 *   **Problem Solved**: Reduced cognitive load on the solver model, allowing it to focus on the math/logic without being constrained by JSON syntax rules during the reasoning phase.
+
+## 2025-12-05: Robustness, Precision, and Formatting Fixes
+
+### 1. Unit & Precision Handling
+*   **Updated `prompts.py`**: Added explicit instructions to `TASK_SOLVER_FORMATTER_PROMPT` to check for requested units (e.g., %, decimal).
+*   **Updated `prompts.py`**: Added instruction to `TASK_SOLVER_SYSTEM_MESSAGE` to avoid intermediate rounding.
+*   **Problem Solved**: Addressed failures where models returned decimals instead of percentages (`0.08` vs `8.0`) and reduced calculation errors due to premature rounding.
+
+### 2. System Stability Fixes
+*   **Updated `scientist.py`**: Implemented a retry loop (3 attempts) for the two-step generation process.
+*   **Updated `moderator.py`**: Fixed a crash (`KeyError: slice`) caused by the moderator model occasionally returning nested JSON objects instead of strings for the solution field.
+*   **Problem Solved**: Significantly improved pipeline reliability by handling transient model failures (empty responses, malformed JSON) and ensuring the moderator can always process the final output.

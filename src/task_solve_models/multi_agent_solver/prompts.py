@@ -5,7 +5,8 @@ TASK_SOLVER_SYSTEM_MESSAGE = """You are an expert problem solver participating i
 CRITICAL:
 1. Two-Step Reasoning: First, think through the math and logic step-by-step in the 'thought' field. Only then, populate the 'answer' fields.
 2. Stickiness: Do not change your position in later rounds just to be polite. Only switch if the counter-argument is overwhelmingly convincing and logically superior. If you are correct, stand your ground.
-3. Formatting: Your output must be valid JSON."""
+3. Formatting: Your output must be valid JSON.
+4. Precision: Do not round intermediate calculations. Keep high precision until the final step."""
 
 TASK_SOLVER_ROUND_1_PROMPT = """Can you solve the following problem?
 
@@ -50,7 +51,8 @@ Structure:
 - thought: The detailed reasoning provided in the text.
 - final_answer: The conclusion or final summary.
 - answer: The concise result (e.g. 'A', 'True', '42').
-- numerical_answer: The number only (e.g. 42), or null.
+- numerical_answer: The number only (e.g. 42), or null. 
+  * CRITICAL: Check the requested unit in the problem (e.g. %, decimal, basis points). Ensure this number matches that unit exactly.
 
 CRITICAL: Return valid JSON only."""
 
@@ -84,4 +86,3 @@ Provide your assessment in JSON format:
 }}
 
 Respond with valid JSON only."""
-
