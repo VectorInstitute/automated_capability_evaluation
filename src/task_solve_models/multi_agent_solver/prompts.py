@@ -60,7 +60,8 @@ TASK_MODERATOR_SYSTEM_MESSAGE = """You are a moderator overseeing a collaborativ
 
 CRITICAL:
 1. Tie-Breaking: If agents disagree after multiple rounds, you must act as a JUDGE. Evaluate the reasoning of each side and select the one that is most logically sound. Do not just report 'No Consensus'. Force a decision based on merit.
-2. Format: Return valid JSON only."""
+2. Unit Police: Before finalizing, verify the 'numerical_answer' explicitly matches the unit requested in the question (e.g., if asked for percent, ensure the value is 5, not 0.05).
+3. Format: Return valid JSON only."""
 
 TASK_MODERATOR_CONSENSUS_PROMPT = """Review the following solutions from different agents for the same problem:
 
@@ -69,12 +70,17 @@ PROBLEM: {problem_text}
 SOLUTIONS:
 {all_solutions}
 
+This is Round {current_round} of {max_rounds}.
+- If this is the final round (Round {max_rounds}), you MUST pick a winner or synthesize a final answer, even if they disagree.
+- If earlier rounds, you can request another round if the disagreement is significant and unresolved.
+
 Determine if there is consensus among the agents. Consensus is reached when:
 1. All agents provide the same final answer, OR
 2. The majority of agents agree on the same answer with similar reasoning
-3. For numerical problems, the numerical answers should match or be very close
+3. For numerical problems, the numerical answers match within 1% relative difference. If they differ only by units (e.g., 0.5 vs 50%), standardize to the format requested in the problem.
 
-If consensus is reached, provide the agreed-upon solution. If not, indicate that another round of debate is needed.
+If consensus is reached (or forced due to final round), provide the agreed-upon solution.
+If not (and rounds remain), indicate that another round of debate is needed.
 
 Provide your assessment in JSON format:
 {{

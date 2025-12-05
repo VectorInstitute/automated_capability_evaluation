@@ -303,6 +303,8 @@ class TaskSolverModerator(RoutedAgent):
                     prompt = TASK_MODERATOR_CONSENSUS_PROMPT.format(
                         problem_text=stored_task.problem,
                         all_solutions=all_solutions_text,
+                        current_round=self._current_round,
+                        max_rounds=self._max_rounds,
                     )
 
                     system_message = SystemMessage(

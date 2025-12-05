@@ -109,14 +109,13 @@ class TaskSolverScientist(RoutedAgent):
     async def _generate_solution_payload(
         self, system_message: SystemMessage, user_message: UserMessage
     ) -> tuple[str, str, str, str]:
-        """Call the model in two steps: Reasoning (Text) -> Formatting (JSON)."""
+        """Call the model. Always use two steps (reasoning -> format) for robustness."""
         
         last_error: Exception | None = None
         
         for attempt in range(MAX_MODEL_ATTEMPTS):
             try:
                 # 1. Generate Reasoning (Allowing free text/markdown)
-                # Note: We do NOT enforce JSON mode here to avoid the escaping/math complexity issues.
                 reasoning_response = await self._model_client.create(
                     [system_message, user_message],
                 )
@@ -126,24 +125,21 @@ class TaskSolverScientist(RoutedAgent):
                     raise ValueError("Empty reasoning response from model")
 
                 # 2. Format into JSON (Strict Mode)
-                # We create a new prompt context for the formatting step
                 formatter_system = SystemMessage(content=TASK_SOLVER_FORMATTER_SYSTEM_MESSAGE)
                 formatter_user = UserMessage(
                     content=TASK_SOLVER_FORMATTER_PROMPT.format(agent_response=reasoning_content), 
                     source="user"
                 )
 
-                # We DO enforce JSON mode here for guaranteed structure
                 json_response = await self._model_client.create(
                     [formatter_system, formatter_user],
                     json_output=True,
                     extra_create_args={"response_format": {"type": "json_object"}},
                 )
-                
                 json_content = str(getattr(json_response, "content", "") or "").strip()
                 
                 if not json_content:
-                    raise ValueError("Empty JSON response from formatter")
+                    raise ValueError("Empty JSON response from model")
 
                 return self._extract_solution_components(json_content)
 

@@ -68,3 +68,37 @@
 *   **Updated `scientist.py`**: Implemented a retry loop (3 attempts) for the two-step generation process.
 *   **Updated `moderator.py`**: Fixed a crash (`KeyError: slice`) caused by the moderator model occasionally returning nested JSON objects instead of strings for the solution field.
 *   **Problem Solved**: Significantly improved pipeline reliability by handling transient model failures (empty responses, malformed JSON) and ensuring the moderator can always process the final output.
+
+## 2025-12-05: Cost Optimization & Round Limiting
+
+### 1. Default Max Rounds Reduced
+*   **Updated `run_multi_agent.py`**: Changed default `max_rounds` from 3 to 1.
+*   **Problem Solved**: Reduced unnecessary API costs and runtime for tasks where consensus is often reached early or further debate yields diminishing returns.
+
+### 2. Adaptive Scientist Calls (Round 0 Optimization)
+*   **Updated `scientist.py`**: Modified `_generate_solution_payload` to use a single-step (1 API call) generation for Round 0, while maintaining the robust two-step (2 API calls) process for subsequent rounds.
+*   **Problem Solved**: Cut the cost of the initial "consensus check" phase in half (from 4 calls to 2 calls per task) without sacrificing the robustness needed for complex revisions in later rounds.
+
+## 2025-12-05: Moderator Prompt Improvements
+
+### 1. Urgency & Round Awareness
+*   **Updated `prompts.py` & `moderator.py`**: Injected current/max round info into the moderator prompt.
+*   **Problem Solved**: Forces the moderator to act decisively in the final round (Judge mode) rather than requesting another round, preventing stalemates.
+
+### 2. Unit Verification ("Unit Police")
+*   **Updated `prompts.py`**: Added explicit instruction for the Moderator to verify that the `numerical_answer` matches the requested unit (e.g., percent vs decimal).
+*   **Problem Solved**: Reduces "technically correct but wrong format" errors.
+
+### 3. Precise Consensus Definition
+*   **Updated `prompts.py`**: Defined numerical consensus as matching within "1% relative difference" to handle minor floating-point variations.
+*   **Problem Solved**: Prevents unnecessary debate rounds over negligible differences.
+
+## 2025-12-05: Reversion of Cost Optimizations
+
+### 1. Max Rounds Increase
+*   **Updated `run_multi_agent.py`**: Increased `max_rounds` from 1 back to 2.
+*   **Reasoning**: Preliminary tests showed `max_rounds=1` was too aggressive and hurt performance by cutting off debates prematurely.
+
+### 2. Re-enable Two-Step Generation for Round 0
+*   **Updated `scientist.py`**: Reverted the single-step optimization. Now uses the robust two-step generation (Reasoning + Formatter) for ALL rounds, including Round 0.
+*   **Reasoning**: Single-step generation in Round 0 often led to lower quality reasoning or formatting errors, undermining the initial consensus check.
