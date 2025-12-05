@@ -306,6 +306,7 @@ class TaskSolverModerator(RoutedAgent):
                     response = await self._model_client.create(
                         messages=[system_message, user_message],
                         cancellation_token=ctx.cancellation_token,
+                        extra_create_args={"response_format": {"type": "json_object"}},
                     )
 
                     (

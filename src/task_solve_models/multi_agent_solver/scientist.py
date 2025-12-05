@@ -27,6 +27,8 @@ from src.task_solve_models.multi_agent_solver.prompts import (
     TASK_SOLVER_ROUND_1_PROMPT,
     TASK_SOLVER_SUBSEQUENT_ROUNDS_PROMPT,
     TASK_SOLVER_SYSTEM_MESSAGE,
+    TASK_SOLVER_FORMATTER_PROMPT,
+    TASK_SOLVER_FORMATTER_SYSTEM_MESSAGE,
 )
 from src.utils.json_utils import parse_llm_json_response
 
@@ -107,50 +109,66 @@ class TaskSolverScientist(RoutedAgent):
     async def _generate_solution_payload(
         self, system_message: SystemMessage, user_message: UserMessage
     ) -> tuple[str, str, str, str]:
-        """Call the model with retries until valid JSON is returned."""
+        """Call the model in two steps: Reasoning (Text) -> Formatting (JSON)."""
+        
+        # Step 1: Reasoning (Free Text)
+        # We temporarily modify the system/user message to NOT ask for JSON in the first step if needed,
+        # but relying on the prompt content is safer. Assuming the prompt asks for reasoning.
+        # For simplicity/speed, we use the same model for both steps.
+        
         last_error: Exception | None = None
-        for attempt in range(1, MAX_MODEL_ATTEMPTS + 1):
-            try:
-                response = await self._model_client.create(
-                    [system_message, user_message],
-                    json_output=True,
-                )
-            except Exception as exc:  # pragma: no cover - network/SDK errors
-                last_error = exc
-                log.warning(
-                    "Scientist %s failed to get response on attempt %d: %s",
-                    self._scientist_id,
-                    attempt,
-                    exc,
-                )
-                continue
+        
+        try:
+            # 1. Generate Reasoning (Allowing free text/markdown)
+            # Note: We do NOT enforce JSON mode here to avoid the escaping/math complexity issues.
+            reasoning_response = await self._model_client.create(
+                [system_message, user_message],
+            )
+            reasoning_content = str(getattr(reasoning_response, "content", "") or "").strip()
+            
+            if not reasoning_content:
+                raise ValueError("Empty reasoning response from model")
 
-            response_content = str(getattr(response, "content", "") or "").strip()
-            if not response_content:
-                last_error = ValueError("Empty response content")
-                log.warning(
-                    "Scientist %s received empty response on attempt %d",
-                    self._scientist_id,
-                    attempt,
-                )
-                continue
+            # 2. Format into JSON (Strict Mode)
+            # We create a new prompt context for the formatting step
+            formatter_system = SystemMessage(content=TASK_SOLVER_FORMATTER_SYSTEM_MESSAGE)
+            formatter_user = UserMessage(
+                content=TASK_SOLVER_FORMATTER_PROMPT.format(agent_response=reasoning_content), 
+                source="user"
+            )
 
-            try:
-                return self._extract_solution_components(response_content)
-            except Exception as exc:
-                last_error = exc
-                log.warning(
-                    "Scientist %s failed to parse model response on attempt %d: %s",
-                    self._scientist_id,
-                    attempt,
-                    exc,
-                )
-                continue
+            # We DO enforce JSON mode here for guaranteed structure
+            json_response = await self._model_client.create(
+                [formatter_system, formatter_user],
+                json_output=True,
+                extra_create_args={"response_format": {"type": "json_object"}},
+            )
+            
+            json_content = str(getattr(json_response, "content", "") or "").strip()
+            
+            if not json_content:
+                raise ValueError("Empty JSON response from formatter")
 
-        raise RuntimeError(
+            return self._extract_solution_components(json_content)
+
+        except Exception as exc:
+            last_error = exc
+            log.error(
+                "Scientist %s failed in 2-step generation: %s",
+                self._scientist_id,
+                exc,
+            )
+
+        log.error(
             f"Scientist {self._scientist_id} could not obtain valid JSON "
-            f"after {MAX_MODEL_ATTEMPTS} attempts"
-        ) from last_error
+            f"after attempts. Returning error payload."
+        )
+        return (
+            "Failed to generate valid JSON response.",
+            f"Error: generation failed. Last error: {str(last_error)}",
+            "ERROR",
+            "null",
+        )
 
     @message_handler
     async def handle_task_solution_request(
