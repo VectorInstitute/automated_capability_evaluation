@@ -1,0 +1,173 @@
+{
+  "metrics": {
+    "model": "gemini-2.5-pro",
+    "batch_info": "batch_5",
+    "total_processed": 20,
+    "total_correct": 13,
+    "accuracy": 0.65
+  },
+  "results": [
+    {
+      "id": "vali_80",
+      "prediction": "0.0",
+      "reasoning": "The statement is internally contradictory and factually incorrect, making it false. The first part of the statement, \"Airlines offer an example of an industry in which the degree of operating leverage is fairly high,\" is correct. The airline industry is characterized by a high proportion of fixed costs (aircraft leases/depreciation, gate fees, maintenance facilities, staff salaries) relative to variable costs (fuel per passenger, in-flight service). This cost structure means that once the break-even point is covered, small changes in revenue lead to large changes in operating income, which is the definition of high operating leverage. However, the second part of the statement, which attempts to explain this, is completely false. It claims, \"Fixed costs are relatively low because airlines are not capital intensive, and airplanes are inexpensive.\" In reality, the airline industry is one of the most capital-intensive industries. Airplanes are extremely expensive assets, costing tens to hundreds of millions of dollars each. Consequently, airlines have massive fixed costs. The high degree of operating leverage exists precisely *because* of these high fixed costs, not in spite of them. Since the reasoning provided in the statement is the exact opposite of the truth, the entire statement is false.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_81",
+      "prediction": 0.0,
+      "reasoning": "The statement is incorrect. The relationship between the geometric average (or geometric mean, GM) and the arithmetic average (or arithmetic mean, AM) is defined by the AM-GM inequality. This mathematical principle states that for any set of non-negative real numbers, the arithmetic mean is always greater than or equal to the geometric mean (AM \u2265 GM). The two means are equal only in the specific case where all the numbers in the set are identical. For any set of non-identical positive numbers, the arithmetic mean will always be strictly greater than the geometric mean. For example, for the numbers 2 and 8, the arithmetic average is (2+8)/2 = 5, while the geometric average is \u221a(2*8) = \u221a16 = 4. In this case, the arithmetic average (5) is greater than the geometric average (4), which directly contradicts the claim.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_82",
+      "prediction": "C",
+      "reasoning": "The user wants to identify which market lists larger, well-known corporations. Let's analyze the options:\n1.  **Commodity futures market:** This market is for trading standardized contracts for future delivery of commodities (e.g., oil, gold, corn), not for listing corporations' stocks. Therefore, this option is incorrect.\n2.  **Over-the-counter (OTC) market:** This is a decentralized market where securities not listed on major exchanges are traded. It is characterized by less stringent regulations and listing requirements. As a result, it typically lists smaller, less-established, and lesser-known companies (e.g., penny stocks). This environment is more susceptible to the 'lemons problem' due to greater information asymmetry.\n3.  **New York Stock Exchange (NYSE):** The NYSE is a premier global stock exchange with very strict and high listing standards regarding a company's size, profitability, market value, and public float. Only large, established, and financially sound corporations ('blue-chip' companies) can meet these requirements. These are the companies that are most well-known in the marketplace. The high level of regulation and disclosure required by the NYSE is designed to mitigate information asymmetry and protect investors, thus counteracting the 'lemons problem'.\n\nBased on this analysis, the New York Stock Exchange is the environment that typically lists larger, better-known corporations.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_83",
+      "prediction": "C",
+      "reasoning": "The question asks for a method used by regional Federal Reserve Banks to influence monetary policy. Let's evaluate each option:\n\nA. Setting the base interest rates directly: This is incorrect. The primary policy interest rate, the federal funds rate target, is set by the Federal Open Market Committee (FOMC), a committee composed of the Board of Governors and five of the twelve regional bank presidents. No single regional bank sets this rate directly.\n\nB. Issuing new currency independently: This is incorrect. While Federal Reserve Banks distribute currency, the authority to create money and manage its supply is a system-wide function directed by the Board of Governors and the FOMC. A regional bank cannot independently issue currency to conduct monetary policy.\n\nC. Administration of the discount facilities at each bank: This is correct. Each of the 12 regional Federal Reserve Banks operates a 'discount window' or 'discount facility'. Through this facility, they lend money to depository institutions within their district. The board of directors of each regional bank recommends the discount rate for their facility, which is then approved by the Board of Governors. By administering these loans and recommending the rate, the regional banks directly influence the cost and availability of credit for banks, which is a tool of monetary policy.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_84",
+      "prediction": 0.082519,
+      "reasoning": "The relationship between the Effective Annual Rate (EAR) and the Annual Percentage Rate (APR), or stated rate, is defined by the formula: EAR = (1 + APR/m)^m - 1, where 'm' is the number of compounding periods per year. We are given an EAR of 8.6% (or 0.086) and weekly compounding. For weekly compounding, the number of periods per year, m, is 52. We need to solve for the APR. We can rearrange the formula to solve for APR: APR = m * [(1 + EAR)^(1/m) - 1]. By substituting the given values, we get: APR = 52 * [(1 + 0.086)^(1/52) - 1]. First, calculate (1 + 0.086), which is 1.086. Then, raise this to the power of (1/52): (1.086)^(1/52) \u2248 1.0015869. Next, subtract 1 from this result: 1.0015869 - 1 = 0.0015869. Finally, multiply by the number of periods, 52: APR = 52 * 0.0015869 \u2248 0.0825188. This is the stated rate (APR) expressed as a decimal.",
+      "ground_truth": "8.26",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_85",
+      "prediction": 0.0,
+      "reasoning": "The statement is false because it incorrectly identifies the payback period as the 'accounting break-even point'. The payback period is the time it takes for a project's cumulative cash inflows to equal the initial cash outflow. It is a measure of cash flow recovery, essentially a cash break-even point in terms of time. In contrast, the accounting break-even point is the level of sales at which net income equals zero. Accounting break-even is based on accounting profits, which include non-cash expenses like depreciation, whereas the payback period is based solely on cash flows. While the latter parts of the statement correctly describe the calculation's goal (recovering initial outlay) and a common assumption (continuous cash flow within a period to find a fractional year), the fundamental mischaracterization in the first clause makes the entire statement incorrect.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_86",
+      "prediction": "0.325",
+      "reasoning": "The problem requires calculating the beta of a portfolio composed of a stock and a risk-free asset. Here is the step-by-step solution:\n1.  **Identify the known variables:**\n    *   Stock Beta (\u03b2_s) = 1.30\n    *   Stock Expected Return (E(R_s)) = 17% or 0.17\n    *   Risk-free Rate (R_f) = 5% or 0.05\n    *   Risk-free Asset Beta (\u03b2_rf) = 0 (by definition)\n    *   Portfolio Expected Return (E(R_p)) = 8% or 0.08\n\n2.  **Determine the weights of the assets in the portfolio.** The expected return of a portfolio is the weighted average of the expected returns of its components. Let `w_s` be the weight of the stock and `w_rf` be the weight of the risk-free asset. The formula is:\n    E(R_p) = (w_s * E(R_s)) + (w_rf * R_f)\n    Since the portfolio only contains these two assets, `w_s + w_rf = 1`, which means `w_rf = 1 - w_s`.\n\n3.  **Substitute the known values into the expected return formula and solve for `w_s`:**\n    0.08 = (w_s * 0.17) + ((1 - w_s) * 0.05)\n    0.08 = 0.17*w_s + 0.05 - 0.05*w_s\n    0.08 - 0.05 = 0.17*w_s - 0.05*w_s\n    0.03 = 0.12*w_s\n    w_s = 0.03 / 0.12\n    w_s = 0.25\n    So, the weight of the stock in the portfolio is 25%, and the weight of the risk-free asset is `1 - 0.25 = 0.75` or 75%.\n\n4.  **Calculate the portfolio beta (\u03b2_p).** The beta of a portfolio is the weighted average of the betas of its individual components:\n    \u03b2_p = (w_s * \u03b2_s) + (w_rf * \u03b2_rf)\n\n5.  **Substitute the calculated weights and given betas into the portfolio beta formula:**\n    \u03b2_p = (0.25 * 1.30) + (0.75 * 0)\n    \u03b2_p = 0.325 + 0\n    \u03b2_p = 0.325\n\nTherefore, the beta of the portfolio is 0.325.",
+      "ground_truth": "0.325",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_87",
+      "prediction": 71.67,
+      "reasoning": "The problem asks for the mean, or expected, stock price in two years. The standard model for stock price evolution in finance is the Geometric Brownian Motion (GBM). According to this model, the expected stock price at a future time T, denoted E[S_T], is calculated using the current stock price (S_0), the expected rate of return (\u03bc), and the time horizon (T). The formula for the expected future stock price is:\nE[S_T] = S_0 * e^(\u03bc * T)\nThis formula represents the current price compounded continuously at the expected rate of return. It is important to note that the volatility (\u03c3) affects the variance and the overall distribution of the future stock price, but it does not affect its mean value.\n\nThe given parameters are:\n- Current stock price (S_0) = $50\n- Expected return per annum (\u03bc) = 18% = 0.18\n- Time horizon (T) = 2 years\n- Volatility per annum (\u03c3) = 30% = 0.30 (This parameter is not required for calculating the mean stock price).\n\nWe substitute the given values into the formula:\nE[S_2] = 50 * e^(0.18 * 2)\n\nFirst, we calculate the exponent:\n0.18 * 2 = 0.36\n\nSo the equation becomes:\nE[S_2] = 50 * e^(0.36)\n\nNext, we calculate the value of e^(0.36):\ne^(0.36) \u2248 1.4333294145\n\nFinally, we calculate the expected stock price:\nE[S_2] \u2248 50 * 1.4333294145\nE[S_2] \u2248 71.666470725\n\nRounding the final result to two decimal places, which is standard for monetary values, we get 71.67.",
+      "ground_truth": "71.67",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_88",
+      "prediction": "0.0",
+      "reasoning": "Open interest represents the total number of outstanding futures contracts that have not been settled. A single contract involves one long position and one short position. The scenario describes a transaction where both participants are closing their existing positions. This means a trader holding a long position is selling it, and a trader holding a short position is buying it back. When these two traders transact with each other, one long position and one short position are eliminated from the market. This act of closing out an existing contract reduces the total number of outstanding contracts. Therefore, open interest decreases by one. The statement that open interest increases by one is incorrect; it would only increase if both the buyer and the seller were initiating new positions.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_89",
+      "prediction": "A",
+      "reasoning": "The concept of moral hazard in banking refers to the tendency for banks to take on greater risks when they know their depositors are protected by insurance. The reasoning is as follows:\n1.  **Full Deposit Insurance:** If all deposits are fully insured, depositors have no incentive to monitor their bank's behavior or choose a bank based on its financial soundness. Their money is safe regardless of the bank's actions. This lack of market discipline allows banks to potentially engage in high-risk, high-reward activities. If the risks pay off, the bank profits. If the bank fails, the deposit insurance fund bears the cost of repaying depositors.\n2.  **Limited Deposit Insurance:** When deposit insurance is limited (e.g., by a coverage cap), large depositors with funds exceeding the cap are not fully protected. Their money is at risk if the bank fails.\n3.  **Market Discipline:** This exposure to risk incentivizes these large, uninsured depositors to monitor the bank's health and risk profile carefully. They will likely withdraw their funds from a bank they perceive as taking excessive risks. \n4.  **Impact on Bank Behavior:** The threat of losing large deposits forces the bank's management to be more prudent and conservative in its lending and investment decisions. This 'market discipline' from uninsured depositors discourages the bank from taking on excessive risks.\nTherefore, limiting deposit insurance helps reduce moral hazard by making banks accountable to their large depositors, which in turn discourages excessive risk-taking.",
+      "ground_truth": "A",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_90",
+      "prediction": 0.0,
+      "reasoning": "The statement is false. The Federal Deposit Insurance Corporation Improvement Act (FDICIA) of 1991 did not remove prompt corrective action (PCA) provisions; on the contrary, it established them. A central pillar of FDICIA was to end the practice of regulatory forbearance by forcing regulators to intervene early and decisively when a bank's capital deteriorates. PCA created a structured framework with five capital categories (from well capitalized to critically undercapitalized) and mandated specific, increasingly stringent actions by regulators as an institution's capital levels decline. Therefore, FDICIA introduced and mandated PCA, the exact opposite of removing it.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_91",
+      "prediction": null,
+      "reasoning": "JSON Parse Error",
+      "ground_truth": "\u20136.0",
+      "task_type": "calcu",
+      "raw_response": "",
+      "is_correct": false
+    },
+    {
+      "id": "vali_92",
+      "prediction": null,
+      "reasoning": "JSON Parse Error",
+      "ground_truth": "371.56",
+      "task_type": "calcu",
+      "raw_response": "",
+      "is_correct": false
+    },
+    {
+      "id": "vali_93",
+      "prediction": 0.0,
+      "reasoning": "The statement is false. It incorrectly links two separate, though valid, concepts. \n1. **Cost Difference**: It is true that, on a percentage basis, the flotation costs of selling equity are typically higher than the flotation costs of selling debt. This is primarily due to the higher risk and uncertainty associated with equity, which requires more extensive due diligence, marketing efforts, and higher compensation for underwriters.\n2. **Economies of Scale**: It is also true that economies of scale exist in security issuance. This means that the percentage cost of floating an issue (whether debt or equity) decreases as the size of the issue increases, because many of the costs are fixed (e.g., legal fees, registration fees).\n3. **Causality**: The error in the statement is the claim of causality. Economies of scale apply to *both* debt and equity issues. They explain how costs change with issue size, but they do not explain the fundamental difference in the *level* of costs between equity and debt. The factors that make equity issuance more expensive (risk, information asymmetry, regulatory scrutiny) are distinct from the principle of economies of scale.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_94",
+      "prediction": 1.0,
+      "reasoning": "The investor's portfolio consists of two positions: a short European call option and a long European put option, both with the same strike price (K) and maturity (T).\n\n1.  **Payoff from the short call option:** The payoff to the holder (buyer) of a call option is max(S_T - K, 0), where S_T is the asset price at maturity. Since the investor sold the call option, their payoff is the negative of the buyer's payoff. Therefore, the payoff from the short call is -max(S_T - K, 0).\n\n2.  **Payoff from the long put option:** The payoff to the holder (buyer) of a put option is max(K - S_T, 0). Since the investor bought the put option, this is their payoff.\n\n3.  **Total Payoff:** The total payoff of the portfolio is the sum of the payoffs from the two positions:\n    Total Payoff = (Payoff from short call) + (Payoff from long put)\n    Total Payoff = -max(S_T - K, 0) + max(K - S_T, 0)\n\nWe need to analyze this total payoff under two possible scenarios at maturity:\n\n*   **Scenario A: S_T > K**\n    In this case, (S_T - K) > 0 and (K - S_T) < 0.\n    The term max(S_T - K, 0) becomes (S_T - K).\n    The term max(K - S_T, 0) becomes 0.\n    Total Payoff = -(S_T - K) + 0 = K - S_T.\n\n*   **Scenario B: S_T \u2264 K**\n    In this case, (S_T - K) \u2264 0 and (K - S_T) \u2265 0.\n    The term max(S_T - K, 0) becomes 0.\n    The term max(K - S_T, 0) becomes (K - S_T).\n    Total Payoff = -0 + (K - S_T) = K - S_T.\n\nIn both scenarios, the total payoff to the investor is K - S_T. This combination of options synthetically creates a short forward contract with a delivery price of K. Thus, the statement that the payoff is K - S_T in all circumstances is correct.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_95",
+      "prediction": "C",
+      "reasoning": "The core issue is moral hazard, which arises because deposit insurance protects depositors from losses, thereby reducing their incentive to monitor the bank's risk-taking. This, in turn, gives banks an incentive to take on excessive risk. Regulations like restricting risky asset holdings and imposing capital requirements are designed to counteract this. However, the question asks if these measures can *completely* eliminate the problem. The answer is no, because of the inherent conflict of interest between regulators (who want to ensure stability) and bankers (who are motivated by profit). Bankers have strong incentives to find ways around these regulations. This is known as regulatory arbitrage. They can develop new financial instruments that are difficult for regulators to assess, use creative accounting to hide risky assets in off-balance-sheet entities, or overstate the value of their capital to appear safer than they are. The complexity of modern finance and the constant drive for profit mean that regulators are always playing a game of catch-up. Therefore, while regulations can reduce moral hazard, they cannot completely eliminate it because the underlying incentives for risky behavior and circumvention persist. Choices A and B are unrealistic because they assume perfect regulatory oversight and perfect compliance, which are not achievable in the real world.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_96",
+      "prediction": "6.95",
+      "reasoning": "The variable cost per unit is the sum of all costs that vary directly with the production of one unit. In this problem, the variable costs provided are the materials cost and the labor cost. The fixed costs and depreciation are not included in the calculation of variable cost per unit, as they do not change with the number of units produced.\n\nStep 1: Identify the variable costs per unit from the problem statement.\n- Variable materials cost per unit = $4.68\n- Variable labor cost per unit = $2.27\n\nStep 2: Sum the identified variable costs per unit to get the total variable cost per unit.\n- Total Variable Cost per Unit = Variable materials cost per unit + Variable labor cost per unit\n- Total Variable Cost per Unit = $4.68 + $2.27\n- Total Variable Cost per Unit = $6.95",
+      "ground_truth": "6.95",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_97",
+      "prediction": "1555981.19",
+      "reasoning": "The problem asks for the future value of a series of equal payments made at regular intervals, which is a future value of an annuity calculation. Since the deposits are made at the end of each year, this is an ordinary annuity. The formula for the future value of an ordinary annuity (FVA) is: FVA = PMT * [((1 + r)^n - 1) / r].\n\n1.  **Identify the variables:**\n    *   PMT (Periodic Payment) = $3,000\n    *   r (Interest rate per period) = 10.5% or 0.105\n    *   n (Number of periods) = 40 years\n\n2.  **Plug the variables into the formula:**\n    FVA = 3000 * [((1 + 0.105)^40 - 1) / 0.105]\n\n3.  **Calculate the term (1 + r)^n:**\n    (1.105)^40 \u2248 55.4593417\n\n4.  **Complete the calculation for the factor in the brackets:**\n    [ (55.4593417 - 1) / 0.105 ]\n    = [ 54.4593417 / 0.105 ]\n    \u2248 518.660397\n\n5.  **Multiply by the periodic payment (PMT):**\n    FVA = 3000 * 518.660397\n    FVA \u2248 1,555,981.191\n\n6.  **Round to two decimal places for currency:**\n    The final amount is $1,555,981.19.",
+      "ground_truth": "1521755",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_98",
+      "prediction": "0.0",
+      "reasoning": "The statement is internally contradictory. A 'pure flexible exchange rate system' is defined by the absence of any central bank intervention; the exchange rate is determined solely by market forces of supply and demand. The first sentence of the statement correctly states this principle. However, the second sentence describes an action that constitutes intervention: 'monetary authorities may want to manipulate exchange rates by changing the money supply and interest rates.' If a monetary authority intentionally alters monetary policy to influence the exchange rate, the system is no longer a 'pure' flexible system. It becomes a 'managed float' or 'dirty float'. Because the statement claims a system has no intervention while simultaneously describing an act of intervention occurring within it, the entire proposition is false.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_99",
+      "prediction": "B",
+      "reasoning": "The fundamental difference between an American option and a European option lies in the exercise privileges. A European option can only be exercised on its specific expiration date. An American option, on the other hand, can be exercised at any time up to and including the expiration date. This means the holder of an American option possesses all the rights of a European option holder (the right to exercise at expiration) plus an additional right: the right to exercise early. An asset that offers more rights or flexibility, with all other features being identical, cannot be worth less than an asset with fewer rights. This additional right of early exercise has a non-negative value, making the American option worth at least as much as, and often more than, the comparable European option. Choice A is incorrect because the American option offers more flexibility, not the European. Choice C is not the primary reason; the core explanation is the additional rights, which grant the flexibility that could be used to manage risk.",
+      "ground_truth": "B",
+      "task_type": "mcq",
+      "is_correct": true
+    }
+  ]
+}

@@ -93,6 +93,13 @@ class TaskSolverModerator(RoutedAgent):
             parsed = parse_llm_json_response(response)
             consensus_reached = parsed.get("consensus_reached", False)
             final_solution = parsed.get("final_solution", "NONE")
+            
+            # Ensure final_solution is a string
+            if isinstance(final_solution, (dict, list)):
+                final_solution = json.dumps(final_solution, ensure_ascii=False)
+            else:
+                final_solution = str(final_solution)
+
             answer = parsed.get("answer", "NONE")
             reasoning = parsed.get("reasoning", "No reasoning provided")
             numerical_answer = parsed.get("numerical_answer")

@@ -111,57 +111,55 @@ class TaskSolverScientist(RoutedAgent):
     ) -> tuple[str, str, str, str]:
         """Call the model in two steps: Reasoning (Text) -> Formatting (JSON)."""
         
-        # Step 1: Reasoning (Free Text)
-        # We temporarily modify the system/user message to NOT ask for JSON in the first step if needed,
-        # but relying on the prompt content is safer. Assuming the prompt asks for reasoning.
-        # For simplicity/speed, we use the same model for both steps.
-        
         last_error: Exception | None = None
         
-        try:
-            # 1. Generate Reasoning (Allowing free text/markdown)
-            # Note: We do NOT enforce JSON mode here to avoid the escaping/math complexity issues.
-            reasoning_response = await self._model_client.create(
-                [system_message, user_message],
-            )
-            reasoning_content = str(getattr(reasoning_response, "content", "") or "").strip()
-            
-            if not reasoning_content:
-                raise ValueError("Empty reasoning response from model")
+        for attempt in range(MAX_MODEL_ATTEMPTS):
+            try:
+                # 1. Generate Reasoning (Allowing free text/markdown)
+                # Note: We do NOT enforce JSON mode here to avoid the escaping/math complexity issues.
+                reasoning_response = await self._model_client.create(
+                    [system_message, user_message],
+                )
+                reasoning_content = str(getattr(reasoning_response, "content", "") or "").strip()
+                
+                if not reasoning_content:
+                    raise ValueError("Empty reasoning response from model")
 
-            # 2. Format into JSON (Strict Mode)
-            # We create a new prompt context for the formatting step
-            formatter_system = SystemMessage(content=TASK_SOLVER_FORMATTER_SYSTEM_MESSAGE)
-            formatter_user = UserMessage(
-                content=TASK_SOLVER_FORMATTER_PROMPT.format(agent_response=reasoning_content), 
-                source="user"
-            )
+                # 2. Format into JSON (Strict Mode)
+                # We create a new prompt context for the formatting step
+                formatter_system = SystemMessage(content=TASK_SOLVER_FORMATTER_SYSTEM_MESSAGE)
+                formatter_user = UserMessage(
+                    content=TASK_SOLVER_FORMATTER_PROMPT.format(agent_response=reasoning_content), 
+                    source="user"
+                )
 
-            # We DO enforce JSON mode here for guaranteed structure
-            json_response = await self._model_client.create(
-                [formatter_system, formatter_user],
-                json_output=True,
-                extra_create_args={"response_format": {"type": "json_object"}},
-            )
-            
-            json_content = str(getattr(json_response, "content", "") or "").strip()
-            
-            if not json_content:
-                raise ValueError("Empty JSON response from formatter")
+                # We DO enforce JSON mode here for guaranteed structure
+                json_response = await self._model_client.create(
+                    [formatter_system, formatter_user],
+                    json_output=True,
+                    extra_create_args={"response_format": {"type": "json_object"}},
+                )
+                
+                json_content = str(getattr(json_response, "content", "") or "").strip()
+                
+                if not json_content:
+                    raise ValueError("Empty JSON response from formatter")
 
-            return self._extract_solution_components(json_content)
+                return self._extract_solution_components(json_content)
 
-        except Exception as exc:
-            last_error = exc
-            log.error(
-                "Scientist %s failed in 2-step generation: %s",
-                self._scientist_id,
-                exc,
-            )
+            except Exception as exc:
+                last_error = exc
+                log.warning(
+                    "Scientist %s failed in generation attempt %d/%d: %s",
+                    self._scientist_id,
+                    attempt + 1,
+                    MAX_MODEL_ATTEMPTS,
+                    exc,
+                )
 
         log.error(
             f"Scientist {self._scientist_id} could not obtain valid JSON "
-            f"after attempts. Returning error payload."
+            f"after {MAX_MODEL_ATTEMPTS} attempts. Returning error payload."
         )
         return (
             "Failed to generate valid JSON response.",
