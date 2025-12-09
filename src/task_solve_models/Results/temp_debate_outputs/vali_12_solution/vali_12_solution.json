@@ -1,0 +1,29 @@
+{
+  "task_id": "vali_12",
+  "capability_name": "NM",
+  "area_name": "Financial",
+  "problem": "Question: Titan Mining Corporation has 8.5 million shares of common stock outstanding, 200,000 shares of 7 percent preferred stock outstanding, and 85,000 8.5 percent semiannual bonds outstanding, par value $1,000 each. The common stock currently sells for $34 per share, the preferred stock currently sells for $83 per share, and the bonds have 15 years to maturity and sell for 93 percent of par.What is the total market value of Titan Mining Corporation? (Unit: dollar)\n",
+  "solution": "The total market value of Titan Mining Corporation is $384,650,000.",
+  "numerical_answer": "384650000",
+  "reasoning": "All agents provided the same answer",
+  "consensus_reached": true,
+  "total_rounds": 0,
+  "all_solutions": [
+    {
+      "agent_id": "A",
+      "task_id": "vali_12",
+      "thought": "To calculate the total market value of Titan Mining Corporation, we need to find the market values of the common stock, preferred stock, and bonds, and then sum them.\n\\n1. **Market value of common stock**:\n   - Number of shares: 8.5 million\n   - Price per share: $34\n   - Market value = 8,500,000 shares \\(\\times\\) $34 = $289,000,000\n\\n2. **Market value of preferred stock**:\n   - Number of shares: 200,000\n   - Price per share: $83\n   - Market value = 200,000 shares \\(\\times\\) $83 = $16,600,000\n\\n3. **Market value of bonds**:\n   - Number of bonds: 85,000\n   - Each bond has a par value: $1,000\n   - Bonds sell for 93\\% of par value, so price per bond = 93\\% \\(\\times\\) $1,000 = $930\n   - Market value = 85,000 bonds \\(\\times\\) $930 = $79,050,000\n\n**Total Market Value of Titan Mining Corporation**:\n- Total market value = $289,000,000 (common stock) + $16,600,000 (preferred stock) + $79,050,000 (bonds)\n- Total market value = $384,650,000",
+      "final_answer": "The total market value of Titan Mining Corporation is $384,650,000.",
+      "numerical_answer": "384650000",
+      "round_number": "0"
+    },
+    {
+      "agent_id": "B",
+      "task_id": "vali_12",
+      "thought": "To calculate the total market value of Titan Mining Corporation, we need to find the market value of each component: common stock, preferred stock, and bonds.\\n1. **Common Stock:** The market value is calculated by multiplying the number of shares outstanding by the current price per share.\\n   \\[\\text{Market Value of Common Stock} = 8.5 \\text{ million shares} \\times \\$34 = \\$289,000,000\\].\\n2. **Preferred Stock:** Similarly, the market value is calculated by multiplying the number of shares outstanding by the current price per share.\\n   \\[\\text{Market Value of Preferred Stock} = 200,000 \\text{ shares} \\times \\$83 = \\$16,600,000\\].\\n3. **Bonds:** The market value of bonds considers the selling price as a percentage of par.\\n   \\[\\text{Market Value of Bonds} = 85,000 \\text{ bonds} \\times 0.93 \\times \\$1,000 = \\$79,050,000\\].\\nAdding these together gives the total market value of the company.\\n\\[\\text{Total Market Value} = \\$289,000,000 + \\$16,600,000 + \\$79,050,000 = \\$384,650,000\\].",
+      "final_answer": "The total market value of Titan Mining Corporation is \\$384,650,000.",
+      "numerical_answer": "384650000",
+      "round_number": "0"
+    }
+  ]
+}
