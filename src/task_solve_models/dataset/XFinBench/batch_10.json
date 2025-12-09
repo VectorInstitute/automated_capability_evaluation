@@ -1,0 +1,222 @@
+[
+  {
+    "": "180",
+    "id": "vali_180",
+    "task": "calcu",
+    "question": "Dog Up! Franks is looking at a new sausage system with an installed cost of $440,000. This cost will be depreciated straight-line to zero over the project's five-year life, at the end of which the sausage system can be scrapped for $60,000. The sausage system will save the firm $130,000 per year in pretax operating costs, and the system requires an initial investment in net working capital of $34,000. The tax rate is 34 percent and the discount rate is 10 percent.What is the annual depreciation of the new sausage system? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "88000.0",
+    "figure": "",
+    "fin_capability": "NM",
+    "gold_fin_term_id": "term_2968;term_335"
+  },
+  {
+    "": "181",
+    "id": "vali_181",
+    "task": "calcu",
+    "question": "The current price of a stock is $94, and three-month call options with a strike price of $95 currently sell for $4.70. An investor who feels that the price of the stock will increase is trying to decide between buying 100 shares and buying 2,000 call options (20 contracts). Both strategies involve an investment of $9,400.If the stock price rises to $120, what would be the profit from buying shares? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "2600.0",
+    "figure": "",
+    "fin_capability": "SP",
+    "gold_fin_term_id": "term_410"
+  },
+  {
+    "": "182",
+    "id": "vali_182",
+    "task": "bool",
+    "question": "Consider the idea of eliminating or limiting the amount of deposit insurance.Eliminating or limiting the amount of deposit insurance would decrease the likelihood of banks failures and panics.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_385"
+  },
+  {
+    "": "183",
+    "id": "vali_183",
+    "task": "calcu",
+    "question": "Below is the information of a 2007 balance sheet for Haltiwanger Corp. based on the following information: cash = $210,000; patents and copyrights = $720,000; accounts payable = $430,000; accounts receivable = $149,000; tangible net fixed assets = $2,900,000; inventory = $265,000; notes payable = $180,000; accumulated retained earnings = $1,865,000; long-term debt = $1,430,000.What is the value of the firm\u2019s common stock? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "339000.0",
+    "figure": "",
+    "fin_capability": "NM",
+    "gold_fin_term_id": "term_2784"
+  },
+  {
+    "": "184",
+    "id": "vali_184",
+    "task": "calcu",
+    "question": "A company is currently awaiting the outcome of a major lawsuit, expected to be known within one month. The stock price is currently $20. If the outcome is positive, the stock price is expected to be $24 at the end of one month. If the outcome is negative, it is expected to be $18 at this time. The one-month risk-free interest rate is 8% per annum.What is the value of a one-month call option with a strike price of 19? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "1.766",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_1823"
+  },
+  {
+    "": "185",
+    "id": "vali_185",
+    "task": "bool",
+    "question": "Consider the operation of the margin accounts administered by a clearing house and those administered by a broker.The margin account administered by the broker is marked to market daily.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_61"
+  },
+  {
+    "": "186",
+    "id": "vali_186",
+    "task": "bool",
+    "question": "Consider the behavior of a futures price compared to a stock paying a dividend yield.A futures price behaves like a stock paying a dividend yield at a rate different from the risk-free interest rate.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2819"
+  },
+  {
+    "": "187",
+    "id": "vali_187",
+    "task": "calcu",
+    "question": "Observations on a stock price (in dollars) at the end of each of 15 consecutive weeks are recorded. Calculations have been performed to estimate the stock price volatility and the standard error of the estimate.What is the estimated annual stock price volatility? (Unit: decimal)",
+    "choice": "",
+    "ground_truth": "0.2079",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_629"
+  },
+  {
+    "": "188",
+    "id": "vali_188",
+    "task": "bool",
+    "question": "Testaburger, Inc. pays out all of its earnings in the form of dividends.The internal growth rate of Testaburger, Inc. becomes zero.",
+    "choice": "",
+    "ground_truth": "1",
+    "figure": "",
+    "fin_capability": "TU; TR",
+    "gold_fin_term_id": "term_2979"
+  },
+  {
+    "": "189",
+    "id": "vali_189",
+    "task": "calcu",
+    "question": "Consider a contract that caps the LIBOR interest rate on $10 million at 8% per annum (with quarterly compounding) for 3 months starting in 1 year. This is a caplet and could be one element of a cap. Assume that LIBOR/swap rates are used as risk-free discount rates and the LIBOR/swap zero curve is flat at 7% per annum with quarterly compounding. The volatility of the 3-month forward rate underlying the caplet is 20% per annum. The continuously compounded zero rate for all maturities is 6.9395%.What is the convexity adjustment to the forward rate? (Unit: decimal)",
+    "choice": "",
+    "ground_truth": "5e-05",
+    "figure": "",
+    "fin_capability": "NM; TR",
+    "gold_fin_term_id": "term_205"
+  },
+  {
+    "": "190",
+    "id": "vali_190",
+    "task": "calcu",
+    "question": "A financial institution has a portfolio of over-the-counter options on sterling. The details are as follows: \n\n| Type | Position | Delta of Option | Gamma of Option | Vega of Option | \n|---|---|---|---|---|\n| Call | -1000 | 0.5 | 2.2 | 1.8 |\n| Call | -500 | 0.8 | 0.6 | 0.2 |\n| Put | -2000 | -0.40 | 1.3 | 0.7 |\n| Call | -500 | 0.70 | 1.8 | 1.4 |\n\nA traded option is available with a delta of 0.6, a gamma of 1.5, and a vega of 0.8.What position in sterling would make the portfolio vega neutral and delta neutral? (Unit: sterling)",
+    "choice": "",
+    "ground_truth": "2550.0",
+    "figure": "",
+    "fin_capability": "SP",
+    "gold_fin_term_id": "term_358;term_1196;term_1184"
+  },
+  {
+    "": "191",
+    "id": "vali_191",
+    "task": "calcu",
+    "question": "### \nThe standard deviation of monthly changes in the spot price of live cattle is 1.2 cents per pound. The standard deviation of monthly changes in the futures price of live cattle for the closest contract is 1.4 cents per pound. The correlation between the futures price changes and the spot price changes is 0.7. It is now October 15. A beef producer is committed to purchasing 200,000 pounds of live cattle on November 15. Each live-cattle futures contract is for the delivery of 40,000 pounds of cattle.\n\n###How many December live-cattle futures contracts should the beef producer take a long position in to hedge the risk?\n####",
+    "choice": "",
+    "ground_truth": "3.0",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_1602"
+  },
+  {
+    "": "192",
+    "id": "vali_192",
+    "task": "mcq",
+    "question": "A company is aware that it will receive a specific amount of foreign currency in four months.Which one of the following option contracts is appropriate for hedging against the exchange rate falling below a certain level?",
+    "choice": "A. A short position in a four-month put option\nB. A long position in a four-month call option\nC. A long position in a four-month put option",
+    "ground_truth": "C",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_886"
+  },
+  {
+    "": "193",
+    "id": "vali_193",
+    "task": "mcq",
+    "question": "The Federal Reserve (Fed) lends five banks an additional total of $100 million, and depositors withdraw $50 million to hold as currency.Which one of the following changes correctly describes what happens to the monetary base after the Fed lends an additional $100 million to five banks and depositors withdraw $50 million as currency?",
+    "choice": "A. Monetary base increases by $50 million\nB. Monetary base increases by $100 million\nC. Monetary base decreases by $50 million",
+    "ground_truth": "B",
+    "figure": "",
+    "fin_capability": "TU; FF",
+    "gold_fin_term_id": "term_2342"
+  },
+  {
+    "": "194",
+    "id": "vali_194",
+    "task": "calcu",
+    "question": "You want to be able to withdraw $1,500 each quarter from your bank account to cover college expenses over the next four years. The account pays .75 percent interest per quarter.How much do you need to have in your bank account today to meet your expense needs over the next four years? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "22536.47",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_2738"
+  },
+  {
+    "": "195",
+    "id": "vali_195",
+    "task": "mcq",
+    "question": "In the corn futures market, different delivery months are available for trading contracts.Which one of the following corn futures contracts should be used for hedging when the expiration of the hedge is in July?",
+    "choice": "A. September\nB. May\nC. January",
+    "ground_truth": "A",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_202"
+  },
+  {
+    "": "196",
+    "id": "vali_196",
+    "task": "calcu",
+    "question": "Second Base Corp. has no debt but can borrow at 7.5 percent. The firm's WACC is currently 10 percent, and the tax rate is 35 percent.What is Second Base's cost of equity when it has no debt? (Unit: decimal)",
+    "choice": "",
+    "ground_truth": "0.1",
+    "figure": "",
+    "fin_capability": "NM; FF",
+    "gold_fin_term_id": "term_1815"
+  },
+  {
+    "": "197",
+    "id": "vali_197",
+    "task": "calcu",
+    "question": "Nagata Corp. issued 12-year bonds 2 years ago at a coupon rate of 9.2 percent. The bonds make semiannual payments. These bonds currently sell for 104 percent of par value.What is the YTM of the bonds? (Unit: percent)",
+    "choice": "",
+    "ground_truth": "8.6",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_2915"
+  },
+  {
+    "": "198",
+    "id": "vali_198",
+    "task": "mcq",
+    "question": "When was the budget surpluses achieved after the peak of the budget deficit relative to the size of the U.S. economy?",
+    "choice": "A. Around 1955\nB. Around 2000\nC. Around 1985",
+    "ground_truth": "B",
+    "figure": "vali_figure_21",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_553"
+  },
+  {
+    "": "199",
+    "id": "vali_199",
+    "task": "bool",
+    "question": "Consider the difference between bilateral and central clearing for OTC derivatives.In central clearing, the two sides enter into an agreement governing the circumstances under which transactions can be closed out by one side, how transactions will be valued if there is a close out, and how the collateral posted by each side is calculated.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_373;term_698"
+  }
+]

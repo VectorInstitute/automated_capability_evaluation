@@ -1,0 +1,222 @@
+[
+  {
+    "": "100",
+    "id": "vali_100",
+    "task": "calcu",
+    "question": "The current price of a non-dividend-paying biotech stock is $140 with a volatility of 25%. The risk-free rate is 4%.What is the percentage up movement for a three-month time step? (Unit: percentage)",
+    "choice": "",
+    "ground_truth": "13.31",
+    "figure": "",
+    "fin_capability": "SP",
+    "gold_fin_term_id": "term_2563;term_2830"
+  },
+  {
+    "": "101",
+    "id": "vali_101",
+    "task": "calcu",
+    "question": "An investment offers to quadruple your money in 12 months.What rate of return per quarter are you being offered? (Unit: decimal)",
+    "choice": "",
+    "ground_truth": "0.4142",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_2347"
+  },
+  {
+    "": "102",
+    "id": "vali_102",
+    "task": "calcu",
+    "question": "Treasury bills are currently paying 8 percent, and the inflation rate is 4.5 percent.What is the approximate real rate of interest using the given nominal and inflation rates?",
+    "choice": "",
+    "ground_truth": "0.035",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_111"
+  },
+  {
+    "": "103",
+    "id": "vali_103",
+    "task": "bool",
+    "question": "Black's approach is used to evaluate an American call option on a dividend-paying stock when only one dividend is anticipated.The holder of an American call option has more flexibility than the two strategies assumed by Black's approach, as the holder can choose to exercise the option at the ex-dividend date based on the stock price but can also choose to wait and exercise at the original maturity date.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_498"
+  },
+  {
+    "": "104",
+    "id": "vali_104",
+    "task": "calcu",
+    "question": "A bank offers a corporate client a choice between borrowing cash at 11% per annum and borrowing gold at 2% per annum (interest on gold must be repaid in gold). The risk-free interest rate is 9.25% per annum, and storage costs are 0.5% per annum.What is the correct rate of interest on the gold loan if the cash loan rate is 11% per annum? (Unit: percent)",
+    "choice": "",
+    "ground_truth": "0.688",
+    "figure": "",
+    "fin_capability": "NM",
+    "gold_fin_term_id": "term_174"
+  },
+  {
+    "": "105",
+    "id": "vali_105",
+    "task": "bool",
+    "question": "The short-term interest rate may follow a mean-reverting or path-dependent process.There is no market inefficiency when the short-term interest rate follows a mean-reverting or path-dependent process because it is not the price of a traded security.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2585"
+  },
+  {
+    "": "106",
+    "id": "vali_106",
+    "task": "calcu",
+    "question": "\n\\begin{table}[htbp]\n    \\centering\n    \\caption{Volatility surface.}\n    \\begin{tabular}{|c|c|c|c|c|}\n        \\hline\n        & \\multicolumn{4}{c|}{\\(K/S_0\\)} \\\\ \n        \\cline{2-5}\n        & 0.90 & 0.95 & 1.00 & 1.05 & 1.10 \\\\ \n        \\hline\n        1 month  & 14.2 & 13.0 & 12.0 & 13.1 & 14.5 \\\\ \n        3 month  & 14.0 & 13.0 & 12.0 & 13.1 & 14.2 \\\\ \n        6 month  & 14.1 & 13.3 & 12.5 & 13.4 & 14.3 \\\\ \n        1 year   & 14.7 & 14.0 & 13.5 & 14.0 & 14.8 \\\\ \n        2 year   & 15.0 & 14.4 & 14.0 & 14.5 & 15.1 \\\\ \n        5 year   & 14.8 & 14.6 & 14.4 & 14.7 & 15.0 \\\\ \n        \\hline\n    \\end{tabular}\n\\end{table}\n\nUsing Table 20.2, calculate the implied volatility a trader would use for an 11-month option with K/S\\({}{0}\\) = 0.98.What is the implied volatility for an 11-month option with a strike price of 98? (Unit: decimal)",
+    "choice": "",
+    "ground_truth": "13.55",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_1823"
+  },
+  {
+    "": "107",
+    "id": "vali_107",
+    "task": "calcu",
+    "question": "\n\\begin{table}[h!]\n    \\centering\n    \\begin{tabular}{l|r|r}\n        \\textbf{SMOLIRA GOLF CORP.} & \\textbf{2006} & \\textbf{2007} \\\\\n        \\textbf{Balance Sheets} & & \\\\\n        \\hline\n        \\textbf{Assets} & & \\\\\n        Current assets & & \\\\\n        \\quad Cash & \\$ 18,270 & \\$ 22,150 \\\\\n        \\quad Accounts receivable & 12,315 & 13,865 \\\\\n        \\quad Inventory & 21,584 & 24,876 \\\\\n        \\quad Total & \\$ 52,169 & \\$ 60,891 \\\\\n        \\hline\n        Fixed assets & & \\\\\n        \\quad Net plant and equipment & \\$ 168,326 & \\$ 184,735 \\\\\n        \\hline\n        \\textbf{Total assets} & \\$ 220,495 & \\$ 245,626 \\\\\n        \\hline\n        \\textbf{Liabilities and Owners\u2019 Equity} & & \\\\\n        Current liabilities & & \\\\\n        \\quad Accounts payable & \\$ 16,215 & \\$ 17,318 \\\\\n        \\quad Notes payable & 8,000 & 10,000 \\\\\n        \\quad Other & 11,145 & 14,451 \\\\\n        \\quad Total & \\$ 35,360 & \\$ 41,769 \\\\\n        \\hline\n        Long-term debt & & \\\\\n        \\quad & \\$ 80,000 & \\$ 85,000 \\\\\n        \\hline\n        Owners\u2019 equity & & \\\\\n        \\quad Common stock and & & \\\\\n        \\quad paid-in surplus & \\$ 20,000 & \\$ 20,000 \\\\\n        \\quad Retained earnings & 85,135 & 98,857 \\\\\n        \\quad Total & \\$ 105,135 & \\$ 118,857 \\\\\n        \\hline\n        \\textbf{Total liabilities} & \\$ 220,495 & \\$ 245,626 \\\\\n        \\textbf{and owners\u2019 equity} & & \\\\\n    \\end{tabular}\n\\end{table}\n\n\n\\begin{table}[h]\n    \\centering\n    \\caption{SMOLIRA GOLF CORP. 2007 Income Statement}\n    \\begin{tabular}{l r}\n        \\hline\n        Sales & \\$ 285,760 \\\\\n        Cost of goods sold & 205,132 \\\\\n        Depreciation & 21,950 \\\\\n        Earnings before interest and taxes & \\$ 58,678 \\\\\n        Interest paid & 9,875 \\\\\n        Taxable income & \\$ 48,803 \\\\\n        Taxes (35\\%) & 17,081 \\\\\n        Net income & \\$ 31,722 \\\\\n        \\\\\n        Dividends & \\$ 18,000 \\\\\n        Addition to retained earnings & 13,722 \\\\\n        \\hline\n    \\end{tabular}\n\\end{table}\n\nSmolira Golf Corp. has 20,000 shares of common stock outstanding, and the market price for a share of stock at the end of 2007 was $43. The company's net income for 2007 was $31,722, dividends were $18,000, retained earnings were $98,857, and the growth rate is 9 percent.What is the market-to-book ratio of Smolira Golf Corp. at the end of 2007? (Unit: decimal)",
+    "choice": "",
+    "ground_truth": "7.24",
+    "figure": "",
+    "fin_capability": "NM",
+    "gold_fin_term_id": "term_2778"
+  },
+  {
+    "": "108",
+    "id": "vali_108",
+    "task": "mcq",
+    "question": "A floating lookback call option's valuation depends on the frequency of asset price observations.How does increasing the frequency of observing the asset price affect the value of a floating lookback call option?",
+    "choice": "A. It increases the value\nB. It decreases the value\nC. It has no effect on the value",
+    "ground_truth": "A",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1531"
+  },
+  {
+    "": "109",
+    "id": "vali_109",
+    "task": "bool",
+    "question": "Consider the estimation of various Greeks for an American option by constructing a single binomial tree.Gamma can be determined from a single binomial tree.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1269"
+  },
+  {
+    "": "110",
+    "id": "vali_110",
+    "task": "calcu",
+    "question": "An investment pays $7,500 every other year forever. The discount rate is 11 percent compounded daily.What is the value of the investment if the first payment occurs four years from today? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "24464.32",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_557"
+  },
+  {
+    "": "111",
+    "id": "vali_111",
+    "task": "bool",
+    "question": "Consider the success of monetary targeting.Monetary targeting only works well when there is a reliable relationship between the monetary aggregate and inflation.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2056"
+  },
+  {
+    "": "112",
+    "id": "vali_112",
+    "task": "calcu",
+    "question": "The YTM on a bond is the interest rate you earn on your investment if interest rates don't change. If you actually sell the bond before it matures, your realized return is known as the _holding period yield (HPY)_. Suppose that today you buy an 8 percent annual coupon bond for $1,105. The bond has 10 years to maturity. Two years from now, the YTM on your bond has declined by 1 percent.What price will your bond sell for two years from now at the new interest rate? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "1155.8",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_2915"
+  },
+  {
+    "": "113",
+    "id": "vali_113",
+    "task": "mcq",
+    "question": "The new chairman of the Federal Reserve Board has announced a plan to reduce inflation and lower unemployment through monetary growth adjustments.In the traditional model, what is the expected outcome of the Fed chairman's plan?",
+    "choice": "A. The short-run aggregate supply curve will decrease\nB. The public's belief will significantly impact inflation levels\nC. The outcome will be the same regardless of whether the public believes him",
+    "ground_truth": "C",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1343"
+  },
+  {
+    "": "114",
+    "id": "vali_114",
+    "task": "bool",
+    "question": "Black's approach involves evaluating an American call option on a dividend-paying stock, where the holder must decide at time zero whether it is a European option maturing at the final ex-dividend date or at the original maturity date.The flexibility allowed to the holder of an option under Black's approach leads to an overstatement of the true option value.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_498"
+  },
+  {
+    "": "115",
+    "id": "vali_115",
+    "task": "bool",
+    "question": "Margin accounts involve a sum of money deposited by an investor with his or her broker.Margin accounts provide no mechanism for adjusting balances to reflect gains and losses on futures contracts.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_733;term_1234"
+  },
+  {
+    "": "116",
+    "id": "vali_116",
+    "task": "calcu",
+    "question": "First National Bank charges 13.1 percent compounded monthly on its business loans. First United Bank charges 13.4 percent compounded semiannually.What is the effective annual rate (EAR) for First National Bank?",
+    "choice": "",
+    "ground_truth": "0.1392",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_319"
+  },
+  {
+    "": "117",
+    "id": "vali_117",
+    "task": "mcq",
+    "question": "A US company has to pay 3 million euros in three months, and the current exchange rate is 1.3500 dollars per euro. To manage the exchange rate risk, the company is considering using financial instruments.Which one of the following financial instruments can the US company use to lock in a future exchange rate at no cost?",
+    "choice": "A. Call option\nB. Forward contract\nC. Put option",
+    "ground_truth": "B",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2599"
+  },
+  {
+    "": "118",
+    "id": "vali_118",
+    "task": "bool",
+    "question": "Consider the margin accounts administered by a clearing house and those administered by a broker.The margin account administered by a clearing house does not need to be brought up to the initial margin level daily.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_61"
+  },
+  {
+    "": "119",
+    "id": "vali_119",
+    "task": "calcu",
+    "question": "Metallica Bearings, Inc., is a young start-up company. No dividends will be paid on the stock over the next nine years because the firm needs to plow back its earnings to fuel growth. The company will pay a $10 per share dividend in 10 years and will increase the dividend by 6 percent per year thereafter. The required return on this stock is 13 percent.What will be the price of the stock in Year 9? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "142.86",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_2868"
+  }
+]

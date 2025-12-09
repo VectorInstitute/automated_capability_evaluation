@@ -122,6 +122,11 @@ class TaskSolverScientist(RoutedAgent):
                 reasoning_content = str(getattr(reasoning_response, "content", "") or "").strip()
                 
                 if not reasoning_content:
+                    # Retry logic for empty content
+                    if attempt < MAX_MODEL_ATTEMPTS - 1:
+                        import asyncio
+                        await asyncio.sleep(1) # Short backoff
+                        continue
                     raise ValueError("Empty reasoning response from model")
 
                 # 2. Format into JSON (Strict Mode)
@@ -139,6 +144,8 @@ class TaskSolverScientist(RoutedAgent):
                 json_content = str(getattr(json_response, "content", "") or "").strip()
                 
                 if not json_content:
+                    if attempt < MAX_MODEL_ATTEMPTS - 1:
+                        continue
                     raise ValueError("Empty JSON response from model")
 
                 return self._extract_solution_components(json_content)
@@ -152,6 +159,9 @@ class TaskSolverScientist(RoutedAgent):
                     MAX_MODEL_ATTEMPTS,
                     exc,
                 )
+                # Add backoff for API errors
+                import asyncio
+                await asyncio.sleep(2 ** attempt) # Exponential backoff: 1s, 2s, 4s
 
         log.error(
             f"Scientist {self._scientist_id} could not obtain valid JSON "
@@ -190,7 +200,14 @@ class TaskSolverScientist(RoutedAgent):
                     }
                 )
 
+                # Append Task-Specific Instructions
                 prompt = TASK_SOLVER_ROUND_1_PROMPT.format(problem_text=message.problem)
+                if message.task_type == "bool":
+                    prompt += "\n\nCRITICAL: The problem requires a boolean answer. Your final 'answer' field MUST be exactly 'True' or 'False'. Do not write a sentence in the 'answer' field."
+                elif message.task_type == "mcq":
+                    prompt += "\n\nCRITICAL: The problem is a multiple choice question. Your final 'answer' field MUST be exactly one uppercase letter (e.g. 'A', 'B', 'C', or 'D')."
+                elif message.task_type == "calcu":
+                    prompt += "\n\nCRITICAL: The problem requires a numerical calculation. Your final 'numerical_answer' field MUST be a number. Check if the question implies percentage (e.g. 'Return?') and format accordingly."
 
                 system_message = SystemMessage(content=TASK_SOLVER_SYSTEM_MESSAGE)
                 user_message = UserMessage(content=prompt, source="user")
@@ -212,6 +229,7 @@ class TaskSolverScientist(RoutedAgent):
                     round_number=message.round_number,
                     capability_name=message.capability_name,
                     area_name=message.area_name,
+                    task_type=message.task_type,
                 )
 
                 await self.publish_message(solution, topic_id=DefaultTopicId())
@@ -272,6 +290,14 @@ class TaskSolverScientist(RoutedAgent):
                     other_solutions=other_solutions_text,
                     problem_text=message.problem,
                 )
+                
+                # Append Task-Specific Instructions
+                if message.task_type == "bool":
+                    prompt += "\n\nCRITICAL: The problem requires a boolean answer. Your final 'answer' field MUST be exactly 'True' or 'False'. Do not write a sentence in the 'answer' field."
+                elif message.task_type == "mcq":
+                    prompt += "\n\nCRITICAL: The problem is a multiple choice question. Your final 'answer' field MUST be exactly one uppercase letter (e.g. 'A', 'B', 'C', or 'D')."
+                elif message.task_type == "calcu":
+                    prompt += "\n\nCRITICAL: The problem requires a numerical calculation. Your final 'numerical_answer' field MUST be a number. Check if the question implies percentage (e.g. 'Return?') and format accordingly."
 
                 system_message = SystemMessage(content=TASK_SOLVER_SYSTEM_MESSAGE)
                 user_message = UserMessage(content=prompt, source="user")
@@ -293,6 +319,7 @@ class TaskSolverScientist(RoutedAgent):
                     round_number=message.round_number,
                     capability_name=message.capability_name,
                     area_name=message.area_name,
+                    task_type=message.task_type,
                 )
 
                 await self.publish_message(solution, topic_id=DefaultTopicId())

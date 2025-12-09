@@ -102,3 +102,40 @@
 ### 2. Re-enable Two-Step Generation for Round 0
 *   **Updated `scientist.py`**: Reverted the single-step optimization. Now uses the robust two-step generation (Reasoning + Formatter) for ALL rounds, including Round 0.
 *   **Reasoning**: Single-step generation in Round 0 often led to lower quality reasoning or formatting errors, undermining the initial consensus check.
+
+## 2025-12-05: Fault Tolerance Improvements
+
+### 1. Scientist Retry Logic with Backoff
+*   **Updated `scientist.py`**: Added a small exponential backoff (sleep) to the retry loop for API calls.
+*   **Reasoning**: Helps resolve transient "Empty response" or rate limit errors from the LLM provider (e.g., Gemini) by giving the system a moment to recover before retrying.
+
+### 2. Moderator "Error Filtering"
+*   **Updated `moderator.py`**: Modified `_check_simple_consensus` to ignore solutions that contain "ERROR" or "Failed to generate".
+*   **Reasoning**: Prevents a single agent failure (e.g., Agent B crashing) from dragging down the entire task. If Agent A provides a valid answer and Agent B fails, the Moderator now proceeds with Agent A's answer instead of failing the task.
+
+## 2025-12-05: Task-Specific Prompting & Enforcement
+
+### 1. Task Type Propagation
+*   **Updated `messages.py`**: Added `task_type` field to all message classes (`Task`, `AgentSolution`, etc.).
+*   **Updated `run_multi_agent.py`**: Now extracts `task` type from the JSON dataset and passes it into the system.
+*   **Problem Solved**: Enables agents to know if they are solving a Boolean, MCQ, or Calculation task.
+
+### 2. Dynamic Scientist Instructions
+*   **Updated `scientist.py`**: Injects specific strict formatting instructions into the prompt based on `task_type`.
+    *   *Boolean*: "MUST be exactly 'True' or 'False'."
+    *   *MCQ*: "MUST be exactly one uppercase letter."
+*   **Problem Solved**: Reduces "Format Mismatch" errors where agents output text explanations instead of the required format (e.g., `vali_120`, `vali_131`).
+
+### 3. Moderator Format Enforcement
+*   **Updated `moderator.py`**: Added `_enforce_format` method that runs before saving the final answer. It heuristically cleans up answers (e.g., mapping "Yes" -> "True", "Choice A" -> "A") based on the `task_type`.
+*   **Problem Solved**: Acts as a final safety net to ensure the output format matches the evaluation expectations, fixing cases where the LLM is correct in reasoning but slightly off in format.
+
+## 2025-12-08: Batch 9 Results & Critical Fixes
+
+### 1. Batch 9 Performance
+*   **Result**: The Multi-Agent system achieved **75% accuracy**, significantly outperforming the Single Agent (GPT-4o) baseline of **65%**.
+*   **Analysis**: The improvements in "Task Type Enforcement" were highly effective, ensuring Boolean tasks returned strict "True/False" outputs and MCQ tasks returned single letters. The Moderator correctly acted as a "Judge" in tie-breaker scenarios (e.g., `vali_160`), overruling incorrect agents based on superior reasoning (Poole's Analysis).
+
+### 2. Moderator Stability Fix (`AttributeError`)
+*   **Updated `moderator.py`**: Patched the `_enforce_format` method to safely cast inputs to strings before processing.
+*   **Problem Solved**: Prevented system crashes (e.g., `vali_175`) caused by the LLM returning raw integers or booleans in the JSON response, which the previous code failed to handle.

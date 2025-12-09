@@ -53,7 +53,8 @@ async def run_multi_agent_debate(
         task_id=task_id,
         problem=problem_text,
         capability_name=capability,
-        area_name=area
+        area_name=area,
+        task_type=problem_data.get("task", "unknown")
     )
     
     # Setup output directory for this specific task solution

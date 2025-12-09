@@ -12,6 +12,7 @@ class Task:
     problem: str
     capability_name: str
     area_name: str
+    task_type: str = "unknown"
 
 
 @dataclass
@@ -22,6 +23,7 @@ class TaskSolutionRequest:
     problem: str
     capability_name: str
     area_name: str
+    task_type: str = "unknown"
     round_number: int = 1
 
 
@@ -38,6 +40,7 @@ class AgentSolution:
     round_number: int
     capability_name: str
     area_name: str
+    task_type: str = "unknown"
 
     def to_dict(self) -> Dict[str, str]:
         """Convert to dictionary."""
@@ -51,6 +54,7 @@ class AgentSolution:
             "round_number": str(self.round_number),
             "capability_name": self.capability_name,
             "area_name": self.area_name,
+            "task_type": self.task_type,
         }
 
 
@@ -64,6 +68,7 @@ class AgentRevisionRequest:
     area_name: str
     other_solutions: List[Dict[str, str]]
     round_number: int
+    task_type: str = "unknown"
 
 
 @dataclass
@@ -73,6 +78,7 @@ class ConsensusCheck:
     task_id: str
     solutions: List[Dict[str, str]]
     round_number: int
+    task_type: str = "unknown"
 
 
 @dataclass
@@ -90,3 +96,4 @@ class FinalSolution:
     consensus_reached: bool
     total_rounds: int
     all_solutions: List[Dict[str, str]]
+    task_type: str = "unknown"

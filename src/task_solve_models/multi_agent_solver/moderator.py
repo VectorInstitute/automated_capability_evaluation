@@ -122,23 +122,44 @@ class TaskSolverModerator(RoutedAgent):
         self, solutions: List[AgentSolution]
     ) -> tuple[bool, str, str, str]:
         """Check consensus; if all agents have the same final answer."""
-        if not solutions or len(solutions) < self._num_solvers:
-            return False, "", "null", "null"
+        
+        # FILTER OUT ERROR RESPONSES
+        valid_solutions = []
+        for sol in solutions:
+            # Check for common error patterns in answer or final_answer
+            is_error = False
+            if "error" in sol.answer.lower() or "failed" in sol.answer.lower():
+                is_error = True
+            if "error" in sol.final_answer.lower() and len(sol.final_answer) < 100: # Short error message
+                is_error = True
+            
+            if not is_error:
+                valid_solutions.append(sol)
+        
+        # If we filtered out solutions, log it
+        if len(valid_solutions) < len(solutions):
+             log.warning(f"Filtered out {len(solutions) - len(valid_solutions)} error/failed solutions.")
 
+        # If NO valid solutions, return failure
+        if not valid_solutions:
+            return False, "", "null", "null"
+            
+        # If we have valid solutions, use them. Even if it's just 1 (because the other failed).
         # Check for strict consensus on the structured 'answer' field
-        answers = [sol.answer.strip().lower() for sol in solutions if sol.answer and sol.answer.strip().lower() != "no answer provided"]
-        if len(answers) == len(solutions) and len(set(answers)) == 1:
-             return True, solutions[0].final_answer, solutions[0].answer, solutions[0].numerical_answer
+        answers = [sol.answer.strip().lower() for sol in valid_solutions if sol.answer and sol.answer.strip().lower() != "no answer provided"]
+        
+        if len(answers) == len(valid_solutions) and len(set(answers)) == 1:
+             return True, valid_solutions[0].final_answer, valid_solutions[0].answer, valid_solutions[0].numerical_answer
 
         # First check numerical answers if they exist
         numerical_answers = [
-            sol.numerical_answer for sol in solutions if sol.numerical_answer != "null"
+            sol.numerical_answer for sol in valid_solutions if sol.numerical_answer != "null"
         ]
         if (
-            len(numerical_answers) == len(solutions)
+            len(numerical_answers) == len(valid_solutions)
             and len(set(numerical_answers)) == 1
         ):
-            return True, solutions[0].final_answer, solutions[0].answer, solutions[0].numerical_answer
+            return True, valid_solutions[0].final_answer, valid_solutions[0].answer, valid_solutions[0].numerical_answer
 
         # Fallback to text-based consensus
         # answers = [sol.final_answer.strip().lower() for sol in solutions] # Deprecated logic
@@ -176,6 +197,7 @@ class TaskSolverModerator(RoutedAgent):
                         problem=message.problem,
                         capability_name=message.capability_name,
                         area_name=message.area_name,
+                        task_type=message.task_type,
                         round_number=self._current_round,
                     ),
                     topic_id=DefaultTopicId(),
@@ -247,6 +269,33 @@ class TaskSolverModerator(RoutedAgent):
                 log.error(traceback.format_exc())
                 span.update(metadata={"error": error_msg})
 
+    def _enforce_format(self, answer: str, task_type: str) -> str:
+        """Enforce answer format based on task type."""
+        answer = str(answer).strip()
+        
+        if task_type == "bool":
+            if answer.lower() in ["true", "yes", "correct", "1", "1.0"]:
+                return "True"
+            if answer.lower() in ["false", "no", "incorrect", "0", "0.0"]:
+                return "False"
+            # Heuristic for sentence answers
+            if "true" in answer.lower() and "false" not in answer.lower():
+                return "True"
+            if "false" in answer.lower() and "true" not in answer.lower():
+                return "False"
+                
+        elif task_type == "mcq":
+            # Extract first single letter if possible
+            if len(answer) == 1 and answer.upper() in ["A", "B", "C", "D", "E"]:
+                return answer.upper()
+            # If answer is like "A.", "Choice A", etc.
+            import re
+            match = re.search(r'\b([A-E])\b', answer.upper())
+            if match:
+                return match.group(1)
+        
+        return answer
+
     async def _check_consensus_and_proceed(
         self, task_id: str, ctx: MessageContext
     ) -> None:
@@ -263,18 +312,22 @@ class TaskSolverModerator(RoutedAgent):
                 )
 
                 if simple_consensus:
+                    # Enforce format before saving
+                    final_answer = self._enforce_format(simple_answer, self._tasks.task_type)
+                    
                     final_solution = FinalSolution(
                         task_id=task_id,
                         capability_name=self._tasks.capability_name,
                         area_name=self._tasks.area_name,
                         problem=self._tasks.problem,
                         solution=simple_solution,
-                        answer=simple_answer,
+                        answer=final_answer,
                         numerical_answer=simple_numerical,
                         reasoning="All agents provided the same answer",
                         consensus_reached=True,
                         total_rounds=self._current_round,
                         all_solutions=self._get_all_solutions(),
+                        task_type=self._tasks.task_type,
                     )
 
                     self._final_solutions = final_solution
@@ -328,18 +381,22 @@ class TaskSolverModerator(RoutedAgent):
 
                     if consensus_reached:
                         # LLM found consensus
+                        # Enforce format before saving
+                        final_answer = self._enforce_format(answer, self._tasks.task_type)
+
                         final_solution = FinalSolution(
                             task_id=task_id,
                             capability_name=self._tasks.capability_name,
                             area_name=self._tasks.area_name,
                             problem=self._tasks.problem,
                             solution=final_solution_text,
-                            answer=answer,
+                            answer=final_answer,
                             numerical_answer=numerical_answer,
                             reasoning=reasoning,
                             consensus_reached=True,
                             total_rounds=self._current_round,
                             all_solutions=self._get_all_solutions(),
+                            task_type=self._tasks.task_type,
                         )
 
                         self._final_solutions = final_solution
@@ -365,6 +422,7 @@ class TaskSolverModerator(RoutedAgent):
                             problem=stored_task.problem,
                             capability_name=stored_task.capability_name,
                             area_name=stored_task.area_name,
+                            task_type=stored_task.task_type,
                             other_solutions=[
                                 {
                                     "agent_id": sol.agent_id,
@@ -402,6 +460,7 @@ class TaskSolverModerator(RoutedAgent):
                         consensus_reached=False,
                         total_rounds=self._current_round,
                         all_solutions=self._get_all_solutions(),
+                        task_type=self._tasks.task_type,
                     )
 
                     self._final_solutions = final_solution

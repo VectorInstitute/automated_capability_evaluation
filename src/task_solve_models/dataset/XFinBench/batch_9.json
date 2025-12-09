@@ -1,0 +1,222 @@
+[
+  {
+    "": "160",
+    "id": "vali_160",
+    "task": "bool",
+    "question": "Evidence indicates that lately the demand for money has become quite unstable.This finding suggests that a money supply target is preferred over an interest-rate target by Federal Reserve policymakers.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2993"
+  },
+  {
+    "": "161",
+    "id": "vali_161",
+    "task": "bool",
+    "question": "Consider the calibration of a one-factor interest rate model.The calibration of a one-factor interest rate model involves determining its volatility parameters to match the market prices of interest rate options only approximately.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1314"
+  },
+  {
+    "": "162",
+    "id": "vali_162",
+    "task": "bool",
+    "question": "Consider two bonds that have the same coupon, time to maturity, and price. One is a B-rated corporate bond, and the other is a CAT bond. An analysis based on historical data shows that the expected losses on the two bonds in each year of their life is the same.The risks in the CAT bond are likely to be largely diversified away by the other investments in the portfolio.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_748"
+  },
+  {
+    "": "163",
+    "id": "vali_163",
+    "task": "mcq",
+    "question": "The term \"agency costs\" describes the expenses incurred when the interests of two parties are not perfectly aligned.Which one of the following describes an example of agency costs in the context of the credit crisis?",
+    "choice": "A. The misalignment of interests between customers and their real estate agents\nB. The misalignment of interests between mortgage originators and investors\nC. The perfect alignment of interests between mortgage originators and investors",
+    "ground_truth": "B",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1825"
+  },
+  {
+    "": "164",
+    "id": "vali_164",
+    "task": "bool",
+    "question": "Consider the distinction between the forward price and the value of a forward contract.As time passes and the underlying asset price changes, the value of the forward contract may become positive or negative.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_716"
+  },
+  {
+    "": "165",
+    "id": "vali_165",
+    "task": "bool",
+    "question": "A US company knows it will have to pay 3 million euros in three months with the current exchange rate being 1.3500 dollars per euro.The use of a call option provides insurance, at a cost, against the exchange rate being higher than the strike price.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2599"
+  },
+  {
+    "": "166",
+    "id": "vali_166",
+    "task": "calcu",
+    "question": "Assume that you just hit the $20 million jackpot in the New York State Lottery, which promises you a payment of $1 million for the next twenty years. The interest rate is 10%.If the interest rate is 10%, what is the present value of the $20 million jackpot? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "9400000.0",
+    "figure": "",
+    "fin_capability": "FF",
+    "gold_fin_term_id": "term_2526"
+  },
+  {
+    "": "167",
+    "id": "vali_167",
+    "task": "mcq",
+    "question": "European down-and-out options on an asset and on the asset's futures price may have different values.Which one of the following statements is correct regarding the values of a European down-and-out option on an asset and on the asset's futures price?",
+    "choice": "A. The futures price does not affect the option's worth.\nB. They are not worth the same.\nC. They always have the same value.",
+    "ground_truth": "B",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2611;term_429"
+  },
+  {
+    "": "168",
+    "id": "vali_168",
+    "task": "calcu",
+    "question": "A company caps three-month LIBOR at 10% per annum. The principal amount is $20 million. On a reset date, three-month LIBOR is 12% per annum.What payment would this lead to under the cap? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "100000.0",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_2021"
+  },
+  {
+    "": "169",
+    "id": "vali_169",
+    "task": "calcu",
+    "question": "\n\\begin{table}[ht]\n\\centering\n\\caption{Bid and offer fixed rates in the swap market and swap rates (percent per annum).}\n\\begin{tabular}{cccc}\n\\hline\n\\textbf{Maturity (years)} & \\textbf{Bid} & \\textbf{Offer} & \\textbf{Swap rate} \\\\\n\\hline\n2                          & 6.03         & 6.06          & 6.045              \\\\\n3                          & 6.21         & 6.24          & 6.225              \\\\\n4                          & 6.35         & 6.39          & 6.370              \\\\\n5                          & 6.47         & 6.51          & 6.490              \\\\\n                          &              &                &                     \\\\\n7                          & 6.65         & 6.68          & 6.665              \\\\\n                          &              &                &                     \\\\\n10                         & 6.83         & 6.87          & 6.850              \\\\\n\\hline\n\\end{tabular}\n\\end{table}\n\nCompany A and Company B have been offered the rates shown in Table 7.3. Company A can borrow for three years at a fixed rate of 6.45%. Company B can borrow for five years at a floating rate of LIBOR plus 75 basis points.What floating rate can Company A swap a fixed rate of 6.45% into? (Unit: basis points)",
+    "choice": "",
+    "ground_truth": "24.00",
+    "figure": "",
+    "fin_capability": "TR; SP",
+    "gold_fin_term_id": "term_1945"
+  },
+  {
+    "": "170",
+    "id": "vali_170",
+    "task": "bool",
+    "question": "A stock option is on a February, May, August, and November cycle.On April 1, options trade with expiration months of June, July, August, and November.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1609"
+  },
+  {
+    "": "171",
+    "id": "vali_171",
+    "task": "bool",
+    "question": "Peer group analysis involves comparing the financial ratios and operating performance of a particular firm to a set of peer group firms in the same industry or line of business.An aspirant group is a set of firms whose performance the company in question would like to emulate.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1193"
+  },
+  {
+    "": "172",
+    "id": "vali_172",
+    "task": "bool",
+    "question": "In the primitive economy of cavemen, there was minimal need for trade.Cavemen had little need to trade with other cavemen.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_938"
+  },
+  {
+    "": "173",
+    "id": "vali_173",
+    "task": "calcu",
+    "question": "A 15-year annuity pays $1,500 per month, and payments are made at the end of each month. The interest rate is 13 percent compounded monthly for the first seven years and 10 percent compounded monthly thereafter.What is the present value of the last eight years of the annuity? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "98852.23",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_2738"
+  },
+  {
+    "": "174",
+    "id": "vali_174",
+    "task": "calcu",
+    "question": "An investment pays $7,500 every other year forever. The discount rate is 11 percent compounded daily.What is the value of the investment if the first payment occurs one year from today? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "34027.4",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_557"
+  },
+  {
+    "": "175",
+    "id": "vali_175",
+    "task": "calcu",
+    "question": "Chatman Machine Shop is considering a four-year project to improve its production efficiency by buying a new machine press for $530,000. This investment is estimated to result in $205,000 in annual pretax cost savings. The press will have a salvage value at the end of the project of $90,000 and requires an initial investment in spare parts inventory of $20,000, plus an additional $3,000 in inventory for each succeeding year of the project. The shop's tax rate is 35 percent, and its discount rate is 9 percent.What is the Year 1 operating cash flow (OCF)? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "170350.0",
+    "figure": "",
+    "fin_capability": "NM; TR",
+    "gold_fin_term_id": "term_2218"
+  },
+  {
+    "": "176",
+    "id": "vali_176",
+    "task": "mcq",
+    "question": "What trend can be observed with excess reserves ratio \\(e\\) during the first bank panic in the attached figure?",
+    "choice": "A. \\(e\\) remained constant\nB. \\(e\\) more than doubled\nC. \\(e\\) increased to more than 0.06",
+    "ground_truth": "B",
+    "figure": "vali_figure_21",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_865"
+  },
+  {
+    "": "177",
+    "id": "vali_177",
+    "task": "bool",
+    "question": "The payback period is often used as an analysis method because of its simplicity and straightforward nature.The payback period takes into account the time value of money.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_357"
+  },
+  {
+    "": "178",
+    "id": "vali_178",
+    "task": "mcq",
+    "question": "The health of financial institutions can significantly impact economic activity. When these institutions face deteriorations in their balance sheets and failures, the effects ripple through the economy.Which one of the following impacts does a deterioration in financial institutions\u2019 balance sheets have on economic activity?",
+    "choice": "A. Lending will remain unchanged, having no effect on investment spending and economic activity.\nB. Lending will increase, leading to higher investment spending and faster economic activity.\nC. Lending will decline, leading to decreased investment spending and slower economic activity.",
+    "ground_truth": "C",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2095"
+  },
+  {
+    "": "179",
+    "id": "vali_179",
+    "task": "mcq",
+    "question": "The chairman of the Federal Reserve Board announces a reduction in the annual rate of money growth, and the public believes this announcement.According to the new Keynesian model, what might happen to the aggregate output when the money growth rate is reduced to 5%?",
+    "choice": "A. It may either rise or fall, depending on the shifts in the short-run aggregate supply and aggregate demand curves\nB. It will definitely rise due to lower expected inflation\nC. It will definitely fall, as aggregate supply shifts more than aggregate demand",
+    "ground_truth": "A",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2433"
+  }
+]
