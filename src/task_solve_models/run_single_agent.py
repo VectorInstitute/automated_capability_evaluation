@@ -8,7 +8,11 @@ from pathlib import Path
 
 from src.task_solve_models.solver import FinancialProblemSolver
 from src.task_solve_models.evaluator import evaluate_result
-from src.utils.model_client_utils import get_model_client
+from src.utils.model_client_utils import get_model_client, RetryableModelClient
+
+# Import OpenAI client for manual local construction
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_core.models import ModelInfo
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -18,6 +22,32 @@ log = logging.getLogger(__name__)
 SCRIPT_DIR = Path(__file__).parent
 DATASET_DIR = SCRIPT_DIR / "dataset" / "XFinBench"
 RESULTS_DIR = SCRIPT_DIR / "Results"
+
+def get_client_wrapper(model_name: str):
+    """
+    Wrapper to get model client, supporting local Ollama models.
+    """
+    local_models = ["llama", "mistral", "gemma", "qwen", "phi", "deepseek"]
+    
+    # Check if model name contains any of the known local model keywords
+    if any(keyword in model_name.lower() for keyword in local_models):
+        log.info(f"Using local Ollama client for model: {model_name}")
+        client = OpenAIChatCompletionClient(
+            model=model_name,
+            api_key="EMPTY",
+            base_url="http://localhost:11434/v1",
+            model_info=ModelInfo(
+                vision=False,
+                function_calling=False,
+                json_output=True,
+                structured_output=True,
+                family="unknown"
+            )
+        )
+        return RetryableModelClient(client)
+    
+    # Fallback to standard utility
+    return get_model_client(model_name)
 
 async def main():
     parser = argparse.ArgumentParser(description="Run single agent solver on financial problems.")
@@ -30,7 +60,7 @@ async def main():
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     try:
-        model_client = get_model_client(args.model)
+        model_client = get_client_wrapper(args.model)
         log.info(f"Initialized client for model: {args.model}")
     except Exception as e:
         log.error(f"Failed to initialize model client: {e}")

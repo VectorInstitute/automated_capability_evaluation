@@ -139,3 +139,10 @@
 ### 2. Moderator Stability Fix (`AttributeError`)
 *   **Updated `moderator.py`**: Patched the `_enforce_format` method to safely cast inputs to strings before processing.
 *   **Problem Solved**: Prevented system crashes (e.g., `vali_175`) caused by the LLM returning raw integers or booleans in the JSON response, which the previous code failed to handle.
+
+## 2025-12-08: Local LLM Support (Ollama Integration)
+
+### 1. Native Ollama Support
+*   **Updated `run_multi_agent.py` & `run_single_agent.py`**: Implemented automatic detection for local model names (`llama`, `mistral`, `qwen`, `phi`, `deepseek`).
+*   **Feature**: When these model names are used (e.g., `--model llama3`), the system bypasses the remote API client and connects directly to the local Ollama server at `localhost:11434`.
+*   **Benefit**: Enables completely offline, private, and free execution of the evaluation pipeline using open-source models, without requiring changes to the core utility libraries.

@@ -21,8 +21,12 @@ from langfuse import Langfuse
 from src.task_solve_models.multi_agent_solver.messages import Task
 from src.task_solve_models.multi_agent_solver.moderator import TaskSolverModerator
 from src.task_solve_models.multi_agent_solver.scientist import TaskSolverScientist
-from src.utils.model_client_utils import get_model_client
+from src.utils.model_client_utils import get_model_client, RetryableModelClient
 from src.task_solve_models.evaluator import evaluate_result
+
+# Import OpenAI client for manual local construction
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_core.models import ModelInfo
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -32,6 +36,32 @@ log = logging.getLogger(__name__)
 SCRIPT_DIR = Path(__file__).parent
 DATASET_DIR = SCRIPT_DIR / "dataset" / "XFinBench"
 RESULTS_DIR = SCRIPT_DIR / "Results"
+
+def get_client_wrapper(model_name: str, seed: int):
+    """
+    Wrapper to get model client, supporting local Ollama models.
+    """
+    local_models = ["llama", "mistral", "gemma", "qwen", "phi", "deepseek"]
+    
+    # Check if model name contains any of the known local model keywords
+    if any(keyword in model_name.lower() for keyword in local_models):
+        log.info(f"Using local Ollama client for model: {model_name}")
+        client = OpenAIChatCompletionClient(
+            model=model_name,
+            api_key="EMPTY",
+            base_url="http://localhost:11434/v1",
+            model_info=ModelInfo(
+                vision=False,
+                function_calling=False,
+                json_output=True,
+                structured_output=True,
+                family="unknown"
+            )
+        )
+        return RetryableModelClient(client)
+    
+    # Fallback to standard utility
+    return get_model_client(model_name, seed=seed)
 
 async def run_multi_agent_debate(
     problem_data: Dict[str, Any],
@@ -68,7 +98,7 @@ async def run_multi_agent_debate(
         runtime,
         "TaskSolverModerator",
         lambda: TaskSolverModerator(
-            model_client=get_model_client(model_name=model_specs["moderator"], seed=888),
+            model_client=get_client_wrapper(model_specs["moderator"], seed=888),
             num_solvers=2,
             max_rounds=max_rounds,
             output_dir=task_output_dir,
@@ -81,7 +111,7 @@ async def run_multi_agent_debate(
         runtime,
         "TaskSolverScientistA",
         lambda: TaskSolverScientist(
-            model_client=get_model_client(model_name=model_specs["scientist_a"], seed=8),
+            model_client=get_client_wrapper(model_specs["scientist_a"], seed=8),
             scientist_id="A",
             langfuse_client=langfuse_client,
         ),
@@ -92,7 +122,7 @@ async def run_multi_agent_debate(
         runtime,
         "TaskSolverScientistB",
         lambda: TaskSolverScientist(
-            model_client=get_model_client(model_name=model_specs["scientist_b"], seed=88),
+            model_client=get_client_wrapper(model_specs["scientist_b"], seed=88),
             scientist_id="B",
             langfuse_client=langfuse_client,
         ),
