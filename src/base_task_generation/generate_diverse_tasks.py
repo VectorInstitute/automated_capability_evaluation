@@ -30,7 +30,9 @@ def generate_diverse_tasks_for_capability(
     min_subtopics: int = 3,
     max_subtopics: int = 8,
 ) -> List[TaskSolution]:
-    """Generate diverse tasks with solutions for a single capability using experimental method.
+    """Generate diverse tasks with solutions for a single capability.
+
+    Uses multi-dimensional task generation approach.
 
     Args:
         capability: Schema Capability object

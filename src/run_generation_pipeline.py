@@ -18,7 +18,6 @@ Usage:
     python -m src.run_capability_generation  # defaults to "all"
 """
 
-import json
 import logging
 import math
 from datetime import datetime
@@ -27,14 +26,18 @@ from pathlib import Path
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
+from src.base_task_generation.generate_diverse_tasks import (
+    generate_diverse_tasks_for_capability,
+)
+from src.base_task_generation.validate_tasks import validate_tasks
 from src.generate_capabilities import generate_areas, generate_capabilities
-from src.generate_diverse_tasks import generate_diverse_tasks_for_capability
 from src.schemas.domain_schemas import Domain
 from src.schemas.experiment_schemas import Experiment
 from src.schemas.io_utils import (
     load_areas,
     load_capabilities,
     load_domain,
+    load_solution,
     save_areas,
     save_capabilities,
     save_domain,
@@ -43,7 +46,6 @@ from src.schemas.io_utils import (
     save_validation,
 )
 from src.schemas.metadata_schemas import PipelineMetadata
-from src.schemas.validation_schemas import ValidationResult
 from src.utils import constants
 from src.utils.capability_management_utils import (
     filter_schema_capabilities_by_embeddings,
@@ -523,10 +525,6 @@ def stage5_validate_tasks(
         ),
     )
 
-    # Get validation parameters from config
-    pass_threshold = cfg.get("task_verification_cfg", {}).get("pass_threshold", 0.8)
-    strict_mode = cfg.get("task_verification_cfg", {}).get("strict_mode", False)
-
     # Find all task_solutions directories
     task_solutions_base_dir = (
         output_base_dir / experiment_id / "task_solutions" / solution_tag
@@ -551,6 +549,24 @@ def stage5_validate_tasks(
         for capability_dir in capability_dirs:
             capability_id = capability_dir.name
 
+            # Check if validation already exists for this capability (resume logic)
+            validation_cap_dir = (
+                output_base_dir
+                / experiment_id
+                / "validations"
+                / validation_tag
+                / area_id
+                / capability_id
+            )
+
+            if is_resume and validation_cap_dir.exists():
+                existing_validations = list(validation_cap_dir.glob("*.json"))
+                if existing_validations:
+                    logger.info(
+                        f"Skipping {area_id}/{capability_id} - {len(existing_validations)} validations already exist"
+                    )
+                    continue
+
             # Find all task solution files
             task_solution_files = list(capability_dir.glob("*.json"))
 
@@ -562,97 +578,31 @@ def stage5_validate_tasks(
                 f"Validating {len(task_solution_files)} task solutions for {area_id}/{capability_id}"
             )
 
-            for task_solution_file in task_solution_files:
-                task_id = task_solution_file.stem
+            # Load all task solutions for this capability
+            task_solutions = []
 
-                # Check if validation already exists (resume logic)
-                validation_path = (
-                    output_base_dir
-                    / experiment_id
-                    / "validations"
-                    / validation_tag
-                    / area_id
-                    / capability_id
-                    / f"{task_id}.json"
+            for task_solution_file in task_solution_files:
+                task_solution, _ = load_solution(task_solution_file)
+                task_solutions.append(task_solution)
+
+            if not task_solutions:
+                logger.warning(
+                    f"No valid task solutions loaded for {area_id}/{capability_id}"
+                )
+                continue
+
+            # Validate all tasks for this capability
+            try:
+                validation_results = validate_tasks(
+                    task_solutions=task_solutions,
+                    client=validator_llm_client,
                 )
 
-                if is_resume and validation_path.exists():
-                    logger.info(
-                        f"Skipping {area_id}/{capability_id}/{task_id} - validation already exists"
-                    )
-                    continue
+                # Save individual validation results
+                for validation_result in validation_results:
+                    task_id = validation_result.task_id
+                    validation_path = validation_cap_dir / f"{task_id}.json"
 
-                try:
-                    # Load task solution
-                    with open(task_solution_file, "r") as f:
-                        task_solution_data = json.load(f)
-
-                    # Extract necessary information
-                    task_text = task_solution_data.get("task", "")
-                    solution = task_solution_data.get("solution", "")
-                    reasoning = task_solution_data.get("reasoning", "")
-                    generation_metadata = task_solution_data.get(
-                        "generation_metadata", {}
-                    )
-
-                    # For validation, we need to check if the task is well-formed
-                    # Simple validation: check if task has content and solution exists
-                    verification = (
-                        len(task_text.strip()) > 0 and len(solution.strip()) > 0
-                    )
-                    feedback = (
-                        "Task validation passed"
-                        if verification
-                        else "Task validation failed: missing content"
-                    )
-
-                    # Create Task object for ValidationResult
-                    from src.schemas.area_schemas import Area
-                    from src.schemas.capability_schemas import Capability
-                    from src.schemas.domain_schemas import Domain
-                    from src.schemas.task_schemas import Task
-
-                    domain = Domain(
-                        name=task_solution_data.get("domain", ""),
-                        domain_id=task_solution_data.get("domain_id", ""),
-                        description="",
-                    )
-                    area = Area(
-                        name=task_solution_data.get("area", ""),
-                        area_id=task_solution_data.get("area_id", ""),
-                        domain=domain,
-                        description=task_solution_data.get("area_description", ""),
-                    )
-                    capability = Capability(
-                        name=task_solution_data.get("capability", ""),
-                        capability_id=task_solution_data.get("capability_id", ""),
-                        area=area,
-                        description=task_solution_data.get(
-                            "capability_description", ""
-                        ),
-                    )
-                    task = Task(
-                        task_id=task_id,
-                        task=task_text,
-                        capability=capability,
-                    )
-
-                    # Create ValidationResult
-                    validation_result = ValidationResult(
-                        task_id=task_id,
-                        task=task_text,
-                        verification=verification,
-                        feedback=feedback,
-                        task_obj=task,
-                        generation_metadata={
-                            "method": "simple_validation",
-                            "pass_threshold": pass_threshold,
-                            "strict_mode": strict_mode,
-                            **generation_metadata,
-                        },
-                    )
-
-                    # Save validation
                     metadata = PipelineMetadata(
                         experiment_id=experiment_id,
                         output_base_dir=str(output_base_dir),
@@ -663,19 +613,62 @@ def stage5_validate_tasks(
                     )
 
                     save_validation(validation_result, metadata, validation_path)
-                    logger.info(
-                        f"Validated {task_id}: {'✓ PASS' if verification else '✗ FAIL'}"
-                    )
 
-                except Exception as e:
-                    logger.error(
-                        f"Error validating {area_id}/{capability_id}/{task_id}: {e}",
-                        exc_info=True,
-                    )
-                    continue
+                logger.info(
+                    f"Validated {area_id}/{capability_id}: "
+                    f"{len(validation_results)} task(s) validated"
+                )
+
+            except Exception as e:
+                logger.error(
+                    f"Error validating tasks for {area_id}/{capability_id}: {e}",
+                    exc_info=True,
+                )
+                continue
 
     logger.info(f"Stage 5 completed. Validation tag: {validation_tag}")
     return validation_tag
+
+
+def _validate_stage_inputs(
+    stage: int | str,
+    areas_tag: str | None,
+    capabilities_tag: str | None,
+    solution_tag: str | None,
+) -> bool:
+    """Validate required inputs for standalone stage execution.
+
+    Returns True if validation passes, False otherwise.
+    """
+    if stage == 2 and not areas_tag:
+        logger.error("areas_tag is required when running stage 2 standalone")
+        logger.error(
+            "Usage: python -m src.run_capability_generation stage=2 areas_tag=_YYYYMMDD_HHMMSS"
+        )
+        logger.error(
+            "Optional: capabilities_tag=_YYYYMMDD_HHMMSS to resume from existing run"
+        )
+        return False
+
+    if stage == 3 and not capabilities_tag:
+        logger.error("capabilities_tag is required when running stage 3 standalone")
+        logger.error(
+            "Usage: python -m src.run_capability_generation stage=3 capabilities_tag=_YYYYMMDD_HHMMSS"
+        )
+        logger.error("Optional: tasks_tag=_YYYYMMDD_HHMMSS to resume from existing run")
+        return False
+
+    if stage == 5 and not solution_tag:
+        logger.error("solution_tag is required when running stage 5 standalone")
+        logger.error(
+            "Usage: python -m src.run_capability_generation stage=5 solution_tag=_YYYYMMDD_HHMMSS"
+        )
+        logger.error(
+            "Optional: validation_tag=_YYYYMMDD_HHMMSS to resume from existing run"
+        )
+        return False
+
+    return True
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")
@@ -706,9 +699,12 @@ def main(cfg: DictConfig) -> None:
     areas_tag = cfg.get("areas_tag", None)
     capabilities_tag = cfg.get("capabilities_tag", None)
     solution_tag = cfg.get("solution_tag", None)
-    validation_tag = None
 
-    if stage == 0 or stage == "all":
+    # Validate required inputs for standalone stages
+    if not _validate_stage_inputs(stage, areas_tag, capabilities_tag, solution_tag):
+        return
+
+    if stage in {0, "all"}:
         logger.info("=" * 60)
         logger.info("STAGE 0: Experiment and Domain Setup")
         logger.info("=" * 60)
@@ -716,7 +712,7 @@ def main(cfg: DictConfig) -> None:
         if stage == 0:
             return
 
-    if stage == 1 or stage == "all":
+    if stage in {1, "all"}:
         logger.info("=" * 60)
         logger.info("STAGE 1: Area Generation (Hierarchical)")
         logger.info("=" * 60)
@@ -725,21 +721,10 @@ def main(cfg: DictConfig) -> None:
         if stage == 1:
             return
 
-    if stage == 2 or stage == "all":
+    if stage in {2, "all"}:
         logger.info("=" * 60)
         logger.info("STAGE 2: Capability Generation and Filtering")
         logger.info("=" * 60)
-
-        # When running stage 2 standalone, areas_tag must be provided
-        if stage == 2 and not areas_tag:
-            logger.error("areas_tag is required when running stage 2 standalone")
-            logger.error(
-                "Usage: python -m src.run_capability_generation stage=2 areas_tag=_YYYYMMDD_HHMMSS"
-            )
-            logger.error(
-                "Optional: capabilities_tag=_YYYYMMDD_HHMMSS to resume from existing run"
-            )
-            return
 
         # Check if resuming
         resume_capabilities_tag = (
@@ -759,21 +744,10 @@ def main(cfg: DictConfig) -> None:
         if stage == 2:
             return
 
-    if stage == 3 or stage == "all":
+    if stage in {3, "all"}:
         logger.info("=" * 60)
         logger.info("STAGE 3: Diverse Task Generation")
         logger.info("=" * 60)
-
-        # When running stage 3 standalone, capabilities_tag must be provided
-        if stage == 3 and not capabilities_tag:
-            logger.error("capabilities_tag is required when running stage 3 standalone")
-            logger.error(
-                "Usage: python -m src.run_capability_generation stage=3 capabilities_tag=_YYYYMMDD_HHMMSS"
-            )
-            logger.error(
-                "Optional: tasks_tag=_YYYYMMDD_HHMMSS to resume from existing run"
-            )
-            return
 
         # Check if resuming
         resume_tasks_tag = cfg.get("tasks_tag", None) if stage == 3 else None
@@ -791,21 +765,10 @@ def main(cfg: DictConfig) -> None:
         if stage == 3:
             return
 
-    if stage == 5 or stage == "all":
+    if stage in {5, "all"}:
         logger.info("=" * 60)
         logger.info("STAGE 5: Task Validation")
         logger.info("=" * 60)
-
-        # When running stage 5 standalone, solution_tag must be provided
-        if stage == 5 and not solution_tag:
-            logger.error("solution_tag is required when running stage 5 standalone")
-            logger.error(
-                "Usage: python -m src.run_capability_generation stage=5 solution_tag=_YYYYMMDD_HHMMSS"
-            )
-            logger.error(
-                "Optional: validation_tag=_YYYYMMDD_HHMMSS to resume from existing run"
-            )
-            return
 
         # Check if resuming
         resume_validation_tag = cfg.get("validation_tag", None) if stage == 5 else None
@@ -820,8 +783,6 @@ def main(cfg: DictConfig) -> None:
             validation_tag=resume_validation_tag,
         )
         logger.info("Stage 5 validation tag: %s", validation_tag)
-        if stage == 5:
-            return
 
 
 if __name__ == "__main__":
