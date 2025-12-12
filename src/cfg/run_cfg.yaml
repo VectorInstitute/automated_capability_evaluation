@@ -58,17 +58,27 @@ subject_llm:
 prompt_cfg:
   sys_msg: Complete the given task to the best of your ability.
 
+# Diverse task generation configuration
+task_generation_cfg:
+  tasks_per_blueprint: 1  # Number of tasks to generate per blueprint
+  min_subtopics: 1  # Suggested minimum number of sub-topics
+  max_subtopics: 1  # Suggested maximum number of sub-topics
+
+# Task verification configuration
+task_verification_cfg:
+  pass_threshold: 0.8  # Minimum pass rate to consider successful
+  strict_mode: false  # If true, all alignment criteria must pass
+
 capabilities_cfg:
-  capabilities_dir: /fs01/projects/aieng/public/ace/artifacts
+  capabilities_dir: ./ace-output/
   results_dir: gs://ace-artifacts
   inspect_evals_dir: /fs01/projects/aieng/public/ace/inspect_evals/src/ace_evals
-  domain: math
   method: "hierarchical"
   num_seed_capabilities: 1
-  num_gen_capabilities: 100
-  num_gen_capabilities_buffer: 0.0
-  num_capability_areas: 10
-  num_gen_capabilities_per_run: 5
+  num_capabilities: 2
+  num_capabilities_buffer: 0.0
+  num_areas: 3
+  num_gen_capabilities_per_run: 1
   num_gen_tasks_per_capability: 100
   num_gen_tasks_buffer: 0.0
   task_gen_few_shot: false
@@ -102,7 +112,24 @@ dimensionality_reduction_cfg:
 exp_cfg:
   seed: 37
   trial_run: false
-  exp_id: ""
+  exp_id: "farnaz_exp"
+
+# Stage control
+stage: "all"  # Which stage to run: 0, 1, 2, 3, 5, or "all"
+areas_tag: null  # Areas tag from Stage 1 (required for stage 2 standalone)
+capabilities_tag: null  # Capabilities tag from Stage 2 (required for stage 3 standalone)
+tasks_tag: null  # Tasks tag from Stage 3 (required for stage 5 standalone)
+solution_tag: null  # Solution tag from Stage 5 (optional for resume)
+
+# Debug settings
+use_langchain: false  # Set to false for easier debugging (disables LangChain features)
+
+# Global configuration
+
+global_cfg:
+  domain: personal finance
+  output_dir: non_agentic_output/ #Base output directory for all agentic outputs
+  pipeline_type: base
 
 defaults:
   - _self_
