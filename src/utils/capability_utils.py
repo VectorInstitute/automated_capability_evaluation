@@ -13,8 +13,8 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 from inspect_ai import eval as inspect_eval
 from inspect_ai.scorer import CORRECT
-from langsmith import traceable, tracing_context
 
+# from langsmith import traceable, tracing_context  # COMMENTED OUT FOR DEBUGGING
 from src.model import Model
 from src.utils import constants
 from src.utils.data_utils import read_json_file
@@ -247,9 +247,9 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
     }
     ls_metadata.update({f"ls_{k}": v for k, v in kwargs.items()})
 
-    @traceable(
-        run_type="llm",
-    )
+    # @traceable(  # COMMENTED OUT FOR DEBUGGING
+    #     run_type="llm",
+    # )
     def _run_inspect_evals() -> Dict[str, Any]:
         """
         Run the inspect evals command for a given capability and model.
@@ -299,12 +299,13 @@ def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> N
     else:
         inspect_model_name = model_name
 
-    with tracing_context(
-        enabled=True,
-        tags=["run_inspect_evals"],
-        metadata=ls_metadata,
-    ):
-        output = _run_inspect_evals()
+    # COMMENTED OUT LANGSMITH TRACING FOR DEBUGGING
+    # with tracing_context(
+    #     enabled=True,
+    #     tags=["run_inspect_evals"],
+    #     metadata=ls_metadata,
+    # ):
+    output = _run_inspect_evals()
 
     if model.model_provider == "local":
         # Reset OPENAI_BASE_URL to actual openai URL

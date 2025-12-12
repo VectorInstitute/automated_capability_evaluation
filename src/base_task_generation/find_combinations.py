@@ -1,21 +1,35 @@
-"""Find valid combinations of (Content, Difficulty, Reasoning)."""
+"""Find valid (Content, Difficulty, Reasoning) combinations."""
 
-import json
+import asyncio
 import logging
 
-from diverse_task_constants import BLOOMS_TAXONOMY, DIFFICULTY_LEVELS
-from diverse_task_dataclasses import Capability, Combination, SubTopic
-from diverse_task_prompts import format_combination_prompt
+from autogen_core.models import ChatCompletionClient
+
+from src.base_task_generation.diverse_task_constants import (
+    BLOOMS_TAXONOMY,
+    DIFFICULTY_LEVELS,
+)
+from src.base_task_generation.diverse_task_dataclasses import Combination, SubTopic
+from src.base_task_generation.diverse_task_prompts import format_combination_prompt
 
 
 logger = logging.getLogger(__name__)
 
 
 def find_valid_combinations(
-    capability: Capability, subtopics: list[SubTopic], call_llm, config: dict
+    capability, subtopics: list[SubTopic], client: ChatCompletionClient
 ) -> list[Combination]:
-    """Find valid combinations of Content, Difficulty, and Reasoning."""
+    """Find valid combinations of Content, Difficulty, and Reasoning.
+
+    Args:
+        capability: Schema Capability object with area.domain.name, area.name, etc.
+        subtopics: List of SubTopic objects
+        client: ChatCompletionClient for API calls
+    """
     logger.info("Finding valid combinations...")
+
+    # Import here to avoid circular dependency
+    from src.utils.model_client_utils import ModelCallMode, async_call_model
 
     # Get difficulty levels and reasoning types from constants
     difficulty_levels = list(DIFFICULTY_LEVELS.keys())
@@ -47,19 +61,21 @@ def find_valid_combinations(
     system_prompt, user_prompt = format_combination_prompt(
         capability_name=capability.name,
         capability_description=capability.description,
-        capability_domain=capability.domain,
-        capability_area=capability.area,
+        capability_domain=capability.area.domain.name,
+        capability_area=capability.area.name,
         content_list=content_list,
     )
 
-    response = call_llm(
-        system_prompt=system_prompt,
-        user_prompt=user_prompt,
-        response_format={"type": "json_object"},
+    response = asyncio.run(
+        async_call_model(
+            client,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            mode=ModelCallMode.JSON_PARSE,
+        )
     )
 
-    result = json.loads(response)
-    combinations_data = result.get("valid_combinations", [])
+    combinations_data = response.get("valid_combinations", [])
 
     # Create Combination objects
     combinations = [
@@ -81,4 +97,4 @@ def find_valid_combinations(
     if len(combinations) > 5:
         logger.info(f"  ... and {len(combinations) - 5} more")
 
-    return combinations
+    return combinations[0:1]

@@ -1,7 +1,9 @@
 """Utility functions for capability embeddings and dimensionality reduction."""
 
 import logging
-from typing import List
+from typing import Any, List
+
+import torch
 
 from src.capability import Capability
 from src.dimensionality_reduction import DimensionalityReductionMethod
@@ -163,3 +165,47 @@ def generate_and_set_capabilities_embeddings(
         capability.set_embedding(
             embedding_name=embedding_model_name, embedding_tensor=embeddings[i]
         )
+
+
+def generate_schema_capabilities_embeddings(
+    capabilities: List[Any],  # List of schema Capability objects
+    embedding_model_name: str,
+    embed_dimensions: int,
+) -> List[torch.Tensor]:
+    """Generate embeddings for schema-based capabilities.
+
+    This function generates embeddings for capabilities that use the schema
+    dataclass (from src.schemas.capability_schemas) instead of the old
+    Capability class. It returns the embeddings as a list rather than
+    mutating the capability objects.
+
+    Args
+    ----
+        capabilities (List[Any]): The list of schema Capability objects.
+        embedding_model_name (str): The name of the embedding model to use.
+        embed_dimensions (int): The number of dimensions for the embeddings.
+
+    Returns
+    -------
+        List[torch.Tensor]: List of embedding tensors, one per capability.
+    """
+    # Convert the embedding model name to `EmbeddingModelName` to ensure
+    # that the provided model name is valid and supported.
+    embedding_generator = EmbeddingGenerator(
+        model_name=EmbeddingModelName(embedding_model_name),
+        embed_dimensions=embed_dimensions,
+    )
+
+    # Generate embeddings for the capabilities, all at the same time.
+    # Embeddings are generated from: area name, capability name, and description.
+    texts = []
+    for capability in capabilities:
+        # Create representation string from area, name, and description
+        rep_string = (
+            f"{capability.area.name}, {capability.name}, {capability.description}"
+        )
+        logger.debug(f"Representation string: {rep_string}")
+        texts.append(rep_string)
+
+    embeddings = embedding_generator.generate_embeddings(texts)
+    return embeddings

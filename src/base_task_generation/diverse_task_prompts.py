@@ -16,7 +16,7 @@ A domain is a broad subject area (e.g., Mathematics), an area is a specialized f
 
 The name, description, and domain/area of the capability will be provided.
 
-Your goal is to decompose the capability into meaningful sub-topics that together provide full and balanced coverage of testing the given capability.
+Your goal is to decompose the capability into meaningful sub-topics that together provide full and balanced coverage of testing the given capability. Generate between {min_subtopics} and {max_subtopics} sub-topics depending on the granularity and scope of the capability.
 
 Respond precisely in the following format, including the JSON start and end markers:
 
@@ -25,7 +25,8 @@ RESPONSE JSON:
   "sub_topics": [
     "<Sub-topic 1>",
     "<Sub-topic 2>",
-    "<Sub-topic 3>"
+    "<Sub-topic 3>",
+    ...
   ]
 }}}}
 
@@ -42,7 +43,7 @@ Area: {capability_area}
 Capability Name: {capability_name}
 Capability Description: {capability_description}
 
-Depending on the granularity of the capability, generate 2–10 sub-topics that comprehensively represent this capability.
+Depending on the granularity of the capability, generate {min_subtopics}–{max_subtopics} sub-topics that comprehensively represent this capability.
 """
 
 
@@ -173,6 +174,11 @@ The blueprint should explain:
 1. What the learner is expected to do.
 2. What kind of reasoning the task requires.
 3. How difficulty manifests in the structure or context of the task.
+
+Respond in the following JSON format:
+{{{{
+  "blueprint": "<Natural-language description of the task blueprint>"
+}}}}
 """
 
 
@@ -333,13 +339,29 @@ Return your structured evaluation in the specified JSON format.
 
 
 def format_subtopic_prompt(
-    capability_name, capability_description, capability_domain, capability_area=None
+    capability_name,
+    capability_description,
+    capability_domain,
+    capability_area=None,
+    min_subtopics=3,
+    max_subtopics=8,
 ):
-    """Format subtopic extraction prompts."""
+    """Format subtopic extraction prompts.
+
+    Args:
+        capability_name: Name of the capability
+        capability_description: Description of the capability
+        capability_domain: Domain name
+        capability_area: Area name (optional)
+        min_subtopics: Minimum number of subtopics to generate
+        max_subtopics: Maximum number of subtopics to generate
+    """
     area_text = capability_area if capability_area else "N/A"
 
     system_prompt = SUBTOPIC_SYSTEM_PROMPT.format(
         capability_domain=capability_domain,
+        min_subtopics=min_subtopics,
+        max_subtopics=max_subtopics,
     )
 
     user_prompt = SUBTOPIC_USER_PROMPT_TEMPLATE.format(
@@ -347,6 +369,8 @@ def format_subtopic_prompt(
         capability_description=capability_description,
         capability_domain=capability_domain,
         capability_area=area_text,
+        min_subtopics=min_subtopics,
+        max_subtopics=max_subtopics,
     )
 
     return system_prompt, user_prompt
