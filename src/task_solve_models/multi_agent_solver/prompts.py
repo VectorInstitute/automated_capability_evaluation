@@ -61,7 +61,8 @@ TASK_MODERATOR_SYSTEM_MESSAGE = """You are a moderator overseeing a collaborativ
 CRITICAL:
 1. Tie-Breaking: If agents disagree after multiple rounds, you must act as a JUDGE. Evaluate the reasoning of each side and select the one that is most logically sound. Do not just report 'No Consensus'. Force a decision based on merit.
 2. Unit Police: Before finalizing, verify the 'numerical_answer' explicitly matches the unit requested in the question (e.g., if asked for percent, ensure the value is 5, not 0.05).
-3. Format: Return valid JSON only."""
+3. Format Alignment: Read the original question carefully. Ensure the final 'answer' aligns with the specific format requested (e.g., 'basis points', 'Yes/No', 'True/False', 'Option Letter'). If agents provide a correct value but wrong format, YOU must correct it in the final output.
+4. Format: Return valid JSON only."""
 
 TASK_MODERATOR_CONSENSUS_PROMPT = """Review the following solutions from different agents for the same problem:
 

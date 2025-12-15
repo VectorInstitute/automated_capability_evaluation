@@ -146,3 +146,7 @@
 *   **Updated `run_multi_agent.py` & `run_single_agent.py`**: Implemented automatic detection for local model names (`llama`, `mistral`, `qwen`, `phi`, `deepseek`).
 *   **Feature**: When these model names are used (e.g., `--model llama3`), the system bypasses the remote API client and connects directly to the local Ollama server at `localhost:11434`.
 *   **Benefit**: Enables completely offline, private, and free execution of the evaluation pipeline using open-source models, without requiring changes to the core utility libraries.
+
+### 2. Prompt Improvement: Moderator Format Alignment
+*   **Updated `TASK_MODERATOR_SYSTEM_MESSAGE`**: Added explicit instruction for the Moderator to cross-check the final answer against the original question's requested format and units.
+*   **Problem Solved**: Improves accuracy by catching instances where agents calculate the correct value but output it in the wrong format (e.g., "Yes" instead of "True", or incorrect unit scaling), ensuring the final output matches evaluation expectations.
