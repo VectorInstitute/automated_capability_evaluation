@@ -7,6 +7,7 @@ from autogen_core.models import ChatCompletionClient
 
 from src.base_task_generation.diverse_task_dataclasses import SubTopic
 from src.base_task_generation.diverse_task_prompts import format_subtopic_prompt
+from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
 logger = logging.getLogger(__name__)
@@ -21,15 +22,16 @@ def extract_subtopics(
     """Extract sub-topics for the given capability.
 
     Args:
-        capability: Schema Capability object with area.domain.name, area.name, etc.
+        capability: Capability object
         client: ChatCompletionClient for API calls
         min_subtopics: Minimum number of subtopics to generate
         max_subtopics: Maximum number of subtopics to generate
+
+    Returns
+    -------
+        List of SubTopic objects
     """
     logger.info(f"Extracting sub-topics (range: {min_subtopics}-{max_subtopics}) ...")
-
-    # Import here to avoid circular dependency
-    from src.utils.model_client_utils import ModelCallMode, async_call_model
 
     system_prompt, user_prompt = format_subtopic_prompt(
         capability_name=capability.name,
@@ -51,7 +53,6 @@ def extract_subtopics(
 
     subtopic_names = response.get("sub_topics", [])
 
-    # Create SubTopic objects
     subtopics = [SubTopic(name=name) for name in subtopic_names]
 
     logger.info(f"Extracted {len(subtopics)} sub-topics:")

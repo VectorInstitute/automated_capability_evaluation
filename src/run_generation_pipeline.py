@@ -1,26 +1,26 @@
-"""Script to generate capabilities (Stage 2) and tasks (Stage 3).
+"""Multi-stage pipeline for capability and task generation.
 
-This module keeps the existing behavior but makes the flow explicit:
-- Stage 0: setup (config validation, run id, model init)
-- Stage 1: create a minimal single area artifact (schema alignment)
-- Stage 2: generate capabilities, embed + filter
-- Stage 3: generate tasks for retained capabilities
+This module orchestrates the complete generation pipeline:
+- Stage 0: Experiment and domain setup
+- Stage 1: Area generation
+- Stage 2: Capability generation and filtering
+- Stage 3: Task generation with solutions
+- Stage 5: Task validation
 
 Usage:
-    # Run specific stage using Hydra override syntax
-    python -m src.run_capability_generation stage=0
-    python -m src.run_capability_generation stage=1
-    python -m src.run_capability_generation stage=2 areas_tag=_20251211_214002
-    python -m src.run_capability_generation stage=3 capabilities_tag=_20251211_220000
-
     # Run all stages
-    python -m src.run_capability_generation stage=all
-    python -m src.run_capability_generation  # defaults to "all"
+    python -m src.run_generation_pipeline stage=all
+
+    # Run specific stage
+    python -m src.run_generation_pipeline stage=0
+    python -m src.run_generation_pipeline stage=1
+    python -m src.run_generation_pipeline stage=2 areas_tag=_YYYYMMDD_HHMMSS
+    python -m src.run_generation_pipeline stage=3 capabilities_tag=_YYYYMMDD_HHMMSS
+    python -m src.run_generation_pipeline stage=5 solution_tag=_YYYYMMDD_HHMMSS
 """
 
 import logging
 import math
-from datetime import datetime
 from pathlib import Path
 
 import hydra
@@ -55,6 +55,7 @@ from src.utils.embedding_utils import (
     generate_schema_capabilities_embeddings,
 )
 from src.utils.model_client_utils import get_standard_model_client
+from src.utils.timestamp_utils import iso_timestamp, timestamp_tag
 
 
 logger = logging.getLogger(__name__)
@@ -63,7 +64,7 @@ logger = logging.getLogger(__name__)
 def stage0_setup(
     cfg: DictConfig,
 ) -> None:
-    """Stage 0: basic setup (config check, run id, base dir, schema files)."""
+    """Stage 0: Experiment and domain setup."""
     check_cfg(cfg, logger)
     exp_id = cfg.exp_cfg.exp_id
     output_base_dir = Path(cfg.global_cfg.output_dir)
@@ -98,7 +99,7 @@ def stage0_setup(
     metadata = PipelineMetadata(
         experiment_id=exp_id,
         output_base_dir=str(output_base_dir),
-        timestamp=_iso_timestamp(),
+        timestamp=iso_timestamp(),
         input_stage_tag=None,
         output_stage_tag=None,
         resume=False,
@@ -118,24 +119,11 @@ def stage0_setup(
     )
 
 
-def _timestamp_tag() -> str:
-    """Return a timestamp tag in `_YYYYMMDD_HHMMSS` format."""
-    return f"_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
-
-
-def _iso_timestamp() -> str:
-    """Return an ISO 8601 formatted timestamp with UTC timezone."""
-    return datetime.utcnow().isoformat() + "Z"
-
-
 def stage1_generate_areas(cfg: DictConfig) -> str:
-    """
-    Stage 1: Generate capability areas using hierarchical method.
-
-    Uses LLM to generate multiple areas within the domain.
+    """Stage 1: Generate capability areas.
 
     Args:
-        cfg: The configuration object
+        cfg: Configuration object
 
     Returns
     -------
@@ -180,12 +168,12 @@ def stage1_generate_areas(cfg: DictConfig) -> str:
         areas = areas[:num_areas]
 
     # Save areas
-    areas_tag = _timestamp_tag()
+    areas_tag = timestamp_tag()
     areas_path = output_base_dir / experiment_id / "areas" / areas_tag / "areas.json"
     metadata = PipelineMetadata(
         experiment_id=experiment_id,
         output_base_dir=str(output_base_dir),
-        timestamp=_iso_timestamp(),
+        timestamp=iso_timestamp(),
         input_stage_tag=None,
         output_stage_tag=areas_tag,
         resume=False,
@@ -200,12 +188,12 @@ def stage2_generate_and_filter_capabilities(
     areas_tag: str,
     capabilities_tag: str = None,
 ) -> str:
-    """Stage 2: generate capabilities, embed, and filter per schema intent.
+    """Stage 2: Generate capabilities, embed, and filter.
 
     Args:
-        cfg: The configuration object
-        areas_tag: The tag from Stage 1 to load areas from
-        capabilities_tag: Optional resume tag. If provided, resumes from existing tag.
+        cfg: Configuration object
+        areas_tag: Tag from Stage 1 to load areas from
+        capabilities_tag: Optional resume tag
 
     Returns
     -------
@@ -237,7 +225,7 @@ def stage2_generate_and_filter_capabilities(
     if is_resume:
         logger.info(f"Resuming Stage 2 with capabilities_tag: {capabilities_tag}")
     else:
-        capabilities_tag = _timestamp_tag()
+        capabilities_tag = timestamp_tag()
         logger.info(f"Starting new Stage 2 with capabilities_tag: {capabilities_tag}")
 
     # Calculate target capabilities per area
@@ -269,7 +257,7 @@ def stage2_generate_and_filter_capabilities(
 
         logger.info(f"Generating capabilities for area: {area.name} ({area.area_id})")
 
-        # Generate capabilities using existing function
+        # Generate capabilities
         capabilities = generate_capabilities(
             area=area,
             num_capabilities=num_capabilities_per_area,
@@ -317,7 +305,7 @@ def stage2_generate_and_filter_capabilities(
         metadata = PipelineMetadata(
             experiment_id=experiment_id,
             output_base_dir=str(output_base_dir),
-            timestamp=_iso_timestamp(),
+            timestamp=iso_timestamp(),
             input_stage_tag=areas_tag,
             output_stage_tag=capabilities_tag,
             resume=is_resume,
@@ -336,15 +324,12 @@ def stage3_generate_tasks(
     capabilities_tag: str,
     tasks_tag: str = None,
 ) -> str:
-    """Stage 3: Generate diverse tasks with solutions for each capability.
-
-    Generates tasks using the diverse task generation method and creates
-    TaskSolution objects with the correct answer and explanation.
+    """Stage 3: Generate tasks with solutions for each capability.
 
     Args:
-        cfg: The configuration object
-        capabilities_tag: The tag from Stage 2 to load capabilities from
-        tasks_tag: Optional resume tag. If provided, resumes from existing tag.
+        cfg: Configuration object
+        capabilities_tag: Tag from Stage 2 to load capabilities from
+        tasks_tag: Optional resume tag
 
     Returns
     -------
@@ -358,7 +343,7 @@ def stage3_generate_tasks(
     if is_resume:
         logger.info(f"Resuming Stage 3 with tasks_tag: {tasks_tag}")
     else:
-        tasks_tag = _timestamp_tag()
+        tasks_tag = timestamp_tag()
         logger.info(f"Starting new Stage 3 with tasks_tag: {tasks_tag}")
 
     # Initialize scientist LLM client using task_generation config
@@ -443,13 +428,13 @@ def stage3_generate_tasks(
                 metadata = PipelineMetadata(
                     experiment_id=experiment_id,
                     output_base_dir=str(output_base_dir),
-                    timestamp=_iso_timestamp(),
+                    timestamp=iso_timestamp(),
                     input_stage_tag=capabilities_tag,
                     output_stage_tag=tasks_tag,
                     resume=is_resume,
                 )
 
-                # Save task solutions in task_solutions directory
+                # Save task solutions
                 for task_solution in task_solutions:
                     solution_path = (
                         output_base_dir
@@ -486,9 +471,9 @@ def stage5_validate_tasks(
     """Stage 5: Validate generated task solutions.
 
     Args:
-        cfg: The configuration object
-        solution_tag: The tag from Stage 3 to load task solutions from
-        validation_tag: Optional resume tag. If provided, resumes from existing tag.
+        cfg: Configuration object
+        solution_tag: Tag from Stage 3 to load task solutions from
+        validation_tag: Optional resume tag
 
     Returns
     -------
@@ -502,7 +487,7 @@ def stage5_validate_tasks(
     if is_resume:
         logger.info(f"Resuming Stage 5 with validation_tag: {validation_tag}")
     else:
-        validation_tag = _timestamp_tag()
+        validation_tag = timestamp_tag()
         logger.info(f"Starting new Stage 5 with validation_tag: {validation_tag}")
 
     # Initialize validator LLM client
@@ -606,7 +591,7 @@ def stage5_validate_tasks(
                     metadata = PipelineMetadata(
                         experiment_id=experiment_id,
                         output_base_dir=str(output_base_dir),
-                        timestamp=_iso_timestamp(),
+                        timestamp=iso_timestamp(),
                         input_stage_tag=solution_tag,
                         output_stage_tag=validation_tag,
                         resume=is_resume,
@@ -643,7 +628,7 @@ def _validate_stage_inputs(
     if stage == 2 and not areas_tag:
         logger.error("areas_tag is required when running stage 2 standalone")
         logger.error(
-            "Usage: python -m src.run_capability_generation stage=2 areas_tag=_YYYYMMDD_HHMMSS"
+            "Usage: python -m src.run_generation_pipeline stage=2 areas_tag=_YYYYMMDD_HHMMSS"
         )
         logger.error(
             "Optional: capabilities_tag=_YYYYMMDD_HHMMSS to resume from existing run"
@@ -653,7 +638,7 @@ def _validate_stage_inputs(
     if stage == 3 and not capabilities_tag:
         logger.error("capabilities_tag is required when running stage 3 standalone")
         logger.error(
-            "Usage: python -m src.run_capability_generation stage=3 capabilities_tag=_YYYYMMDD_HHMMSS"
+            "Usage: python -m src.run_generation_pipeline stage=3 capabilities_tag=_YYYYMMDD_HHMMSS"
         )
         logger.error("Optional: tasks_tag=_YYYYMMDD_HHMMSS to resume from existing run")
         return False
@@ -661,7 +646,7 @@ def _validate_stage_inputs(
     if stage == 5 and not solution_tag:
         logger.error("solution_tag is required when running stage 5 standalone")
         logger.error(
-            "Usage: python -m src.run_capability_generation stage=5 solution_tag=_YYYYMMDD_HHMMSS"
+            "Usage: python -m src.run_generation_pipeline stage=5 solution_tag=_YYYYMMDD_HHMMSS"
         )
         logger.error(
             "Optional: validation_tag=_YYYYMMDD_HHMMSS to resume from existing run"

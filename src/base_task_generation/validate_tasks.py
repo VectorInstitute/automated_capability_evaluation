@@ -22,12 +22,12 @@ def validate_tasks(
     """Validate that generated tasks align with intended dimensions.
 
     Args:
-        task_solutions: List of schema TaskSolution objects (non-empty)
+        task_solutions: List of TaskSolution objects
         client: ChatCompletionClient for API calls
 
     Returns
     -------
-        List of ValidationResult objects for validated tasks
+        List of ValidationResult objects
     """
     logger.info("Validateing task alignment...")
 
@@ -40,15 +40,12 @@ def validate_tasks(
         capability = task_solution.task_obj.capability
 
         try:
-            # Get blueprint info from generation_metadata
             blueprint_info = task_solution.generation_metadata or {}
             blueprint_text = blueprint_info.get("blueprint", "N/A")
 
-            # Parse the task to extract question and choices
             task_lines = task_solution.task.strip().split("\n")
             question = task_lines[0] if task_lines else ""
 
-            # Extract choices (A, B, C, D)
             choices = {}
             for task_line in task_lines[1:]:
                 line = task_line.strip()
@@ -80,17 +77,14 @@ def validate_tasks(
                 )
             )
 
-            # Map verification response to result format
             overall_aligned = response.get("overall_verdict", "Fail") == "Pass"
 
-            # Create Task object
             task = Task(
                 task_id=task_solution.task_id,
                 task=task_solution.task,
                 capability=capability,
             )
 
-            # Create ValidationResult schema object
             validation_result = ValidationResult(
                 task_id=task_solution.task_id,
                 task=task_solution.task,
@@ -123,7 +117,6 @@ def validate_tasks(
         except Exception as e:
             logger.error(f"  Failed to validate {task_solution.task_id}: {e}")
             logger.info("  ✗ ERROR - Skipping this task")
-            # Skip tasks that fail verification
             continue
 
     return validation_results

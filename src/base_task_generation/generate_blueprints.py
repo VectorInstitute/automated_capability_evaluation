@@ -11,6 +11,7 @@ from src.base_task_generation.diverse_task_constants import (
 )
 from src.base_task_generation.diverse_task_dataclasses import Blueprint, Combination
 from src.base_task_generation.diverse_task_prompts import format_blueprint_prompt
+from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
 logger = logging.getLogger(__name__)
@@ -24,14 +25,15 @@ def generate_blueprints(
     """Generate task blueprints for each valid combination.
 
     Args:
-        capability: Schema Capability object with area.domain.name, area.name, etc.
+        capability: Capability object
         combinations: List of Combination objects
         client: ChatCompletionClient for API calls
+
+    Returns
+    -------
+        List of Blueprint objects
     """
     logger.info("Generating task blueprints...")
-
-    # Import here to avoid circular dependency
-    from src.utils.model_client_utils import ModelCallMode, async_call_model
 
     blueprints = []
 
@@ -64,7 +66,6 @@ def generate_blueprints(
             )
         )
 
-        # Validate response has blueprint key
         if "blueprint" not in response:
             logger.error(
                 f"Response missing 'blueprint' key. Response keys: {response.keys()}"

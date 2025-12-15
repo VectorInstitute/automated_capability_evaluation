@@ -7,6 +7,9 @@ from autogen_core.models import ChatCompletionClient
 
 from src.base_task_generation.diverse_task_dataclasses import Blueprint
 from src.base_task_generation.diverse_task_prompts import format_task_prompt
+from src.schemas.solution_schemas import TaskSolution
+from src.schemas.task_schemas import Task
+from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
 logger = logging.getLogger(__name__)
@@ -21,21 +24,16 @@ def generate_tasks(
     """Generate multiple-choice questions for each blueprint.
 
     Args:
-        capability: Schema Capability object with area.domain.name, area.name, etc.
+        capability: Capability object
         blueprints: List of Blueprint objects
         client: ChatCompletionClient for API calls
         tasks_per_blueprint: Number of tasks to generate per blueprint
 
     Returns
     -------
-        List of schema TaskSolution objects
+        List of TaskSolution objects
     """
     logger.info("Generating tasks from blueprints...")
-
-    # Import here to avoid circular dependency
-    from src.schemas.solution_schemas import TaskSolution
-    from src.schemas.task_schemas import Task
-    from src.utils.model_client_utils import ModelCallMode, async_call_model
 
     all_task_solutions = []
 
@@ -46,7 +44,6 @@ def generate_tasks(
             f"{blueprint.difficulty} | {blueprint.reasoning}"
         )
 
-        # Generate multiple tasks for this blueprint
         for _j in range(tasks_per_blueprint):
             task_id = f"task_{len(all_task_solutions):03d}"
 
@@ -68,12 +65,10 @@ def generate_tasks(
                     )
                 )
 
-                # Format the task question with multiple choice options
                 task_text = f"{response['question']}\n\n"
                 for choice_key, choice_text in response["options"].items():
                     task_text += f"{choice_key}. {choice_text}\n"
 
-                # Create metadata dict
                 generation_metadata = {
                     "method": "diverse_task_generation",
                     "blueprint_id": blueprint.combination_id,
@@ -85,14 +80,12 @@ def generate_tasks(
                     "alignment_notes": response.get("alignment_notes", ""),
                 }
 
-                # Create schema Task object (without generation_metadata)
                 task = Task(
                     task_id=task_id,
                     task=task_text,
                     capability=capability,
                 )
 
-                # Create TaskSolution object with the task and metadata
                 task_solution = TaskSolution(
                     task_id=task_id,
                     task=task_text,
@@ -105,7 +98,6 @@ def generate_tasks(
 
             except Exception as e:
                 logger.error(f"  Failed to generate {task_id}: {e}")
-                # Skip failed tasks and continue
                 continue
 
         logger.info(

@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Any, Dict, List
+from typing import List
 
 import numpy as np
 from autogen_core.models import ChatCompletionClient
@@ -23,20 +23,17 @@ def generate_areas(
     num_capabilities_per_area: int,
     scientist_llm_client: ChatCompletionClient,
 ) -> List[Area]:
-    """
-    Generate areas for the specified domain.
+    """Generate areas for the specified domain.
 
-    Args
-    ----
-        domain (str): The domain name.
-        num_areas (int): The number of areas to generate.
-        num_capabilities_per_area (int): The number of capabilities per area.
-        scientist_llm (ChatCompletionClient): The scientist LLM client.
+    Args:
+        domain: Domain object
+        num_areas: Number of areas to generate
+        num_capabilities_per_area: Number of capabilities per area
+        scientist_llm_client: LLM client for generation
 
     Returns
     -------
-        Dict[str, Any]: A dictionary containing the generated areas
-        and metadata about the generation process.
+        List of generated Area objects
     """
     logger.info(f"Generating {num_areas} areas ...")
     user_prompt = prompts.AREAS_GENERATION_USER_PROMPT.format(
@@ -46,7 +43,6 @@ def generate_areas(
         response_json_format=prompts.AREAS_GENERATION_RESPONSE_JSON_FORMAT,
     )
 
-    # Use async_call_model with asyncio.run() for sync execution
     response = asyncio.run(
         async_call_model(
             scientist_llm_client,
@@ -77,22 +73,17 @@ def generate_capabilities(
     num_capabilities_per_run: int,
     scientist_llm_client: ChatCompletionClient,
 ) -> List[Capability]:
-    """
-    Generate capabilities for a given area.
+    """Generate capabilities for a given area.
 
-    Args
-    ----
-        area (Area): The area object containing domain information.
-        num_capabilities (int): The number of capabilities to generate.
-        num_capabilities_per_run (int): The number of capabilities to generate per run.
-        scientist_llm (ChatCompletionClient): The scientist LLM client.
-        scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
-            for the scientist LLM.
-        **kwargs (Any): Additional keyword arguments.
+    Args:
+        area: Area object
+        num_capabilities: Total number of capabilities to generate
+        num_capabilities_per_run: Number of capabilities per LLM call
+        scientist_llm_client: LLM client for generation
 
     Returns
     -------
-        List[Capability]: The generated capabilities.
+        List of generated Capability objects
     """
     capabilities = []
 
@@ -121,31 +112,18 @@ def generate_capabilities_using_llm(
     num_capabilities: int,
     scientist_llm_client: ChatCompletionClient,
     prev_capabilities: List[Capability],
-) -> Dict[str, Any]:
-    """
-    Generate capabilities using the scientist LLM.
+) -> List[Capability]:
+    """Generate capabilities using LLM.
 
-    Prompt the scientist LLM with instructions to generate initial capabilities.
-
-    Args
-    ----
-        domain_name (str): The domain name.
-        area_name (str): The area name.
-        area (Area): The area object.
-        num_capabilities (int): The number of capabilities to generate.
-        scientist_llm (ChatCompletionClient): The scientist LLM client.
-        scientist_llm_gen_cfg (Dict[str, Any]): The generation configuration
-            for the scientist LLM.
-        sys_prompt (str): The system prompt.
-        user_prompt (str): The user prompt.
-        prev_capabilities (List[Capability]): The list of previously
-            generated capabilities.
-        **kwargs (Any): Additional keyword arguments.
+    Args:
+        area: Area object
+        num_capabilities: Number of capabilities to generate
+        scientist_llm_client: LLM client for generation
+        prev_capabilities: Previously generated capabilities
 
     Returns
     -------
-        Dict[str, Any]: A dictionary containing the generated capabilities
-        and metadata about the generation process.
+        List of generated Capability objects
     """
     sys_prompt = prompts.CAPABILITY_GENERATION_SYSTEM_PROMPT
     user_prompt = prompts.HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT.format(
@@ -155,8 +133,6 @@ def generate_capabilities_using_llm(
         prev_capabilities="\n".join([elm.name for elm in prev_capabilities]),
     )
 
-    # Use async_call_model with asyncio.run() for sync execution
-    # Retry logic is handled inside async_call_model
     response = asyncio.run(
         async_call_model(
             scientist_llm_client,
@@ -166,13 +142,11 @@ def generate_capabilities_using_llm(
         )
     )
 
-    # Response is already a parsed dict from JSON_PARSE mode
     gen_capabilities_dict = response.get("capabilities", [])
     capabilities = []
 
     for idx, capability_dict in enumerate(gen_capabilities_dict):
         try:
-            # Create capability object without saving to disk
             capability_id = f"cap_{idx:03d}"
             capability = Capability(
                 name=capability_dict["name"],
@@ -182,9 +156,8 @@ def generate_capabilities_using_llm(
             )
         except Exception as e:
             logger.warning(
-                f"Error creating capability object {capability_dict['name']}, hence skipping it: {e}"
+                f"Error creating capability {capability_dict['name']}, skipping: {e}"
             )
-            # Skip this capability
             continue
         else:
             capabilities.append(capability)

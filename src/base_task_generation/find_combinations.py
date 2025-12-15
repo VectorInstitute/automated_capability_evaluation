@@ -11,6 +11,7 @@ from src.base_task_generation.diverse_task_constants import (
 )
 from src.base_task_generation.diverse_task_dataclasses import Combination, SubTopic
 from src.base_task_generation.diverse_task_prompts import format_combination_prompt
+from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
 logger = logging.getLogger(__name__)
@@ -22,14 +23,15 @@ def find_valid_combinations(
     """Find valid combinations of Content, Difficulty, and Reasoning.
 
     Args:
-        capability: Schema Capability object with area.domain.name, area.name, etc.
+        capability: Capability object
         subtopics: List of SubTopic objects
         client: ChatCompletionClient for API calls
+
+    Returns
+    -------
+        List of Combination objects
     """
     logger.info("Finding valid combinations...")
-
-    # Import here to avoid circular dependency
-    from src.utils.model_client_utils import ModelCallMode, async_call_model
 
     # Get difficulty levels and reasoning types from constants
     difficulty_levels = list(DIFFICULTY_LEVELS.keys())
@@ -50,7 +52,6 @@ def find_valid_combinations(
 
     logger.info(f"Generated {len(all_combinations)} total combinations to validate")
 
-    # Format combinations as a numbered list for the LLM
     content_list = "\n".join(
         [
             f"{i + 1}. Content: {c['content']}, Difficulty: {c['difficulty']}, Reasoning: {c['reasoning']}"
@@ -77,7 +78,6 @@ def find_valid_combinations(
 
     combinations_data = response.get("valid_combinations", [])
 
-    # Create Combination objects
     combinations = [
         Combination(
             content=combo["content"],
@@ -90,7 +90,7 @@ def find_valid_combinations(
     logger.info(
         f"Found {len(combinations)} valid combinations out of {len(all_combinations)} total:"
     )
-    for i, combo in enumerate(combinations[:5]):  # Show first 5
+    for i, combo in enumerate(combinations[:5]):
         logger.info(
             f"  {i + 1}. {combo.content} | {combo.difficulty} | {combo.reasoning}"
         )
