@@ -4,7 +4,7 @@ import contextlib
 import traceback
 import signal
 
-def python_calculator(code: str, timeout: int = 5) -> str:
+def python_calculator(code: str, timeout: int = 10) -> str:
     """
     Executes Python code in a controlled environment and returns stdout + stderr.
     
@@ -58,6 +58,7 @@ def python_calculator(code: str, timeout: int = 5) -> str:
                 "sorted": sorted,
                 "enumerate": enumerate,
                 "zip": zip,
+                "norm": __import__("scipy.stats", fromlist=["norm"]).norm
             }
             exec(code, exec_globals)
     except TimeoutError:

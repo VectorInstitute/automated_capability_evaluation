@@ -111,13 +111,20 @@ class TaskSolverScientist(RoutedAgent):
     async def _generate_solution_payload(
         self, system_message: SystemMessage, user_message: UserMessage
     ) -> tuple[str, str, str, str]:
-        """Call the model. Always use two steps (reasoning -> format) for robustness."""
+        """Call the model. Single step reasoning + regex extraction for efficiency."""
         
         last_error: Exception | None = None
         
         for attempt in range(MAX_MODEL_ATTEMPTS):
             try:
                 # 1. Generate Reasoning with Tool Use (ReAct Loop)
+                # Append instruction for simple format extraction
+                instruction_suffix = "\n\nCRITICAL: At the very end of your response, strictly output these two lines:\nFINAL ANSWER: <your concise answer here>\nNUMERICAL: <your numerical answer here, or null>"
+                
+                # Check if user_message content is string or list (it should be string based on usage)
+                if isinstance(user_message.content, str):
+                    user_message.content += instruction_suffix
+                
                 messages = [system_message, user_message]
                 reasoning_content = ""
                 MAX_REASONING_STEPS = 5 
@@ -160,26 +167,51 @@ class TaskSolverScientist(RoutedAgent):
                         continue
                     raise ValueError("Empty reasoning response from model")
 
-                # 2. Format into JSON (Strict Mode)
-                formatter_system = SystemMessage(content=TASK_SOLVER_FORMATTER_SYSTEM_MESSAGE)
-                formatter_user = UserMessage(
-                    content=TASK_SOLVER_FORMATTER_PROMPT.format(agent_response=reasoning_content), 
-                    source="user"
-                )
-
-                json_response = await self._model_client.create(
-                    [formatter_system, formatter_user],
-                    json_output=True,
-                    extra_create_args={"response_format": {"type": "json_object"}},
-                )
-                json_content = str(getattr(json_response, "content", "") or "").strip()
+                # 2. Extract Solution via Regex or JSON Fallback (No second API call)
+                thought = reasoning_content
+                final_answer = reasoning_content # The whole text is the justification
                 
-                if not json_content:
-                    if attempt < MAX_MODEL_ATTEMPTS - 1:
-                        continue
-                    raise ValueError("Empty JSON response from model")
+                # Default values
+                answer = "No answer found"
+                numerical_answer = "null"
 
-                return self._extract_solution_components(json_content)
+                # Attempt 1: Regex Extraction (Primary Format)
+                answer_match = re.search(r"FINAL ANSWER:\s*(.*)", reasoning_content, re.IGNORECASE)
+                num_match = re.search(r"NUMERICAL:\s*(.*)", reasoning_content, re.IGNORECASE)
+                
+                if answer_match:
+                    answer = answer_match.group(1).strip()
+                if num_match:
+                    numerical_answer = num_match.group(1).strip()
+                
+                # Attempt 2: JSON Parsing (Fallback if model outputted JSON despite instructions)
+                if answer == "No answer found":
+                    try:
+                        # Find the first { and last }
+                        start = reasoning_content.find("{")
+                        end = reasoning_content.rfind("}")
+                        if start != -1 and end != -1:
+                            json_str = reasoning_content[start:end+1]
+                            parsed = parse_llm_json_response(json_str)
+                            
+                            # Extract from common keys
+                            if "answer" in parsed:
+                                answer = str(parsed["answer"])
+                            elif "final_answer" in parsed:
+                                answer = str(parsed["final_answer"])
+                                
+                            if "numerical_answer" in parsed:
+                                numerical_answer = str(parsed["numerical_answer"])
+                            elif "numerical" in parsed:
+                                numerical_answer = str(parsed["numerical"])
+                                
+                            # Also update thought if available in JSON
+                            if "thought" in parsed:
+                                thought = str(parsed["thought"])
+                    except Exception:
+                        pass # Ignore JSON parsing errors in fallback mode
+                
+                return thought, final_answer, answer, numerical_answer
 
             except Exception as exc:
                 last_error = exc
@@ -195,11 +227,11 @@ class TaskSolverScientist(RoutedAgent):
                 await asyncio.sleep(2 ** attempt) # Exponential backoff: 1s, 2s, 4s
 
         log.error(
-            f"Scientist {self._scientist_id} could not obtain valid JSON "
+            f"Scientist {self._scientist_id} could not obtain valid response "
             f"after {MAX_MODEL_ATTEMPTS} attempts. Returning error payload."
         )
         return (
-            "Failed to generate valid JSON response.",
+            "Failed to generate response.",
             f"Error: generation failed. Last error: {str(last_error)}",
             "ERROR",
             "null",
@@ -232,7 +264,7 @@ class TaskSolverScientist(RoutedAgent):
                 )
 
                 # Append Task-Specific Instructions
-                prompt = TASK_SOLVER_ROUND_1_PROMPT.format(problem_text=message.problem)
+                prompt = TASK_SOLVER_ROUND_1_PROMPT.format(problem_text=message.problem, moderator_guidance=message.moderator_guidance)
                 if message.task_type == "bool":
                     prompt += "\n\nCRITICAL: The problem requires a boolean answer. Your final 'answer' field MUST be exactly 'True' or 'False'. Do not write a sentence in the 'answer' field."
                 elif message.task_type == "mcq":

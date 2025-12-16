@@ -5,20 +5,32 @@ TASK_SOLVER_SYSTEM_MESSAGE = """You are an expert problem solver participating i
 CRITICAL:
 1. Two-Step Reasoning: First, think through the math and logic step-by-step in the 'thought' field. Only then, populate the 'answer' fields.
 2. Stickiness: Do not change your position in later rounds just to be polite. Only switch if the counter-argument is overwhelmingly convincing and logically superior. If you are correct, stand your ground.
-3. Formatting: Your output must be valid JSON.
-4. Precision: Do not round intermediate calculations. Keep high precision until the final step.
-5. Tool Use: You have access to a Python calculator. To use it, output a code block labeled 'python' (e.g. ```python ... ```). The system will execute it and return the output. Use this to verify calculations."""
+3. Precision: Do not round intermediate calculations. Keep high precision until the final step.
+4. Tool Use: You have access to a Python calculator. To use it, output a code block labeled 'python' (e.g. ```python ... ```). The system will execute it and return the output. Use this to verify calculations."""
+
+TASK_MODERATOR_BREAKDOWN_PROMPT = """You are a strategic planner. Analyze the following problem and create a step-by-step guidance plan for solving it.
+
+PROBLEM: {problem_text}
+
+Your plan should:
+1. Break down the problem into logical steps.
+2. Identify any specific formulas or financial concepts needed.
+3. Point out potential pitfalls or unit conversions (e.g. basis points to decimal, monthly vs annual).
+4. Do NOT solve the problem yourself. Just provide the roadmap.
+
+Output the plan as a clear, numbered list."""
 
 TASK_SOLVER_ROUND_1_PROMPT = """Can you solve the following problem?
 
 PROBLEM: {problem_text}
 
-Provide a detailed solution.
+MODERATOR GUIDANCE:
+{moderator_guidance}
+
+Provide a detailed solution following the guidance above.
 1. Perform all calculations and logical derivation step-by-step.
 2. Synthesize your findings into a clear explanation.
-3. State the final concise result (e.g. 'A', 'True', '42').
-
-Be extremely detailed in your reasoning."""
+3. State the final concise result (e.g. 'A', 'True', '42')."""
 
 TASK_SOLVER_SUBSEQUENT_ROUNDS_PROMPT = """These are the reasoning and solutions to the problem from other agents:
 

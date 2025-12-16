@@ -25,6 +25,7 @@ class TaskSolutionRequest:
     area_name: str
     task_type: str = "unknown"
     round_number: int = 1
+    moderator_guidance: str = ""
 
 
 @dataclass

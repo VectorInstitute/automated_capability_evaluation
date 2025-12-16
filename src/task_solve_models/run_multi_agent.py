@@ -155,7 +155,7 @@ async def main():
     parser.add_argument("--model-scientist-a", type=str, help="Model for Scientist A.")
     parser.add_argument("--model-scientist-b", type=str, help="Model for Scientist B.")
     
-    parser.add_argument("--max-rounds", type=int, default=2, help="Maximum debate rounds.")
+    parser.add_argument("--max-rounds", type=int, default=1, help="Maximum debate rounds.")
     args = parser.parse_args()
 
     # Construct model specs

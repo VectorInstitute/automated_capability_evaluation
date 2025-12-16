@@ -164,3 +164,25 @@
 *   **Updated `scientist.py`**: Upgraded the agent's reasoning process to use a "ReAct" loop. The agent can now write Python code blocks (e.g. ` ```python ... ``` `), which the system automatically executes, feeding the output back to the agent for further reasoning.
 *   **Updated `prompts.py`**: Added explicit instructions to `TASK_SOLVER_SYSTEM_MESSAGE` on how to use the Python calculator.
 *   **Problem Solved**: Directly addresses "Calculation Hallucinations" by giving agents a reliable calculator. Instead of guessing arithmetic or complex formulas, agents can now run code to verify their answers before finalizing them.
+
+## 2025-12-15: Map-Reduce / Coordinator-Worker Architecture
+
+### 1. Strategic Planning ("Chain of Thought")
+*   **Updated `moderator.py`**: Implemented a planning step where the Moderator first analyzes the problem and generates a step-by-step guidance plan (`moderator_guidance`) before engaging any Scientists.
+*   **Updated `prompts.py`**: Added `TASK_MODERATOR_BREAKDOWN_PROMPT` for the planning phase and updated scientist prompts to include the Moderator's guidance.
+*   **Problem Solved**: Replaces "blind" parallel solving with a coordinated strategy. The Moderator acts as an Architect, breaking down complex problems (e.g., "Step 1: Convert units", "Step 2: Use Black-Scholes") so Scientists have a clear roadmap.
+
+### 2. Single-Round Efficiency
+*   **Updated `run_multi_agent.py`**: Changed default `max_rounds` to 1.
+*   **Architecture Shift**: Moved from a multi-round debate loop to a single-pass "Plan -> Execute -> Synthesize" flow.
+*   **Benefit**: Significant speedup and cost reduction. By leveraging the Moderator's intelligence upfront to guide the Scientists, we avoid the need for multiple rounds of correction and debate.
+
+## 2025-12-16: Batch 13 Reliability Fixes (Prompt + Tooling)
+
+### 1. Remove Scientist JSON-Output Conflict
+*   **Updated `prompts.py`**: Removed the legacy instruction that forced Scientists to output valid JSON.
+*   **Problem Solved**: Prevents GPT-style models from wrapping solutions in JSON blocks, which previously caused regex extraction failures (e.g., "No answer found") in the single-call Scientist flow.
+
+### 2. Stabilize Python Calculator Tool
+*   **Updated `src/utils/tools.py`**: Increased `python_calculator` timeout from 5s to 10s and added `scipy.stats.norm` to the default execution globals.
+*   **Problem Solved**: Reduces intermittent tool timeouts and improves support for common finance/statistics calculations (e.g., normal CDF usage in option pricing).

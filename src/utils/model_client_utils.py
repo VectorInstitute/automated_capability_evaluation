@@ -25,7 +25,7 @@ from tenacity import (
 )
 
 
-MAX_TOKENS = 4096  # Reduced to 4096 for compatibility with Claude Opus and others
+MAX_TOKENS = 8192  # Increased to support extensive reasoning chains
 
 logger = logging.getLogger(__name__)
 

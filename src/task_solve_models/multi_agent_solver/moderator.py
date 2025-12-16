@@ -30,6 +30,7 @@ from src.task_solve_models.multi_agent_solver.messages import (
 from src.task_solve_models.multi_agent_solver.prompts import (
     TASK_MODERATOR_CONSENSUS_PROMPT,
     TASK_MODERATOR_SYSTEM_MESSAGE,
+    TASK_MODERATOR_BREAKDOWN_PROMPT,
 )
 from src.utils.json_utils import parse_llm_json_response
 
@@ -190,7 +191,21 @@ class TaskSolverModerator(RoutedAgent):
                 self._solutions_buffer = {}
                 self._tasks = message
 
-                # Send initial solution request to all solvers
+                # Step 1: Moderator Guidance (Planning)
+                guidance = ""
+                try:
+                    plan_prompt = TASK_MODERATOR_BREAKDOWN_PROMPT.format(problem_text=message.problem)
+                    plan_response = await self._model_client.create(
+                        messages=[UserMessage(content=plan_prompt, source="user")],
+                        cancellation_token=ctx.cancellation_token
+                    )
+                    guidance = str(plan_response.content).strip()
+                    log.info(f"Moderator generated guidance for task {message.task_id}")
+                except Exception as e:
+                    log.error(f"Moderator failed to generate guidance: {e}")
+                    guidance = "No specific guidance provided. Solve the problem directly."
+
+                # Send initial solution request to all solvers WITH GUIDANCE
                 await self.publish_message(
                     TaskSolutionRequest(
                         task_id=message.task_id,
@@ -199,13 +214,15 @@ class TaskSolverModerator(RoutedAgent):
                         area_name=message.area_name,
                         task_type=message.task_type,
                         round_number=self._current_round,
+                        moderator_guidance=guidance,
                     ),
                     topic_id=DefaultTopicId(),
                 )
 
                 span.update(
                     metadata={
-                        "solution_request_sent": f"Round {self._current_round} solution request sent for task {message.task_id}"
+                        "solution_request_sent": f"Round {self._current_round} solution request sent for task {message.task_id}",
+                        "guidance": guidance[:100] + "..."
                     }
                 )
 
