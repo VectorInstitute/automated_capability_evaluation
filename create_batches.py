@@ -18,11 +18,11 @@ def create_batches():
     # Batch 1-5 already exist (0-99). We need 100-199 for Batches 6-10.
     
     batch_size = 20
-    start_id = 100
+    start_id = 200
     num_batches = 5
     
     for i in range(num_batches):
-        batch_num = 6 + i
+        batch_num = 11 + i
         batch_start_idx = start_id + (i * batch_size)
         batch_end_idx = batch_start_idx + batch_size
         

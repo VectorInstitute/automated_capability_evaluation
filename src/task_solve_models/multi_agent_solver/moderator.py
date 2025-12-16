@@ -365,19 +365,47 @@ class TaskSolverModerator(RoutedAgent):
                     )
                     user_message = UserMessage(content=prompt, source="user")
 
-                    response = await self._model_client.create(
-                        messages=[system_message, user_message],
-                        cancellation_token=ctx.cancellation_token,
-                        extra_create_args={"response_format": {"type": "json_object"}},
-                    )
+                    # Retry Logic for Moderator Consensus
+                    MAX_MODERATOR_ATTEMPTS = 3
+                    consensus_reached = False
+                    final_solution_text = ""
+                    answer = "null"
+                    reasoning = ""
+                    numerical_answer = "null"
 
-                    (
-                        consensus_reached,
-                        final_solution_text,
-                        answer,
-                        reasoning,
-                        numerical_answer,
-                    ) = self._extract_consensus_components(str(response.content))
+                    for attempt in range(MAX_MODERATOR_ATTEMPTS):
+                        try:
+                            response = await self._model_client.create(
+                                messages=[system_message, user_message],
+                                cancellation_token=ctx.cancellation_token,
+                                extra_create_args={"response_format": {"type": "json_object"}},
+                            )
+                            
+                            content = str(response.content).strip()
+                            if not content:
+                                raise ValueError("Empty response from moderator model")
+
+                            (
+                                consensus_reached,
+                                final_solution_text,
+                                answer,
+                                reasoning,
+                                numerical_answer,
+                            ) = self._extract_consensus_components(content)
+                            
+                            # If we parsed successfully, break the loop
+                            break
+                        
+                        except Exception as e:
+                            log.warning(f"Moderator consensus check failed (Attempt {attempt+1}/{MAX_MODERATOR_ATTEMPTS}): {e}")
+                            if attempt < MAX_MODERATOR_ATTEMPTS - 1:
+                                import asyncio
+                                await asyncio.sleep(2 ** attempt)
+                            else:
+                                log.error("Moderator failed all attempts to check consensus.")
+                                # Fall through to logic that handles 'no consensus' or retry next round
+                                # But if we failed to get JSON, we likely treat it as no consensus for now
+                                consensus_reached = False
 
                     if consensus_reached:
                         # LLM found consensus

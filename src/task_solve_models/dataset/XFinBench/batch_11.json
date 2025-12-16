@@ -1,0 +1,222 @@
+[
+  {
+    "": "200",
+    "id": "vali_200",
+    "task": "bool",
+    "question": "A preferred stock with a dividend tied to short-term interest rates.Preferred stock with a dividend tied to short-term interest rates is attractive to corporations with excess cash because of the dividend tax exemption.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2593"
+  },
+  {
+    "": "201",
+    "id": "vali_201",
+    "task": "calcu",
+    "question": "You are the manager of a bank whose $100 billion of assets have an average duration of four years and whose $90 billion of liabilities have an average duration of six years.By how much will the bank's liabilities fall in value if interest rates rise by 2 percentage points? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "10800000.0",
+    "figure": "",
+    "fin_capability": "FF",
+    "gold_fin_term_id": "term_353"
+  },
+  {
+    "": "202",
+    "id": "vali_202",
+    "task": "calcu",
+    "question": "\n\\begin{table}[h]\n    \\centering\n    \\begin{tabular}{|c|c|c|}\n        \\hline\n        \\textbf{Year} & \\textbf{Cash Flow (A)} & \\textbf{Cash Flow (B)} \\\\\n        \\hline\n        0 & -$37,000 & -$37,000 \\\\\n        1 & 19,000 & 6,000 \\\\\n        \\hline\n        2 & 14,500 & 12,500 \\\\\n        \\hline\n        3 & 12,000 & 19,000 \\\\\n        \\hline\n        4 & 9,000 & 23,000 \\\\\n        \\hline\n    \\end{tabular}\n\\end{table}\n\nBumble's Bees, Inc., has identified the following two mutually exclusive projects:\n\n| Year | Cash Flow (A) | Cash Flow (B) |\n|------|----------------|----------------|\n| 0    | -37000         | -37000         |\n| 1    | 19000          | 6000           |\n| 2    | 14500          | 12500          |\n| 3    | 12000          | 19000          |\n| 4    | 9000           | 23000          |If the required return is 11 percent, what is the NPV for Project B? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "7594.13",
+    "figure": "",
+    "fin_capability": "TR; SP",
+    "gold_fin_term_id": "term_496;term_449"
+  },
+  {
+    "": "203",
+    "id": "vali_203",
+    "task": "bool",
+    "question": "Consider the margin accounts administered by a clearing house and those administered by a broker.The margin account administered by a broker must be brought up to the initial margin level daily.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_61"
+  },
+  {
+    "": "204",
+    "id": "vali_204",
+    "task": "calcu",
+    "question": "\n\\begin{table}[H]\n    \\centering\n    \\caption{Unconditional default probabilities and survival probabilities.}\n    \\begin{tabular}{|c|c|c|}\n        \\hline\n        Year & Probability of & Probability of \\\\\n             & surviving to year end & default during year \\\\\n        \\hline\n        1 & 0.9802 & 0.0198 \\\\\n        \\hline\n        2 & 0.9608 & 0.0194 \\\\\n        \\hline\n        3 & 0.9418 & 0.0190 \\\\\n        \\hline\n        4 & 0.9231 & 0.0186 \\\\\n        \\hline\n        5 & 0.9048 & 0.0183 \\\\\n        \\hline\n    \\end{tabular}\n\\end{table}\n\n\n\\begin{table}[h]\n\\centering\n\\caption{Calculation of the present value of accrual payment.}\n\\begin{tabular}{|c|c|c|c|c|}\n\\hline\nTime (years) & Probability of default & Expected accrual payment & Discount factor & PV of expected accrual payment \\\\ \\hline\n0.5          & 0.0198                 & 0.0099s                & 0.9753         & 0.0097s                      \\\\ \n1.5          & 0.0194                 & 0.0097s                & 0.9277         & 0.0090s                      \\\\ \n2.5          & 0.0190                 & 0.0095s                & 0.8825         & 0.0084s                      \\\\ \n3.5          & 0.0186                 & 0.0093s                & 0.8395         & 0.0078s                      \\\\ \n4.5          & 0.0183                 & 0.0091s                & 0.7985         & 0.0073s                      \\\\ \\hline\n              &                        &                         &                 & 0.0422s                      \\\\ \\hline\n\\end{tabular}\n\\end{table}\n\nGiven the tables showing unconditional default probabilities, survival probabilities, and present value of accrual payments, consider a scenario with a CDS spread of 100 basis points.What is the hazard rate if the recovery rate is 40%? (Unit: percentage)",
+    "choice": "",
+    "ground_truth": "1.63",
+    "figure": "",
+    "fin_capability": "TR; SP",
+    "gold_fin_term_id": "term_2592"
+  },
+  {
+    "": "205",
+    "id": "vali_205",
+    "task": "calcu",
+    "question": "You own a portfolio that is 50 percent invested in Stock X, 30 percent in Stock Y, and 20 percent in Stock Z. The expected returns on these three stocks are 10 percent, 16 percent, and 12 percent, respectively.What is the expected return on the portfolio?",
+    "choice": "",
+    "ground_truth": "0.122",
+    "figure": "",
+    "fin_capability": "NM",
+    "gold_fin_term_id": "term_1791"
+  },
+  {
+    "": "206",
+    "id": "vali_206",
+    "task": "bool",
+    "question": "A butterfly spread involves a position in options with three different strike prices (\\(K_{1}, K_{2}\\), and \\(K_{3}\\)).A butterfly spread should be purchased when the investor considers that the price of the underlying stock is likely to move significantly away from the central strike price, \\(K_{2}\\).",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_656"
+  },
+  {
+    "": "207",
+    "id": "vali_207",
+    "task": "calcu",
+    "question": "A bond has a price of $2,000 and pays $100 of interest annually forever.What is the yield to maturity on this bond?",
+    "choice": "",
+    "ground_truth": "0.05",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_1127"
+  },
+  {
+    "": "208",
+    "id": "vali_208",
+    "task": "mcq",
+    "question": "The efficient market hypothesis implies that high costs of managing a portfolio can be a challenge for small investors.Which one of the following strategies is frequently sensible for a small investor according to the efficient market hypothesis?",
+    "choice": "A. Invest in individual stocks with high brokerage commissions\nB. Choose mutual funds with high management fees\nC. Buy into a low-fee, commission-free mutual fund",
+    "ground_truth": "C",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1229"
+  },
+  {
+    "": "209",
+    "id": "vali_209",
+    "task": "bool",
+    "question": "So-called same-store sales are a very important measure for companies as diverse as McDonald's and Sears. Examining same-store sales means comparing revenues from the same stores or restaurants at two different points in time.Companies focus on same-store sales because comparing total sales at two different points in time might be misleading if a company is growing by opening new stores.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1193"
+  },
+  {
+    "": "210",
+    "id": "vali_210",
+    "task": "mcq",
+    "question": "The treasurer of a corporation is trying to hedge the corporation's foreign exchange risk.Which one of the following advantages do forward contracts provide when hedging foreign exchange risk?",
+    "choice": "A. Insurance against exchange rate worsening\nB. No up-front cost\nC. Elimination of exchange rate uncertainty",
+    "ground_truth": "C",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2114"
+  },
+  {
+    "": "211",
+    "id": "vali_211",
+    "task": "bool",
+    "question": "Suppose Tom O'Bedlam, president of Bedlam Products, Inc., has hired you to determine the firm's cost of debt and cost of equity capital.The cost of equity is equal to 10 percent because it will cost Bedlam Products $5 per share to use the stockholders' money this year, given the stock currently sells for $50 per share.",
+    "choice": "",
+    "ground_truth": "0.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_2977"
+  },
+  {
+    "": "212",
+    "id": "vali_212",
+    "task": "bool",
+    "question": "Consider the calculation and application of the conversion factor for a bond by the CME Group.The conversion factor by the CME Group accounts for bond maturity and times to the coupon payment dates by rounding them down to the nearest three months.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_1319"
+  },
+  {
+    "": "213",
+    "id": "vali_213",
+    "task": "calcu",
+    "question": "The price of a 90-day Treasury bill is quoted as 10.00.What is the annualized continuously compounded return (on an actual/365 basis) for the 90-day Treasury bill?",
+    "choice": "",
+    "ground_truth": "10.27",
+    "figure": "",
+    "fin_capability": "NM; TR",
+    "gold_fin_term_id": "term_2364"
+  },
+  {
+    "": "214",
+    "id": "vali_214",
+    "task": "mcq",
+    "question": "A butterfly spread involves a position in options with three different strike prices.When should an investor consider purchasing a butterfly spread?",
+    "choice": "A. When the price of the underlying stock is expected to stay close to the central strike price\nB. When the price of the underlying stock is expected to have high volatility\nC. When the price of the underlying stock is expected to exceed the highest strike price",
+    "ground_truth": "A",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_656"
+  },
+  {
+    "": "215",
+    "id": "vali_215",
+    "task": "calcu",
+    "question": "The two-month interest rates in Switzerland and the United States are, respectively, 1% and 2% per annum with continuous compounding. The spot price of the Swiss franc is $1.0500. The futures price for a contract deliverable in two months is also $1.0500.What is the theoretical futures price of the Swiss franc for a contract deliverable in two months? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "1.0518",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_174"
+  },
+  {
+    "": "216",
+    "id": "vali_216",
+    "task": "mcq",
+    "question": "In the world of financial derivatives, forward start options and chooser options offer different structures and benefits to investors.Which one of the following describes a forward start option?",
+    "choice": "A. An option that is paid for now but starts at a future date\nB. An option that can be executed at any time before the expiration date\nC. An option that allows the holder to choose between a call or a put at a future date",
+    "ground_truth": "A",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_739;term_311"
+  },
+  {
+    "": "217",
+    "id": "vali_217",
+    "task": "calcu",
+    "question": "Suppose that the LIBOR/swap curve is flat at 6% with continuous compounding. A five-year bond with a coupon of 5% (paid semiannually) sells for 90.00.What is the present value of the fixed payments in the asset swap? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "105.3579",
+    "figure": "",
+    "fin_capability": "TR",
+    "gold_fin_term_id": "term_681"
+  },
+  {
+    "": "218",
+    "id": "vali_218",
+    "task": "calcu",
+    "question": "Night Shades Inc. (NSI) manufactures biotech sunglasses. The variable materials cost is $4.68 per unit, and the variable labor cost is $2.27 per unit. NSI incurs fixed costs of $650,000 during a year in which total production is 320,000 units. The selling price is $11.99 per unit, and depreciation is $190,000 per year.What are the total costs for the year given a production of 320,000 units? (Unit: dollar)",
+    "choice": "",
+    "ground_truth": "2874000.0",
+    "figure": "",
+    "fin_capability": "NM",
+    "gold_fin_term_id": "term_892"
+  },
+  {
+    "": "219",
+    "id": "vali_219",
+    "task": "bool",
+    "question": "In April 2006, Merrill Lynch announced it would take a charge of $1.2 billion against first quarter earnings. Many other companies also adjusted their reported earnings due to changes in accounting rules, not performance issues.The adjustments made by Merrill Lynch were purely accounting changes with no cash flow or market value consequences unless the new accounting information caused stockholders to revalue the derivatives.",
+    "choice": "",
+    "ground_truth": "1.0",
+    "figure": "",
+    "fin_capability": "TU",
+    "gold_fin_term_id": "term_101"
+  }
+]

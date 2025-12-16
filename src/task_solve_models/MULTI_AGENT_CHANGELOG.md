@@ -150,3 +150,17 @@
 ### 2. Prompt Improvement: Moderator Format Alignment
 *   **Updated `TASK_MODERATOR_SYSTEM_MESSAGE`**: Added explicit instruction for the Moderator to cross-check the final answer against the original question's requested format and units.
 *   **Problem Solved**: Improves accuracy by catching instances where agents calculate the correct value but output it in the wrong format (e.g., "Yes" instead of "True", or incorrect unit scaling), ensuring the final output matches evaluation expectations.
+
+## 2025-12-15: System Stability & Robustness
+
+### 1. Moderator Retry Logic
+*   **Updated `moderator.py`**: Implemented a retry loop with exponential backoff for the Moderator's consensus check (similar to the Scientist's logic).
+*   **Problem Solved**: Fixed the "Empty JSON content" crashes (e.g., `vali_197`) caused by transient API failures or empty responses from the Moderator model. This ensures the debate pipeline is resilient to occasional model hiccups.
+
+## 2025-12-15: Code Execution Tool ("Python Calculator")
+
+### 1. Tool Implementation
+*   **Created `src/utils/tools.py`**: Implemented a safe `python_calculator` function that executes code in a sandbox, capturing standard output and error messages.
+*   **Updated `scientist.py`**: Upgraded the agent's reasoning process to use a "ReAct" loop. The agent can now write Python code blocks (e.g. ` ```python ... ``` `), which the system automatically executes, feeding the output back to the agent for further reasoning.
+*   **Updated `prompts.py`**: Added explicit instructions to `TASK_SOLVER_SYSTEM_MESSAGE` on how to use the Python calculator.
+*   **Problem Solved**: Directly addresses "Calculation Hallucinations" by giving agents a reliable calculator. Instead of guessing arithmetic or complex formulas, agents can now run code to verify their answers before finalizing them.

@@ -12,6 +12,7 @@ from autogen_core import (
     message_handler,
 )
 from autogen_core.models import (
+    AssistantMessage,
     ChatCompletionClient,
     SystemMessage,
     UserMessage,
@@ -31,6 +32,7 @@ from src.task_solve_models.multi_agent_solver.prompts import (
     TASK_SOLVER_FORMATTER_SYSTEM_MESSAGE,
 )
 from src.utils.json_utils import parse_llm_json_response
+from src.utils.tools import python_calculator
 
 
 log = logging.getLogger("task_solver.scientist")
@@ -115,11 +117,40 @@ class TaskSolverScientist(RoutedAgent):
         
         for attempt in range(MAX_MODEL_ATTEMPTS):
             try:
-                # 1. Generate Reasoning (Allowing free text/markdown)
-                reasoning_response = await self._model_client.create(
-                    [system_message, user_message],
-                )
-                reasoning_content = str(getattr(reasoning_response, "content", "") or "").strip()
+                # 1. Generate Reasoning with Tool Use (ReAct Loop)
+                messages = [system_message, user_message]
+                reasoning_content = ""
+                MAX_REASONING_STEPS = 5 
+                
+                import re
+                
+                for step in range(MAX_REASONING_STEPS):
+                    reasoning_response = await self._model_client.create(messages)
+                    content = str(getattr(reasoning_response, "content", "") or "").strip()
+                    
+                    if not content:
+                        if step == 0:
+                             raise ValueError("Empty reasoning response from model")
+                        break # Stop if empty response in middle of chain
+
+                    # Check for Python code blocks
+                    code_blocks = re.findall(r"```python\n(.*?)\n```", content, re.DOTALL)
+                    
+                    if code_blocks and step < MAX_REASONING_STEPS - 1:
+                        # Found code, execute the first block
+                        code = code_blocks[0]
+                        output = python_calculator(code)
+                        
+                        # Add to history so model sees what it did and the result
+                        messages.append(AssistantMessage(content=content, source="assistant"))
+                        messages.append(UserMessage(content=f"Tool Output:\n{output}\n\nContinue reasoning.", source="user"))
+                        
+                        # Log tool usage
+                        log.info(f"Scientist {self._scientist_id} used python tool. Output length: {len(output)}")
+                    else:
+                        # No code, or max steps reached -> This is the final reasoning
+                        reasoning_content = content
+                        break
                 
                 if not reasoning_content:
                     # Retry logic for empty content

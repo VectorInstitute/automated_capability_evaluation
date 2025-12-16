@@ -1,0 +1,173 @@
+{
+  "metrics": {
+    "model": "gemini-2.5-pro",
+    "batch_info": "batch_11",
+    "total_processed": 20,
+    "total_correct": 14,
+    "accuracy": 0.7
+  },
+  "results": [
+    {
+      "id": "vali_200",
+      "prediction": 1.0,
+      "reasoning": "The statement describes an Adjustable-Rate Preferred Stock (ARPS) or a floating-rate preferred stock. This type of security is attractive to corporate investors for two primary reasons. First, the dividend is tied to short-term interest rates. This feature significantly reduces the security's price sensitivity to changes in interest rates (interest rate risk), making its market value more stable than that of a fixed-rate preferred stock. Price stability is a crucial characteristic for corporations managing their excess cash reserves. Second, corporations benefit from the Dividends Received Deduction (DRD). Under U.S. tax law, a corporation receiving dividends from another domestic corporation can exclude a substantial portion (typically 50% for ownership under 20%) of that dividend income from its taxable income. This tax benefit results in a much higher after-tax yield compared to fully taxable, interest-bearing investments like corporate bonds or commercial paper with similar risk profiles. The combination of price stability and a favorable tax treatment makes this type of preferred stock an ideal instrument for corporate cash management.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_201",
+      "prediction": 10800000000,
+      "reasoning": "The change in the value of a financial instrument due to a change in interest rates can be estimated using the duration formula. The formula is: Change in Value (\u0394V) \u2248 -Duration (D) * Initial Value (V) * Change in Interest Rate (\u0394i). In this problem, we need to calculate the change in the value of the bank's liabilities. The given values are: Initial Value of Liabilities (V) = $90 billion, or $90,000,000,000. Duration of Liabilities (D) = 6 years. The change in interest rates (\u0394i) is a rise of 2 percentage points, which is 0.02. Plugging these values into the formula: \u0394V \u2248 -6 * $90,000,000,000 * 0.02. First, multiply the value of liabilities by the change in interest rate: $90,000,000,000 * 0.02 = $1,800,000,000. Then, multiply this result by the negative duration: -$1,800,000,000 * 6 = -$10,800,000,000. The negative sign indicates that the value of the liabilities falls. The question asks by how much the liabilities will fall, so the answer is the absolute value of this change.",
+      "ground_truth": "10800000.0",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_202",
+      "prediction": 7594.15,
+      "reasoning": "The Net Present Value (NPV) is calculated by discounting the future cash flows of a project to their present value and subtracting the initial investment. The formula for NPV is: NPV = \u03a3 [CFt / (1 + r)^t] - C0, where CFt is the cash flow in year t, r is the required rate of return, t is the year, and C0 is the initial investment. For Project B, the cash flows are as follows: CF0 = -$37,000, CF1 = $6,000, CF2 = $12,500, CF3 = $19,000, and CF4 = $23,000. The required return (r) is 11% or 0.11. We calculate the present value (PV) of each cash flow from year 1 to 4 and sum them up. PV of Year 1 = $6,000 / (1 + 0.11)^1 = $6,000 / 1.11 = $5,405.41. PV of Year 2 = $12,500 / (1 + 0.11)^2 = $12,500 / 1.2321 = $10,145.28. PV of Year 3 = $19,000 / (1 + 0.11)^3 = $19,000 / 1.3676 = $13,892.65. PV of Year 4 = $23,000 / (1 + 0.11)^4 = $23,000 / 1.5181 = $15,150.81. The sum of the present values of future cash flows is $5,405.41 + $10,145.28 + $13,892.65 + $15,150.81 = $44,594.15. Finally, the NPV is the sum of the present values of future cash flows minus the initial investment: NPV = $44,594.15 - $37,000 = $7,594.15.",
+      "ground_truth": "7594.13",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_203",
+      "prediction": 0.0,
+      "reasoning": "The statement is false. It conflates the margin requirements for broker-administered securities accounts with those for clearing house-administered futures accounts. \n1. **Broker-Administered Margin Accounts (for Securities like Stocks):** When a margin call occurs in a securities account, it is because the account equity has dropped below the *maintenance margin* level. The investor is required to deposit funds or securities to bring the account equity back up to the *maintenance margin* level, not the initial margin level.\n2. **Clearing House-Administered Margin Accounts (for Futures):** In futures trading, accounts are marked-to-market daily. If the account balance falls below the maintenance margin level, a margin call is issued. The investor must then deposit funds to bring the account balance back up to the *initial margin* level. \nTherefore, the requirement to bring an account back up to the initial margin level applies to futures accounts (clearing house), not standard broker-administered securities accounts.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_204",
+      "prediction": null,
+      "reasoning": "JSON Parse Error",
+      "ground_truth": "1.63",
+      "task_type": "calcu",
+      "raw_response": "",
+      "is_correct": false
+    },
+    {
+      "id": "vali_205",
+      "prediction": 12.2,
+      "reasoning": "The expected return of a portfolio is the weighted average of the expected returns of the individual assets in the portfolio. The formula is: E(Rp) = (w1 * E(R1)) + (w2 * E(R2)) + ... + (wn * E(Rn)), where 'w' is the weight of an asset and 'E(R)' is its expected return. In this case, we have three stocks. \n1. First, identify the weights and expected returns for each stock:\n   - Stock X: Weight (wX) = 50% or 0.50, Expected Return (E(Rx)) = 10%\n   - Stock Y: Weight (wY) = 30% or 0.30, Expected Return (E(Ry)) = 16%\n   - Stock Z: Weight (wZ) = 20% or 0.20, Expected Return (E(Rz)) = 12%\n2. Next, calculate the weighted contribution of each stock to the portfolio's expected return:\n   - Contribution from X = 0.50 * 10% = 5.0%\n   - Contribution from Y = 0.30 * 16% = 4.8%\n   - Contribution from Z = 0.20 * 12% = 2.4%\n3. Finally, sum the weighted contributions to find the total expected return of the portfolio:\n   - Portfolio Expected Return = 5.0% + 4.8% + 2.4% = 12.2%",
+      "ground_truth": "0.122",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_206",
+      "prediction": 0.0,
+      "reasoning": "A purchased butterfly spread, also known as a long butterfly spread, is a neutral options strategy with limited risk and limited profit potential. It is constructed by buying one option at a low strike price (K1), selling two options at a middle strike price (K2), and buying one option at a high strike price (K3). The strategy achieves its maximum profit when the price of the underlying asset at expiration is exactly at the middle strike price, K2. The maximum loss, which is the net premium paid to enter the position, occurs if the underlying price moves significantly away from K2, specifically if it closes below K1 or above K3 at expiration. Therefore, an investor purchases a butterfly spread when they anticipate low volatility and expect the stock price to stay within a narrow range around the central strike price, K2. The statement claims the opposite \u2013 that it's for when the price is expected to move significantly away from K2. This describes a high-volatility outlook, which would be better suited for strategies like a long straddle or a long strangle, not a long butterfly spread. Thus, the statement is false.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_207",
+      "prediction": 5,
+      "reasoning": "The bond described is a perpetuity because it pays interest annually forever and has no maturity date. The formula to calculate the yield to maturity (YTM) for a perpetuity is: YTM = Annual Coupon Payment / Price of the Bond. In this case, the Annual Coupon Payment is $100 and the Price of the Bond is $2,000. Therefore, the calculation is YTM = $100 / $2,000 = 0.05. To express this as a percentage, we multiply by 100, resulting in a 5% yield to maturity.",
+      "ground_truth": "0.05",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_208",
+      "prediction": "C",
+      "reasoning": "The Efficient Market Hypothesis (EMH) suggests that financial markets are efficient, meaning that asset prices reflect all available information. A direct consequence of this hypothesis is that it is extremely difficult for any investor, including professional fund managers, to consistently achieve returns that are superior to the overall market average on a risk-adjusted basis. If one cannot consistently beat the market, then the most logical strategy is to try and match the market's performance while minimizing costs. High costs, such as brokerage commissions and management fees, directly reduce an investor's net return. Therefore, for a small investor, the most sensible strategy is to invest in a diversified portfolio at the lowest possible cost. Option A involves high costs (commissions) and active stock picking, which EMH suggests is unlikely to succeed. Option B also involves high costs (management fees) for active management that is unlikely to outperform the market. Option C, buying into a low-fee, commission-free mutual fund (such as a broad-market index fund), aligns perfectly with the implications of the EMH by providing diversification and minimizing costs, thereby maximizing the investor's chance of earning the market's return.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_209",
+      "prediction": 1.0,
+      "reasoning": "The provided text is an accurate explanation of same-store sales. Total revenue can be a misleading indicator of a company's financial health because it conflates two different sources of growth: 1) organic growth from existing operations and 2) growth from expansion (opening new stores). A company could be aggressively opening new stores, leading to an increase in total sales, while the performance of its established, core stores is actually declining. This would hide a serious operational problem. Same-store sales, by comparing revenue from the same set of stores over time, isolates organic growth. This gives investors and analysts a much clearer picture of the underlying health, customer loyalty, and operational efficiency of the core business, making it a critical performance metric in the retail and restaurant industries.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_210",
+      "prediction": "C",
+      "reasoning": "The core purpose of hedging foreign exchange risk is to mitigate the impact of adverse movements in exchange rates. A forward contract is an agreement to buy or sell a specific amount of a foreign currency at a predetermined exchange rate (the forward rate) on a specified future date. By locking in this rate, the corporation knows exactly how much domestic currency it will pay or receive in the future. This act removes the uncertainty associated with fluctuations in the spot exchange rate between the time the contract is initiated and the settlement date. \n\nLet's analyze the choices:\n- A. Insurance against exchange rate worsening: This is partially true, as a forward contract does protect against unfavorable movements. However, the term 'insurance' is more accurately associated with options, where a premium is paid for protection against downside risk while retaining the potential for upside gains. A forward contract eliminates both downside risk and upside potential, so 'elimination of uncertainty' is a more precise description.\n- B. No up-front cost: While it is true that forward contracts typically do not require an upfront premium payment (unlike options), this is a feature of the instrument's cost structure, not the primary benefit of the hedging action itself. The main goal of hedging is risk management, not just cost-effective instrument selection.\n- C. Elimination of exchange rate uncertainty: This is the most accurate and fundamental advantage. The treasurer's problem is the uncertainty of future cash flows due to exchange rate volatility. The forward contract directly solves this problem by fixing the future exchange rate, thus eliminating this uncertainty for the hedged transaction and allowing for precise financial planning and budgeting.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_211",
+      "prediction": 0.0,
+      "reasoning": "The statement calculates the cost of equity as the dividend per share ($5) divided by the current stock price ($50), resulting in 10%. This calculation represents the dividend yield, not the full cost of equity. The cost of equity is the total return required by shareholders, which consists of two components: the dividend yield and the expected capital gain (growth). The Dividend Discount Model (DDM) for calculating the cost of equity is: Ke = (D1/P0) + g, where Ke is the cost of equity, D1 is the expected dividend, P0 is the current price, and g is the expected growth rate. The provided calculation completely ignores the growth rate (g). Unless the company is not expected to grow at all (g=0), the cost of equity will be higher than the dividend yield. Therefore, the statement is based on an incomplete and generally incorrect formula.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_212",
+      "prediction": 1.0,
+      "reasoning": "The conversion factor for U.S. Treasury Bond and Note futures contracts, as specified by the CME Group, is designed to equate the value of any deliverable bond to the notional 6% coupon bond that underlies the contract. The calculation of this factor involves determining the present value of the deliverable bond's cash flows (coupon payments and principal) discounted at a 6% annual yield. A key aspect of the CME Group's methodology is the treatment of time. The time to maturity is not calculated to the exact day. Instead, the bond's remaining life is calculated from the first day of the delivery month and then rounded down to the nearest complete quarter (three months). For instance, if a bond matures in 17 years and 5 months, its maturity for the conversion factor calculation is considered to be 17 years and 3 months. If it matures in 17 years and 2 months, it is rounded down to 17 years exactly. This rounding convention also applies to the timing of the interim coupon payments within the calculation. Therefore, the statement that the CME Group's conversion factor calculation rounds bond maturity and coupon payment times down to the nearest three months is correct.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_213",
+      "prediction": 10.2661,
+      "reasoning": "Step 1: Interpret the T-bill quote. A Treasury bill quote represents the annualized bank discount rate (r_BD). A quote of 10.00 means the bank discount rate is 10.00% or 0.10. This rate is conventionally calculated using an actual/360 day-count basis.\nStep 2: Calculate the dollar discount (D) from the face value (F). We assume a standard face value of $100. The formula for the discount is D = F * r_BD * (n / 360), where n is the number of days to maturity.\nD = 100 * 0.10 * (90 / 360) = 100 * 0.10 * 0.25 = 2.50.\nStep 3: Calculate the price (P) of the T-bill. The price is the face value minus the dollar discount.\nP = F - D = 100 - 2.50 = 97.50.\nStep 4: Calculate the annualized continuously compounded return (r_cc). The formula relating the future value (F), present value (P), and the continuously compounded rate is F = P * e^(r_cc * t), where 't' is the time to maturity in years. We need to solve for r_cc.\nStep 5: Define the time period 't' based on the required actual/365 basis. \nt = 90 / 365 years.\nStep 6: Rearrange the continuous compounding formula to solve for r_cc: r_cc = (1/t) * ln(F/P).\nStep 7: Substitute the known values into the formula and calculate the rate.\nr_cc = (1 / (90 / 365)) * ln(100 / 97.50)\nr_cc = (365 / 90) * ln(1.0256410256)\nr_cc \u2248 4.055555 * 0.02531649\nr_cc \u2248 0.1026605\nStep 8: Convert the rate to a percentage by multiplying by 100 and rounding to four decimal places. \nReturn = 0.1026605 * 100 \u2248 10.2661%. The required answer is the numerical value.",
+      "ground_truth": "10.27",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_214",
+      "prediction": "A",
+      "reasoning": "A long butterfly spread is a neutral options strategy with a limited-risk and limited-profit profile. It is constructed by buying one option at a lower strike price, selling two options at a middle strike price, and buying one option at a higher strike price. The strategy achieves its maximum profit when the price of the underlying asset at expiration is exactly at the middle (central) strike price. The profit diminishes as the price moves away from this central point. If the stock price moves significantly in either direction, either below the lowest strike or above the highest strike, the position incurs its maximum (but limited) loss. Therefore, this strategy is employed by investors who believe the underlying stock will experience very low volatility and will trade within a narrow range, pinning at or near the central strike price by the expiration date. Choice B is incorrect because high volatility is detrimental to this strategy. Choice C is incorrect because if the price exceeds the highest strike, the strategy results in a loss.",
+      "ground_truth": "A",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_215",
+      "prediction": "1.0518",
+      "reasoning": "The theoretical futures price of a foreign currency is determined by the interest rate parity relationship. For continuously compounded interest rates, the formula is: F_0 = S_0 * e^((r - r_f) * T). \nHere is the breakdown of the variables and the calculation steps:\n1. Identify the given variables:\n   - Spot price (S_0): $1.0500\n   - Domestic interest rate (r, US): 2% per annum = 0.02\n   - Foreign interest rate (r_f, Switzerland): 1% per annum = 0.01\n   - Time to maturity (T): 2 months = 2/12 years = 1/6 years\n\n2. Substitute these values into the formula:\n   F_0 = 1.0500 * e^((0.02 - 0.01) * (2/12))\n\n3. Simplify the expression in the exponent:\n   Exponent = (0.01) * (1/6) \u2248 0.0016667\n\n4. Calculate the value of e raised to the exponent:\n   e^(0.0016667) \u2248 1.001668056\n\n5. Calculate the final theoretical futures price:\n   F_0 = 1.0500 * 1.001668056 \u2248 1.0517514588\n\n6. Round the result to four decimal places, which is standard for currency quotes:\n   F_0 \u2248 $1.0518",
+      "ground_truth": "1.0518",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_216",
+      "prediction": "A",
+      "reasoning": "A forward start option is an exotic option where the premium is paid upfront (at time t=0), but the option itself only becomes active at a specified future date (t=T1). The strike price is also typically determined at this future date, often set at-the-money relative to the underlying asset's price at that time. Choice A, 'An option that is paid for now but starts at a future date,' perfectly describes this key characteristic. Choice B describes an American-style option, which is characterized by its exercise timing, not its start date. Choice C describes a different type of exotic option called a chooser option, where the holder decides at a future date whether the option will be a call or a put.",
+      "ground_truth": "A",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_217",
+      "prediction": null,
+      "reasoning": "JSON Parse Error",
+      "ground_truth": "105.3579",
+      "task_type": "calcu",
+      "raw_response": "",
+      "is_correct": false
+    },
+    {
+      "id": "vali_218",
+      "prediction": 3064000,
+      "reasoning": "The total cost for the year is the sum of total variable costs and total fixed costs. \n1. First, calculate the total variable cost per unit. This is the sum of the variable materials cost and the variable labor cost per unit. \n   Variable Cost per Unit = Variable Materials Cost per Unit + Variable Labor Cost per Unit\n   Variable Cost per Unit = $4.68 + $2.27 = $6.95\n2. Next, calculate the total variable costs for the year by multiplying the variable cost per unit by the number of units produced.\n   Total Variable Costs = Variable Cost per Unit * Total Production\n   Total Variable Costs = $6.95 * 320,000 = $2,224,000\n3. Then, calculate the total fixed costs for the year. This includes the explicitly stated fixed costs and depreciation, as depreciation is a non-cash fixed expense.\n   Total Fixed Costs = Fixed Costs + Depreciation\n   Total Fixed Costs = $650,000 + $190,000 = $840,000\n4. Finally, calculate the total costs for the year by adding the total variable costs and the total fixed costs.\n   Total Costs = Total Variable Costs + Total Fixed Costs\n   Total Costs = $2,224,000 + $840,000 = $3,064,000",
+      "ground_truth": "2874000.0",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_219",
+      "prediction": 1.0,
+      "reasoning": "1. The problem asks to evaluate the truthfulness of the provided statement regarding Merrill Lynch's $1.2 billion charge in 2006. The statement claims the charge was a purely accounting change with no cash flow or market value consequences, with a specific exception.\n2. Let's break down the statement. It makes two main claims and one qualification.\n   - Claim 1: The adjustments were 'purely accounting changes' with 'no cash flow consequences'. An accounting charge related to a change in accounting standards (like marking assets to fair value) is a non-cash expense. It reduces reported net income but does not involve an actual outflow of cash. On the Statement of Cash Flows, this non-cash expense would be added back to net income to calculate cash flow from operations. Therefore, this part of the statement is correct; there are no direct cash flow consequences from the accounting entry itself.\n   - Claim 2: The adjustments had 'no market value consequences'. This is the more nuanced part of the statement.\n   - Qualification: '...unless the new accounting information caused stockholders to revalue the derivatives'. This qualification is key to the statement's overall accuracy.\n3. According to the Efficient Market Hypothesis, a company's market value (stock price) reflects all publicly available information. An accounting change, in and of itself, is just a change in measurement or reporting; it doesn't change the underlying economic reality of the business. However, the *information* conveyed by that change can be new to the market.\n4. In this case, the accounting change forced Merrill Lynch to reveal that, under the new rules, its derivatives were valued at $1.2 billion less than previously reported. This is new, material information. \n5. The qualification correctly identifies the mechanism through which market value could be affected. If investors were previously unaware of this valuation difference, the new disclosure would cause them to 'revalue the derivatives' and, consequently, the company as a whole. This revaluation would then be reflected in the stock price, which is the market value.\n6. Therefore, the statement as a whole is accurate. It correctly separates the direct, mechanical effect of an accounting entry (no cash flow, no direct impact on market value) from the indirect, informational effect that drives market reactions. The statement is true because it includes the critical 'unless' clause, which acknowledges that new information can and does affect market value.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    }
+  ]
+}
