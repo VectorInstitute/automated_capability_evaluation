@@ -5,12 +5,12 @@ import logging
 
 from autogen_core.models import ChatCompletionClient
 
-from src.base_task_generation.diverse_task_constants import (
+from src.base_stages.prompts import format_combination_prompt
+from src.base_stages.task_constants import (
     BLOOMS_TAXONOMY,
     DIFFICULTY_LEVELS,
 )
-from src.base_task_generation.diverse_task_dataclasses import Combination, SubTopic
-from src.base_task_generation.diverse_task_prompts import format_combination_prompt
+from src.base_stages.task_dataclasses import Combination, SubTopic
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
@@ -97,4 +97,4 @@ def find_valid_combinations(
     if len(combinations) > 5:
         logger.info(f"  ... and {len(combinations) - 5} more")
 
-    return combinations[0:1]
+    return combinations

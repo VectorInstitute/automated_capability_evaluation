@@ -5,7 +5,7 @@ import logging
 
 from autogen_core.models import ChatCompletionClient
 
-from src.base_task_generation.diverse_task_prompts import format_verification_prompt
+from src.base_stages.prompts import format_verification_prompt
 from src.schemas.solution_schemas import TaskSolution
 from src.schemas.task_schemas import Task
 from src.schemas.validation_schemas import ValidationResult
@@ -29,13 +29,13 @@ def validate_tasks(
     -------
         List of ValidationResult objects
     """
-    logger.info("Validateing task alignment...")
+    logger.info("Validating task alignment...")
 
     validation_results = []
 
     for i, task_solution in enumerate(task_solutions):
         logger.info(
-            f"Validateing task {i + 1}/{len(task_solutions)}: {task_solution.task_id}"
+            f"Validating task {i + 1}/{len(task_solutions)}: {task_solution.task_id}"
         )
         capability = task_solution.task_obj.capability
 

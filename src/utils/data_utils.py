@@ -291,7 +291,7 @@ def get_run_id(cfg: DictConfig) -> str:
         run_id = str(cfg.exp_cfg.exp_id)
     else:
         run_id = f"{cfg.scientist_llm.name}_C{cfg.capabilities_cfg.num_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
-        if cfg.capabilities_cfg.method == "hierarchical":
-            run_id += f"_A{cfg.capabilities_cfg.num_areas}"
+        if cfg.get("areas_cfg", {}).get("num_areas"):
+            run_id += f"_A{cfg.areas_cfg.num_areas}"
         run_id += f"_T{cfg.capabilities_cfg.num_gen_tasks_per_capability}"
     return run_id

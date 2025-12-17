@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Tuple
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
-# from langsmith import traceable  # COMMENTED OUT FOR DEBUGGING
+from langsmith import traceable
 from pydantic import SecretStr
 from ratelimit import limits, sleep_and_retry
 
@@ -64,7 +64,7 @@ class Model:
 
     @sleep_and_retry  # type: ignore
     @limits(**RATE_LIMIT)  # type: ignore
-    # @traceable  # COMMENTED OUT FOR DEBUGGING
+    @traceable
     def generate(
         self, sys_prompt: str, user_prompt: str, generation_config: Dict[str, Any]
     ) -> Tuple[str | None, Dict[str, int | Any]]:
@@ -113,7 +113,7 @@ class Model:
 
     @sleep_and_retry  # type: ignore
     @limits(**RATE_LIMIT)  # type: ignore
-    # @traceable  # COMMENTED OUT FOR DEBUGGING
+    @traceable
     async def async_generate(
         self, sys_prompt: str, user_prompt: str, generation_config: Dict[str, Any]
     ) -> Tuple[str | None, Dict[str, int | Any]]:

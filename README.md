@@ -50,53 +50,59 @@ gcloud auth application-default login
 
 2. Modify `src/cfg/run_cfg.yaml`, if required.
 
-### Generation Pipeline
+### Base Pipeline
 
-The generation pipeline consists of multiple stages that can be run sequentially or individually:
+The base (non-agentic) pipeline consists of multiple stages that can be run sequentially or individually:
 
 - **Stage 0**: Experiment and domain setup
 - **Stage 1**: Area generation
 - **Stage 2**: Capability generation and filtering
-- **Stage 3**: Task generation with solutions
+- **Stage 3**: Task generation (questions with options)
+- **Stage 4**: Solution generation (determine correct answers)
 - **Stage 5**: Task validation
 
 #### Run All Stages
 
 ```bash
-python -m src.run_generation_pipeline stage=all
+python -m src.run_base_pipeline stage=all
 ```
 
 #### Run Individual Stages
 
 ```bash
 # Stage 0: Setup
-python -m src.run_generation_pipeline stage=0
+python -m src.run_base_pipeline stage=0
 
 # Stage 1: Generate areas
-python -m src.run_generation_pipeline stage=1
+python -m src.run_base_pipeline stage=1
 
 # Stage 2: Generate capabilities (requires areas_tag from Stage 1)
-python -m src.run_generation_pipeline stage=2 areas_tag=_YYYYMMDD_HHMMSS
+python -m src.run_base_pipeline stage=2 areas_tag=_YYYYMMDD_HHMMSS
 
-# Stage 3 and 4: Generate tasks and solutions (requires capabilities_tag from Stage 2)
+# Stage 3: Generate tasks (requires capabilities_tag from Stage 2)
+python -m src.run_base_pipeline stage=3 capabilities_tag=_YYYYMMDD_HHMMSS
 
-python -m src.run_generation_pipeline stage=3 capabilities_tag=_YYYYMMDD_HHMMSS
+# Stage 4: Generate solutions (requires tasks_tag from Stage 3)
+python -m src.run_base_pipeline stage=4 tasks_tag=_YYYYMMDD_HHMMSS
 
-# Stage 5: Validate tasks (requires solution_tag from Stage 3)
-python -m src.run_generation_pipeline stage=5 solution_tag=_YYYYMMDD_HHMMSS
+# Stage 5: Validate tasks (requires solution_tag from Stage 4)
+python -m src.run_base_pipeline stage=5 solution_tag=_YYYYMMDD_HHMMSS
 ```
 
 #### Resume from Existing Runs
 
 ```bash
 # Resume Stage 2 from existing capabilities_tag
-python -m src.run_generation_pipeline stage=2 areas_tag=_YYYYMMDD_HHMMSS capabilities_tag=_YYYYMMDD_HHMMSS
+python -m src.run_base_pipeline stage=2 areas_tag=_YYYYMMDD_HHMMSS capabilities_tag=_YYYYMMDD_HHMMSS
 
 # Resume Stage 3 from existing tasks_tag
-python -m src.run_generation_pipeline stage=3 capabilities_tag=_YYYYMMDD_HHMMSS tasks_tag=_YYYYMMDD_HHMMSS
+python -m src.run_base_pipeline stage=3 capabilities_tag=_YYYYMMDD_HHMMSS tasks_tag=_YYYYMMDD_HHMMSS
+
+# Resume Stage 4 from existing solution_tag
+python -m src.run_base_pipeline stage=4 tasks_tag=_YYYYMMDD_HHMMSS solution_tag=_YYYYMMDD_HHMMSS
 
 # Resume Stage 5 from existing validation_tag
-python -m src.run_generation_pipeline stage=5 solution_tag=_YYYYMMDD_HHMMSS validation_tag=_YYYYMMDD_HHMMSS
+python -m src.run_base_pipeline stage=5 solution_tag=_YYYYMMDD_HHMMSS validation_tag=_YYYYMMDD_HHMMSS
 ```
 
 ### Evaluation of subject LLM on generated capabilities

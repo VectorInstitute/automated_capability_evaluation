@@ -7,71 +7,23 @@ from typing import List
 import numpy as np
 from autogen_core.models import ChatCompletionClient
 
+from src.base_stages.prompts import (
+    CAPABILITY_GENERATION_SYSTEM_PROMPT,
+    CAPABILITY_GENERATION_USER_PROMPT,
+)
 from src.schemas.area_schemas import Area
 from src.schemas.capability_schemas import Capability
-from src.schemas.domain_schemas import Domain
-from src.utils import prompts
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
 logger = logging.getLogger(__name__)
 
 
-def generate_areas(
-    domain: Domain,
-    num_areas: int,
-    num_capabilities_per_area: int,
-    scientist_llm_client: ChatCompletionClient,
-) -> List[Area]:
-    """Generate areas for the specified domain.
-
-    Args:
-        domain: Domain object
-        num_areas: Number of areas to generate
-        num_capabilities_per_area: Number of capabilities per area
-        scientist_llm_client: LLM client for generation
-
-    Returns
-    -------
-        List of generated Area objects
-    """
-    logger.info(f"Generating {num_areas} areas ...")
-    user_prompt = prompts.AREAS_GENERATION_USER_PROMPT.format(
-        num_areas=num_areas,
-        num_capabilities_per_area=num_capabilities_per_area,
-        domain=domain.name,
-        response_json_format=prompts.AREAS_GENERATION_RESPONSE_JSON_FORMAT,
-    )
-
-    response = asyncio.run(
-        async_call_model(
-            scientist_llm_client,
-            system_prompt="",
-            user_prompt=user_prompt,
-            mode=ModelCallMode.JSON_PARSE,
-        )
-    )
-
-    areas = []
-    for idx, area_name in enumerate(response.get("areas", [])):
-        area = Area(
-            name=area_name,
-            area_id=f"area_{idx:03d}",
-            domain=domain,
-            description="",
-        )
-        areas.append(area)
-
-    logger.info(f"Generated {len(areas)} areas")
-
-    return areas
-
-
 def generate_capabilities(
     area: Area,
     num_capabilities: int,
     num_capabilities_per_run: int,
-    scientist_llm_client: ChatCompletionClient,
+    client: ChatCompletionClient,
 ) -> List[Capability]:
     """Generate capabilities for a given area.
 
@@ -79,7 +31,7 @@ def generate_capabilities(
         area: Area object
         num_capabilities: Total number of capabilities to generate
         num_capabilities_per_run: Number of capabilities per LLM call
-        scientist_llm_client: LLM client for generation
+        client: ChatCompletionClient for API calls
 
     Returns
     -------
@@ -98,7 +50,7 @@ def generate_capabilities(
         run_capabilities = generate_capabilities_using_llm(
             area=area,
             num_capabilities=min(num_capabilities_per_run, num_capabilities_left),
-            scientist_llm_client=scientist_llm_client,
+            client=client,
             prev_capabilities=capabilities,
         )
         capabilities.extend(run_capabilities)
@@ -110,7 +62,7 @@ def generate_capabilities(
 def generate_capabilities_using_llm(
     area: Area,
     num_capabilities: int,
-    scientist_llm_client: ChatCompletionClient,
+    client: ChatCompletionClient,
     prev_capabilities: List[Capability],
 ) -> List[Capability]:
     """Generate capabilities using LLM.
@@ -118,15 +70,15 @@ def generate_capabilities_using_llm(
     Args:
         area: Area object
         num_capabilities: Number of capabilities to generate
-        scientist_llm_client: LLM client for generation
+        client: ChatCompletionClient for API calls
         prev_capabilities: Previously generated capabilities
 
     Returns
     -------
         List of generated Capability objects
     """
-    sys_prompt = prompts.CAPABILITY_GENERATION_SYSTEM_PROMPT
-    user_prompt = prompts.HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT.format(
+    sys_prompt = CAPABILITY_GENERATION_SYSTEM_PROMPT
+    user_prompt = CAPABILITY_GENERATION_USER_PROMPT.format(
         area=area.name,
         domain=area.domain.name,
         num_capabilities=num_capabilities,
@@ -135,7 +87,7 @@ def generate_capabilities_using_llm(
 
     response = asyncio.run(
         async_call_model(
-            scientist_llm_client,
+            client,
             system_prompt=sys_prompt,
             user_prompt=user_prompt,
             mode=ModelCallMode.JSON_PARSE,
@@ -164,8 +116,17 @@ def generate_capabilities_using_llm(
 
     if len(capabilities) != len(gen_capabilities_dict):
         logger.warning(
-            f"Only {len(capabilities)} capabilities were created out of {len(gen_capabilities_dict)} generated capabilities."
+            f"Only {len(capabilities)} capabilities were created out of "
+            f"{len(gen_capabilities_dict)} generated capabilities."
         )
+
+    # Truncate to requested number if LLM returned more
+    if len(capabilities) > num_capabilities:
+        logger.info(
+            f"LLM returned {len(capabilities)} capabilities, "
+            f"truncating to requested {num_capabilities}"
+        )
+        capabilities = capabilities[:num_capabilities]
 
     logger.info(f"Generated {len(capabilities)} capabilities.")
 
