@@ -1,12 +1,91 @@
 """
-Prompts for the diverse task generation pipeline.
+Prompts for the base pipeline stages.
 
-Edit these prompts to customize the task generation behavior.
-The main script can import these instead of using hardcoded prompts.
+This module contains all prompts used by the base (non-agentic) pipeline:
+- Stage 1: Area generation
+- Stage 2: Capability generation
+- Stage 3: Task generation (sub-topics, combinations, blueprints, questions, options)
+- Stage 4: Solution generation
+- Stage 5: Task validation
+
+Edit these prompts to customize generation behavior.
 """
 
 # =============================================================================
-# SUB-TOPIC EXTRACTION
+# AREA GENERATION (Stage 1)
+# =============================================================================
+
+AREAS_GENERATION_USER_PROMPT = """
+You are an expert in designing capabilities to assess the abilities of foundation models.
+For the domain of {domain}, identify {num_areas} high-level, broad, diverse, and non-overlapping areas for capability generation.
+Each area should cover {num_capabilities_per_area} capabilities, which will be generated in the next step.
+Aim for each area to cover a broad subdomain or skill cluster within the domain.
+
+Respond in the following JSON format:
+
+{response_json_format}
+"""
+
+AREAS_GENERATION_RESPONSE_JSON_FORMAT = """
+{{
+    "areas": [
+        <STR>,
+        <STR>,
+        ...
+    ]
+}}"""
+
+
+# =============================================================================
+# CAPABILITY GENERATION (Stage 2)
+# =============================================================================
+
+CAPABILITY_GENERATION_SYSTEM_PROMPT = """
+You are an expert in designing capabilities to assess the abilities of foundation models.
+Your goal is to create novel, diverse capabilities that can reveal the breadth and depth of a foundation model's skills within the specified domain.
+You will be particularly rewarded for a comprehensive design of capabilities.
+Valid capabilities will be added to a capability archive.
+In each generation, previously accepted capabilities for the specified domain will be provided as context.
+
+Respond precisely in the following JSON format:
+
+{
+    "thought": <STR>,
+    "capabilities": [
+        {
+            "name": <STR>,
+            "description": <STR>
+        },
+        ...
+    ]
+}
+
+In "thought", briefly think and reason about what kind of capabilities you want to propose.
+In "capabilities", provide an array of new capability objects with the following fields:
+- "name": A concise, descriptive label (lowercase, underscores for spaces, e.g., "personalized_budget_planning").
+- "description": A clear and detailed explanation of what the capability entails, including the skills and knowledge required (e.g., "Ability to generate a realistic monthly budget tailored to an individual's income, fixed and variable expenses, and financial goals. Requires understanding spending categories, prioritization, and basic cash flow allocation.").
+
+Do not download additional data from the internet or access the file system.
+
+Be creative and design capabilities that can distinguish between different levels of expertise, but ensure that the capability remains relevant to the domain.
+Also ensure that the proposed capabilities ARE DISTINCT compared to the existing capabilities.
+Names of all existing capabilities will be provided.
+
+Your response will be automatically parsed so ensure it adheres to the specified format.
+"""
+
+CAPABILITY_GENERATION_USER_PROMPT = """
+The names of all existing capabilities are provided below.
+
+Existing capability names:
+{prev_capabilities}
+
+Generate {num_capabilities} new capabilities for the "{area}" area within the {domain} domain that do not overlap with the existing capabilities.
+"""
+
+
+# =============================================================================
+# SUB-TOPIC EXTRACTION (Stage 3 - Step 1)
 # =============================================================================
 
 SUBTOPIC_SYSTEM_PROMPT = """
@@ -16,7 +95,7 @@ A domain is a broad subject area (e.g., Mathematics), an area is a specialized f
 
 The name, description, and domain/area of the capability will be provided.
 
-Your goal is to decompose the capability into meaningful sub-topics that together provide full and balanced coverage of testing the given capability.
+Your goal is to decompose the capability into meaningful sub-topics that together provide full and balanced coverage of testing the given capability. Generate between {min_subtopics} and {max_subtopics} sub-topics depending on the granularity and scope of the capability.
 
 Respond precisely in the following format, including the JSON start and end markers:
 
@@ -25,7 +104,8 @@ RESPONSE JSON:
   "sub_topics": [
     "<Sub-topic 1>",
     "<Sub-topic 2>",
-    "<Sub-topic 3>"
+    "<Sub-topic 3>",
+    ...
   ]
 }}}}
 
@@ -42,7 +122,7 @@ Area: {capability_area}
 Capability Name: {capability_name}
 Capability Description: {capability_description}
 
-Depending on the granularity of the capability, generate 2–10 sub-topics that comprehensively represent this capability.
+Depending on the granularity of the capability, generate {min_subtopics}–{max_subtopics} sub-topics that comprehensively represent this capability.
 """
 
 
@@ -173,42 +253,40 @@ The blueprint should explain:
 1. What the learner is expected to do.
 2. What kind of reasoning the task requires.
 3. How difficulty manifests in the structure or context of the task.
+
+Respond in the following JSON format:
+{{{{
+  "blueprint": "<Natural-language description of the task blueprint>"
+}}}}
 """
 
 
 # =============================================================================
-# TASK GENERATION
+# QUESTION GENERATION (Stage 3 - Step 1)
 # =============================================================================
 
-TASK_SYSTEM_PROMPT = """
-You are an expert educational scientist responsible for generating high-quality multiple-choice tasks.
+QUESTION_SYSTEM_PROMPT = """
+You are an expert educational scientist responsible for generating high-quality assessment questions.
 
 A domain is a broad subject area (e.g., Mathematics), an area is a specialized field within that domain (e.g., Linear Algebra), a capability is a specific concept or topic within that area (e.g., representing graphs using matrices), and a sub-topic is a concrete skill of that capability that can be assessed (e.g., constructing an adjacency matrix for a given graph).
 
-Given a task blueprint that describes what the question should assess, difficulty level and reasoning type based on bloom's taxonomy, your goal is to write a complete multiple-choice question that:
+Given a task blueprint that describes what the question should assess, your goal is to write a clear, well-formed question that:
 
 1. Accurately reflects the blueprint and capability description.
 
-2. Includes exactly four answer options.
+2. Is suitable for a multiple-choice format (will have options generated separately).
 
-3. Has ONLY one correct answer.
+3. Uses clear and unambiguous wording.
 
-4. Uses clear and unambiguous wording.
+4. Has a single, objectively correct answer.
 
-5. Ensures that incorrect options (distractors) are plausible but clearly wrong when the concept is understood correctly.
+IMPORTANT: Generate ONLY the question text. Do NOT include any answer options.
 
 Respond precisely in the following format, including the JSON start and end markers:
 
 RESPONSE JSON:
 {{{{
-  "question": "<Question text>",
-  "options": {{{{
-    "A": "<Option A>",
-    "B": "<Option B>",
-    "C": "<Option C>",
-    "D": "<Option D>"
-  }}}},
-  "correct_answer": "<A/B/C/D>"
+  "question": "<Question text>"
 }}}}
 
 Difficulty levels:
@@ -224,16 +302,13 @@ Reasoning types (Bloom's Taxonomy):
 5. Evaluate – Make judgments based on criteria and standards. Example verbs: justify, critique, assess, argue.
 6. Create – Combine elements to form a new pattern, structure, or product. Example verbs: design, compose, formulate, generate.
 
-
-Ensure that the correct answer is consistent with the capability description and reasoning category.
-
 Avoid using vague words like "always," "never," or "most likely" unless the blueprint specifies such nuance.
 
 If mathematical notation is included, ensure all LaTeX symbols use escaped backslashes (e.g., "$\\\\frac{1}{2}$").
 """
 
-TASK_USER_PROMPT_TEMPLATE = """
-Generate a multiple-choice task according to the following information.
+QUESTION_USER_PROMPT_TEMPLATE = """
+Generate a question according to the following information.
 
 Domain: {capability_domain}
 Area: {capability_area}
@@ -244,15 +319,81 @@ Task Blueprint:
 {task_blueprint}
 
 Requirements:
-- Write exactly one well-formed multiple-choice question.
+- Write exactly one well-formed question.
 
-- Include four options (A–D).
+- The question should be suitable for multiple-choice format.
 
-- Only one option should be correct.
+- The question should have a single, objectively correct answer.
 
-- Ensure all distractors (incorrect options) are realistic and relevant to the topic.
+- The question should be consistent with the intended content, difficulty, and reasoning type implied by the blueprint.
 
-- The task should be consistent with the intended content, difficulty, and reasoning type implied by the blueprint.
+- Do NOT include any answer options - only the question text.
+"""
+
+
+# =============================================================================
+# OPTIONS GENERATION (Stage 3 - Step 2)
+# =============================================================================
+
+OPTIONS_SYSTEM_PROMPT = """
+You are an expert educational scientist responsible for generating high-quality multiple-choice options.
+
+Given a question, your goal is to generate exactly four answer options (A, B, C, D) where:
+
+1. Exactly ONE option is the correct answer.
+
+2. The other three options (distractors) are plausible but clearly wrong when the concept is understood correctly.
+
+3. All options are realistic and relevant to the topic.
+
+4. Options are distinct and unambiguous.
+
+IMPORTANT: Do NOT indicate which option is correct. The correct answer will be determined separately by solving the problem.
+
+Respond precisely in the following format, including the JSON start and end markers:
+
+RESPONSE JSON:
+{{{{
+  "options": {{{{
+    "A": "<Option A>",
+    "B": "<Option B>",
+    "C": "<Option C>",
+    "D": "<Option D>"
+  }}}}
+}}}}
+
+Guidelines for creating good distractors:
+- Common misconceptions related to the topic
+- Errors from typical calculation mistakes
+- Partially correct answers that miss key aspects
+- Answers that would result from misreading or misunderstanding the question
+
+Ensure all options are of similar length and format to avoid giving hints about the correct answer.
+
+If mathematical notation is included, ensure all LaTeX symbols use escaped backslashes (e.g., "$\\\\frac{1}{2}$").
+"""
+
+OPTIONS_USER_PROMPT_TEMPLATE = """
+Generate four multiple-choice options for the following question.
+
+Domain: {capability_domain}
+Area: {capability_area}
+Capability Name: {capability_name}
+Capability Description: {capability_description}
+
+Question:
+{question}
+
+Requirements:
+- Generate exactly four options (A, B, C, D).
+
+- Exactly one option must be the correct answer.
+
+- The other three options should be plausible distractors.
+
+- All options should be relevant to the topic.
+
+- Do NOT indicate which option is correct.
 """
 
 
@@ -328,18 +469,76 @@ Return your structured evaluation in the specified JSON format.
 
 
 # =============================================================================
+# SOLUTION GENERATION (Stage 4)
+# =============================================================================
+
+SOLUTION_SYSTEM_PROMPT = """
+You are an expert in {capability_domain} responsible for solving multiple-choice questions.
+
+Given a multiple-choice question with exactly four options (A, B, C, D), your goal is to:
+1. Carefully analyze the question and all options
+2. Apply your knowledge of the domain to determine the correct answer
+3. Provide clear reasoning for your answer
+
+Respond precisely in the following format, including the JSON start and end markers:
+
+RESPONSE JSON:
+{{{{
+  "answer": "<A/B/C/D>",
+  "reasoning": "<Step-by-step explanation of why this answer is correct>"
+}}}}
+
+Guidelines:
+- Consider each option carefully before making your decision
+- Explain why the correct answer is right
+- If relevant, briefly explain why other options are incorrect
+- Be precise and confident in your answer
+"""
+
+SOLUTION_USER_PROMPT_TEMPLATE = """
+Solve the following multiple-choice question.
+
+Domain: {capability_domain}
+Area: {capability_area}
+Capability: {capability_name}
+Capability Description: {capability_description}
+
+Question:
+{task_text}
+
+Analyze the question and provide your answer with reasoning.
+"""
+
+
+# =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
 
 
 def format_subtopic_prompt(
-    capability_name, capability_description, capability_domain, capability_area=None
+    capability_name,
+    capability_description,
+    capability_domain,
+    capability_area=None,
+    min_subtopics=3,
+    max_subtopics=8,
 ):
-    """Format subtopic extraction prompts."""
+    """Format subtopic extraction prompts.
+
+    Args:
+        capability_name: Name of the capability
+        capability_description: Description of the capability
+        capability_domain: Domain name
+        capability_area: Area name (optional)
+        min_subtopics: Minimum number of subtopics to generate
+        max_subtopics: Maximum number of subtopics to generate
+    """
     area_text = capability_area if capability_area else "N/A"
 
     system_prompt = SUBTOPIC_SYSTEM_PROMPT.format(
         capability_domain=capability_domain,
+        min_subtopics=min_subtopics,
+        max_subtopics=max_subtopics,
     )
 
     user_prompt = SUBTOPIC_USER_PROMPT_TEMPLATE.format(
@@ -347,6 +546,8 @@ def format_subtopic_prompt(
         capability_description=capability_description,
         capability_domain=capability_domain,
         capability_area=area_text,
+        min_subtopics=min_subtopics,
+        max_subtopics=max_subtopics,
     )
 
     return system_prompt, user_prompt
@@ -402,15 +603,27 @@ def format_blueprint_prompt(
     return BLUEPRINT_SYSTEM_PROMPT, user_prompt
 
 
-def format_task_prompt(
+def format_question_prompt(
     capability_name,
     capability_description,
     capability_domain,
     capability_area,
     blueprint_description,
 ):
-    """Format task generation prompts."""
-    user_prompt = TASK_USER_PROMPT_TEMPLATE.format(
+    """Format question generation prompts (Stage 3 - Step 1).
+
+    Args:
+        capability_name: Name of the capability
+        capability_description: Description of the capability
+        capability_domain: Domain name
+        capability_area: Area name
+        blueprint_description: The blueprint describing what to assess
+
+    Returns
+    -------
+        Tuple of (system_prompt, user_prompt)
+    """
+    user_prompt = QUESTION_USER_PROMPT_TEMPLATE.format(
         capability_name=capability_name,
         capability_description=capability_description,
         capability_domain=capability_domain,
@@ -418,7 +631,38 @@ def format_task_prompt(
         task_blueprint=blueprint_description,
     )
 
-    return TASK_SYSTEM_PROMPT, user_prompt
+    return QUESTION_SYSTEM_PROMPT, user_prompt
+
+
+def format_options_prompt(
+    capability_name,
+    capability_description,
+    capability_domain,
+    capability_area,
+    question,
+):
+    """Format options generation prompts (Stage 3 - Step 2).
+
+    Args:
+        capability_name: Name of the capability
+        capability_description: Description of the capability
+        capability_domain: Domain name
+        capability_area: Area name
+        question: The question text to generate options for
+
+    Returns
+    -------
+        Tuple of (system_prompt, user_prompt)
+    """
+    user_prompt = OPTIONS_USER_PROMPT_TEMPLATE.format(
+        capability_name=capability_name,
+        capability_description=capability_description,
+        capability_domain=capability_domain,
+        capability_area=capability_area if capability_area else "N/A",
+        question=question,
+    )
+
+    return OPTIONS_SYSTEM_PROMPT, user_prompt
 
 
 def format_verification_prompt(
@@ -449,3 +693,38 @@ def format_verification_prompt(
     )
 
     return VERIFICATION_SYSTEM_PROMPT, user_prompt
+
+
+def format_solution_prompt(
+    capability_domain,
+    capability_area,
+    capability_name,
+    capability_description,
+    task_text,
+):
+    """Format solution generation prompts.
+
+    Args:
+        capability_domain: Domain name
+        capability_area: Area name
+        capability_name: Capability name
+        capability_description: Capability description
+        task_text: The full task text (question + options)
+
+    Returns
+    -------
+        Tuple of (system_prompt, user_prompt)
+    """
+    system_prompt = SOLUTION_SYSTEM_PROMPT.format(
+        capability_domain=capability_domain,
+    )
+
+    user_prompt = SOLUTION_USER_PROMPT_TEMPLATE.format(
+        capability_domain=capability_domain,
+        capability_area=capability_area if capability_area else "N/A",
+        capability_name=capability_name,
+        capability_description=capability_description,
+        task_text=task_text,
+    )
+
+    return system_prompt, user_prompt

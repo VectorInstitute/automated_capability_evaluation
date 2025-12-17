@@ -4,7 +4,8 @@ Defines Task dataclass for task. Tasks are concrete evaluation items
 that test a capability.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict, Optional
 
 from src.schemas.area_schemas import Area
 from src.schemas.capability_schemas import Capability
@@ -18,10 +19,11 @@ class Task:
     task_id: str
     task: str
     capability: Capability
+    generation_metadata: Optional[Dict] = field(default_factory=dict)
 
     def to_dict(self):
         """Convert to dictionary."""
-        return {
+        result = {
             "task_id": self.task_id,
             "task": self.task,
             "capability_id": self.capability.capability_id,
@@ -33,6 +35,9 @@ class Task:
             "domain": self.capability.area.domain.name,
             "domain_id": self.capability.area.domain.domain_id,
         }
+        if self.generation_metadata:
+            result["generation_metadata"] = self.generation_metadata
+        return result
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -58,4 +63,5 @@ class Task:
             task_id=data["task_id"],
             task=data["task"],
             capability=capability,
+            generation_metadata=data.get("generation_metadata", {}),
         )
