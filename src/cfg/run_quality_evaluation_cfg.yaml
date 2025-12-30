@@ -1,0 +1,15 @@
+prompt_cfg:
+  sys_msg: Compute benchmark quality metrics from existing scores.
+
+quality_eval_cfg:
+  # Absolute path to the directory that directly contains per-model score folders.
+  scores_root_dir: "/projects/aieng/public/ace/artifacts/negin_ace/scores"
+  scores_subdir: "scores"
+
+exp_cfg:
+  exp_id: "quality_evaluation"
+
+defaults:
+  - _self_
+
+
