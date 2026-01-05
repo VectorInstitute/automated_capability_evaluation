@@ -6,9 +6,9 @@ provided by this module in other parts of the project.
 """
 
 from .data_utils import load_data
-from .evaluation_utils import (
-    compute_benchmark_difficulty_from_accuracies,
-    compute_benchmark_difficulty_from_model_scores,
-    compute_benchmark_separability_from_accuracies,
-    compute_benchmark_separability_from_model_scores,
+from .quality_evaluation_utils import (
+    compute_benchmark_consistency,
+    compute_benchmark_difficulty,
+    compute_benchmark_novelty,
+    compute_benchmark_separability,
 )

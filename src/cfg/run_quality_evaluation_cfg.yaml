@@ -3,8 +3,13 @@ prompt_cfg:
 
 quality_eval_cfg:
   # Absolute path to the directory that directly contains per-model score folders.
-  scores_root_dir: "/projects/aieng/public/ace/artifacts/negin_ace/scores"
+  scores_root_dir: "/projects/DeepLesion/projects/automated_capability_evaluation/data/scores_sample"
   scores_subdir: "scores"
+  # List of absolute paths to prior datasets for novelty computation.
+  # Each path should point to a directory containing per-model score folders (same structure as scores_root_dir).
+  # Models must be consistent across all datasets.
+  prior_datasets:
+    - "/projects/DeepLesion/projects/automated_capability_evaluation/data/scores_sample/math-500"
 
 exp_cfg:
   exp_id: "quality_evaluation"
