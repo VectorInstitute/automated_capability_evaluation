@@ -38,49 +38,45 @@ dependencies = [
     "pytest-env (>=1.1.5,<2.0.0)",
     "langfuse>=2.0.0",
     "openlit>=1.35.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.urls]
 repository = "https://github.com/VectorInstitute/automated_capability_evaluation"
 
-[tool.poetry]
-package-mode = false
-version = "0.1"
+[tool.hatch.version]
+path = "src/__init__.py"
 
-[tool.poetry.dependencies]
-python = ">=3.10, <3.13"
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
 
-[tool.poetry.group.test]
-optional = true
-
-[tool.poetry.group.test.dependencies]
-pytest = "^8.3.3"
-pre-commit = "^4.0.0"
-pytest-cov = "^3.0.0"
-pytest-env = "^1.1.5"
-pytest-mock = "^3.10.0"
-codecov = "^2.1.13"
-mypy = "^1.15.0"
-ruff = ">=0.11.4,<0.12.0"
-nbqa = { version = "^1.7.0", extras = ["toolchain"] }
-pip-audit = "^2.7.1"
-
-[tool.poetry.group.docs]
-optional = true
-
-[tool.poetry.group.docs.dependencies]
-numpydoc = "^1.2"
-sphinx = "^7.2.5"
-sphinxcontrib-apidoc = "^0.4.0"
-sphinx-autodoc-typehints = "^1.24.0"
-myst-parser = "^2.0.0"
-sphinx-design = "^0.5.0"
-sphinx-copybutton = "^0.5.0"
-sphinx-autoapi = "^2.0.0"
-nbsphinx = "^0.9.3"
-ipython = "^8.8.0"
-ipykernel = "^6.23.0"
-furo = "^2024.01.29"
+[project.optional-dependencies]
+test = [
+    "pytest>=8.3.3",
+    "pre-commit>=4.0.0",
+    "pytest-cov>=3.0.0",
+    "pytest-env>=1.1.5",
+    "pytest-mock>=3.10.0",
+    "codecov>=2.1.13",
+    "mypy>=1.15.0",
+    "ruff>=0.11.4,<0.12.0",
+    "nbqa[toolchain]>=1.7.0",
+    "pip-audit>=2.7.1",
+]
+docs = [
+    "numpydoc>=1.2",
+    "sphinx>=7.2.5",
+    "sphinxcontrib-apidoc>=0.4.0",
+    "sphinx-autodoc-typehints>=1.24.0",
+    "myst-parser>=2.0.0",
+    "sphinx-design>=0.5.0",
+    "sphinx-copybutton>=0.5.0",
+    "sphinx-autoapi>=2.0.0",
+    "nbsphinx>=0.9.3",
+    "ipython>=8.8.0",
+    "ipykernel>=6.23.0",
+    "furo>=2024.01.29",
+]
 
 [tool.mypy]
 ignore_missing_imports = true
@@ -190,5 +186,5 @@ filterwarnings = [
     ignore_errors = true
 
 [build-system]
-requires = ["poetry-core>=2.0.1"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

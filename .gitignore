@@ -2,10 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-.vscode/
-
-# macOS system files
-.DS_Store
 
 # C extensions
 *.so
@@ -24,7 +20,6 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -54,6 +49,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+cover/
 
 # Translations
 *.mo
@@ -70,7 +66,7 @@ instance/
 .webassets-cache
 
 # Scrapy stuff:
-.scrapy
+.scrapy/
 
 # Sphinx documentation
 docs/_build/
@@ -91,11 +87,26 @@ ipython_config.py
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
 #   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   with no cross-platform support, pipenv may install dependencies that don't work, or not
 #   install all needed dependencies.
 #Pipfile.lock
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#pdm.lock
+#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
+#   in version control.
+#   https://pdm.fming.dev/#use-with-ide
+.pdm.toml
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
 
 # Celery stuff
@@ -110,13 +121,9 @@ celerybeat.pid
 .venv
 env/
 venv/
-p_env/
 ENV/
 env.bak/
 venv.bak/
-
-# Files used to set environment variables
-*.env
 
 # Spyder project settings
 .spyderproject
@@ -136,13 +143,22 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# pycharm
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
 .idea/
 
-logs/
-src/outputs/
-outputs/
+# VS Code
+.vscode/
 
-# inspect result logs
-seed_datasets_inspect_logs/
-seed_tasks_results/
+# Project specific
+materials/
+experiment_results/
+full_results/
+results/
+experiments.log
+math/
