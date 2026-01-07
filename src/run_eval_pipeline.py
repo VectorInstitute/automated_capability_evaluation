@@ -1,9 +1,9 @@
 """Evaluation pipeline for running LLM evaluations on generated tasks.
 
 This module orchestrates the evaluation pipeline:
-- Stage 0: Setup and Dataset Preparation (no LLM calls, no tag)
+- Stage 0: Setup and Dataset Preparation
 - Stage 1: Evaluation Execution (runs subject LLMs, creates eval_tag)
-- Stage 2: Score Aggregation (no LLM calls)
+- Stage 2: Score Aggregation
 
 Usage:
     # Run all stages
@@ -16,7 +16,6 @@ Usage:
 """
 
 import logging
-from pathlib import Path
 
 import hydra
 from omegaconf import DictConfig
@@ -63,28 +62,18 @@ def main(cfg: DictConfig) -> None:
         try:
             # Stage 0: Setup and Dataset Preparation
             logger.info("Running Eval Stage 0: Setup and Dataset Preparation")
-            eval_config = run_eval_stage0(cfg, validation_tag)
+            run_eval_stage0(cfg, validation_tag)
             logger.info("Eval Stage 0 complete.")
 
             # Stage 1: Evaluation Execution
             logger.info("Running Eval Stage 1: Evaluation Execution")
-            eval_tag = run_eval_stage1(cfg, eval_config)
+            eval_tag = run_eval_stage1(cfg, validation_tag)
             logger.info("Eval Stage 1 complete. eval_tag=%s", eval_tag)
 
             # Stage 2: Score Aggregation
             logger.info("Running Eval Stage 2: Score Aggregation")
             run_eval_stage2(cfg, eval_tag)
             logger.info("Eval Stage 2 complete.")
-
-            # Get results dir for final message
-            exp_id = cfg.exp_cfg.exp_id
-            output_base_dir = Path(cfg.global_cfg.output_dir)
-            scores_dir = output_base_dir / exp_id / "eval" / "scores" / eval_tag
-
-            logger.info("=" * 60)
-            logger.info("EVALUATION PIPELINE COMPLETE")
-            logger.info("Scores in: %s", scores_dir)
-            logger.info("=" * 60)
 
         except EvalSetupError as e:
             logger.error("Evaluation setup failed: %s", e)
@@ -104,7 +93,7 @@ def main(cfg: DictConfig) -> None:
             return
 
         try:
-            eval_config = run_eval_stage0(cfg, validation_tag)
+            run_eval_stage0(cfg, validation_tag)
             logger.info("Eval Stage 0 complete. Datasets created.")
         except EvalSetupError as e:
             logger.error("Evaluation setup failed: %s", e)
@@ -119,11 +108,10 @@ def main(cfg: DictConfig) -> None:
             return
 
         try:
-            # Run Stage 0 first to get eval_config
-            eval_config = run_eval_stage0(cfg, validation_tag)
-            eval_tag = run_eval_stage1(cfg, eval_config)
+            # Stage 1 reads eval_config from Stage 0's output
+            eval_tag = run_eval_stage1(cfg, validation_tag)
             logger.info("Eval Stage 1 complete. eval_tag=%s", eval_tag)
-        except (EvalSetupError, ValueError) as e:
+        except ValueError as e:
             logger.error("Stage 1 failed: %s", e)
 
     elif stage == 2:

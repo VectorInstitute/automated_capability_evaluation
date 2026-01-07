@@ -7,7 +7,6 @@ from autogen_core.models import ChatCompletionClient
 
 from src.base_stages.prompts import format_verification_prompt
 from src.schemas.solution_schemas import TaskSolution
-from src.schemas.task_schemas import Task
 from src.schemas.validation_schemas import ValidationResult
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
@@ -79,18 +78,12 @@ def validate_tasks(
 
             overall_aligned = response.get("overall_verdict", "Fail") == "Pass"
 
-            task = Task(
-                task_id=task_solution.task_id,
-                task=task_solution.task,
-                capability=capability,
-            )
-
             validation_result = ValidationResult(
                 task_id=task_solution.task_id,
                 task=task_solution.task,
+                task_solution=task_solution,
                 verification=overall_aligned,
                 feedback=response.get("explanation", ""),
-                task_obj=task,
                 generation_metadata={
                     "method": "validate_tasks",
                     "subtopic_aligned": response.get("blueprint_alignment", "No")

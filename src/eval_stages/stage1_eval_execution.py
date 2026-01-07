@@ -17,8 +17,12 @@ from inspect_ai.scorer import model_graded_fact
 from inspect_ai.solver import generate
 from omegaconf import DictConfig
 
-from src.schemas.eval_io_utils import load_eval_dataset, save_eval_config
-from src.schemas.eval_schemas import EvalConfig, EvalDataset
+from src.schemas.eval_io_utils import (
+    load_eval_config,
+    load_eval_dataset,
+    save_eval_config,
+)
+from src.schemas.eval_schemas import EvalDataset
 from src.schemas.metadata_schemas import PipelineMetadata
 from src.utils.timestamp_utils import iso_timestamp, timestamp_tag
 
@@ -149,7 +153,7 @@ def _run_inspect_eval(
 
 def run_eval_stage1(
     cfg: DictConfig,
-    eval_config: EvalConfig,
+    validation_tag: str,
 ) -> str:
     """Eval Stage 1: Evaluation Execution.
 
@@ -158,7 +162,7 @@ def run_eval_stage1(
 
     Args:
         cfg: Configuration object
-        eval_config: EvalConfig from Stage 0
+        validation_tag: Tag from generation Stage 5 (required)
 
     Returns
     -------
@@ -168,7 +172,15 @@ def run_eval_stage1(
     exp_id = cfg.exp_cfg.exp_id
     output_base_dir = Path(cfg.global_cfg.output_dir)
     experiment_dir = output_base_dir / exp_id
-    validation_tag = eval_config.validation_tag
+
+    # Load eval_config from Stage 0
+    datasets_dir = experiment_dir / "eval" / "datasets" / validation_tag
+    eval_config_path = datasets_dir / "eval_config.json"
+    if not eval_config_path.exists():
+        raise ValueError(
+            f"eval_config.json not found at {eval_config_path}. Run Stage 0 first."
+        )
+    eval_config, _ = load_eval_config(eval_config_path)
 
     # Create eval_tag for this run
     eval_tag = timestamp_tag()
@@ -179,7 +191,6 @@ def run_eval_stage1(
     )
 
     # Find datasets (saved under validation_tag from Stage 0)
-    datasets_dir = experiment_dir / "eval" / "datasets" / validation_tag
     dataset_paths = _find_datasets(datasets_dir)
     logger.info("Found %d datasets", len(dataset_paths))
 
@@ -193,7 +204,7 @@ def run_eval_stage1(
     eval_dir = experiment_dir / "eval" / "results" / eval_tag
     results_dir = eval_dir
 
-    # Update eval_config with the tag and save it
+    # Update eval_config with the tag and save it to results dir
     eval_config.eval_tag = eval_tag
     metadata = PipelineMetadata(
         experiment_id=exp_id,
@@ -203,9 +214,9 @@ def run_eval_stage1(
         output_stage_tag=eval_tag,
         resume=False,
     )
-    eval_config_path = eval_dir / "eval_config.json"
-    save_eval_config(eval_config, metadata, eval_config_path)
-    logger.info("Saved eval_config.json to %s", eval_config_path)
+    results_config_path = eval_dir / "eval_config.json"
+    save_eval_config(eval_config, metadata, results_config_path)
+    logger.info("Saved eval_config.json to %s", results_config_path)
 
     # Run evaluations
     subject_llms = eval_config.subject_llms

@@ -17,9 +17,11 @@ from typing import Dict, List, Tuple
 from omegaconf import DictConfig
 
 from src.eval_stages.prompts import DEFAULT_EVAL_PROMPT_TEMPLATE
-from src.schemas.eval_io_utils import save_eval_dataset
+from src.schemas.eval_io_utils import save_eval_config, save_eval_dataset
 from src.schemas.eval_schemas import EvalConfig, EvalDataset
+from src.schemas.metadata_schemas import PipelineMetadata
 from src.schemas.validation_schemas import ValidationResult
+from src.utils.timestamp_utils import iso_timestamp
 
 
 logger = logging.getLogger(__name__)
@@ -172,18 +174,15 @@ def _create_eval_dataset(
 def run_eval_stage0(
     cfg: DictConfig,
     validation_tag: str,
-) -> EvalConfig:
+) -> None:
     """Eval Stage 0: Setup and Dataset Preparation.
 
     Validates inputs and creates datasets for evaluation.
+    Saves eval_config.json for Stage 1 to read.
 
     Args:
         cfg: Configuration object
         validation_tag: Tag from generation Stage 5 (required)
-
-    Returns
-    -------
-        EvalConfig object for use in subsequent stages
 
     Raises
     ------
@@ -204,15 +203,6 @@ def run_eval_stage0(
     # Validate all inputs
     _validate_inputs(experiment_dir, validation_tag, eval_cfg)
     logger.info("Validation checks passed")
-
-    # Create EvalConfig (no tag yet - that's created in Stage 1)
-    eval_config = EvalConfig(
-        experiment_id=exp_id,
-        eval_tag="",  # Will be set in Stage 1
-        subject_llms=eval_cfg.get("subject_llms"),
-        judge_llm=eval_cfg.get("judge_llm"),
-        validation_tag=validation_tag,
-    )
 
     # Find all validated tasks
     validated_tasks = _find_validated_tasks(experiment_dir, validation_tag)
@@ -251,10 +241,29 @@ def run_eval_stage0(
         )
         num_created += 1
 
+    # Create and save EvalConfig (eval_tag will be set in Stage 1)
+    eval_config = EvalConfig(
+        experiment_id=exp_id,
+        eval_tag="",  # Will be set in Stage 1
+        subject_llms=eval_cfg.get("subject_llms"),
+        judge_llm=eval_cfg.get("judge_llm"),
+        validation_tag=validation_tag,
+    )
+
+    metadata = PipelineMetadata(
+        experiment_id=exp_id,
+        output_base_dir=str(output_base_dir),
+        timestamp=iso_timestamp(),
+        input_stage_tag=validation_tag,
+        output_stage_tag="",  # No output tag for Stage 0
+        resume=False,
+    )
+
+    eval_config_path = datasets_dir / "eval_config.json"
+    save_eval_config(eval_config, metadata, eval_config_path)
+
     logger.info(
-        "Eval Stage 0: Created %d datasets in %s",
+        "Eval Stage 0: Created %d datasets, saved eval_config.json to %s",
         num_created,
         datasets_dir,
     )
-
-    return eval_config

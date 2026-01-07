@@ -52,6 +52,7 @@ def generate_capabilities(
             num_capabilities=min(num_capabilities_per_run, num_capabilities_left),
             client=client,
             prev_capabilities=capabilities,
+            id_offset=len(capabilities),  # Pass offset for unique IDs
         )
         capabilities.extend(run_capabilities)
         num_capabilities_left -= len(run_capabilities)
@@ -64,6 +65,7 @@ def generate_capabilities_using_llm(
     num_capabilities: int,
     client: ChatCompletionClient,
     prev_capabilities: List[Capability],
+    id_offset: int = 0,
 ) -> List[Capability]:
     """Generate capabilities using LLM.
 
@@ -72,6 +74,7 @@ def generate_capabilities_using_llm(
         num_capabilities: Number of capabilities to generate
         client: ChatCompletionClient for API calls
         prev_capabilities: Previously generated capabilities
+        id_offset: Offset for capability IDs to ensure uniqueness across batches
 
     Returns
     -------
@@ -99,7 +102,7 @@ def generate_capabilities_using_llm(
 
     for idx, capability_dict in enumerate(gen_capabilities_dict):
         try:
-            capability_id = f"cap_{idx:03d}"
+            capability_id = f"cap_{(idx + id_offset):03d}"
             capability = Capability(
                 name=capability_dict["name"],
                 capability_id=capability_id,

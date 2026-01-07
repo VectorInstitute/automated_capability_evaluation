@@ -266,13 +266,6 @@ def check_cfg(cfg: DictConfig, logger: logging.Logger) -> None:
     additional_c = cfg.capabilities_cfg.num_gen_capabilities_per_run - rem_c
     if rem_c != 0:
         logger.warning(f"{additional_c} additional capabilities might be generated.")
-    if "discover_new" in cfg.lbo_cfg.pipeline_id:
-        assert (
-            cfg.dimensionality_reduction_cfg.discover_new_reduced_dimensionality_method
-            in ["pca", "cut-embedding"]
-        ), (
-            "The dimensionality reduction method must be either 'pca' or 'cut-embedding' when using the discover_new pipelines."
-        )
 
 
 def get_run_id(cfg: DictConfig) -> str:
