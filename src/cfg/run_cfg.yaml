@@ -1,3 +1,22 @@
+# =============================================================================
+# EXPERIMENT CONFIGURATION
+# =============================================================================
+
+exp_cfg:
+  exp_id: "test_exp"
+  seed: 37
+  trial_run: false
+
+global_cfg:
+  domain: personal finance
+  output_dir: base_output/
+  pipeline_type: base
+
+# =============================================================================
+# GENERATION PIPELINE
+# =============================================================================
+
+# LLM for generation stages (1-5)
 scientist_llm:
   name: o4-mini
   provider: openai
@@ -14,126 +33,63 @@ scientist_llm:
       temperature: 0.7
       max_tokens: 2048
       seed: 42
-    judge_llm:
-      temperature: 1.0
-      max_tokens: 2048
-      seed: 42
     task_verify:
       temperature: 0.7
       max_tokens: 2048
       seed: 42
-  local_launch_cfg:
-    # Number of threads to use for local LLM
-    max_num_seqs: 1
-    # Type of GPU to use for local LLM
-    partition: "a40"
-    # QoS for local LLM
-    qos: "m2"
-    # Time limit for local LLM
-    time: "01:00:00"
-
-subject_llm:
-  name: o1-mini
-  provider: openai
-  generation_cfg:
-    temperature: 0.7
-    max_tokens: 2048
-    seed: 42
-  local_launch_cfg:
-    # Type of GPU to use for local LLM
-    partition: "a100"
-    # Number of nodes to use for local LLM
-    num_nodes: 1
-    # Number of GPUs to use for local LLM
-    gpus_per_node: 4
-    # QoS for local LLM
-    qos: "deadline"
-    # Account for local LLM
-    account: "deadline"
-    # Time limit for local LLM
-    time: "10:00:00"
-    # vLLM args
-    vllm_args: "--max-model-len=8192,--max-num-seqs=50,--compilation-config=0,--tensor-parallel-size=4,--pipeline-parallel-size=1"
-
-prompt_cfg:
-  sys_msg: Complete the given task to the best of your ability.
-
-# Diverse task generation configuration (Stage 3)
-task_generation_cfg:
-  tasks_per_blueprint: 1  # Number of tasks to generate per blueprint
-  min_subtopics: 1  # Suggested minimum number of sub-topics
-  max_subtopics: 1  # Suggested maximum number of sub-topics
-
-# Task verification configuration (Stage 5)
-task_verification_cfg:
-  pass_threshold: 0.8  # Minimum pass rate to consider successful
-  strict_mode: false  # If true, all alignment criteria must pass
-
-# Area generation configuration (Stage 1)
-areas_cfg:
-  num_areas: 2  # Number of areas to generate
-
-# Capability generation configuration (Stage 2)
-capabilities_cfg:
-  capabilities_dir: ./ace-output/
-  results_dir: gs://ace-artifacts
-  inspect_evals_dir: /fs01/projects/aieng/public/ace/inspect_evals/src/ace_evals
-  num_seed_capabilities: 1
-  num_capabilities: 4
-  num_capabilities_buffer: 0.5  # Raised from 0.1 to compensate for filtering
-  num_gen_capabilities_per_run: 1  # Raised from 1 for more diversity per batch
-  num_gen_tasks_per_capability: 100
-  num_gen_tasks_buffer: 0.0
-  task_gen_few_shot: false
-  task_gen_prompt_version: "v1"
-  num_eval_tasks_per_capability: 2
-  capabilities_gen_retry_attempts: 5
-  tasks_gen_retry_attempts: 3
-  concurrency_task_solver: 2
-  concurrency_task_verifier: 2
-  concurrency_task_eval: 2
-  inspect_eval_log_level: "info"
-
-lbo_cfg:
-  num_lbo_runs: 2
-  pipeline_id: "no_discovery"
-  train_frac: 0.5
-  num_initial_train: 2
-  acquisition_function: "variance"
-
-embedding_cfg:
-  embedding_model: "text-embedding-3-small"
-  embedding_size: 256
-  filtering_similarity_threshold: 0.85  # Raised from 0.7 to keep more diverse capabilities
-
-dimensionality_reduction_cfg:
-  reduce_dimensionality_method: "pca"
-  reduced_dimensionality_size: 2
-  no_discovery_reduced_dimensionality_method: "pca"
-  no_discovery_reduced_dimensionality_size: 2
-
-exp_cfg:
-  seed: 37
-  trial_run: false
-  exp_id: "test_exp"
 
 # Stage control
 stage: "all"  # Which stage to run: 0, 1, 2, 3, 4, 5, or "all"
-areas_tag: null  # Areas tag from Stage 1 (required for stage 2 standalone)
-capabilities_tag: null  # Capabilities tag from Stage 2 (required for stage 3 standalone)
-tasks_tag: null  # Tasks tag from Stage 3 (required for stage 4 standalone)
-solution_tag: null  # Solution tag from Stage 4 (required for stage 5 standalone)
-validation_tag: null  # Validation tag from Stage 5 (optional for resume)
 
-# Debug settings
-use_langchain: false  # Set to false for easier debugging (disables LangChain features)
+# Stage tags (for running individual stages or resuming)
+areas_tag: null           # Stage 1 output tag (required for stage 2 standalone)
+capabilities_tag: null    # Stage 2 output tag (required for stage 3 standalone)
+tasks_tag: null           # Stage 3 output tag (required for stage 4 standalone)
+solution_tag: null        # Stage 4 output tag (required for stage 5 standalone)
+validation_tag: null      # Stage 5 output tag (required for eval pipeline)
 
-# Global configuration
+# Stage 1: Area generation
+areas_cfg:
+  num_areas: 2
 
-global_cfg:
-  domain: personal finance
-  output_dir: base_output/ #Base output directory for all agentic outputs
-  pipeline_type: base
+# Stage 2: Capability generation
+capabilities_cfg:
+  num_capabilities: 4
+  num_capabilities_buffer: 0.1
+  num_gen_capabilities_per_run: 1
+
+# Embedding config (used for capability filtering in Stage 2)
+embedding_cfg:
+  embedding_model: text-embedding-3-small
+  embedding_size: 1536
+  filtering_similarity_threshold: 0.85
+
+# Stage 3: Task generation
+task_generation_cfg:
+  tasks_per_blueprint: 1
+  min_subtopics: 1
+  max_subtopics: 1
+
+# =============================================================================
+# EVALUATION PIPELINE
+# =============================================================================
+
+eval_cfg:
+  # LLMs to evaluate (required)
+  subject_llms:
+    - name: gpt-4o
+      provider: openai
+    - name: claude-3-sonnet
+      provider: anthropic
+
+  # Judge LLM for scoring (required)
+  judge_llm:
+    name: gpt-4o-mini
+    provider: openai
+
+# =============================================================================
+# HYDRA
+# =============================================================================
 
 defaults:
   - _self_

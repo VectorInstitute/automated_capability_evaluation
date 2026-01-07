@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional
 
 from src.schemas.area_schemas import Area
-from src.schemas.domain_schemas import Domain
 
 
 @dataclass
@@ -40,16 +39,15 @@ class Capability:
     @classmethod
     def from_dict(cls, data: dict):
         """Create from dictionary."""
-        domain = Domain(
-            name=data["domain"],
-            domain_id=data["domain_id"],
-            description=data.get("domain_description"),
-        )
-        area = Area(
-            name=data["area"],
-            area_id=data["area_id"],
-            domain=domain,
-            description=data["area_description"],
+        area = Area.from_dict(
+            {
+                "name": data["area"],
+                "area_id": data["area_id"],
+                "description": data["area_description"],
+                "domain": data["domain"],
+                "domain_id": data["domain_id"],
+                "domain_description": data.get("domain_description"),
+            }
         )
         return cls(
             name=data["name"],

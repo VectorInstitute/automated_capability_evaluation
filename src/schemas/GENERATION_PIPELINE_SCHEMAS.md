@@ -312,16 +312,16 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 
 **Fields:**
 - `task_id`: String (required)
-- `task`: String (required, the task/problem text from Stage 3)
+- `task`: String (required, the task/problem text)
+- `task_solution`: TaskSolution (required, the full task solution being validated)
 - `verification`: Boolean (required, overall validation status - whether the solution is verified/valid)
 - `feedback`: String (required, detailed feedback on the validation)
-- `task_obj`: Task (required, Task dataclass object with full hierarchy)
 - `score`: Float (optional, validation score, typically 0.0 to 1.0)
 - `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
   - This field can contain any validation-specific data (e.g., validation method, criteria details, error details)
   - Structure is flexible and depends on the validation method
 
-**Note:** When serialized to JSON, the `task_obj` object is flattened to `capability` (string), `capability_id` (string), `area` (string), `area_id` (string), `domain` (string), and `domain_id` (string) fields.
+**Note:** When serialized to JSON, the `task_solution` object is flattened to include all TaskSolution fields (task_id, task, solution, reasoning, numerical_answer) plus the capability/area/domain hierarchy.
 
 ---
 

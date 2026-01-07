@@ -50,9 +50,9 @@ gcloud auth application-default login
 
 2. Modify `src/cfg/run_cfg.yaml`, if required.
 
-### Base Pipeline
+### Base Generation Pipeline
 
-The base (non-agentic) pipeline consists of multiple stages that can be run sequentially or individually:
+The base (non-agentic) generation pipeline consists of multiple stages that can be run sequentially or individually:
 
 - **Stage 0**: Experiment and domain setup
 - **Stage 1**: Area generation
@@ -105,21 +105,56 @@ python -m src.run_base_pipeline stage=4 tasks_tag=_YYYYMMDD_HHMMSS solution_tag=
 python -m src.run_base_pipeline stage=5 solution_tag=_YYYYMMDD_HHMMSS validation_tag=_YYYYMMDD_HHMMSS
 ```
 
-### Evaluation of subject LLM on generated capabilities
+### Evaluation Pipeline
 
-Evaluates the subject LLM on the generated capabilities and calculates a score for each.
+The evaluation pipeline evaluates subject LLMs on the generated and validated tasks using [Inspect AI](https://inspect.aisi.org.uk/).
 
-```bash
-python -m src.run_evaluation
-```
+- **Stage 0**: Setup and dataset preparation (validate inputs, create datasets - no LLM calls)
+- **Stage 1**: Evaluation execution (run Inspect AI evaluations - creates `eval_tag`)
+- **Stage 2**: Score aggregation (compute capability scores - no LLM calls)
 
-### Capability selection/generation using active learning
-
-Utilize the capability and the corresponding subject LLM score to select or generate a new capability.
+#### Run All Evaluation Stages
 
 ```bash
-python -m src.run_lbo
+# Requires validation_tag from Generation Stage 5
+python -m src.run_eval_pipeline validation_tag=_YYYYMMDD_HHMMSS
 ```
+
+#### Run Individual Evaluation Stages
+
+```bash
+# Stage 0: Setup and dataset preparation
+python -m src.run_eval_pipeline stage=0 validation_tag=_YYYYMMDD_HHMMSS
+
+# Stage 1: Evaluation execution (also runs Stage 0 first)
+python -m src.run_eval_pipeline stage=1 validation_tag=_YYYYMMDD_HHMMSS
+
+# Stage 2: Score aggregation (requires eval_tag from Stage 1)
+python -m src.run_eval_pipeline stage=2 eval_tag=_YYYYMMDD_HHMMSS
+```
+
+#### Configure Subject LLMs
+
+Edit `src/cfg/run_cfg.yaml` to specify which LLMs to evaluate:
+
+```yaml
+eval_cfg:
+  subject_llms:
+    - name: gpt-4o
+      provider: openai
+    - name: claude-3-sonnet
+      provider: anthropic
+  judge_llm:
+    name: gpt-4o-mini
+    provider: openai
+```
+
+See `src/schemas/EVALUATION_PIPELINE_SCHEMAS.md` for detailed evaluation pipeline documentation.
+
+### Legacy: LBO (Latent Bayesian Optimization)
+
+The previous version of the repository included LBO for intelligent capability selection during evaluation. This functionality has been moved to the `legacy/` directory for reference. See `legacy/README.md` for details.
+
 ### Agentic Generation Scripts
 
 These scripts implement the multi-agent debate workflow for automated generation of areas, capabilities, tasks, and solutions.
@@ -276,9 +311,11 @@ python static_vs_generated.py
 When implementing new features or modifying existing pipeline stages:
 
 1. **Follow Schema Guidelines**: All data objects must use the schema classes defined in `src/schemas/`:
-   - Use `Domain`, `Area`, `Capability`, `Task`, `TaskSolution`, `ValidationResult` objects
-   - Load/save using schema IO functions from `src/schemas/io_utils.py` (e.g., `load_solution()`, `save_validation()`)
-   - See `src/schemas/PIPELINE_SCHEMAS.md` for detailed schema documentation
+   - **Generation Pipeline**: Use `Domain`, `Area`, `Capability`, `Task`, `TaskSolution`, `ValidationResult` objects
+   - **Evaluation Pipeline**: Use `EvalConfig`, `EvalDataset`, `CapabilityScore` objects
+   - Load/save using schema IO functions from `src/schemas/io_utils.py` and `src/schemas/eval_io_utils.py`
+   - See `src/schemas/GENERATION_PIPELINE_SCHEMAS.md` for generation pipeline documentation
+   - See `src/schemas/EVALUATION_PIPELINE_SCHEMAS.md` for evaluation pipeline documentation
 
 2. **Use Model Call Utilities**: All LLM interactions must use the standardized model client utilities:
    - Import from `src.utils.model_client_utils`
