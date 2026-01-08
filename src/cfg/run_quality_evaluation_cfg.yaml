@@ -2,14 +2,40 @@ prompt_cfg:
   sys_msg: Compute benchmark quality metrics from existing scores.
 
 quality_eval_cfg:
-  # Absolute path to the directory that directly contains per-model score folders.
   scores_root_dir: "/projects/DeepLesion/projects/automated_capability_evaluation/data/scores_sample"
   scores_subdir: "scores"
-  # List of absolute paths to prior datasets for novelty computation.
-  # Each path should point to a directory containing per-model score folders (same structure as scores_root_dir).
-  # Models must be consistent across all datasets.
   prior_datasets:
     - "/projects/DeepLesion/projects/automated_capability_evaluation/data/scores_sample/math-500"
+  
+  capabilities_dir: "/projects/aieng/public/ace/artifacts/negin_ace/taks/math/"
+  
+  real_data_dir: null
+  
+  real_dataloader_config:
+    type: "huggingface"
+    dataset_name: "HuggingFaceH4/MATH-500"
+    split: "test"
+    subset: null
+    text_field: "problem"
+  
+  # embedding_backend: "openai" uses OpenAI embeddings, "huggingface" uses sentence-transformers
+  embedding_backend: "openai"
+  embedding_model: "text-embedding-3-large"
+  # embedding_dimensions is ignored for HuggingFace models (uses model's native dimension)
+  embedding_dimensions: 3072
+  
+  diversity_metrics:
+    - "pad"
+    - "mmd"
+    - "mdm"
+  
+  pad_classifier: "LogisticRegression"  # Options: "LogisticRegression", "RandomForest", "MLP"
+  
+  mmd_kernel: "polynomial"  # Options: "polynomial", "rbf", "laplacian", "linear", "sigmoid"
+  mmd_degree: 3
+  
+  mdm_n_clusters: 5
+  mdm_metric: "euclidean"
 
 exp_cfg:
   exp_id: "quality_evaluation"

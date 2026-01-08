@@ -7,6 +7,19 @@ from typing import Iterable, List, Mapping, Union
 
 import numpy as np
 from scipy.stats import spearmanr
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics.pairwise import (
+    polynomial_kernel,
+    rbf_kernel,
+    laplacian_kernel,
+    linear_kernel,
+    sigmoid_kernel,
+)
+import kmedoids
+from sklearn.metrics import pairwise_distances
 
 
 def compute_benchmark_difficulty(
@@ -284,5 +297,157 @@ def compute_benchmark_novelty(
     # Clamp to [0, 1] in case of numerical issues (e.g., negative correlation)
     novelty = max(0.0, min(1.0, 1.0 - rank_corr))
     return novelty
+
+
+# ===========================
+# ---- Diversity Metrics (PAD, MMD, MDM)
+# ===========================
+
+def compute_pad(
+    x_syn_emb: np.ndarray,
+    x_real_emb: np.ndarray,
+    classifier_name: str = "LogisticRegression",
+) -> float:
+    """
+    Compute the Proxy-A-Distance (PAD) between two sets of embeddings.
+    
+    PAD measures the distance between synthetic and real data distributions
+    by training a classifier to distinguish between them. Lower values indicate
+    more similar distributions.
+    
+    Args:
+        x_syn_emb: Embeddings of synthetic data, shape (n_samples, n_features)
+        x_real_emb: Embeddings of real data, shape (n_samples, n_features)
+        classifier_name: Classifier to use ("LogisticRegression", "RandomForest", "MLP")
+    
+    Returns:
+        float: PAD value (typically in range [0, 2], lower is better)
+    """
+    y_syn_train = np.zeros(len(x_syn_emb))
+    y_real_train = np.ones(len(x_real_emb))
+    x_train = np.concatenate([x_syn_emb, x_real_emb], axis=0)
+    y_train = np.concatenate([y_syn_train, y_real_train], axis=0)
+    
+    # Split into train/validation
+    x_train, x_val, y_train, y_val = train_test_split(
+        x_train, y_train, test_size=0.2, random_state=42
+    )
+    
+    # Classifier
+    if classifier_name == "LogisticRegression":
+        classifier = LogisticRegression(random_state=42, max_iter=1000)
+    elif classifier_name == "RandomForest":
+        classifier = RandomForestClassifier(random_state=42)
+    elif classifier_name == "MLP":
+        classifier = MLPClassifier(
+            hidden_layer_sizes=(128, 64),
+            activation='relu',
+            max_iter=200,
+            random_state=42
+        )
+    else:
+        raise ValueError(f"Unknown classifier: {classifier_name}")
+    
+    classifier.fit(x_train, y_train)
+    y_pred_proba = classifier.predict_proba(x_val)[:, 1]
+    average_loss = np.mean(np.abs(y_pred_proba - y_val))
+    return 2 * (1 - 2 * average_loss)
+
+
+def compute_mmd(
+    X: np.ndarray,
+    Y: np.ndarray,
+    kernel: str = "polynomial",
+    degree: int = 3,
+    gamma: float | None = None,
+    coef0: float = 1,
+) -> float:
+    """
+    Compute the Maximum Mean Discrepancy (MMD) between two samples: X and Y.
+    
+    MMD measures the distance between two distributions in a reproducing kernel
+    Hilbert space. Lower values indicate more similar distributions.
+    
+    Args:
+        X: First sample, shape (n_samples_X, n_features)
+        Y: Second sample, shape (n_samples_Y, n_features)
+        kernel: Kernel name ("polynomial", "rbf", "laplacian", "linear", "sigmoid")
+        degree: Degree for polynomial kernel (default: 3)
+        gamma: Gamma parameter for kernels (default: None, auto)
+        coef0: Coef0 for polynomial/sigmoid kernel
+    
+    Returns:
+        float: MMD value (non-negative, lower is better)
+    """
+    kernel = kernel.lower() if isinstance(kernel, str) else kernel
+    if kernel == "polynomial":
+        kfunc = polynomial_kernel
+        XX = kfunc(X, X, degree=degree, gamma=gamma, coef0=coef0)
+        YY = kfunc(Y, Y, degree=degree, gamma=gamma, coef0=coef0)
+        XY = kfunc(X, Y, degree=degree, gamma=gamma, coef0=coef0)
+    elif kernel == "rbf":
+        kfunc = rbf_kernel
+        XX = kfunc(X, X, gamma=gamma)
+        YY = kfunc(Y, Y, gamma=gamma)
+        XY = kfunc(X, Y, gamma=gamma)
+    elif kernel == "laplacian":
+        kfunc = laplacian_kernel
+        XX = kfunc(X, X, gamma=gamma)
+        YY = kfunc(Y, Y, gamma=gamma)
+        XY = kfunc(X, Y, gamma=gamma)
+    elif kernel == "linear":
+        kfunc = linear_kernel
+        XX = kfunc(X, X)
+        YY = kfunc(Y, Y)
+        XY = kfunc(X, Y)
+    elif kernel == "sigmoid":
+        kfunc = sigmoid_kernel
+        XX = kfunc(X, X, gamma=gamma, coef0=coef0)
+        YY = kfunc(Y, Y, gamma=gamma, coef0=coef0)
+        XY = kfunc(X, Y, gamma=gamma, coef0=coef0)
+    else:
+        raise ValueError(f"Unknown kernel: {kernel}")
+    return np.mean(XX) + np.mean(YY) - 2 * np.mean(XY)
+
+
+def compute_mdm(
+    embeddings: np.ndarray,
+    dummy_placeholder: any = None,  # noqa: ANN001
+    n_clusters: int = 5,
+    metric: str = "euclidean",
+) -> float:
+    """
+    Compute the mean distance of points in each cluster to its medoid, then average across clusters.
+    
+    MDM measures the internal diversity/coherence of a set of embeddings by clustering
+    them and computing the average distance to cluster medoids. Lower values indicate
+    more coherent/diverse clusters.
+    
+    Args:
+        embeddings: Embedding matrix of shape (n_samples, n_features)
+        dummy_placeholder: Dummy placeholder to match the signature (unused)
+        n_clusters: Number of clusters/medoids to use
+        metric: Distance metric for KMedoids ('euclidean', 'cosine', etc.)
+    
+    Returns:
+        float: Mean distance to medoid (averaged over all clusters)
+    """
+    n_samples = len(embeddings)
+    if n_samples < n_clusters:
+        n_clusters = max(1, n_samples)
+    
+    diss = pairwise_distances(embeddings, metric=metric)
+    pam_result = kmedoids.fasterpam(diss, n_clusters, random_state=42)
+    labels = pam_result.labels
+    medoid_indices = pam_result.medoids
+    
+    total_dist = 0.0
+    for i, medoid_idx in enumerate(medoid_indices):
+        cluster_points_idx = np.where(labels == i)[0]
+        if len(cluster_points_idx) == 0:
+            continue
+        dists = diss[cluster_points_idx, medoid_idx]
+        total_dist += np.mean(dists)
+    return total_dist / n_clusters
 
 
