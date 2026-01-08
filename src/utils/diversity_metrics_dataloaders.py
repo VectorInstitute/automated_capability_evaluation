@@ -78,38 +78,23 @@ class DatasetDataloader(ABC):
 
 
 class CapabilityDataloader(DatasetDataloader):
-    """Dataloader for capability format (capability.json structure).
-    
-    Can handle either:
-    - A single capability directory (contains capability.json)
-    - A parent directory containing multiple capability subdirectories
-    """
+    """Dataloader for capability format (capability.json structure)."""
     
     def __init__(self, capability_dir: str):
-        """Initialize with a capability directory.
-        
-        Args:
-            capability_dir: Path to capability directory or parent directory with capability subdirectories
-        """
+        """Initialize with a capability directory or parent directory."""
         self.capability_dir = capability_dir
         self.capabilities = self._load_capabilities()
     
     def _load_capabilities(self) -> List[Dict[str, Any]]:
-        """Load capabilities from directory.
-        
-        Returns:
-            List of capability data dictionaries
-        """
+        """Load capabilities from directory."""
         capabilities = []
         
-        # Check if this is a single capability directory (has capability.json)
         single_cap_json = os.path.join(self.capability_dir, "capability.json")
         if os.path.exists(single_cap_json):
             with open(single_cap_json, 'r') as f:
                 capabilities.append(json.load(f))
             return capabilities
         
-        # Otherwise, treat as parent directory with multiple capability subdirectories
         if not os.path.isdir(self.capability_dir):
             raise FileNotFoundError(f"Capability directory does not exist: {self.capability_dir}")
         
@@ -168,19 +153,19 @@ class HuggingFaceDatasetDataloader(DatasetDataloader):
         self.text_field = text_field
     
     def get_name(self, item: Dict[str, Any]) -> str:
-        return ""  # Not used in simplified version
+        return ""
     
     def get_description(self, item: Dict[str, Any]) -> str:
         return str(item.get(self.text_field, ""))
     
     def get_area(self, item: Dict[str, Any]) -> Optional[str]:
-        return None  # Not used in simplified version
+        return None
     
     def get_instructions(self, item: Dict[str, Any]) -> Optional[str]:
-        return None  # Not used in simplified version
+        return None
     
     def get_sample_tasks(self, item: Dict[str, Any], max_samples: int = 5) -> List[str]:
-        return []  # Not used in simplified version
+        return []
     
     def extract_text(self, item: Any, max_task_samples: int = 5) -> str:
         """Extract text from the specified field.
@@ -326,7 +311,6 @@ def load_texts_from_dataloader(dataloader: DatasetDataloader) -> List[str]:
     texts = []
     
     if isinstance(dataloader, CapabilityDataloader):
-        # Capability format: iterate over all capabilities
         for capability_data in dataloader.capabilities:
             texts.append(dataloader.extract_text(capability_data))
     elif isinstance(dataloader, HuggingFaceDatasetDataloader):

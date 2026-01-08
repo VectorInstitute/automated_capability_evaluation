@@ -412,7 +412,6 @@ def compute_mmd(
 
 def compute_mdm(
     embeddings: np.ndarray,
-    dummy_placeholder: any = None,  # noqa: ANN001
     n_clusters: int = 5,
     metric: str = "euclidean",
 ) -> float:
@@ -425,7 +424,6 @@ def compute_mdm(
     
     Args:
         embeddings: Embedding matrix of shape (n_samples, n_features)
-        dummy_placeholder: Dummy placeholder to match the signature (unused)
         n_clusters: Number of clusters/medoids to use
         metric: Distance metric for KMedoids ('euclidean', 'cosine', etc.)
     

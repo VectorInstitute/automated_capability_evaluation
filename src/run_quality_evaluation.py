@@ -499,7 +499,6 @@ def main(cfg: DictConfig) -> None:
                     mdm_metric = getattr(cfg.quality_eval_cfg, "mdm_metric", "euclidean")
                     mdm_score = compute_mdm(
                         synth_embeddings,
-                        dummy_placeholder=None,
                         n_clusters=mdm_n_clusters,
                         metric=mdm_metric,
                     )
