@@ -16,6 +16,7 @@ class Task:
 
     task_id: str
     task: str
+    capability: Capability
     task_type: Optional[str] = None  # e.g., "multiple_choice", "open_ended"
     solution_type: Optional[str] = None  # e.g., "multiple_choice", "open_ended"
     difficulty: Optional[str] = None  # e.g., "easy", "medium", "hard"
@@ -23,7 +24,6 @@ class Task:
     choices: Optional[List[Dict[str, str]]] = (
         None  # [{"label": "A", "solution": "..."}]
     )
-    capability: Capability
     generation_metadata: Optional[Dict] = field(default_factory=dict)
 
     def to_dict(self):
