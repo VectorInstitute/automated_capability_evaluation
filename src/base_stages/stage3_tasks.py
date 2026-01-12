@@ -9,7 +9,7 @@ from pathlib import Path
 
 from omegaconf import DictConfig
 
-from src.base_stages.generate_diverse_tasks import (
+from src.base_stages.generate_diverse_tasks_pipeline import (
     generate_diverse_tasks_for_capability,
 )
 from src.schemas.io_utils import load_capabilities, save_tasks

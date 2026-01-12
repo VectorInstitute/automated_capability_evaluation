@@ -6,12 +6,12 @@ from typing import List
 
 from autogen_core.models import ChatCompletionClient
 
-from src.base_stages.prompts import (
+from src.schemas.area_schemas import Area
+from src.schemas.domain_schemas import Domain
+from src.utils.base_generation_prompts import (
     AREAS_GENERATION_RESPONSE_JSON_FORMAT,
     AREAS_GENERATION_USER_PROMPT,
 )
-from src.schemas.area_schemas import Area
-from src.schemas.domain_schemas import Domain
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 

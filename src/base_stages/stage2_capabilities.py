@@ -17,7 +17,7 @@ from src.utils import constants
 from src.utils.capability_management_utils import (
     filter_schema_capabilities_by_embeddings,
 )
-from src.utils.embedding_utils import generate_schema_capabilities_embeddings
+from src.utils.embedding_utils import generate_capability_embeddings
 from src.utils.model_client_utils import get_standard_model_client
 from src.utils.timestamp_utils import iso_timestamp, timestamp_tag
 
@@ -125,8 +125,8 @@ def run_stage2(
             logger.warning(f"No capabilities generated for area {area.name}. Skipping.")
             continue
 
-        # Generate embeddings for schema capabilities
-        embeddings = generate_schema_capabilities_embeddings(
+        # Generate embeddings for capabilities
+        embeddings = generate_capability_embeddings(
             capabilities=capabilities,
             embedding_model_name=cfg.embedding_cfg.embedding_model,
             embed_dimensions=cfg.embedding_cfg.embedding_size,

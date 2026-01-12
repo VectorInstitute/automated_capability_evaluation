@@ -36,10 +36,12 @@ class Area:
     @classmethod
     def from_dict(cls, data: dict):
         """Create from dictionary."""
-        domain = Domain(
-            name=data["domain"],
-            domain_id=data["domain_id"],
-            description=data.get("domain_description"),
+        domain = Domain.from_dict(
+            {
+                "name": data["domain"],
+                "domain_id": data["domain_id"],
+                "description": data.get("domain_description"),
+            }
         )
         return cls(
             name=data["name"],

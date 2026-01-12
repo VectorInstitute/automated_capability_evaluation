@@ -13,8 +13,9 @@ Stages:
 Utilities:
 - generate_areas: Area generation using LLM
 - generate_capabilities: Capability generation using LLM
-- generate_diverse_tasks: Orchestrates subtopic→combination→blueprint→task pipeline
-- generate_tasks: Task (question + options) generation
+- generate_diverse_tasks_pipeline: Orchestrates subtopic→combination→blueprint→task
+  pipeline
+- generate_tasks_from_blueprints: Task (question + options) generation from blueprints
 - solve_tasks: Task solving to determine correct answers
 - validate_tasks: Task validation
 

@@ -5,8 +5,8 @@ import logging
 
 from autogen_core.models import ChatCompletionClient
 
-from src.base_stages.prompts import format_subtopic_prompt
 from src.base_stages.task_dataclasses import SubTopic
+from src.utils.base_generation_prompts import format_subtopic_prompt
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 

@@ -6,19 +6,19 @@ from typing import List
 
 from autogen_core.models import ChatCompletionClient
 
-from src.base_stages.prompts import (
+from src.base_stages.task_dataclasses import Blueprint
+from src.schemas.task_schemas import Task
+from src.utils.base_generation_prompts import (
     format_options_prompt,
     format_question_prompt,
 )
-from src.base_stages.task_dataclasses import Blueprint
-from src.schemas.task_schemas import Task
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
 logger = logging.getLogger(__name__)
 
 
-def generate_tasks(
+def generate_tasks_from_blueprints(
     capability,
     blueprints: list[Blueprint],
     client: ChatCompletionClient,
@@ -107,21 +107,26 @@ def generate_tasks(
                 for choice_key, choice_text in options.items():
                     task_text += f"{choice_key}. {choice_text}\n"
 
-                # Store generation metadata
-                generation_metadata = {
-                    "method": "diverse_task_generation",
-                    "blueprint_id": blueprint.combination_id,
-                    "blueprint": blueprint.blueprint,
-                    "subtopic": blueprint.subtopic,
-                    "difficulty": blueprint.difficulty,
-                    "reasoning": blueprint.reasoning,
-                }
+                choices_structured = [
+                    {"label": label, "solution": text}
+                    for label, text in options.items()
+                ]
 
                 task = Task(
                     task_id=task_id,
                     task=task_text,
+                    task_type="multiple_choice",
+                    solution_type="multiple_choice",
+                    difficulty=blueprint.difficulty,
+                    bloom_level=blueprint.reasoning,
+                    choices=choices_structured,
                     capability=capability,
-                    generation_metadata=generation_metadata,
+                    generation_metadata={
+                        "method": "diverse_task_generation",
+                        "blueprint_id": blueprint.combination_id,
+                        "blueprint": blueprint.blueprint,
+                        "subtopic": blueprint.subtopic,
+                    },
                 )
                 all_tasks.append(task)
 

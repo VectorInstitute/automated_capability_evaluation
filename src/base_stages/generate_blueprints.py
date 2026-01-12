@@ -5,12 +5,12 @@ import logging
 
 from autogen_core.models import ChatCompletionClient
 
-from src.base_stages.prompts import format_blueprint_prompt
 from src.base_stages.task_constants import (
     BLOOMS_TAXONOMY,
     DIFFICULTY_LEVELS,
 )
 from src.base_stages.task_dataclasses import Blueprint, Combination
+from src.utils.base_generation_prompts import format_blueprint_prompt
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 

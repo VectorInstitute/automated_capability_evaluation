@@ -11,9 +11,9 @@ from typing import List, Optional
 
 from autogen_core.models import ChatCompletionClient
 
-from src.base_stages.prompts import format_solution_prompt
 from src.schemas.solution_schemas import TaskSolution
 from src.schemas.task_schemas import Task
+from src.utils.base_generation_prompts import format_solution_prompt
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
