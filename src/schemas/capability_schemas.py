@@ -14,23 +14,19 @@ from src.schemas.area_schemas import Area
 class Capability:
     """Dataclass for capability."""
 
-    name: str
+    capability_name: str
     capability_id: str
     area: Area
-    description: str
+    capability_description: str
     generation_metadata: Optional[Dict] = field(default_factory=dict)
 
     def to_dict(self):
         """Convert to dictionary."""
         result = {
-            "name": self.name,
+            "capability_name": self.capability_name,
             "capability_id": self.capability_id,
-            "area": self.area.name,
-            "area_id": self.area.area_id,
-            "area_description": self.area.description,
-            "domain": self.area.domain.name,
-            "domain_id": self.area.domain.domain_id,
-            "description": self.description,
+            "capability_description": self.capability_description,
+            **self.area.to_dict(),
         }
         if self.generation_metadata:
             result["generation_metadata"] = self.generation_metadata
@@ -39,20 +35,11 @@ class Capability:
     @classmethod
     def from_dict(cls, data: dict):
         """Create from dictionary."""
-        area = Area.from_dict(
-            {
-                "name": data["area"],
-                "area_id": data["area_id"],
-                "description": data["area_description"],
-                "domain": data["domain"],
-                "domain_id": data["domain_id"],
-                "domain_description": data.get("domain_description"),
-            }
-        )
+        area = Area.from_dict(data)
         return cls(
-            name=data["name"],
+            capability_name=data["capability_name"],
             capability_id=data["capability_id"],
             area=area,
-            description=data["description"],
+            capability_description=data["capability_description"],
             generation_metadata=data.get("generation_metadata", {}),
         )

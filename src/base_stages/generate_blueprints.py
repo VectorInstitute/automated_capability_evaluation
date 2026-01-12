@@ -44,10 +44,10 @@ def generate_blueprints(
         )
 
         system_prompt, user_prompt = format_blueprint_prompt(
-            capability_name=capability.name,
-            capability_description=capability.description,
-            capability_domain=capability.area.domain.name,
-            capability_area=capability.area.name,
+            capability_name=capability.capability_name,
+            capability_description=capability.capability_description,
+            capability_domain=capability.area.domain.domain_name,
+            capability_area=capability.area.area_name,
             subtopic=combo.content,
             difficulty=combo.difficulty,
             difficulty_description=DIFFICULTY_LEVELS[combo.difficulty.lower()][

@@ -42,7 +42,9 @@ def generate_diverse_tasks_for_capability(
     -------
         List of Task objects (questions + options, no answers)
     """
-    logger.info(f"Generating diverse tasks for capability: {capability.name}")
+    logger.info(
+        f"Generating diverse tasks for capability: {capability.capability_name}"
+    )
 
     logger.info("Step 1: Extracting sub-topics")
     subtopics = extract_subtopics(capability, client, min_subtopics, max_subtopics)

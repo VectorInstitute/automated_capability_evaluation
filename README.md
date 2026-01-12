@@ -278,7 +278,7 @@ When implementing new features or modifying existing pipeline stages:
 1. **Follow Schema Guidelines**: All data objects must use the schema classes defined in `src/schemas/`:
    - Use `Domain`, `Area`, `Capability`, `Task`, `TaskSolution`, `ValidationResult` objects
    - Load/save using schema IO functions from `src/schemas/io_utils.py` (e.g., `load_solution()`, `save_validation()`)
-   - See `src/schemas/PIPELINE_SCHEMAS.md` for detailed schema documentation
+   - See `src/schemas/GENERATION_PIPELINE_SCHEMAS.md` for detailed schema documentation
 
 2. **Use Model Call Utilities**: All LLM interactions must use the standardized model client utilities:
    - Import from `src.utils.model_client_utils`

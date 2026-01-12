@@ -36,11 +36,11 @@ from src.schemas import (
 )
 
 # Create area
-domain = Domain(name="Personal Finance", domain_id="domain_000")
+domain = Domain(domain_name="Personal Finance", domain_id="domain_000")
 area = Area(
-    name="Cash Flow & Budget Management",
+    area_name="Cash Flow & Budget Management",
     area_id="area_000",
-    description="Design and monitor budgets...",
+    area_description="Design and monitor budgets...",
     domain=domain,
     # generation_metadata is optional
 )

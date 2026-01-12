@@ -52,10 +52,10 @@ def solve_tasks(
             task_gen_metadata = task.generation_metadata or {}
 
             system_prompt, user_prompt = format_solution_prompt(
-                capability_domain=capability.area.domain.name,
-                capability_area=capability.area.name,
-                capability_name=capability.name,
-                capability_description=capability.description,
+                capability_domain=capability.area.domain.domain_name,
+                capability_area=capability.area.area_name,
+                capability_name=capability.capability_name,
+                capability_description=capability.capability_description,
                 task_text=task.task,
             )
 

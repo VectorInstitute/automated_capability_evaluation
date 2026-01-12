@@ -36,14 +36,7 @@ class Task:
             "difficulty": self.difficulty,
             "bloom_level": self.bloom_level,
             "choices": self.choices,
-            "capability_id": self.capability.capability_id,
-            "capability": self.capability.name,
-            "capability_description": self.capability.description,
-            "area": self.capability.area.name,
-            "area_id": self.capability.area.area_id,
-            "area_description": self.capability.area.description,
-            "domain": self.capability.area.domain.name,
-            "domain_id": self.capability.area.domain.domain_id,
+            **self.capability.to_dict(),
         }
         if self.generation_metadata:
             result["generation_metadata"] = self.generation_metadata
@@ -52,19 +45,7 @@ class Task:
     @classmethod
     def from_dict(cls, data: dict):
         """Create from dictionary."""
-        capability = Capability.from_dict(
-            {
-                "name": data["capability"],
-                "capability_id": data["capability_id"],
-                "description": data["capability_description"],
-                "area": data["area"],
-                "area_id": data["area_id"],
-                "area_description": data["area_description"],
-                "domain": data["domain"],
-                "domain_id": data["domain_id"],
-                "domain_description": data.get("domain_description"),
-            }
-        )
+        capability = Capability.from_dict(data)
         return cls(
             task_id=data["task_id"],
             task=data["task"],

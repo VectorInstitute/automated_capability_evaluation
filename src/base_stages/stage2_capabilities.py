@@ -93,14 +93,14 @@ def run_stage2(
 
         if is_resume and capabilities_path.exists():
             logger.info(
-                f"Skipping area {area.name} ({area.area_id}) - "
+                f"Skipping area {area.area_name} ({area.area_id}) - "
                 f"capabilities already exist at {capabilities_path}"
             )
             continue
 
         logger.info(
             f"Generating {num_capabilities_per_area} capabilities for area: "
-            f"{area.name} ({area.area_id}) [target: {target_num_capabilities_per_area}]"
+            f"{area.area_name} ({area.area_id}) [target: {target_num_capabilities_per_area}]"
         )
 
         # Generate capabilities
@@ -112,7 +112,7 @@ def run_stage2(
         )
 
         # Sort capabilities
-        capabilities = sorted(capabilities, key=lambda x: x.name)
+        capabilities = sorted(capabilities, key=lambda x: x.capability_name)
         if len(capabilities) < target_num_capabilities_per_area:
             logger.warning(
                 f"Only {len(capabilities)} capabilities were created. "
@@ -122,7 +122,9 @@ def run_stage2(
 
         # Skip embedding/filtering if no capabilities were generated
         if not capabilities:
-            logger.warning(f"No capabilities generated for area {area.name}. Skipping.")
+            logger.warning(
+                f"No capabilities generated for area {area.area_name}. Skipping."
+            )
             continue
 
         # Generate embeddings for capabilities

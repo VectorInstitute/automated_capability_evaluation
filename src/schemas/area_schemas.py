@@ -14,20 +14,19 @@ from src.schemas.domain_schemas import Domain
 class Area:
     """Dataclass for domain area."""
 
-    name: str
+    area_name: str
     area_id: str
     domain: Domain
-    description: str
+    area_description: str
     generation_metadata: Optional[Dict] = field(default_factory=dict)
 
     def to_dict(self):
         """Convert to dictionary."""
         result = {
-            "name": self.name,
+            "area_name": self.area_name,
             "area_id": self.area_id,
-            "domain": self.domain.name,
-            "domain_id": self.domain.domain_id,
-            "description": self.description,
+            "area_description": self.area_description,
+            **self.domain.to_dict(),
         }
         if self.generation_metadata:
             result["generation_metadata"] = self.generation_metadata
@@ -36,17 +35,11 @@ class Area:
     @classmethod
     def from_dict(cls, data: dict):
         """Create from dictionary."""
-        domain = Domain.from_dict(
-            {
-                "name": data["domain"],
-                "domain_id": data["domain_id"],
-                "description": data.get("domain_description"),
-            }
-        )
+        domain = Domain.from_dict(data)
         return cls(
-            name=data["name"],
+            area_name=data["area_name"],
             area_id=data["area_id"],
             domain=domain,
-            description=data["description"],
+            area_description=data["area_description"],
             generation_metadata=data.get("generation_metadata", {}),
         )

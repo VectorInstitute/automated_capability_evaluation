@@ -40,7 +40,7 @@ def generate_areas(
     user_prompt = AREAS_GENERATION_USER_PROMPT.format(
         num_areas=num_areas,
         num_capabilities_per_area=num_capabilities_per_area,
-        domain=domain.name,
+        domain=domain.domain_name,
         response_json_format=AREAS_GENERATION_RESPONSE_JSON_FORMAT,
     )
 
@@ -56,10 +56,10 @@ def generate_areas(
     areas = []
     for idx, area_name in enumerate(response.get("areas", [])):
         area = Area(
-            name=area_name,
+            area_name=area_name,
             area_id=f"area_{idx:03d}",
             domain=domain,
-            description="",
+            area_description="",
         )
         areas.append(area)
 

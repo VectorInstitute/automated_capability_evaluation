@@ -196,9 +196,7 @@ def generate_capability_embeddings(
     texts = []
     for capability in capabilities:
         # Create representation string from area, name, and description
-        rep_string = (
-            f"{capability.area.name}, {capability.name}, {capability.description}"
-        )
+        rep_string = f"{capability.area.area_name}, {capability.capability_name}, {capability.capability_description}"
         logger.debug(f"Representation string: {rep_string}")
         texts.append(rep_string)
 

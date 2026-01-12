@@ -22,10 +22,12 @@ Utilities:
 Supporting modules:
 - task_constants: Bloom's taxonomy, difficulty levels
 - task_dataclasses: SubTopic, Combination, Blueprint, etc.
-- task_prompts: All LLM prompts for task generation pipeline
 - extract_subtopics: Sub-topic extraction
 - find_combinations: Valid combination finding
 - generate_blueprints: Blueprint generation
+
+Prompts:
+- Prompts are in src/utils/base_generation_prompts.py
 """
 
 from src.base_stages.stage0_setup import run_stage0

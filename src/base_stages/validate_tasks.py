@@ -39,25 +39,43 @@ def validate_tasks(
         capability = task_solution.task_obj.capability
 
         try:
-            blueprint_info = task_solution.generation_metadata or {}
-            blueprint_text = blueprint_info.get("blueprint", "N/A")
+            task_obj = task_solution.task_obj
 
+            # Use structured fields from Task if available, fallback to metadata/parsing
+            blueprint_text = "N/A"
+            if task_obj.difficulty and task_obj.bloom_level:
+                blueprint_text = (
+                    f"Difficulty: {task_obj.difficulty}, "
+                    f"Bloom's Level: {task_obj.bloom_level}"
+                )
+            elif task_solution.generation_metadata:
+                blueprint_text = task_solution.generation_metadata.get(
+                    "blueprint", "N/A"
+                )
+
+            # Extract question (first part before choices)
             task_lines = task_solution.task.strip().split("\n")
-            question = task_lines[0] if task_lines else ""
+            question = task_lines[0] if task_lines else task_solution.task
 
+            # Use structured choices if available, otherwise parse from text
             choices = {}
-            for task_line in task_lines[1:]:
-                line = task_line.strip()
-                if line and len(line) > 2 and line[1] == ".":
-                    choice_letter = line[0]
-                    choice_text = line[3:].strip()
-                    choices[choice_letter] = choice_text
+            if task_obj.choices:
+                for choice in task_obj.choices:
+                    choices[choice["label"]] = choice["solution"]
+            else:
+                # Fallback: parse from task text
+                for task_line in task_lines[1:]:
+                    line = task_line.strip()
+                    if line and len(line) > 2 and line[1] == ".":
+                        choice_letter = line[0]
+                        choice_text = line[3:].strip()
+                        choices[choice_letter] = choice_text
 
             system_prompt, user_prompt = format_verification_prompt(
-                capability_domain=capability.area.domain.name,
-                capability_area=capability.area.name,
-                capability_name=capability.name,
-                capability_description=capability.description,
+                capability_domain=capability.area.domain.domain_name,
+                capability_area=capability.area.area_name,
+                capability_name=capability.capability_name,
+                capability_description=capability.capability_description,
                 task_blueprint=blueprint_text,
                 question=question,
                 option_a=choices.get("A", ""),

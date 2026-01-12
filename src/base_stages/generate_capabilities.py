@@ -45,7 +45,7 @@ def generate_capabilities(
     # Generate capabilities in batches
     num_capabilities_left = num_capabilities
     for run in range(num_runs):
-        logger.info(f"Capability generation for area: {area.name} at run {run}")
+        logger.info(f"Capability generation for area: {area.area_name} at run {run}")
 
         run_capabilities = generate_capabilities_using_llm(
             area=area,
@@ -82,10 +82,10 @@ def generate_capabilities_using_llm(
     """
     sys_prompt = CAPABILITY_GENERATION_SYSTEM_PROMPT
     user_prompt = CAPABILITY_GENERATION_USER_PROMPT.format(
-        area=area.name,
-        domain=area.domain.name,
+        area=area.area_name,
+        domain=area.domain.domain_name,
         num_capabilities=num_capabilities,
-        prev_capabilities="\n".join([elm.name for elm in prev_capabilities]),
+        prev_capabilities="\n".join([elm.capability_name for elm in prev_capabilities]),
     )
 
     response = asyncio.run(
@@ -104,10 +104,10 @@ def generate_capabilities_using_llm(
         try:
             capability_id = f"cap_{(idx + id_offset):03d}"
             capability = Capability(
-                name=capability_dict["name"],
+                capability_name=capability_dict["name"],
                 capability_id=capability_id,
                 area=area,
-                description=capability_dict["description"],
+                capability_description=capability_dict["description"],
             )
         except Exception as e:
             logger.warning(

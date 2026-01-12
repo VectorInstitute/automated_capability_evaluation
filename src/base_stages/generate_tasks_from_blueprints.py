@@ -61,10 +61,10 @@ def generate_tasks_from_blueprints(
                 # Step 1: Generate the question
                 logger.debug(f"  {task_id}: Generating question...")
                 question_system, question_user = format_question_prompt(
-                    capability_name=capability.name,
-                    capability_description=capability.description,
-                    capability_domain=capability.area.domain.name,
-                    capability_area=capability.area.name,
+                    capability_name=capability.capability_name,
+                    capability_description=capability.capability_description,
+                    capability_domain=capability.area.domain.domain_name,
+                    capability_area=capability.area.area_name,
                     blueprint_description=blueprint.blueprint,
                 )
 
@@ -83,10 +83,10 @@ def generate_tasks_from_blueprints(
                 # Step 2: Generate the options
                 logger.debug(f"  {task_id}: Generating options...")
                 options_system, options_user = format_options_prompt(
-                    capability_name=capability.name,
-                    capability_description=capability.description,
-                    capability_domain=capability.area.domain.name,
-                    capability_area=capability.area.name,
+                    capability_name=capability.capability_name,
+                    capability_description=capability.capability_description,
+                    capability_domain=capability.area.domain.domain_name,
+                    capability_area=capability.area.area_name,
                     question=question_text,
                 )
 

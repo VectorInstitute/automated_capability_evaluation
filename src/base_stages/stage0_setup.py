@@ -43,9 +43,9 @@ def run_stage0(cfg: DictConfig) -> None:
 
     domain_id = "domain_000"
     domain_obj = Domain(
-        name=domain_name,
+        domain_name=domain_name,
         domain_id=domain_id,
-        description=None,
+        domain_description=None,
     )
 
     # Convert entire config to dictionary for experiment configuration

@@ -116,7 +116,7 @@ def run_stage3(
                 continue
 
             logger.info(
-                f"Generating tasks for capability: {capability.name} "
+                f"Generating tasks for capability: {capability.capability_name} "
                 f"({area_id}/{capability_id})"
             )
 
@@ -130,7 +130,9 @@ def run_stage3(
                     max_subtopics=max_subtopics,
                 )
 
-                logger.info(f"Generated {len(tasks)} tasks for {capability.name}")
+                logger.info(
+                    f"Generated {len(tasks)} tasks for {capability.capability_name}"
+                )
 
                 # Save tasks
                 metadata = PipelineMetadata(

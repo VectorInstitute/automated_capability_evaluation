@@ -11,25 +11,25 @@ from typing import Optional
 class Domain:
     """Dataclass for domain."""
 
-    name: str
+    domain_name: str
     domain_id: str
-    description: Optional[str] = None
+    domain_description: Optional[str] = None
 
     def to_dict(self):
         """Convert to dictionary."""
         result = {
-            "name": self.name,
+            "domain_name": self.domain_name,
             "domain_id": self.domain_id,
         }
-        if self.description is not None:
-            result["description"] = self.description
+        if self.domain_description is not None:
+            result["domain_description"] = self.domain_description
         return result
 
     @classmethod
     def from_dict(cls, data: dict):
         """Create from dictionary."""
         return cls(
-            name=data["name"],
+            domain_name=data["domain_name"],
             domain_id=data["domain_id"],
-            description=data.get("description"),
+            domain_description=data.get("domain_description"),
         )
