@@ -40,15 +40,17 @@ def get_standard_model_client(
         if "max_tokens" in kwargs:
             kwargs["max_completion_tokens"] = kwargs.pop("max_tokens")
 
-        # o-series models (o1, o3-mini, o4-mini) don't support custom temperature
+        # o-series and gpt-5 models don't support custom temperature
         # Remove temperature if it's set for these models
-        if any(key in n for key in ("o1-", "o3-", "o4-")):
-            if "temperature" in kwargs:
-                logger.debug(
-                    "Removing 'temperature' parameter for model '%s' - not supported",
-                    model_name,
-                )
-                kwargs.pop("temperature")
+        if (
+            any(key in n for key in ("o1-", "o3-", "o4-", "gpt-5"))
+            and "temperature" in kwargs
+        ):
+            logger.debug(
+                "Removing 'temperature' parameter for model '%s' - not supported",
+                model_name,
+            )
+            kwargs.pop("temperature")
 
         return OpenAIChatCompletionClient(model=model_name, seed=seed, **kwargs)
 

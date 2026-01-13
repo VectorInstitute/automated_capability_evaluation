@@ -47,17 +47,10 @@ def run_stage5(
         validation_tag = timestamp_tag()
         logger.info(f"Starting new Stage 5 with validation_tag: {validation_tag}")
 
-    # Initialize validator LLM client
-    validator_llm_gen_cfg = dict(
-        cfg.get("validator_llm", {})
-        .get("generation_cfg", {})
-        .get("task_validation", {})
-    )
-    validator_llm_name = cfg.get("validator_llm", {}).get(
-        "name", cfg.scientist_llm.name
-    )
+    # Initialize validator LLM client using task_verify config
+    validator_llm_gen_cfg = dict(cfg.scientist_llm.generation_cfg.task_verify)
     validator_llm_client = get_standard_model_client(
-        validator_llm_name,
+        cfg.scientist_llm.name,
         seed=validator_llm_gen_cfg.get("seed", cfg.exp_cfg.seed),
         temperature=validator_llm_gen_cfg.get(
             "temperature", constants.DEFAULT_TEMPERATURE
