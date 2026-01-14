@@ -1,0 +1,28 @@
+2025-12-19 23:33:22,748 - WARNING - Authentication error: Langfuse client initialized without public_key. Client will be disabled. Provide a public_key parameter or set LANGFUSE_PUBLIC_KEY environment variable. 
+2025-12-19 23:33:22,749 - INFO - Processing evaluation_batch.json...
+2025-12-19 23:33:22,749 - INFO - Solving problem vali_143...
+2025-12-19 23:33:22,835 - INFO - Moderator received task: vali_143, NM round 0
+2025-12-19 23:33:52,989 - INFO - Moderator generated guidance for task vali_143
+2025-12-19 23:33:52,990 - INFO - Scientist A handling initial solution request for task: vali_143, capability: NM, area: Financialround: 0
+2025-12-19 23:33:52,991 - INFO - Scientist B handling initial solution request for task: vali_143, capability: NM, area: Financialround: 0
+2025-12-19 23:33:52,991 - INFO - Scientist C handling initial solution request for task: vali_143, capability: NM, area: Financialround: 0
+/Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/utils/model_client_utils.py:60: UserWarning: Resolved model mismatch: gpt-5.1 != gpt-5.1-2025-11-13. Model mapping in autogen_ext.models.openai may be incorrect. Set the model to gpt-5.1-2025-11-13 to enhance token/cost estimation and suppress this warning.
+  return await self.client.create(*args, **kwargs)
+2025-12-19 23:33:56,358 - INFO - Scientist C used python tool. Output length: 0
+/Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/utils/model_client_utils.py:60: UserWarning: Resolved model mismatch: gpt-5.1 != gpt-5.1-2025-11-13. Model mapping in autogen_ext.models.openai may be incorrect. Set the model to gpt-5.1-2025-11-13 to enhance token/cost estimation and suppress this warning.
+  return await self.client.create(*args, **kwargs)
+2025-12-19 23:33:59,019 - INFO - Scientist C used python tool. Output length: 299
+2025-12-19 23:34:04,144 - INFO - Scientist C used python tool. Output length: 0
+2025-12-19 23:34:07,020 - INFO - Scientist C used python tool. Output length: 0
+2025-12-19 23:34:10,437 - INFO - Moderator received solution from agent C for task vali_143, NM, Financial round 0
+2025-12-19 23:34:10,437 - INFO - 1/3 solutions collected for round 0
+2025-12-19 23:34:10,766 - INFO - Scientist B used python tool. Output length: 35
+2025-12-19 23:34:16,200 - INFO - Scientist A used python tool. Output length: 11
+2025-12-19 23:34:19,749 - INFO - Scientist B used python tool. Output length: 146
+2025-12-19 23:34:25,277 - INFO - Moderator received solution from agent B for task vali_143, NM, Financial round 0
+2025-12-19 23:34:25,277 - INFO - 2/3 solutions collected for round 0
+2025-12-19 23:34:27,551 - INFO - Scientist A used python tool. Output length: 9
+2025-12-19 23:34:35,808 - INFO - Scientist A used python tool. Output length: 26
+2025-12-19 23:34:44,231 - INFO - Scientist A used python tool. Output length: 12
+2025-12-19 23:34:50,084 - INFO - Moderator received solution from agent A for task vali_143, NM, Financial round 0
+2025-12-19 23:34:50,084 - INFO - 3/3 solutions collected for round 0

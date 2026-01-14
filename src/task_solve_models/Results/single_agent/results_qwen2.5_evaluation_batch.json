@@ -1,0 +1,418 @@
+{
+  "metrics": {
+    "model": "qwen2.5",
+    "batch_info": "evaluation_batch",
+    "total_processed": 50,
+    "total_correct": 24,
+    "accuracy": 0.48,
+    "execution_time_seconds": 1486.46,
+    "execution_time_formatted": "24m 46s"
+  },
+  "results": [
+    {
+      "id": "vali_143",
+      "prediction": 2760,
+      "reasoning": "To calculate the operating cash flow, we follow these steps:\n\n1. Compute earnings before interest and taxes (EBIT): Sales - COGS - Depreciation Expense = EBIT.\n2. Adjust for tax effects: EBIT * (1 - Tax Rate) = Net Operating Profit After Taxes (NOPAT).\n3. Add back depreciation, as it is a non-cash expense that reduces net income but does not affect cash flow.\n4. Subtract the change in working capital, which includes changes in current assets and current liabilities.",
+      "ground_truth": "3603.0",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_164",
+      "prediction": 1.0,
+      "reasoning": "The value of a forward contract is determined by the difference between the agreed-upon price (forward price) and the current market price of the underlying asset, adjusted for time value. If the market price of the asset at any given time is higher than the forward price, the long position in the forward contract has positive value to the buyer and negative value to the seller. Conversely, if the market price is lower than the forward price, the short position has a positive value and the long position has a negative value. Thus, due to fluctuations in the underlying asset's price, the value of the forward contract can change over time.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_165",
+      "prediction": 1.0,
+      "reasoning": "The question is about determining whether a call option can provide insurance against the exchange rate being higher than the strike price when the company expects to make a payment in euros using existing currency markets information. The current exchange rate is given as 1.3500 dollars per euro, meaning each euro will convert to $1.3500. If the company uses a call option with a strike price higher than this spot rate, it can be used to limit the risk of paying more in dollars for the same amount of euros when the market exchanges rates might rise. Since the use of such an option would give the company the right (but not the obligation) to buy euros at the agreed-upon strike price (which is beneficial if the spot rate rises), it indeed provides insurance against a higher exchange rate, assuming the strike is set appropriately.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_188",
+      "prediction": 1.0,
+      "reasoning": "When a company pays out all of its earnings in the form of dividends, it does not retain any earnings to reinvest and grow internally. This lack of internal investment means that the growth rate is entirely dependent on external financing or organic growth from customer expansion, product development, etc., rather than internal retained earnings. For Testaburger, Inc., if all earnings are paid out as dividends, there are no funds left for internal reinvestment, causing the internal growth rate to become zero.",
+      "ground_truth": "1",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_24",
+      "prediction": 1.0,
+      "reasoning": "A project with conventional cash flows means that it has one positive cash flow which is followed by negative cash flows or the opposite. The Net Present Value (NPV) being positive indicates that the present value of incoming cash flows exceeds the present value of outgoing cash flows at a specific discount rate, suggesting the project's return exceeds this rate. The Internal Rate of Return (IRR) is the discount rate that makes the NPV of the project equal to zero. If the IRR is greater than the required return, it would mean that the NPV is positive because the project\u2019s cash flows are discounted at a lower rate than its intrinsic profitability level, aligning with the condition of having a positive NPV. Thus, for a project with conventional cash flows and a positive NPV, the IRR must indeed be greater than the required return.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_275",
+      "prediction": 1.0952,
+      "reasoning": "To find the hazard rate, we need to use the relationship between the CDS spread and the default probability. The given CDS spread is in basis points (100 bp), which means it needs to be converted into a decimal form. We can derive the annual default probability from this CDS spread using the formula for CDS premium: spread = 1 - sqrt(survival probability). Rearranging, we get survival probability as a function of the spread. The hazard rate is approximately equal to the instantaneous failure rate, which in continuous time models like the ones used here, is derived directly from the default probability over one year and can be approximated by the default probability itself. We then need to confirm that this matches with our calculated default probabilities from the table and adjust accordingly for 20% recovery rate.",
+      "ground_truth": "1.22",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_294",
+      "prediction": -29.13,
+      "reasoning": "To find the percentage reduction in the value of Portfolio B, we need to calculate its current value, then recalculate it after a yield increase by 5%. The value reduction is the difference between these two values as a percentage of the original value. We use the formula for zero-coupon bonds: Value = Face Value / (1 + Yield)^Years. For Portfolio B initially, the yield is 10%, and we calculate its present value. Afterward, with the yield increased to 15% (10% + 5%), we recalculate this value. The percentage reduction in value is then calculated from these two values.",
+      "ground_truth": "25.73",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_319",
+      "prediction": 0.0,
+      "reasoning": "According to put-call parity in the context of Black-Scholes-Merton model, we have the relationship C - P = S\u2080 - Ke^(-rT), where C is the call option price, P is the put option price, S\u2080 is the current stock price, K is the strike price, r is the risk-free interest rate, and T is the time to maturity. The given information doesn't provide the current stock price or the risk-free interest rate; therefore, directly comparing the two volatility rates without these inputs does not allow us to determine the relationship using put-call parity alone. However, the question requests a comparative answer based on the provided volatilities and options structure under the given assumptions, which can be inferred to compare their theoretical values in equilibrium.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_335",
+      "prediction": 0.0,
+      "reasoning": "The statement asserts that depreciation tax shield does not contribute to the total incremental aftertax cash flows and thus is irrelevant for project evaluation. In capital budgeting, only incremental cash flows are considered relevant since non-operating items should be disregarded to avoid bias in decision-making. Depreciation is a non-cash expense with its tax shield effect being an indirect benefit. Thus, it does not directly generate cash but can impact the aftertax cash flow by reducing taxable income and hence paying taxes. However, depreciation itself is not an incremental cash inflow or outflow, making it irrelevant in terms of direct contribution to project evaluation.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_340",
+      "prediction": 1.0,
+      "reasoning": "The company is planning to make a payment in euros in the future. By entering into a forward contract that fixes the exchange rate at which it will buy euros, the company can protect itself against potential negative movements in the euro's value against the dollar. This means if the euro weakens against the dollar after three months, the company will still only have to pay a fixed amount (equivalent to $4,050,000) and not more due to the forward contract locking in the rate.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_350",
+      "prediction": 1.0,
+      "reasoning": "When interest rates on bonds are zero or near-zero, people have less incentive to hold bond investments and more incentive to hold cash or money balances. This is because a zero-interest rate means there is no opportunity cost for holding cash (no risk of losing value due to inflation), making them a preferred form of liquidity over earning nothing as with bonds. As a result, Grant Smith\u2019s average holdings of money balances should indeed be greater than one-half of his monthly income to maintain the required liquidity in such an environment.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_357",
+      "prediction": 0.0,
+      "reasoning": "A currency board is a monetary arrangement where the central bank is obliged to convert its domestic currency into a foreign anchor currency at a fixed exchange rate on demand, without using monetary policy tools. This directly restricts the central bank from printing money freely, preventing inflation. In contrast, if the central bank were targeting an exchange rate in a conventional monetary policy framework, it would have the autonomy to print money as needed to defend the targeted exchange rate level. Therefore, the statement 'A currency board allows the central bank to print money freely to create inflation' is incorrect and represents a disadvantage of a currency board.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_388",
+      "prediction": "1.0",
+      "reasoning": "Let's",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "raw_response": "{\n  \"reasoning\": \"Let's consider the project details given: it has a required return of \\(R\\%\\), an initial cost of \\(S\\) and lasts for \\(N\\) years, with zero salvage value and net working capital requirements. The straight-line depreciation to zero over its life means the annual depreciation is \\(\\frac{S}{N}\\). There are no operating costs or revenues specified, as we focus on the breakeven level only. At financial breakeven, the net cash flow (after tax) equals \\(R\\%\\) of the initial investment \\(S\\) per year. The Internal Rate of Return (IRR) is equal to the required return at this breakeven point because the project's internal rate of return would just cover its cost of capital without generating any additional profitability or losses in present value terms\u2014simply breaking even on a net present value basis. Therefore, under these conditions, if the IRR matches \\(R\\%\\), it confirms financial breakeven at that level.\",\n  \"answer\": 1.0\n}",
+      "is_correct": true
+    },
+    {
+      "id": "vali_413",
+      "prediction": -18.7,
+      "reasoning": "When interest rates rise, bond prices fall. The magnitude of this price change is inversely related to the bond's duration and directly related to the size of the interest rate change. Bond Dave has a longer maturity than Bond Sam, implying it has more duration and thus the price will drop more in response to an interest rate increase. We can calculate the percentage change in price using the approximation formula: Percentage Change in Price \u2248 -Duration \u00d7 \u0394y \u00d7 100%, where Duration \u2248 Macaulay Duration / (1 + y/2), with a modified duration of approximately YTM \u00d7 (1 + y/2) for semiannual payments, and \u0394y is the change in yield. For Coupon Bonds at par value with YTM =coupon rate, we can simplify it to: Percentage Change in Price \u2248 -Modified Duration \u00d7 100%. The Macaulay duration of a 15-year bond (Bond Dave) approximately equals 15 years times (1 + y/2). Using the approximation for modified duration: Modified Duration \u2248 15 / (1 + 0.04), with a change in yield (\u0394y) being 0.02. Plugging these values into the formula will give us the required percentage change in price.",
+      "ground_truth": "-15.37",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_435",
+      "prediction": 1.0,
+      "reasoning": "The statement discusses the critical balance financial management must strike between maintaining enough liquidity to meet short-term obligations (high liquidity) and investing excess funds in higher-return assets (low liquidity). Balancing these opposite needs often requires careful analysis of the company's cash flow, available investment opportunities, and risk tolerance. High liquidity ensures a firm can cover its immediate expenses and avoid defaulting on its debts but comes at the cost of potentially lower returns from invested capital. Conversely, low liquidity enhances potential for higher returns through investments but leaves a firm vulnerable to short-term financial stress. Finding an optimal level involves assessing these trade-offs to align with the company's strategic goals and risk profile.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_439",
+      "prediction": 1.0,
+      "reasoning": "The question states that the payoffs from credit default swaps depend on whether a particular company defaults and that all market participants have the same information regarding this default. This setup implies there is no asymmetric or insider information, which could give an advantage to certain parties in predicting the outcome of the swap.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_518",
+      "prediction": 1900000,
+      "reasoning": "First, we need to determine the average collection period under the credit terms 2/10, net 30. This means customers can take a 2% discount if they pay within 10 days; otherwise, the full amount is due in 30 days. On average, about half of the customers will choose to take the discount and pay on day 10, while the other half will wait until day 30. Therefore, the average collection period is typically assumed to be halfway between these two points, which is (10 + 30) / 2 = 20 days. Given that sales occur every month, we calculate the monthly accounts receivable as follows: Total sales for the month are 1,500 forecasts * $1,900/forecast = $2,850,000. With an average collection period of 20 days, it means on average there is $2,850,000 / (30/20) = $1,900,000 in accounts receivable.",
+      "ground_truth": "1499178",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_53",
+      "prediction": 1.0,
+      "reasoning": "Futures contracts are financial\u884d\u751f\u5de5\u5177\uff0c\u5176\u4ef7\u683c\u901a\u5e38\u4e0e\u6807\u7684\u8d44\u4ea7\u7684\u4ef7\u683c\u5bc6\u5207\u76f8\u5173\u3002\u901a\u8fc7\u6301\u6709\u671f\u8d27\u5408\u7ea6\u7684\u591a\u5934\u5934\u5bf8\uff08\u5373\u4e70\u5165\uff09\uff0c\u6295\u8d44\u8005\u9884\u671f\u672a\u6765\u4ef7\u683c\u4e0a\u6da8\u4ece\u800c\u83b7\u5229\uff1b\u53cd\u4e4b\u5219\u4f1a\u4e8f\u635f\u3002",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_546",
+      "prediction": "C",
+      "reasoning": "Initially, the Fed lends an additional $100 million to banks, increasing their reserves by that amount. However, when depositors withdraw $50 million as currency, the overall increase in reserves due to the Fed's action is offset by a decrease of the same magnitude from the withdrawal. Therefore, net change in reserves is zero.",
+      "ground_truth": "A",
+      "task_type": "mcq",
+      "is_correct": false
+    },
+    {
+      "id": "vali_617",
+      "prediction": 25,
+      "reasoning": "To find the number of years, we can use the future value formula for compound interest: FV = PV * (1 + r)^n, rearranging to solve for n gives us n = log(FV/PV) / log(1+r). Here, FV is 4341, PV is 810, and r is 0.09. Plugging in the values and solving will give the number of years.",
+      "ground_truth": "19.48",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_626",
+      "prediction": "B",
+      "reasoning": "Early exercise of an American put option is more attractive when the benefits of exercising immediately outweigh the potential gains from holding the option to maturity. The insurance element and the risk-free rate play significant roles in this. A decrease in market volatility makes maintaining a long position (holding the underlying asset) less risky, which might reduce the incentive to exercise early. Therefore, an increase in the value of the insurance element would make early exercise more attractive because it provides immediate value beyond what can be earned through holding the option. Additionally, lower risk-free rates could potentially decrease the present value of future strike prices, making early exercise more appealing.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": false
+    },
+    {
+      "id": "vali_661",
+      "prediction": 29.03,
+      "reasoning": "To determine the current stock price, we need to calculate the present value of all future dividends. The dividends grow at a constant rate of 5% per year. We'll separate the calculation into three parts based on the required return: first three years (16%), next three years (14%), and thereafter (11%). For each part, we will use the dividend discount model formula adjusted for different rates.",
+      "ground_truth": "50.75",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_673",
+      "prediction": "C",
+      "reasoning": "In the context of an American call option on a non-dividend-paying stock with zero interest rates, early exercise would generally be suboptimal because holding the option gives the holder the potential to benefit from any increase in the stock price until expiration. With no dividends and zero interest, the only way exercising earlier could benefit is if it prevents a potential loss by preventing the stock price from falling below the strike price. However, since the option can also be exercised at expiry, there's no added advantage in exercising early and this avoids the cost of holding the option if the stock price is exactly equal to or above the exercise price at any point during its lifetime. Thus, delaying the exercise until expiration provides insurance against the risk that the stock could fall below the strike price after the current moment but before expiry.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_711",
+      "prediction": 1.0,
+      "reasoning": "The statement discusses the relationship between futures and spot prices of gold versus copper. For gold, a low futures price would create an arbitrage opportunity, where investors can benefit by selling their current holdings (spot) and buying futures in expectation of higher future value. This implies that futures prices for assets prone to such strategies should be closely related to their spot prices. However, the statement claims this direct relationship does not exist for copper, meaning its futures price is not simply derived from its spot price via similar mechanisms. Given these contexts, if an investor finds the futures price of gold too low, it implies there's a discrepancy that incentivizes certain trading behavior, whereas no such clear strategy is implied for copper.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_714",
+      "prediction": "B",
+      "reasoning": "When income rises, the demand for money typically increases because people need more money to facilitate their higher level of economic activity. This shift in demand would lead to a new equilibrium point where the demand curve shifts outwards, resulting in both a higher interest rate and increased level of transactional activities (quantity of money). Therefore, the original balance point O will move along the new demand curve, toward a point indicating a higher interest rate and quantity of money, which is Point B.",
+      "ground_truth": "A",
+      "task_type": "mcq",
+      "is_correct": false
+    },
+    {
+      "id": "vali_72",
+      "prediction": 1.0,
+      "reasoning": "Optimal forecasts refer to the most efficient and effective predictions made by forecasters based on available information and modeling techniques, regardless of whether those predictions are accurate or inaccurate in terms of numerical precision. In other words, an optimal forecast can be considered the best possible prediction one could make given the current knowledge and methods, even if it does not perfectly match future outcomes. Thus, while these forecasts may not always be numerically accurate, they might still be considered as optimal due to their efficiency or effectiveness in providing valuable insights into inflation trends.",
+      "ground_truth": "1",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_730",
+      "prediction": -30.1,
+      "reasoning": "First, calculate the price of the bond after two years with a YTM that has declined by 1 percent from its initial calculation. The initial YTM can be approximated as close to the bond's coupon rate since it trades above par value at $1,105, so we start assuming an initial YTM around 7.25% (8% - the premium). With a decline of 1 percentage point in its price when sold two years from now, the new YTM will be approximately 6.25%. Use the bond price formula to calculate the new price after two years and then determine the HPY using the initial investment amount, future sale price, coupon payments received over those two years.",
+      "ground_truth": "9.43",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_753",
+      "prediction": -10,
+      "reasoning": "To calculate the change in nominal GDP, we need to use the relationship between nominal GDP and its contributing factors\u2014the money supply (M) and velocity of money (V). The formula for nominal GDP is: Nominal GDP = M * V. A percentage change in nominal GDP can be approximated by the formula: % \u0394 NomGDP \u2248 % \u0394 M + % \u0394 V, assuming the changes are small enough for this approximation to hold. Here, the growth rate of the money supply is 20% and the decline in velocity is -30%. The net effect on nominal GDP percentage change would be 20% - 30% = -10%. This means that nominal GDP decreases by 10%. ",
+      "ground_truth": "-10.0",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_760",
+      "prediction": "C",
+      "reasoning": "Net Present Value (NPV) is a financial metric that assesses the current value of future cash flows from a project, discounted at the cost of capital. A positive NPV indicates that the project's return exceeds the cost of capital and adds value to the firm. Shareholder wealth increases with an additional $2,500 in firm valuation, which positively impacts shareholders. The other options are incorrect because NPV does not directly relate to annual revenues or net income independently; it measures the net benefit of accepting or rejecting a project.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_789",
+      "prediction": 1.0,
+      "reasoning": "In a default-free environment, the relationship between a forward contract and a combination of options is well-defined. A long forward contract essentially allows the holder to purchase an asset at a predetermined price in the future without the need for physical delivery. This is equivalent to holding a European call option with the same strike price as the forward agreement's delivery price and maturity, while simultaneously being short a European put option with the same strike price and maturity. The net effect of these two options replicates the payoffs of the forward contract in terms of both asset prices above or below the strike at expiration.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_792",
+      "prediction": 0.0,
+      "reasoning": "A write-down of assets involves reducing the recorded value of those assets to their current estimated value, which typically means they are worth less than originally recorded. This action does not directly involve a cash outflow; rather, it is an accounting adjustment that reflects the decreased value of the assets on the balance sheet. However, if the write-down was due to impairment and required significant expenditures (like selling assets), then there could be cash flow consequences. Given that the question states the write-down had immediate cash flow consequences, it implies a direct financial impact, which is unusual unless specific actions or sales followed the write-down.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_802",
+      "prediction": 4000,
+      "reasoning": "To determine the number of shares outstanding after the repurchase, we need to find out the current market price per share and then calculate how many shares can be bought with $6,000. The initial total value of equity gives us this information: $15,000 (total assets) - $3,000 (total liabilities) = $12,000 (total stockholders' equity). Dividing the total stockholders' equity by the number of shares (5,000) gives the market price per share. Repurchasing $6,000 worth of stock at this price reduces the outstanding shares accordingly.",
+      "ground_truth": "4860.47",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_848",
+      "prediction": "625079.14",
+      "reasoning": "To",
+      "ground_truth": "122439.62",
+      "task_type": "calcu",
+      "raw_response": "{\n  \"reasoning\": \"To find the total present value of this annuity, we need to calculate the present value for each segment separately and then sum these values. \n\n1. First, we find the future value of payments made over the first seven years at a 13% annual interest rate compounded monthly.\n2. Next, we discount this future value back to time zero using an interest rate that reflects the remaining eight years (at 10% annual interest compounded monthly).\n3. Then, we calculate the present value of payments for the last eight years using a 10% annual interest rate compounded monthly.\n\nThe specific annuity due formula is: \\(PV = PMT \\times \\frac{1-(1+r)^{-n}}{r}\\), where PMT is the payment amount, r is the monthly interest rate, and n is the number of months. For the transition between rates, we use the future value to present value formula with a different interest rate.\",\n  \"answer\": 625079.14\n}",
+      "is_correct": false
+    },
+    {
+      "id": "vali_86",
+      "prediction": "0.94",
+      "reasoning": "To",
+      "ground_truth": "0.325",
+      "task_type": "calcu",
+      "raw_response": "{\n  \"reasoning\": \"To find the beta of the portfolio, we first determine the weight of each asset in the portfolio. Let's denote the weight of the stock as \\( w_{stock} \\), and thus, the weight of the risk-free asset is \\( 1 - w_{stock} \\). The expected return equation for a portfolio can be used: \\( E(R_p) = w_{stock}E(R_{stock}) + (1 - w_{stock})E(R_{rf})\\). We know \\( E(R_p) = 8\\%\\), \\( E(R_{stock}) = 17\\%\\), and \\( E(R_{rf}) = 5\\%\\). Solving for \\( w_{stock} \\): \\( 0.08 = w_{stock}(0.17) + (1 - w_{stock})(0.05) \\). From this, we can solve for \\( w_{stock} \\), and then use the beta equation \\( \\beta_p = w_{stock}\\beta_{stock} \\) to find the portfolio's beta.\",\n  \"answer\": 0.94\n}",
+      "is_correct": false
+    },
+    {
+      "id": "vali_860",
+      "prediction": "C",
+      "reasoning": "When payments for previous sales are collected, it means that the company is receiving money that was previously invoiced but not yet paid by customers. This incoming cash will directly increase the company's cash balance because the payment is settling an amount that was recorded as a sale in the past. Therefore, this action does not impact the revenue of that period itself but increases the overall cash available to the company.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_862",
+      "prediction": 1.0,
+      "reasoning": "Asian options incorporate the average price of the underlying asset over a specific period, leading to more complex delta calculations compared to plain vanilla options where delta is based on the final price of the underlying at maturity. Because of this, the delta for an Asian option does not necessarily approach zero as the maturity date is approached, unlike in some regular options (e.g., European options). This characteristic complicates the hedging process further, especially under dynamic hedging strategies that rely on frequent adjustments to maintain a neutral position.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_864",
+      "prediction": 0.029,
+      "reasoning": "To calculate the forward interest rate in an FRA, we use the formula for a swap rate based on the given Eurodollar futures quote and standard deviation of the short-term interest rate change. The futures price is expressed as a percentage of face value (97.1% here), so we first convert this to a decimal by subtracting 100%. Then, using the Black's model for calculating forward rates from futures prices: Forward rate = [Futures price / (1 + Spot)]^(-T) - 1 where Futures price is 0.971, and T is the time period in years between 5.1 and 5.35. Given that we need a one-year forward rate, we will adjust our formula appropriately. The standard deviation of the interest rate change does not directly affect the calculation here but could be used for more complex models like volatility adjustments.",
+      "ground_truth": "0.0263",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_870",
+      "prediction": 0.0,
+      "reasoning": "The statement that executive compensation is not influenced by stock-based compensation is false because executives often receive a significant portion of their total compensation in the form of stocks, options, and other equity-based awards. These forms of pay are directly tied to the performance of the company's stock. In Larry Ellison\u2019s case, his high earnings are likely due to both cash compensation and stock-based incentives.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_879",
+      "prediction": -8.71,
+      "reasoning": "To calculate the Internal Rate of Return (IRR) for Project A, we need to find the discount rate at which the net present value (NPV) of its cash flows equals zero. The cash flows for Project A are as follows: Year 0 = -$37,000; Year 1 = $19,000; Year 2 = $14,500; Year 3 = $12,000; Year 4 = $9,000. Using financial calculators or software like Excel's IRR function, we can determine the rate.",
+      "ground_truth": "20.30",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_888",
+      "prediction": "B",
+      "reasoning": "When there is a large unexpected decrease in the demand for reserves, it means that at every given interest rate, banks and financial institutions want to hold fewer reserves than they previously did. This decreases the quantity of reserves demanded. Consequently, the demand curve shifts to the left in the reserve market diagram. The supply curve remains unchanged as we are assuming no change in monetary policy or open market operations. With a decrease in demand and an unchanging supply, the equilibrium point (original balance point O) will move to a new lower quantity of reserves demanded but at a potentially lower interest rate. Point B represents this scenario where the quantity demanded has decreased, while the price (interest rate) falls.",
+      "ground_truth": "B",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_892",
+      "prediction": 0.0,
+      "reasoning": "A downward sloping term structure of interest rates indicates that longer-term bonds have lower yields compared to shorter-term bonds. In this scenario, the five-year bond yield is higher than the forward rate for a specific period (4.75 to 5 years) in the future. This situation contradicts the basic principle of a downward sloping yield curve, as expected forward rates should be lower or equal but generally not higher than current yields.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_894",
+      "prediction": "7.95",
+      "reasoning": "To",
+      "ground_truth": "4.59",
+      "task_type": "calcu",
+      "raw_response": "{\n  \"reasoning\": \"To find the value of an American put futures option using a three-step tree, we need to construct a binomial tree for both the underlying asset and the discounted exercise boundary or futures price. The steps would involve calculating each node's futures price, finding its corresponding put values at nodes where early exercise is possible, and discounting back the expected value. However, due to the complexity of manual calculation and the need for precise probabilities, we typically use financial software or extensive tables. For simplicity in this example, let\u2019s assume we have already used a binomial tree model for three time steps with given parameters. The risk-neutral probability \\(p\\) can be calculated using the formula: \\[ p = \\frac{e^{(r - q)T/N} - T/N}{U/N - D/N} \\] where \\(r\\) is the risk-free rate, \\(q\\) is the dividend yield (0 in this case), \\(T\\) is the time to maturity, and \\(N\\) is the number of steps. The up move (\\(u\\)) and down move (\\(d\\)) factors are: \\[ u = e^{\\sigma\\sqrt{T/N}} \\] \\[ d = 1/u \\] where \\(\\sigma\\) is the volatility. After constructing the tree, we calculate the put values at each node and discount them back to the present value.\", \n  \"answer\": 7.95\n}",
+      "is_correct": false
+    },
+    {
+      "id": "vali_904",
+      "prediction": 1.0,
+      "reasoning": "Given that the project has positive net present value (NPV) and conventional cash flows, the profitability index (PI) must be greater than 1. The formula for PI is the present value of future cash inflows divided by the initial investment. A positive NPV means that the current value of benefits exceeds the costs, thus the ratio can only be over 1 under these conditions.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_907",
+      "prediction": "A",
+      "reasoning": "Looking at the graph provided in the figure, it can be observed that nominal interest rates and estimated real interest rates have moved similarly over time but with a noticeable gap indicating the effect of inflation on nominal rates. Around 1980, both nominal and estimated real interest rates reached their lowest points, suggesting they indeed follow similar trends during economic downturns or shifts in monetary policy. However, there is no indication that nominal interest rates were ever negative while real rates remained positive, nor do we have evidence to support the claim that nominal rates are a misleading indicator of real rates as both exhibit parallel behavior with slight differences due to inflation adjustments.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": false
+    },
+    {
+      "id": "vali_917",
+      "prediction": 94.62,
+      "reasoning": "To find the bond's price, we need to calculate the present value of its future cash flows using a discount rate of 10.8% (continuously compounded). The bond pays an 8% coupon annually and has a face value that will be paid at maturity. We can use the formula for the present value of a continuous compounding annuity and lump sum payment: PV = C * (1 - e^(-rT)) / r + FV * e^(-rT), where C is the annual coupon, r is the yield rate, T is the time in years, and FV is the face value. Assuming a face value of $100 for simplicity, we can plug in the values: PV = 8 * (1 - e^(-0.108*5)) / 0.108 + 100 * e^(-0.108*5).",
+      "ground_truth": "87.54",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_929",
+      "prediction": -410952,
+      "reasoning": "To find the best-case operating cash flow for this project, we need to consider all related factors such as revenue, costs, depreciation, taxes, and salvage value. In a best-case scenario, revenues are maximized while costs and taxes are minimized, which leads to maximizing OCF.",
+      "ground_truth": "1503790.0",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_944",
+      "prediction": "95.0526",
+      "reasoning": "To",
+      "ground_truth": "100.0",
+      "task_type": "calcu",
+      "raw_response": "{\n  \"reasoning\": \"To determine the stock price at which the call option strategy becomes more profitable than a direct stock purchase, we need to compare the total profit from each strategy. For both strategies, an initial investment of $9,400 is made.\n\n  - Direct Stock Purchase: If the stock price increases to X dollars, the investor who bought shares will have a gain of (X - 94) * 100.\n  \n  - Call Option Strategy: The cost for buying options upfront remains $9,400. The maximum profit from each option contract is limited to the strike price minus the premium paid plus any potential upside beyond that if the stock price at expiration exceeds $95. Thus, for a gain from call options, the required closing price of the underlying stock must be greater than $95 (since the intrinsic value is zero up to that point). Therefore, the potential profit per option contract increases linearly as the stock price exceeds $95.\n\nWhen the option holder exercises their calls at expiration, they get 100 shares each for $95 and sell them for whatever the market price (X) is. The profit from exercising options would be: (X - 95) * 2000 - 9400. We need to find X where (X - 95) * 2000 equals or exceeds the gain from buying shares, i.e., (X - 94) * 100.\n\nBy setting these two expressions equal and solving for X:\n\n\\[ 2000(X - 95) = 100(X - 94)\n\\]\n\nSimplify to find \\(X\\):\n\n\\[ 2000X - 190000 = 100X - 9400 \\]\n\\[ 1900X = 180600 \\]\n\\[ X = \\frac{180600}{1900} \\approx 95.0526\n\\]\n\nTherefore, at a stock price of $95.05 per share or higher, the call option strategy will be more profitable.\",\n  \"answer\": 95.0526\n}",
+      "is_correct": false
+    },
+    {
+      "id": "vali_970",
+      "prediction": 9165,
+      "reasoning": "To find the projected addition to retained earnings, we first calculate the new sales amount after a 15 percent increase from the current sales of $32,000. Then, using the existing cost-to-sales ratio and fixed tax rate, we project the net income for the new sales level. Given that there is no external financing and a constant payout ratio, the remainder will be added to retained earnings.",
+      "ground_truth": "8976.90",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_985",
+      "prediction": 1.0,
+      "reasoning": "The statement asserts that considering only the dividend yield component does not provide the full required return on equity. The dividend yield is just one part of the total expected return, which typically includes both dividend yield and capital gains yield for common stocks. Therefore, the complete required return on equity should account for all components contributing to the investor's expected return.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_987",
+      "prediction": 0.5,
+      "reasoning": "The question provides information about regulatory measures that influence international banking. According to the context, incentives are created by some regulatory agencies to encourage international banking, while others have implemented restrictive tax treatments and stringent branching regulations for Edge Act corporations and IBFs which discourages such banking activities. The statement is presented as two contrasting actions: encouragement via incentives on one hand, and restriction through taxes and regulation on the other. Given the direct contradiction between encouraging measures and discouraging ones described, the overall regulatory stance appears to be mixed rather than consistently promoting or inhibiting international banking.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    }
+  ]
+}

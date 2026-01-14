@@ -1,0 +1,360 @@
+[
+  {
+    "id": "vali_143",
+    "task": "calcu",
+    "question": "Brewer Industries had the following operating results for 2007: sales were $15,200, cost of goods sold was $11,400, depreciation expense was $2,700, interest expense was $520, and dividends paid were $600. At the beginning of the year, net fixed assets were $9,100, current assets were $3,200, and current liabilities were $1,800. At the end of the year, net fixed assets were $9,700, current assets were $3,850, and current liabilities were $2,100. The tax rate for 2007 was 34 percent.What was the operating cash flow for Brewer Industries in 2007? (Unit: dollar)",
+    "ground_truth": "3603.0",
+    "fin_capability": "NM"
+  },
+  {
+    "id": "vali_164",
+    "task": "bool",
+    "question": "Consider the distinction between the forward price and the value of a forward contract.As time passes and the underlying asset price changes, the value of the forward contract may become positive or negative.",
+    "ground_truth": "1.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_165",
+    "task": "bool",
+    "question": "A US company knows it will have to pay 3 million euros in three months with the current exchange rate being 1.3500 dollars per euro.The use of a call option provides insurance, at a cost, against the exchange rate being higher than the strike price.",
+    "ground_truth": "1.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_188",
+    "task": "bool",
+    "question": "Testaburger, Inc. pays out all of its earnings in the form of dividends.The internal growth rate of Testaburger, Inc. becomes zero.",
+    "ground_truth": "1",
+    "fin_capability": "TU; TR"
+  },
+  {
+    "id": "vali_24",
+    "task": "bool",
+    "question": "Suppose a project has conventional cash flows and a positive NPV.The IRR must be greater than the required return.",
+    "ground_truth": "1.0",
+    "fin_capability": "TU; TR"
+  },
+  {
+    "id": "vali_275",
+    "task": "calcu",
+    "question": "\n\\begin{table}[H]\n    \\centering\n    \\caption{Unconditional default probabilities and survival probabilities.}\n    \\begin{tabular}{|c|c|c|}\n        \\hline\n        Year & Probability of & Probability of \\\\\n             & surviving to year end & default during year \\\\\n        \\hline\n        1 & 0.9802 & 0.0198 \\\\\n        \\hline\n        2 & 0.9608 & 0.0194 \\\\\n        \\hline\n        3 & 0.9418 & 0.0190 \\\\\n        \\hline\n        4 & 0.9231 & 0.0186 \\\\\n        \\hline\n        5 & 0.9048 & 0.0183 \\\\\n        \\hline\n    \\end{tabular}\n\\end{table}\n\n\n\\begin{table}[h]\n\\centering\n\\caption{Calculation of the present value of accrual payment.}\n\\begin{tabular}{|c|c|c|c|c|}\n\\hline\nTime (years) & Probability of default & Expected accrual payment & Discount factor & PV of expected accrual payment \\\\ \\hline\n0.5          & 0.0198                 & 0.0099s                & 0.9753         & 0.0097s                      \\\\ \n1.5          & 0.0194                 & 0.0097s                & 0.9277         & 0.0090s                      \\\\ \n2.5          & 0.0190                 & 0.0095s                & 0.8825         & 0.0084s                      \\\\ \n3.5          & 0.0186                 & 0.0093s                & 0.8395         & 0.0078s                      \\\\ \n4.5          & 0.0183                 & 0.0091s                & 0.7985         & 0.0073s                      \\\\ \\hline\n              &                        &                         &                 & 0.0422s                      \\\\ \\hline\n\\end{tabular}\n\\end{table}\n\nGiven the tables showing unconditional default probabilities, survival probabilities, and present value of accrual payments, consider a scenario with a CDS spread of 100 basis points.What is the hazard rate if the recovery rate is 20%? (Unit: percentage)",
+    "ground_truth": "1.22",
+    "fin_capability": "TR; SP"
+  },
+  {
+    "id": "vali_294",
+    "task": "calcu",
+    "question": "Portfolio A consists of a one-year zero-coupon bond with a face value of $2,000 and a 10-year zero-coupon bond with a face value of $6,000. Portfolio B consists of a 5.95-year zero-coupon bond with a face value of $5,000. The current yield on all bonds is 10% per annum.What is the percentage reduction in the value of Portfolio B when yields increase by 5%?",
+    "ground_truth": "25.73",
+    "fin_capability": "TR: SP"
+  },
+  {
+    "id": "vali_319",
+    "task": "bool",
+    "question": "A European call option on a certain stock has a strike price of $30, a time to maturity of one year, and an implied volatility of 30%. A European put option on the same stock has a strike price of $30, a time to maturity of one year, and an implied volatility of 33%.Put-call parity relies solely on the lognormal assumption underlying Black-Scholes-Merton.",
+    "ground_truth": "0.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_335",
+    "task": "bool",
+    "question": "When evaluating projects, we're concerned with only the relevant incremental aftertax cash flows.The depreciation tax shield does not contribute to the total incremental aftertax cash flows, making it irrelevant for project evaluation.",
+    "ground_truth": "0.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_340",
+    "task": "bool",
+    "question": "A US company knows it will have to pay 3 million euros in three months with the current exchange rate being 1.3500 dollars per euro.The company could enter into a forward contract obligating it to buy 3 million euros in three months for a fixed price near the current spot price of 1.3500.",
+    "ground_truth": "1.0",
+    "fin_capability": "TU; SP"
+  },
+  {
+    "id": "vali_350",
+    "task": "bool",
+    "question": "If interest rates on bonds go to zero.Grant Smiths' average holdings of money balances should be greater than one-half of his monthly income.",
+    "ground_truth": "0.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_357",
+    "task": "bool",
+    "question": "Consider the advantages and disadvantages of a currency board compared to a monetary policy that targets an exchange rate.A currency board allows the central bank to print money freely to create inflation.",
+    "ground_truth": "0.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_388",
+    "task": "bool",
+    "question": "Consider a project with a required return of \\(R\\%\\) that costs \\(S\\) and will last for \\(N\\) years. The project uses straight-line depreciation to zero over the \\(N\\)-year life; there is no salvage value or net working capital requirements.At the financial breakeven level of output, the IRR of the project is equal to the required return.",
+    "ground_truth": "1.0",
+    "fin_capability": "TU; TR"
+  },
+  {
+    "id": "vali_413",
+    "task": "calcu",
+    "question": "Both Bond Sam and Bond Dave have 8 percent coupons, make semiannual payments, and are priced at par value. Bond Sam has 2 years to maturity, whereas Bond Dave has 15 years to maturity.If interest rates suddenly rise by 2 percent, what is the percentage change in the price of Bond Dave?",
+    "ground_truth": "-15.37",
+    "fin_capability": "TR; FF"
+  },
+  {
+    "id": "vali_435",
+    "task": "bool",
+    "question": "Consider the concept of liquidity and the associated trade-offs a firm faces regarding its liquidity levels.It is the responsibility of the firm's financial management staff to find a reasonable compromise between high liquidity and low liquidity levels.",
+    "ground_truth": "1.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_439",
+    "task": "bool",
+    "question": "Payoffs from credit default swaps depend on whether a particular company defaults.All market participants have the same information about whether a particular company will default.",
+    "ground_truth": "0.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_518",
+    "task": "calcu",
+    "question": "Kyoto Joe, Inc., sells earnings forecasts for Japanese securities. Its credit terms are 2/10, net 30. Kyoto Joe sells 1,500 forecasts every month at a price of $1,900 each.What is the average balance sheet amount in accounts receivable? (Unit: dollar)",
+    "ground_truth": "1499178",
+    "fin_capability": "NM"
+  },
+  {
+    "id": "vali_53",
+    "task": "bool",
+    "question": "Consider the uses of a futures contract in financial markets.An investor takes a long position in futures to gain when the asset's price increases and lose when it decreases.",
+    "ground_truth": "1.0",
+    "fin_capability": "TU; SP"
+  },
+  {
+    "id": "vali_546",
+    "task": "mcq",
+    "question": "The Federal Reserve (Fed) lends five banks an additional total of $100 million, and depositors withdraw $50 million to hold as currency.Which one of the following changes correctly describes what happens to reserves after the Fed lends an additional $100 million to five banks and depositors withdraw $50 million as currency?",
+    "ground_truth": "A",
+    "fin_capability": "TU; FF",
+    "choice": "A. Reserves increase by $50 million\nB. Reserves decrease by $50 million\nC. Reserves remain unchanged"
+  },
+  {
+    "id": "vali_617",
+    "task": "calcu",
+    "question": "\n\\begin{table}[h]\n    \\centering\n    \\begin{tabular}{|c|c|c|c|}\n        \\hline\n        \\rowcolor{gold}\n        Present Value & Years & Interest Rate & Future Value \\\\\n        \\hline\n        $ \\, \\, \\, 560 & \\, \\, \\, \\, \\, \\,  & 8\\% & $ \\, \\, 1,284 \\\\\n        \\hline\n        810 & 9 &  & 4,341 \\\\\n        \\hline\n        \\, \\, \\, 18,400 & 21 &  & 364,518 \\\\\n        \\hline\n        \\, \\, \\, 21,500 & 13 &  & 173,439 \\\\\n        \\hline\n    \\end{tabular}\n\\end{table}\n\nSolve for the unknown number of years in each of the given financial scenarios:Given a present value of 810, an interest rate of 9, and a future value of 4341, how many years are required? (Unit: years)",
+    "ground_truth": "19.48",
+    "fin_capability": "NM; TR"
+  },
+  {
+    "id": "vali_626",
+    "task": "mcq",
+    "question": "The attractiveness of the early exercise of an American put option changes with varying financial conditions.Which one of the following scenarios makes early exercise of an American put option more attractive?",
+    "ground_truth": "C",
+    "fin_capability": "TU; SP",
+    "choice": "A. A decrease in the risk-free rate\nB. An increase in the value of the insurance element\nC. A decrease in market volatility"
+  },
+  {
+    "id": "vali_661",
+    "task": "calcu",
+    "question": "Great Pumpla Farms has just paid a dividend of $3.50 on its stock. The growth rate in dividends is expected to be a constant 5 percent per year indefinitely. Investors require a 16 percent return on the stock for the first three years, a 14 percent return for the next three years, and an 11 percent return thereafter.What is the current stock price of Great Pumpla Farms? (Unit: dollar)",
+    "ground_truth": "50.75",
+    "fin_capability": "TR"
+  },
+  {
+    "id": "vali_673",
+    "task": "mcq",
+    "question": "Early exercise of an American call option on a non-dividend-paying stock may not be optimal due to certain financial reasons.Which one of the following reasons explains why delaying the exercise of an American call option on a non-dividend-paying stock even when interest rates are zero is not optimal?",
+    "ground_truth": "C",
+    "fin_capability": "TU",
+    "choice": "A. Exercising early reduces exposure to market volatility.\nB. Delaying exercise guarantees a fixed stock price at expiration.\nC. Delaying exercise provides insurance against the stock price falling below the strike price by the expiration date."
+  },
+  {
+    "id": "vali_711",
+    "task": "bool",
+    "question": "The futures price of gold can be calculated from its spot price and other observable variables, but the same is not true for copper.If the futures price of gold is too low, investors will find it profitable to decrease their holdings of gold and go long in the futures market.",
+    "ground_truth": "1.0",
+    "fin_capability": "TU; FF"
+  },
+  {
+    "id": "vali_714",
+    "task": "mcq",
+    "question": "Suppose the income is rising. Given the supply and demand diagram of money market, which one of the following points will the original balance point O move to?",
+    "ground_truth": "A",
+    "fin_capability": "FF",
+    "choice": "A. Point A\\nB. Point B\\nC. Point C"
+  },
+  {
+    "id": "vali_72",
+    "task": "bool",
+    "question": "Consider the accuracy of forecasters' predictions of inflation.Optimal forecasts are not necessarily accurate.",
+    "ground_truth": "1",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_730",
+    "task": "calcu",
+    "question": "The YTM on a bond is the interest rate you earn on your investment if interest rates don't change. If you actually sell the bond before it matures, your realized return is known as the _holding period yield (HPY)_. Suppose that today you buy an 8 percent annual coupon bond for $1,105. The bond has 10 years to maturity. Two years from now, the YTM on your bond has declined by 1 percent.What is the HPY on your investment if you sell the bond two years from now? (Unit: percent)",
+    "ground_truth": "9.43",
+    "fin_capability": "TR"
+  },
+  {
+    "id": "vali_753",
+    "task": "calcu",
+    "question": "The nominal GDP is influenced by changes in the money supply and velocity.By what percentage does the nominal GDP change if the money supply grows by 20% but the velocity declines by 30%?",
+    "ground_truth": "-10.0",
+    "fin_capability": "FF"
+  },
+  {
+    "id": "vali_760",
+    "task": "mcq",
+    "question": "Net Present Value (NPV) is considered a superior method for evaluating cash flows from a project due to its advantages over other financial metrics.What does an NPV of $2,500 represent for a firm's shareholders regarding a project?",
+    "ground_truth": "C",
+    "fin_capability": "TU; TR",
+    "choice": "A. The firm's annual revenues will increase by $2,500 if the project is rejected.\nB. The firm's net income will decrease by $2,500 regardless of the project outcome.\nC. The firm's total shareholder wealth will increase by $2,500 if the project is accepted."
+  },
+  {
+    "id": "vali_789",
+    "task": "bool",
+    "question": "A long forward contract subject to credit risk combines specific positions in options.In a default-free world, the forward contract is the combination of a long European call and a short European put, with the strike price equal to the delivery price and the option maturities equal to the forward contract's maturity.",
+    "ground_truth": "1.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_792",
+    "task": "bool",
+    "question": "In February 2006, entertainment company CBS reported a write-down of its broadcasting assets in the amount of $9.4 billion.The $9.4 billion write-down by CBS had immediate cash flow consequences.",
+    "ground_truth": "0.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_802",
+    "task": "calcu",
+    "question": "The balance sheet for Apple Pie Corp. is shown here in market value terms. There are 5,000 shares of stock outstanding. Apple Pie has announced it is going to repurchase $6,000 worth of stock.How many shares will be outstanding after the repurchase?",
+    "ground_truth": "4860.47",
+    "fin_capability": "NM; FF"
+  },
+  {
+    "id": "vali_848",
+    "task": "calcu",
+    "question": "A 15-year annuity pays $1,500 per month, and payments are made at the end of each month. The interest rate is 13 percent compounded monthly for the first seven years and 10 percent compounded monthly thereafter.What is the total present value of the annuity? (Unit: dollar)",
+    "ground_truth": "122439.62",
+    "fin_capability": "TR"
+  },
+  {
+    "id": "vali_86",
+    "task": "calcu",
+    "question": "A stock has a beta of 1.30 and an expected return of 17 percent. A risk-free asset currently earns 5 percent.If a portfolio of the two assets has an expected return of 8 percent, what is its beta? (Unit: decimal)",
+    "ground_truth": "0.325",
+    "fin_capability": "NM"
+  },
+  {
+    "id": "vali_860",
+    "task": "mcq",
+    "question": "Various corporate actions can have different impacts on a company's cash balance.What is the impact on cash when payments for previous sales are collected?",
+    "ground_truth": "C",
+    "fin_capability": "TU",
+    "choice": "A. No change\nB. Decrease\nC. Increase"
+  },
+  {
+    "id": "vali_862",
+    "task": "bool",
+    "question": "Delta hedging for Asian options and regular options can differ in difficulty.In an Asian option, the delta does not approach zero as the maturity date is approached, making delta hedging more challenging.",
+    "ground_truth": "0.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_864",
+    "task": "calcu",
+    "question": "A Eurodollar futures quote for the period between 5.1 and 5.35 years in the future is 97.1. The standard deviation of the change in the short-term interest rate in one year is 1.4%.What is the forward interest rate in an FRA? (Unit: decimal)",
+    "ground_truth": "0.0263",
+    "fin_capability": "NM; TR"
+  },
+  {
+    "id": "vali_870",
+    "task": "bool",
+    "question": "Critics have charged that compensation to top managers in the United States is simply too high and should be cut back. For example, focusing on large corporations, Larry Ellison of Oracle has been one of the best-compensated CEOs in the United States, earning about $46 million in 2005 alone and $868 million over the 2001–2005 period.Executive compensation is not influenced by stock-based compensation.",
+    "ground_truth": "0.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_879",
+    "task": "calcu",
+    "question": "\n\\begin{table}[h]\n    \\centering\n    \\begin{tabular}{|c|c|c|}\n        \\hline\n        \\textbf{Year} & \\textbf{Cash Flow (A)} & \\textbf{Cash Flow (B)} \\\\\n        \\hline\n        0 & -$37,000 & -$37,000 \\\\\n        1 & 19,000 & 6,000 \\\\\n        \\hline\n        2 & 14,500 & 12,500 \\\\\n        \\hline\n        3 & 12,000 & 19,000 \\\\\n        \\hline\n        4 & 9,000 & 23,000 \\\\\n        \\hline\n    \\end{tabular}\n\\end{table}\n\nBumble's Bees, Inc., has identified the following two mutually exclusive projects:\n\n| Year | Cash Flow (A) | Cash Flow (B) |\n|------|----------------|----------------|\n| 0    | -37000         | -37000         |\n| 1    | 19000          | 6000           |\n| 2    | 14500          | 12500          |\n| 3    | 12000          | 19000          |\n| 4    | 9000           | 23000          |What is the IRR for Project A? (Unit: percentage)",
+    "ground_truth": "20.30",
+    "fin_capability": "TR; SP"
+  },
+  {
+    "id": "vali_888",
+    "task": "mcq",
+    "question": "Suppose the demand for reserves has a large unexpected decrease. Given the supply and demand diagram of reserve market, which one of the following points will the original balance point O move to?",
+    "ground_truth": "B",
+    "fin_capability": "FF",
+    "choice": "A. Point A\\nB. Point B\\nC. Point C"
+  },
+  {
+    "id": "vali_892",
+    "task": "bool",
+    "question": "The term structure of interest rates is downward sloping.The yield on a five-year coupon-bearing bond is larger than the forward rate corresponding to the period between 4.75 and 5 years in the future.",
+    "ground_truth": "1.0",
+    "fin_capability": "TU; TR"
+  },
+  {
+    "id": "vali_894",
+    "task": "calcu",
+    "question": "An American put futures option is being valued using a three-step tree. The futures price is 50, the life of the option is 9 months, the strike price is 50, the risk-free rate is 3%, and the volatility is 25%.What is the value of the American put futures option using a three-step tree? (Unit: dollar)",
+    "ground_truth": "4.59",
+    "fin_capability": "SP; TR"
+  },
+  {
+    "id": "vali_904",
+    "task": "bool",
+    "question": "Suppose a project has conventional cash flows and a positive NPV.The profitability index must be greater than 1.",
+    "ground_truth": "1.0",
+    "fin_capability": "TU; TR"
+  },
+  {
+    "id": "vali_907",
+    "task": "mcq",
+    "question": "Given the attached figure, what we can tell about the relationship between nominal interest rate and estimated real interest rate?",
+    "ground_truth": "C",
+    "fin_capability": "TR",
+    "choice": "A. They both reached the lowest values around 1980.\nB. Nominal interest rates were sometimes negative while the estimated real interest rates were always positive\nC. Nominal interest rate is a misleading indicator of real interest rate."
+  },
+  {
+    "id": "vali_917",
+    "task": "calcu",
+    "question": "A five-year bond with a yield of 11% (continuously compounded) pays an 8% coupon at the end of each year.With a 10.8% yield, what is the bond’s price? (Unit: dollar)",
+    "ground_truth": "87.54",
+    "fin_capability": "TR"
+  },
+  {
+    "id": "vali_929",
+    "task": "calcu",
+    "question": "Consider a project to supply Detroit with 45,000 tons of machine screws annually for automobile production. The project includes an initial $1,900,000 investment in threading equipment, lasts for five years, and involves annual fixed costs of $450,000 and variable costs of $210 per ton. The investment will be depreciated straight-line to zero over five years, with a salvage value of $500,000. Selling price is estimated at $245 per ton, with an initial net working capital investment of $450,000. A 13 percent return is required, facing a marginal tax rate of 38 percent.What is the best-case operating cash flow (OCF) for this project? (Unit: dollar)",
+    "ground_truth": "1503790.0",
+    "fin_capability": "NM; SP"
+  },
+  {
+    "id": "vali_944",
+    "task": "calcu",
+    "question": "The current price of a stock is $94, and three-month call options with a strike price of $95 currently sell for $4.70. An investor who feels that the price of the stock will increase is trying to decide between buying 100 shares and buying 2,000 call options (20 contracts). Both strategies involve an investment of $9,400.At what stock price would the call option strategy be more profitable than direct stock purchase? (Unit: dollar)",
+    "ground_truth": "100.0",
+    "fin_capability": "SP"
+  },
+  {
+    "id": "vali_970",
+    "task": "calcu",
+    "question": "\n\\begin{table}[h]\n    \\centering\n    \\begin{tabular}{l r}\n        \\hline\n        \\textbf{HEIR JORDAN CORPORATION} & \\\\\n        \\textbf{Income Statement} & \\\\\n        \\hline\n        Sales & \\$32,000 \\\\\n        Costs & \\$12,900 \\\\\n        \\\\\n        Taxable income & \\$19,100 \\\\\n        Taxes (34\\%) & \\$6,494 \\\\\n        \\\\\n        Net income & \\$12,606 \\\\\n        \\\\\n        Dividends & \\$4,800 \\\\\n        Addition to retained earnings & \\$7,806 \\\\\n        \\hline\n    \\end{tabular}\n\\end{table}\n\n\n\\begin{table}[h]\n    \\centering\n    \\caption{HEIR JORDAN CORPORATION \\\\ Balance Sheet}\n    \\begin{tabular}{lcl}\n        \\textbf{Assets} & \\textbf{Percentage} & \\\\\n        $ & \\textbf{of Sales} & \\\\\n        \\hline\n        Current assets & & \\\\\n        Cash & $ 3,650 & \\underline{} \\\\\n        Accounts receivable & 7,200 & \\underline{} \\\\\n        Inventory & 6,300 & \\underline{} \\\\\n        Total & $17,150 & \\underline{} \\\\\n        \\\\\n        Fixed assets & & \\\\\n        Net plant and equipment & $31,500 & \\underline{} \\\\\n        \\\\\n        Total assets & $48,650 & \\underline{} \\\\\n        \\hline\n        \\\\\n        \\textbf{Liabilities and Owners’ Equity} & \\textbf{Percentage} & \\\\\n        $ & \\textbf{of Sales} & \\\\\n        \\hline\n        Current liabilities & & \\\\\n        Accounts payable & $ 2,900 & \\underline{} \\\\\n        Notes payable & 7,600 & \\underline{} \\\\\n        Total & $10,500 & \\underline{} \\\\\n        Long-term debt & 21,000 & \\\\\n        \\\\\n        Owners’ equity & & \\\\\n        Common stock and paid-in surplus & $15,000 & \\underline{} \\\\\n        Retained earnings & 2,150 & \\underline{} \\\\\n        Total & $17,150 & \\underline{} \\\\\n        \\\\\n        Total liabilities and owners’ equity & $48,650 & \\underline{} \\\\\n    \\end{tabular}\n\\end{table}\n\nThe income statement and balance sheet for the Heir Jordan Corporation follows. Assume a 15 percent increase in sales, no new external debt or equity financing, and a constant payout ratio.What is the projected addition to retained earnings? (Unit: dollar)",
+    "ground_truth": "8976.90",
+    "fin_capability": "NM"
+  },
+  {
+    "id": "vali_985",
+    "task": "bool",
+    "question": "Suppose Tom O'Bedlam, president of Bedlam Products, Inc., has hired an advisor to determine the firm's cost of debt and cost of equity capital.Only considering the dividend yield component does not provide the full required return on equity.",
+    "ground_truth": "1.0",
+    "fin_capability": "TU"
+  },
+  {
+    "id": "vali_987",
+    "task": "bool",
+    "question": "Regulatory agencies have created certain incentives to encourage international banking.International banking has been discouraged by giving restrictive tax treatment and stringent branching regulations to Edge Act corporations and to international banking facilities (IBFs).",
+    "ground_truth": "0.0",
+    "fin_capability": "TU"
+  }
+]

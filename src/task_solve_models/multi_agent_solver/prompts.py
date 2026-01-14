@@ -4,31 +4,36 @@ TASK_SOLVER_SYSTEM_MESSAGE = """You are an expert problem solver participating i
 
 CRITICAL:
 1. Two-Step Reasoning: First, think through the math and logic step-by-step in the 'thought' field. Only then, populate the 'answer' fields.
-2. Stickiness: Do not change your position in later rounds just to be polite. Only switch if the counter-argument is overwhelmingly convincing and logically superior. If you are correct, stand your ground.
-3. Precision: Do not round intermediate calculations. Keep high precision until the final step.
-4. Tool Use: You have access to a Python calculator. To use it, output a code block labeled 'python' (e.g. ```python ... ```). The system will execute it and return the output. Use this to verify calculations."""
+2. Strategic Audit: You must evaluate and weight the Moderator's proposed strategy before beginning your own solution. Identify potential logic gaps or overlooked nuances. If you find a superior methodology, use it and justify why.
+3. Stickiness: Do not change your position in later rounds just to be polite. Only switch if the counter-argument is overwhelmingly convincing and logically superior. If you are correct, stand your ground.
+4. Precision: Do not round intermediate calculations. Keep high precision until the final step.
+5. Tool Use: You can use python as tool if you want. To use it, output a code block labeled 'python' (e.g. ```python ... ```). The system will execute it and return the output. Use this to verify calculations."""
 
-TASK_MODERATOR_BREAKDOWN_PROMPT = """You are a strategic planner. Analyze the following problem and create a step-by-step guidance plan for solving it.
-
-PROBLEM: {problem_text}
-
-Your plan should:
-1. Break down the problem into logical steps.
-2. Identify any specific formulas or financial concepts needed.
-3. Point out potential pitfalls or unit conversions (e.g. basis points to decimal, monthly vs annual).
-4. Do NOT solve the problem yourself. Just provide the roadmap.
-
-Output the plan as a clear, numbered list."""
-
-TASK_SOLVER_ROUND_1_PROMPT = """Can you solve the following problem?
+TASK_MODERATOR_BREAKDOWN_PROMPT = """You are a strategic architect. Analyze the following problem and propose a comprehensive strategy and step-by-step methodology for solving it.
 
 PROBLEM: {problem_text}
 
-MODERATOR GUIDANCE:
+Your output should:
+1. Propose a Hypothesis Strategy: Explain the core logic or mathematical framework you believe is most appropriate for this problem.
+2. Breakdown: Provide a logical, numbered list of steps required to execute this strategy.
+3. Pitfall Analysis: Identify specific technical pitfalls, unit conversion risks, or logic traps that might lead to an incorrect answer.
+4. Do NOT solve the problem yourself. Provide the strategic roadmap for the solvers.
+
+Solvers will be asked to audit and weight your proposed strategy, so be as precise and logical as possible. Output the plan as a clear, numbered list."""
+
+TASK_SOLVER_ROUND_1_PROMPT = """You are an expert analyst. Analyze the problem and the Moderator's Proposed Strategy below.
+
+PROBLEM: {problem_text}
+
+MODERATOR'S PROPOSED STRATEGY & METHODOLOGY:
 {moderator_guidance}
 
-Provide a detailed solution following the guidance above.
-1. Perform all calculations and logical derivation step-by-step.
+Your first task is to AUDIT the Moderator's strategy:
+1. STRATEGY WEIGHTING: In your 'thought' block, assign a confidence score (1-5) to the Moderator's proposed approach.
+2. REFINEMENT: Identify any logic gaps, missing steps, unit mismatches, or incorrect theoretical assumptions in the strategy. If the strategy is sound, explain why. If not, provide your specific refinement.
+
+Then, execute your refined solution:
+1. Perform all calculations and logical derivation step-by-step. You can use the Python tool if you want.
 2. Synthesize your findings into a clear explanation.
 3. State the final concise result (e.g. 'A', 'True', '42')."""
 
@@ -64,8 +69,8 @@ Structure:
 - thought: The detailed reasoning provided in the text.
 - final_answer: The conclusion or final summary.
 - answer: The concise result (e.g. 'A', 'True', '42').
-- numerical_answer: The number only (e.g. 42), or null. 
-  * CRITICAL: Check the requested unit in the problem (e.g. %, decimal, basis points). Ensure this number matches that unit exactly.
+- numerical_answer: The number only (e.g. 42), or null.
+  * CRITICAL: Check the requested unit in the problem (e.g. %, decimal). Ensure this number matches that unit exactly.
 
 CRITICAL: Return valid JSON only."""
 
@@ -74,7 +79,7 @@ TASK_MODERATOR_SYSTEM_MESSAGE = """You are a moderator overseeing a collaborativ
 CRITICAL:
 1. Tie-Breaking: If agents disagree after multiple rounds, you must act as a JUDGE. Evaluate the reasoning of each side and select the one that is most logically sound. Do not just report 'No Consensus'. Force a decision based on merit.
 2. Unit Police: Before finalizing, verify the 'numerical_answer' explicitly matches the unit requested in the question (e.g., if asked for percent, ensure the value is 5, not 0.05).
-3. Format Alignment: Read the original question carefully. Ensure the final 'answer' aligns with the specific format requested (e.g., 'basis points', 'Yes/No', 'True/False', 'Option Letter'). If agents provide a correct value but wrong format, YOU must correct it in the final output.
+3. Format Alignment: Read the original question carefully. Ensure the final 'answer' aligns with the specific format requested (e.g., 'Yes/No', 'True/False', 'Option Letter'). If agents provide a correct value but wrong format, YOU must correct it in the final output.
 4. Format: Return valid JSON only."""
 
 TASK_MODERATOR_CONSENSUS_PROMPT = """Review the following solutions from different agents for the same problem:

@@ -94,16 +94,30 @@ class TaskSolverModerator(RoutedAgent):
             parsed = parse_llm_json_response(response)
             consensus_reached = parsed.get("consensus_reached", False)
             final_solution = parsed.get("final_solution", "NONE")
-            
-            # Ensure final_solution is a string
+            answer = parsed.get("answer", "NONE")
+            reasoning = parsed.get("reasoning", "No reasoning provided")
+            numerical_answer = parsed.get("numerical_answer")
+
+            # Robustness: If the model nested the answer inside final_solution (common issue)
+            if (answer == "NONE" or answer == "null") and isinstance(final_solution, str):
+                try:
+                    # Check if final_solution itself is a JSON string
+                    if final_solution.strip().startswith("{"):
+                        inner_parsed = parse_llm_json_response(final_solution)
+                        if "answer" in inner_parsed and answer == "NONE":
+                            answer = str(inner_parsed["answer"])
+                        if "numerical_answer" in inner_parsed and numerical_answer is None:
+                            numerical_answer = inner_parsed["numerical_answer"]
+                        if "reasoning" in inner_parsed and (reasoning == "No reasoning provided" or not reasoning):
+                            reasoning = inner_parsed["reasoning"]
+                except Exception:
+                    pass
+
+            # Ensure final_solution is a string for storage
             if isinstance(final_solution, (dict, list)):
                 final_solution = json.dumps(final_solution, ensure_ascii=False)
             else:
                 final_solution = str(final_solution)
-
-            answer = parsed.get("answer", "NONE")
-            reasoning = parsed.get("reasoning", "No reasoning provided")
-            numerical_answer = parsed.get("numerical_answer")
 
             # Convert numerical_answer to string representation
             if numerical_answer is not None:
@@ -145,27 +159,36 @@ class TaskSolverModerator(RoutedAgent):
         if not valid_solutions:
             return False, "", "null", "null"
             
-        # If we have valid solutions, use them. Even if it's just 1 (because the other failed).
+        def clean_answer(a: str) -> str:
+            if not a: return ""
+            a = a.strip().lower()
+            # Remove trailing periods, stars, etc.
+            import re
+            a = re.sub(r'[^a-z0-9]$', '', a)
+            return a
+
         # Check for strict consensus on the structured 'answer' field
-        answers = [sol.answer.strip().lower() for sol in valid_solutions if sol.answer and sol.answer.strip().lower() != "no answer provided"]
+        answers = [clean_answer(sol.answer) for sol in valid_solutions if sol.answer and clean_answer(sol.answer) != "no answer found"]
         
         if len(answers) == len(valid_solutions) and len(set(answers)) == 1:
              return True, valid_solutions[0].final_answer, valid_solutions[0].answer, valid_solutions[0].numerical_answer
 
         # First check numerical answers if they exist
+        def clean_num(n: str) -> str:
+            if n == "null": return "null"
+            # Remove unit symbols and extra formatting
+            import re
+            n = re.sub(r'[^\d\.-]', '', n)
+            return n
+
         numerical_answers = [
-            sol.numerical_answer for sol in valid_solutions if sol.numerical_answer != "null"
+            clean_num(sol.numerical_answer) for sol in valid_solutions if sol.numerical_answer != "null"
         ]
         if (
             len(numerical_answers) == len(valid_solutions)
             and len(set(numerical_answers)) == 1
         ):
             return True, valid_solutions[0].final_answer, valid_solutions[0].answer, valid_solutions[0].numerical_answer
-
-        # Fallback to text-based consensus
-        # answers = [sol.final_answer.strip().lower() for sol in solutions] # Deprecated logic
-        # if len(set(answers)) == 1:
-        #    return True, solutions[0].final_answer, solutions[0].answer, solutions[0].numerical_answer
 
         return False, "", "null", "null"
 
@@ -359,103 +382,106 @@ class TaskSolverModerator(RoutedAgent):
                     )
                     return
 
-                if self._current_round < self._max_rounds:
-                    stored_task = self._tasks
+                # If simple consensus failed, run LLM Moderator (Judge/Consensus Check)
+                stored_task = self._tasks
 
-                    # Format solutions for LLM
-                    all_solutions_text = "\n\n".join(
-                        [
-                            f"Agent {sol.agent_id}:\nReasoning: {sol.thought}\nFinal Answer: {sol.final_answer}\nStructured Answer: {sol.answer}"
-                            for sol in solutions
-                        ]
-                    )
+                # Format solutions for LLM
+                all_solutions_text = "\n\n".join(
+                    [
+                        f"Agent {sol.agent_id}:\nReasoning: {sol.thought}\nFinal Answer: {sol.final_answer}\nStructured Answer: {sol.answer}"
+                        for sol in solutions
+                    ]
+                )
 
-                    prompt = TASK_MODERATOR_CONSENSUS_PROMPT.format(
-                        problem_text=stored_task.problem,
-                        all_solutions=all_solutions_text,
-                        current_round=self._current_round,
-                        max_rounds=self._max_rounds,
-                    )
+                prompt = TASK_MODERATOR_CONSENSUS_PROMPT.format(
+                    problem_text=stored_task.problem,
+                    all_solutions=all_solutions_text,
+                    current_round=self._current_round,
+                    max_rounds=self._max_rounds,
+                )
 
-                    system_message = SystemMessage(
-                        content=TASK_MODERATOR_SYSTEM_MESSAGE
-                    )
-                    user_message = UserMessage(content=prompt, source="user")
+                system_message = SystemMessage(
+                    content=TASK_MODERATOR_SYSTEM_MESSAGE
+                )
+                user_message = UserMessage(content=prompt, source="user")
 
-                    # Retry Logic for Moderator Consensus
-                    MAX_MODERATOR_ATTEMPTS = 3
-                    consensus_reached = False
-                    final_solution_text = ""
-                    answer = "null"
-                    reasoning = ""
-                    numerical_answer = "null"
+                # Retry Logic for Moderator Consensus
+                MAX_MODERATOR_ATTEMPTS = 3
+                consensus_reached = False
+                final_solution_text = ""
+                answer = "null"
+                reasoning = ""
+                numerical_answer = "null"
 
-                    for attempt in range(MAX_MODERATOR_ATTEMPTS):
-                        try:
-                            response = await self._model_client.create(
-                                messages=[system_message, user_message],
-                                cancellation_token=ctx.cancellation_token,
-                                extra_create_args={"response_format": {"type": "json_object"}},
-                            )
-                            
-                            content = str(response.content).strip()
-                            if not content:
-                                raise ValueError("Empty response from moderator model")
-
-                            (
-                                consensus_reached,
-                                final_solution_text,
-                                answer,
-                                reasoning,
-                                numerical_answer,
-                            ) = self._extract_consensus_components(content)
-                            
-                            # If we parsed successfully, break the loop
-                            break
+                for attempt in range(MAX_MODERATOR_ATTEMPTS):
+                    try:
+                        response = await self._model_client.create(
+                            messages=[system_message, user_message],
+                            cancellation_token=ctx.cancellation_token,
+                            extra_create_args={"response_format": {"type": "json_object"}},
+                        )
                         
-                        except Exception as e:
-                            log.warning(f"Moderator consensus check failed (Attempt {attempt+1}/{MAX_MODERATOR_ATTEMPTS}): {e}")
-                            if attempt < MAX_MODERATOR_ATTEMPTS - 1:
-                                import asyncio
-                                await asyncio.sleep(2 ** attempt)
-                            else:
-                                log.error("Moderator failed all attempts to check consensus.")
-                                # Fall through to logic that handles 'no consensus' or retry next round
-                                # But if we failed to get JSON, we likely treat it as no consensus for now
-                                consensus_reached = False
+                        content = str(response.content).strip()
+                        if not content:
+                            raise ValueError("Empty response from moderator model")
 
-                    if consensus_reached:
-                        # LLM found consensus
-                        # Enforce format before saving
-                        final_answer = self._enforce_format(answer, self._tasks.task_type)
+                        (
+                            consensus_reached,
+                            final_solution_text,
+                            answer,
+                            reasoning,
+                            numerical_answer,
+                        ) = self._extract_consensus_components(content)
+                        
+                        # If we parsed successfully, break the loop
+                        break
+                    
+                    except Exception as e:
+                        log.warning(f"Moderator consensus check failed (Attempt {attempt+1}/{MAX_MODERATOR_ATTEMPTS}): {e}")
+                        if attempt < MAX_MODERATOR_ATTEMPTS - 1:
+                            import asyncio
+                            await asyncio.sleep(2 ** attempt)
+                        else:
+                            log.error("Moderator failed all attempts to check consensus.")
+                            # Fall through to logic that handles 'no consensus' or retry next round
+                            # But if we failed to get JSON, we likely treat it as no consensus for now
+                            consensus_reached = False
 
-                        final_solution = FinalSolution(
-                            task_id=task_id,
-                            capability_name=self._tasks.capability_name,
-                            area_name=self._tasks.area_name,
-                            problem=self._tasks.problem,
-                            solution=final_solution_text,
-                            answer=final_answer,
-                            numerical_answer=numerical_answer,
-                            reasoning=reasoning,
-                            consensus_reached=True,
-                            total_rounds=self._current_round,
-                            all_solutions=self._get_all_solutions(),
-                            task_type=self._tasks.task_type,
-                        )
+                if consensus_reached:
+                    # LLM found consensus (or acted as Judge)
+                    # Enforce format before saving
+                    final_answer = self._enforce_format(answer, self._tasks.task_type)
 
-                        self._final_solutions = final_solution
-                        await self._save_final_solution(final_solution)
+                    final_solution = FinalSolution(
+                        task_id=task_id,
+                        capability_name=self._tasks.capability_name,
+                        area_name=self._tasks.area_name,
+                        problem=self._tasks.problem,
+                        solution=final_solution_text,
+                        answer=final_answer,
+                        numerical_answer=numerical_answer,
+                        reasoning=reasoning,
+                        consensus_reached=True,
+                        total_rounds=self._current_round,
+                        all_solutions=self._get_all_solutions(),
+                        task_type=self._tasks.task_type,
+                    )
 
-                        span.update(
-                            metadata={
-                                "consensus_reached": True,
-                                "method": "llm_moderator",
-                                "final_solution": final_solution_text[:100],
-                            }
-                        )
-                        return
-                    # No consensus, start next round
+                    self._final_solutions = final_solution
+                    await self._save_final_solution(final_solution)
+
+                    span.update(
+                        metadata={
+                            "consensus_reached": True,
+                            "method": "llm_moderator",
+                            "final_solution": final_solution_text[:100],
+                        }
+                    )
+                    return
+
+                # If consensus was NOT reached (LLM asked for more rounds), check if we can continue
+                if self._current_round < self._max_rounds:
+                    # Start next round
                     self._current_round += 1
 
                     # Send revision request with flattened task data
@@ -492,7 +518,7 @@ class TaskSolverModerator(RoutedAgent):
                         }
                     )
                 else:
-                    # Max rounds reached, no consensus
+                    # Max rounds reached, judge failed to reach consensus/pick a winner
                     final_solution = FinalSolution(
                         task_id=task_id,
                         capability_name=self._tasks.capability_name,
@@ -501,7 +527,7 @@ class TaskSolverModerator(RoutedAgent):
                         solution="No consensus reached",
                         answer="null",
                         numerical_answer="null",
-                        reasoning=f"Maximum rounds ({self._max_rounds}) reached without consensus",
+                        reasoning=f"Maximum rounds ({self._max_rounds}) reached without consensus/judgement",
                         consensus_reached=False,
                         total_rounds=self._current_round,
                         all_solutions=self._get_all_solutions(),

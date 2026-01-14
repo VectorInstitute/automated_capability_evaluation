@@ -4,11 +4,13 @@ import os
 import logging
 import argparse
 import asyncio
+import time
 from pathlib import Path
 
 from src.task_solve_models.solver import FinancialProblemSolver
 from src.task_solve_models.evaluator import evaluate_result
 from src.utils.model_client_utils import get_model_client, RetryableModelClient
+from src.model import get_local_model_url
 
 # Import OpenAI client for manual local construction
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -23,14 +25,72 @@ SCRIPT_DIR = Path(__file__).parent
 DATASET_DIR = SCRIPT_DIR / "dataset" / "XFinBench"
 RESULTS_DIR = SCRIPT_DIR / "Results"
 
-def get_client_wrapper(model_name: str):
+def get_client_wrapper(model_name: str, vllm_base_url: str = None):
     """
-    Wrapper to get model client, supporting local Ollama models.
+    Wrapper to get model client, supporting local Ollama models, Vector Inference, and vLLM API endpoints.
+    
+    Args:
+        model_name: Name of the model to use
+        vllm_base_url: Optional base URL for vLLM API endpoint (e.g., http://localhost:8000/v1)
+                      Use this for A100 GPU inference with vLLM.
     """
+    # If vLLM base URL is provided, use it directly (for A100 GPU inference)
+    if vllm_base_url:
+        log.info(f"Using vLLM API endpoint for model: {model_name} at {vllm_base_url}")
+        client = OpenAIChatCompletionClient(
+            model=model_name,
+            api_key=os.environ.get("LOCAL_API_KEY", "EMPTY"),
+            base_url=vllm_base_url,
+            model_info=ModelInfo(
+                vision=False,
+                function_calling=False,
+                json_output=True,
+                structured_output=True,
+                family="unknown"
+            )
+        )
+        return RetryableModelClient(client)
+    
     local_models = ["llama", "mistral", "gemma", "qwen", "phi", "deepseek"]
     
     # Check if model name contains any of the known local model keywords
     if any(keyword in model_name.lower() for keyword in local_models):
+        # Check if this is a large model that needs Vector Inference (e.g., 32B, 70B, etc.)
+        # or if it's explicitly a Vector Inference model
+        needs_vec_inf = (
+            "32b" in model_name.lower() or 
+            "70b" in model_name.lower() or
+            "32B" in model_name or
+            "70B" in model_name or
+            model_name.startswith("Qwen2.5-32B") or
+            model_name.startswith("Qwen2.5-70B")
+        )
+        
+        if needs_vec_inf:
+            log.info(f"Using Vector Inference for model: {model_name}")
+            try:
+                # Launch model via vec-inf and get base URL
+                base_url = get_local_model_url(model_name)
+                log.info(f"Model launched at: {base_url}")
+                client = OpenAIChatCompletionClient(
+                    model=model_name,
+                    api_key=os.environ.get("LOCAL_API_KEY", "EMPTY"),
+                    base_url=base_url,
+                    model_info=ModelInfo(
+                        vision=False,
+                        function_calling=False,
+                        json_output=True,
+                        structured_output=True,
+                        family="unknown"
+                    )
+                )
+                return RetryableModelClient(client)
+            except Exception as e:
+                log.error(f"Failed to launch model via Vector Inference: {e}")
+                log.info("Falling back to Ollama...")
+                # Fall through to Ollama as fallback
+        
+        # Use Ollama for smaller local models
         log.info(f"Using local Ollama client for model: {model_name}")
         client = OpenAIChatCompletionClient(
             model=model_name,
@@ -54,14 +114,17 @@ async def main():
     parser.add_argument("--batch-file", type=str, help="Specific batch file to run (e.g., batch_1.json). If not provided, runs all.")
     parser.add_argument("--save-home", action="store_true", help="Also save results to user's home directory.")
     parser.add_argument("--model", type=str, default="gpt-4o", help="Model to use (e.g., gpt-4o, claude-3-5-sonnet-20241022, gemini-2.5-pro).")
+    parser.add_argument("--vllm-base-url", type=str, help="Base URL for vLLM API endpoint (e.g., http://localhost:8000/v1). Use this for A100 GPU inference.")
     args = parser.parse_args()
 
     # Ensure results directory exists
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     try:
-        model_client = get_client_wrapper(args.model)
+        model_client = get_client_wrapper(args.model, vllm_base_url=args.vllm_base_url)
         log.info(f"Initialized client for model: {args.model}")
+        if args.vllm_base_url:
+            log.info(f"Using vLLM API endpoint: {args.vllm_base_url}")
     except Exception as e:
         log.error(f"Failed to initialize model client: {e}")
         return
@@ -89,6 +152,9 @@ async def main():
 
     total_correct = 0
     total_processed = 0
+    
+    # Record start time
+    start_time = time.time()
 
     for batch_file in batch_files:
         if not batch_file.exists():
@@ -116,6 +182,11 @@ async def main():
                 
         except Exception as e:
             log.error(f"Error reading/processing batch file {batch_file}: {e}")
+    
+    # Record end time and calculate duration
+    end_time = time.time()
+    execution_time_seconds = end_time - start_time
+    execution_time_formatted = f"{int(execution_time_seconds // 60)}m {int(execution_time_seconds % 60)}s"
 
     # Calculate metrics
     accuracy = total_correct / total_processed if total_processed > 0 else 0
@@ -124,7 +195,9 @@ async def main():
         "batch_info": batch_suffix.strip("_"),
         "total_processed": total_processed,
         "total_correct": total_correct,
-        "accuracy": accuracy
+        "accuracy": accuracy,
+        "execution_time_seconds": round(execution_time_seconds, 2),
+        "execution_time_formatted": execution_time_formatted
     }
     
     log.info("="*30)
@@ -133,6 +206,7 @@ async def main():
     log.info(f"Total Processed: {total_processed}")
     log.info(f"Total Correct: {total_correct}")
     log.info(f"Accuracy: {accuracy:.2%}")
+    log.info(f"Execution Time: {execution_time_formatted} ({execution_time_seconds:.2f}s)")
     log.info("="*30)
 
     # Save results locally in Results folder

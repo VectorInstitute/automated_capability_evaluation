@@ -70,6 +70,15 @@ def get_model_client(model_name: str, seed: Optional[int] = None, **kwargs: Any)
 
     if n.startswith(("gpt-", "o1-", "o3-", "gpt-5")):
         kwargs.setdefault("max_completion_tokens", MAX_TOKENS)
+        # Provide ModelInfo for newer models not yet in the autogen-core whitelist
+        if "model_info" not in kwargs:
+            kwargs["model_info"] = ModelInfo(
+                vision=True,
+                function_calling=True,
+                json_output=True,
+                structured_output=True,
+                family="gpt-4o" # Use gpt-4o family as a proxy for feature support
+            )
         openai_client = OpenAIChatCompletionClient(
             model=model_name, seed=seed, **kwargs
         )
@@ -122,6 +131,15 @@ def get_standard_model_client(
 
     # OpenAI GPT / o-series models
     if n.startswith(("gpt-", "o1-", "o3-", "gpt-5")):
+        # Provide ModelInfo for newer models not yet in the autogen-core whitelist
+        if "model_info" not in kwargs:
+            kwargs["model_info"] = ModelInfo(
+                vision=True,
+                function_calling=True,
+                json_output=True,
+                structured_output=True,
+                family="gpt-4o"
+            )
         return OpenAIChatCompletionClient(model=model_name, seed=seed, **kwargs)
 
     # Anthropic Claude models

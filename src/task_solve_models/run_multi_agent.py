@@ -7,6 +7,7 @@ import logging
 import argparse
 import asyncio
 import traceback
+import time
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict, Any, List
@@ -99,7 +100,7 @@ async def run_multi_agent_debate(
         "TaskSolverModerator",
         lambda: TaskSolverModerator(
             model_client=get_client_wrapper(model_specs["moderator"], seed=888),
-            num_solvers=2,
+            num_solvers=3,
             max_rounds=max_rounds,
             output_dir=task_output_dir,
             langfuse_client=langfuse_client,
@@ -124,6 +125,17 @@ async def run_multi_agent_debate(
         lambda: TaskSolverScientist(
             model_client=get_client_wrapper(model_specs["scientist_b"], seed=88),
             scientist_id="B",
+            langfuse_client=langfuse_client,
+        ),
+    )
+
+    # Register Scientist C
+    await TaskSolverScientist.register(
+        runtime,
+        "TaskSolverScientistC",
+        lambda: TaskSolverScientist(
+            model_client=get_client_wrapper(model_specs["scientist_c"], seed=8888),
+            scientist_id="C",
             langfuse_client=langfuse_client,
         ),
     )
@@ -154,6 +166,7 @@ async def main():
     parser.add_argument("--model-moderator", type=str, help="Model for Moderator.")
     parser.add_argument("--model-scientist-a", type=str, help="Model for Scientist A.")
     parser.add_argument("--model-scientist-b", type=str, help="Model for Scientist B.")
+    parser.add_argument("--model-scientist-c", type=str, help="Model for Scientist C.")
     
     parser.add_argument("--max-rounds", type=int, default=1, help="Maximum debate rounds.")
     args = parser.parse_args()
@@ -162,7 +175,8 @@ async def main():
     model_specs = {
         "moderator": args.model_moderator or args.model,
         "scientist_a": args.model_scientist_a or args.model,
-        "scientist_b": args.model_scientist_b or args.model
+        "scientist_b": args.model_scientist_b or args.model,
+        "scientist_c": args.model_scientist_c or args.model,
     }
 
     # Ensure results directory exists
@@ -189,12 +203,20 @@ async def main():
         return
 
     # Create a safe name for the output file based on the models
-    models_str = f"mod_{model_specs['moderator']}_scA_{model_specs['scientist_a']}_scB_{model_specs['scientist_b']}"
+    models_str = (
+        f"mod_{model_specs['moderator']}"
+        f"_scA_{model_specs['scientist_a']}"
+        f"_scB_{model_specs['scientist_b']}"
+        f"_scC_{model_specs['scientist_c']}"
+    )
     safe_models_str = models_str.replace("/", "-").replace(":", "-")
-    output_filename = f"multi_agent_results_{safe_models_str}{batch_suffix}.json"
+    output_filename = f"multi_agent_results_{safe_models_str}{batch_suffix}_r{args.max_rounds}.json"
 
     total_correct = 0
     total_processed = 0
+    
+    # Record start time
+    start_time = time.time()
 
     for batch_file in batch_files:
         if not batch_file.exists():
@@ -264,6 +286,11 @@ async def main():
 
         except Exception as e:
             log.error(f"Error reading batch file {batch_file}: {e}")
+    
+    # Record end time and calculate duration
+    end_time = time.time()
+    execution_time_seconds = end_time - start_time
+    execution_time_formatted = f"{int(execution_time_seconds // 60)}m {int(execution_time_seconds % 60)}s"
 
     # Metrics
     accuracy = total_correct / total_processed if total_processed > 0 else 0
@@ -273,7 +300,9 @@ async def main():
         "total_processed": total_processed,
         "total_correct": total_correct,
         "accuracy": accuracy,
-        "mode": "multi-agent-debate"
+        "mode": "multi-agent-debate",
+        "execution_time_seconds": round(execution_time_seconds, 2),
+        "execution_time_formatted": execution_time_formatted
     }
     
     log.info("="*30)
@@ -282,6 +311,7 @@ async def main():
     log.info(f"Total Processed: {total_processed}")
     log.info(f"Total Correct: {total_correct}")
     log.info(f"Accuracy: {accuracy:.2%}")
+    log.info(f"Execution Time: {execution_time_formatted} ({execution_time_seconds:.2f}s)")
     log.info("="*30)
 
     # Save

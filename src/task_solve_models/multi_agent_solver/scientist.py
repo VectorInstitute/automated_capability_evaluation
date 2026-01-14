@@ -183,7 +183,7 @@ class TaskSolverScientist(RoutedAgent):
                     answer = answer_match.group(1).strip()
                 if num_match:
                     numerical_answer = num_match.group(1).strip()
-                
+
                 # Attempt 2: JSON Parsing (Fallback if model outputted JSON despite instructions)
                 if answer == "No answer found":
                     try:

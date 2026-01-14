@@ -1,0 +1,1096 @@
+2025-12-25 12:38:16,177 - WARNING - Authentication error: Langfuse client initialized without public_key. Client will be disabled. Provide a public_key parameter or set LANGFUSE_PUBLIC_KEY environment variable. 
+2025-12-25 12:38:16,177 - INFO - Processing evaluation_batch.json...
+2025-12-25 12:38:16,178 - INFO - Solving problem vali_143...
+2025-12-25 12:38:16,250 - INFO - ReCAP Controller received task vali_143
+/Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/utils/model_client_utils.py:60: UserWarning: Resolved model mismatch: gpt-5.1 != gpt-5.1-2025-11-13. Model mapping in autogen_ext.models.openai may be incorrect. Set the model to gpt-5.1-2025-11-13 to enhance token/cost estimation and suppress this warning.
+  return await self.client.create(*args, **kwargs)
+2025-12-25 12:39:11,349 - INFO - Saved ReCAP final solution for vali_143 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_143_solution.json
+2025-12-25 12:39:16,020 - INFO - Saved ReCAP final solution for vali_143 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_143_solution.json
+2025-12-25 12:39:16,228 - INFO - Saved ReCAP final solution for vali_143 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_143_solution.json
+2025-12-25 12:39:16,629 - INFO - Saved ReCAP final solution for vali_143 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_143_solution.json
+2025-12-25 12:39:16,774 - INFO - Saved ReCAP final solution for vali_143 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_143_solution.json
+2025-12-25 12:39:17,199 - INFO - Saved ReCAP final solution for vali_143 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_143_solution.json
+2025-12-25 12:39:17,200 - INFO - Problem vali_143: INCORRECT
+2025-12-25 12:39:17,201 - INFO - Solving problem vali_164...
+2025-12-25 12:39:17,264 - INFO - ReCAP Controller received task vali_164
+2025-12-25 12:39:55,033 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The claim is that there is an important distinctio' contains no number
+2025-12-25 12:39:55,432 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The claim is that there is an important distinctio' contains no number
+2025-12-25 12:39:55,432 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The claim is that there is an important distinctio' contains no number
+2025-12-25 12:40:01,548 - WARNING - Step S2 result 'The claim is that there is an important distinctio' does not contain a number but expected numeric output
+2025-12-25 12:40:01,560 - WARNING - Step S2 result 'The claim is that there is an important distinctio' does not contain a number but expected numeric output
+2025-12-25 12:40:05,254 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Forward price is the delivery price agreed upon at' contains no number
+2025-12-25 12:40:05,255 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Forward price is the delivery price agreed at cont' contains no number
+2025-12-25 12:40:05,405 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Forward price is the delivery price agreed upon at' contains no number
+2025-12-25 12:40:05,405 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Forward price is the delivery price agreed at cont' contains no number
+2025-12-25 12:40:05,405 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The forward price is the delivery price agreed upo' contains no number
+2025-12-25 12:40:05,411 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Forward price is the delivery price agreed upon at' contains no number
+2025-12-25 12:40:05,412 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Forward price is the delivery price agreed at cont' contains no number
+2025-12-25 12:40:05,412 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The forward price is the delivery price agreed upo' contains no number
+2025-12-25 12:40:05,412 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The forward price is the delivery price agreed upo' contains no number
+2025-12-25 12:40:11,001 - WARNING - Step S3 result 'The forward price is the delivery price agreed upo' does not contain a number but expected numeric output
+2025-12-25 12:40:11,005 - WARNING - Step S3 result 'The forward price is the delivery price agreed upo' does not contain a number but expected numeric output
+2025-12-25 12:40:14,783 - WARNING - Step S3 result 'Forward price is the delivery price agreed upon at' does not contain a number but expected numeric output
+2025-12-25 12:40:18,493 - WARNING - Step S5 candidate from worker B: expected numeric output but result 'correct' contains no number
+2025-12-25 12:40:18,494 - WARNING - Step S5 candidate from worker A: expected numeric output but result 'correct' contains no number
+2025-12-25 12:40:18,837 - WARNING - Step S5 candidate from worker B: expected numeric output but result 'correct' contains no number
+2025-12-25 12:40:18,838 - WARNING - Step S5 candidate from worker A: expected numeric output but result 'correct' contains no number
+2025-12-25 12:40:18,838 - WARNING - Step S5 candidate from worker B: expected numeric output but result 'correct' contains no number
+2025-12-25 12:40:18,918 - WARNING - Step S5 candidate from worker B: expected numeric output but result 'correct' contains no number
+2025-12-25 12:40:18,918 - WARNING - Step S5 candidate from worker A: expected numeric output but result 'correct' contains no number
+2025-12-25 12:40:18,918 - WARNING - Step S5 candidate from worker B: expected numeric output but result 'correct' contains no number
+2025-12-25 12:40:18,918 - WARNING - Step S5 candidate from worker A: expected numeric output but result 'correct' contains no number
+2025-12-25 12:40:19,046 - INFO - Saved ReCAP final solution for vali_164 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_164_solution.json
+2025-12-25 12:40:22,057 - INFO - Saved ReCAP final solution for vali_164 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_164_solution.json
+2025-12-25 12:40:22,139 - WARNING - Step S5 result 'correct' does not contain a number but expected numeric output
+2025-12-25 12:40:22,462 - WARNING - Step S5 result 'correct' does not contain a number but expected numeric output
+2025-12-25 12:40:22,480 - WARNING - Step S5 result 'correct' does not contain a number but expected numeric output
+2025-12-25 12:40:23,365 - INFO - Saved ReCAP final solution for vali_164 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_164_solution.json
+2025-12-25 12:40:23,786 - INFO - Saved ReCAP final solution for vali_164 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_164_solution.json
+2025-12-25 12:40:23,799 - INFO - Saved ReCAP final solution for vali_164 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_164_solution.json
+2025-12-25 12:40:23,799 - INFO - Problem vali_164: CORRECT
+2025-12-25 12:40:23,799 - INFO - Solving problem vali_165...
+2025-12-25 12:40:23,866 - INFO - ReCAP Controller received task vali_165
+2025-12-25 12:41:21,335 - INFO - Saved ReCAP final solution for vali_165 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_165_solution.json
+2025-12-25 12:41:26,484 - INFO - Saved ReCAP final solution for vali_165 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_165_solution.json
+2025-12-25 12:41:28,389 - INFO - Saved ReCAP final solution for vali_165 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_165_solution.json
+2025-12-25 12:41:28,543 - INFO - Saved ReCAP final solution for vali_165 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_165_solution.json
+2025-12-25 12:41:28,811 - INFO - Saved ReCAP final solution for vali_165 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_165_solution.json
+2025-12-25 12:41:28,843 - INFO - Saved ReCAP final solution for vali_165 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_165_solution.json
+2025-12-25 12:41:28,909 - INFO - Saved ReCAP final solution for vali_165 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_165_solution.json
+2025-12-25 12:41:29,218 - INFO - Saved ReCAP final solution for vali_165 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_165_solution.json
+2025-12-25 12:41:29,219 - INFO - Problem vali_165: CORRECT
+2025-12-25 12:41:29,219 - INFO - Solving problem vali_188...
+2025-12-25 12:41:29,273 - INFO - ReCAP Controller received task vali_188
+2025-12-25 12:42:22,541 - INFO - Saved ReCAP final solution for vali_188 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_188_solution.json
+2025-12-25 12:42:22,548 - INFO - Saved ReCAP final solution for vali_188 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_188_solution.json
+2025-12-25 12:42:22,624 - INFO - Saved ReCAP final solution for vali_188 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_188_solution.json
+2025-12-25 12:42:22,659 - INFO - Saved ReCAP final solution for vali_188 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_188_solution.json
+2025-12-25 12:42:22,916 - INFO - Saved ReCAP final solution for vali_188 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_188_solution.json
+2025-12-25 12:42:23,355 - INFO - Saved ReCAP final solution for vali_188 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_188_solution.json
+2025-12-25 12:42:27,143 - INFO - Saved ReCAP final solution for vali_188 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_188_solution.json
+2025-12-25 12:42:27,145 - INFO - Problem vali_188: CORRECT
+2025-12-25 12:42:27,145 - INFO - Solving problem vali_24...
+2025-12-25 12:42:27,214 - INFO - ReCAP Controller received task vali_24
+2025-12-25 12:43:17,797 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'All quantities have consistent units (NPV in curre' contains no number
+2025-12-25 12:43:17,797 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'All quantities are in consistent units (NPV as a c' contains no number
+2025-12-25 12:43:19,139 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'All quantities have consistent units (NPV in curre' contains no number
+2025-12-25 12:43:19,140 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'All quantities are in consistent units (NPV as a c' contains no number
+2025-12-25 12:43:19,140 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'All quantities are in consistent units: NPV is a c' contains no number
+2025-12-25 12:43:19,255 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'All quantities have consistent units (NPV in curre' contains no number
+2025-12-25 12:43:19,255 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'All quantities are in consistent units (NPV as a c' contains no number
+2025-12-25 12:43:19,255 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'All quantities are in consistent units: NPV is a c' contains no number
+2025-12-25 12:43:19,255 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'NPV is a currency amount, IRR and the required ret' contains no number
+2025-12-25 12:43:21,975 - WARNING - Step S3 result 'All quantities have consistent units (NPV in curre' does not contain a number but expected numeric output
+2025-12-25 12:43:23,543 - WARNING - Step S3 result 'All quantities are in consistent units (NPV as a c' does not contain a number but expected numeric output
+2025-12-25 12:43:23,651 - WARNING - Step S3 result 'All quantities are in consistent units (NPV as a c' does not contain a number but expected numeric output
+2025-12-25 12:43:30,987 - WARNING - Step S5 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:43:31,503 - INFO - Saved ReCAP final solution for vali_24 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_24_solution.json
+2025-12-25 12:43:31,507 - INFO - Saved ReCAP final solution for vali_24 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_24_solution.json
+2025-12-25 12:43:31,510 - INFO - Saved ReCAP final solution for vali_24 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_24_solution.json
+2025-12-25 12:43:32,312 - WARNING - Step S5 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:43:32,314 - WARNING - Step S5 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:43:37,083 - INFO - Saved ReCAP final solution for vali_24 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_24_solution.json
+2025-12-25 12:43:37,499 - INFO - Saved ReCAP final solution for vali_24 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_24_solution.json
+2025-12-25 12:43:38,172 - INFO - Saved ReCAP final solution for vali_24 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_24_solution.json
+2025-12-25 12:43:38,174 - INFO - Problem vali_24: CORRECT
+2025-12-25 12:43:38,174 - INFO - Solving problem vali_275...
+2025-12-25 12:43:38,243 - INFO - ReCAP Controller received task vali_275
+2025-12-25 12:44:49,423 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:44:49,529 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:44:49,845 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:44:49,848 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:44:49,950 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:44:50,441 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:44:50,523 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:45:01,974 - INFO - Saved ReCAP final solution for vali_275 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_275_solution.json
+2025-12-25 12:45:02,075 - INFO - Saved ReCAP final solution for vali_275 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_275_solution.json
+2025-12-25 12:45:02,247 - INFO - Saved ReCAP final solution for vali_275 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_275_solution.json
+2025-12-25 12:45:02,773 - INFO - Saved ReCAP final solution for vali_275 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_275_solution.json
+2025-12-25 12:45:10,540 - INFO - Saved ReCAP final solution for vali_275 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_275_solution.json
+2025-12-25 12:45:10,928 - INFO - Saved ReCAP final solution for vali_275 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_275_solution.json
+2025-12-25 12:45:10,973 - INFO - Saved ReCAP final solution for vali_275 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_275_solution.json
+2025-12-25 12:45:10,988 - INFO - Saved ReCAP final solution for vali_275 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_275_solution.json
+2025-12-25 12:45:11,127 - INFO - Saved ReCAP final solution for vali_275 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_275_solution.json
+2025-12-25 12:45:11,527 - INFO - Saved ReCAP final solution for vali_275 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_275_solution.json
+2025-12-25 12:45:11,529 - INFO - Problem vali_275: INCORRECT
+2025-12-25 12:45:11,529 - INFO - Solving problem vali_294...
+2025-12-25 12:45:11,580 - INFO - ReCAP Controller received task vali_294
+2025-12-25 12:46:05,560 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+/Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/utils/model_client_utils.py:60: UserWarning: Resolved model mismatch: gpt-5.1 != gpt-5.1-2025-11-13. Model mapping in autogen_ext.models.openai may be incorrect. Set the model to gpt-5.1-2025-11-13 to enhance token/cost estimation and suppress this warning.
+  return await self.client.create(*args, **kwargs)
+2025-12-25 12:46:12,720 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:46:14,013 - INFO - Step S4 requires Python: filtered 1/4 candidates that used Python
+2025-12-25 12:46:20,563 - INFO - Saved ReCAP final solution for vali_294 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_294_solution.json
+2025-12-25 12:46:20,565 - INFO - Problem vali_294: INCORRECT
+2025-12-25 12:46:20,565 - INFO - Solving problem vali_319...
+2025-12-25 12:46:20,628 - INFO - ReCAP Controller received task vali_319
+2025-12-25 12:47:11,655 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,655 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and volat' contains no number
+2025-12-25 12:47:11,687 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,688 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and volat' contains no number
+2025-12-25 12:47:11,724 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,724 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and volat' contains no number
+2025-12-25 12:47:11,725 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,811 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,811 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and volat' contains no number
+2025-12-25 12:47:11,811 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,811 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,816 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,816 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and volat' contains no number
+2025-12-25 12:47:11,816 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,816 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,816 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,990 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,990 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and volat' contains no number
+2025-12-25 12:47:11,990 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,990 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:11,990 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:12,097 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:12,097 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and volat' contains no number
+2025-12-25 12:47:12,097 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:12,097 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:12,097 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Strike is in dollars, maturity in years, and impli' contains no number
+2025-12-25 12:47:16,637 - WARNING - Step S3 result 'Strike is in dollars, maturity in years, and volat' does not contain a number but expected numeric output
+2025-12-25 12:47:16,725 - WARNING - Step S3 result 'Strike is in dollars, maturity in years, and volat' does not contain a number but expected numeric output
+2025-12-25 12:47:17,190 - WARNING - Step S3 result 'Strike is in dollars, maturity in years, and impli' does not contain a number but expected numeric output
+2025-12-25 12:47:17,192 - WARNING - Step S3 result 'Strike is in dollars, maturity in years, and impli' does not contain a number but expected numeric output
+2025-12-25 12:47:18,623 - INFO - Saved ReCAP final solution for vali_319 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_319_solution.json
+2025-12-25 12:47:18,766 - INFO - Saved ReCAP final solution for vali_319 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_319_solution.json
+2025-12-25 12:47:18,938 - INFO - Saved ReCAP final solution for vali_319 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_319_solution.json
+2025-12-25 12:47:18,985 - INFO - Saved ReCAP final solution for vali_319 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_319_solution.json
+2025-12-25 12:47:25,418 - INFO - Saved ReCAP final solution for vali_319 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_319_solution.json
+2025-12-25 12:47:26,082 - INFO - Saved ReCAP final solution for vali_319 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_319_solution.json
+2025-12-25 12:47:26,224 - INFO - Saved ReCAP final solution for vali_319 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_319_solution.json
+2025-12-25 12:47:26,318 - INFO - Saved ReCAP final solution for vali_319 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_319_solution.json
+2025-12-25 12:47:26,416 - INFO - Saved ReCAP final solution for vali_319 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_319_solution.json
+2025-12-25 12:47:26,418 - INFO - Problem vali_319: CORRECT
+2025-12-25 12:47:26,418 - INFO - Solving problem vali_335...
+2025-12-25 12:47:26,487 - INFO - ReCAP Controller received task vali_335
+2025-12-25 12:47:35,028 - WARNING - Step S1 candidate from worker A: expected numeric output but result 'Output must be a single boolean value (true/false)' contains no number
+2025-12-25 12:47:35,028 - WARNING - Step S1 candidate from worker B: expected numeric output but result 'Output must be a single boolean value (true/false)' contains no number
+2025-12-25 12:47:39,180 - WARNING - Step S1 result 'Output must be a single boolean value (true/false)' does not contain a number but expected numeric output
+2025-12-25 12:48:07,329 - INFO - Saved ReCAP final solution for vali_335 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_335_solution.json
+2025-12-25 12:48:07,556 - INFO - Saved ReCAP final solution for vali_335 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_335_solution.json
+2025-12-25 12:48:08,028 - INFO - Saved ReCAP final solution for vali_335 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_335_solution.json
+2025-12-25 12:48:08,547 - INFO - Saved ReCAP final solution for vali_335 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_335_solution.json
+2025-12-25 12:48:08,621 - INFO - Saved ReCAP final solution for vali_335 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_335_solution.json
+2025-12-25 12:48:12,496 - INFO - Saved ReCAP final solution for vali_335 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_335_solution.json
+2025-12-25 12:48:12,926 - INFO - Saved ReCAP final solution for vali_335 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_335_solution.json
+2025-12-25 12:48:13,312 - INFO - Saved ReCAP final solution for vali_335 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_335_solution.json
+2025-12-25 12:48:13,506 - INFO - Saved ReCAP final solution for vali_335 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_335_solution.json
+2025-12-25 12:48:13,791 - INFO - Saved ReCAP final solution for vali_335 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_335_solution.json
+2025-12-25 12:48:13,794 - INFO - Problem vali_335: CORRECT
+2025-12-25 12:48:13,794 - INFO - Solving problem vali_340...
+2025-12-25 12:48:13,860 - INFO - ReCAP Controller received task vali_340
+2025-12-25 12:48:37,055 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 12:48:37,055 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 12:48:42,879 - WARNING - Step S2 result 'The final answer must be a single bare boolean val' does not contain a number but expected numeric output
+2025-12-25 12:48:44,966 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 12:48:44,966 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 12:48:44,966 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 12:48:44,989 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 12:48:44,989 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 12:48:44,989 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 12:48:44,990 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 12:48:51,604 - WARNING - Step S2 result 'The final answer must be a single bare boolean val' does not contain a number but expected numeric output
+2025-12-25 12:48:51,607 - WARNING - Step S2 result 'The final answer must be a single bare boolean val' does not contain a number but expected numeric output
+2025-12-25 12:49:23,625 - INFO - Saved ReCAP final solution for vali_340 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_340_solution.json
+2025-12-25 12:49:23,642 - INFO - Saved ReCAP final solution for vali_340 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_340_solution.json
+2025-12-25 12:49:23,738 - INFO - Saved ReCAP final solution for vali_340 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_340_solution.json
+2025-12-25 12:49:23,875 - INFO - Saved ReCAP final solution for vali_340 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_340_solution.json
+2025-12-25 12:49:24,893 - INFO - Saved ReCAP final solution for vali_340 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_340_solution.json
+2025-12-25 12:49:27,242 - INFO - Saved ReCAP final solution for vali_340 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_340_solution.json
+2025-12-25 12:49:27,464 - INFO - Saved ReCAP final solution for vali_340 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_340_solution.json
+2025-12-25 12:49:27,466 - INFO - Problem vali_340: CORRECT
+2025-12-25 12:49:27,466 - INFO - Solving problem vali_350...
+2025-12-25 12:49:27,535 - INFO - ReCAP Controller received task vali_350
+2025-12-25 12:50:44,552 - INFO - Saved ReCAP final solution for vali_350 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_350_solution.json
+2025-12-25 12:50:52,747 - INFO - Saved ReCAP final solution for vali_350 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_350_solution.json
+2025-12-25 12:50:53,398 - INFO - Saved ReCAP final solution for vali_350 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_350_solution.json
+2025-12-25 12:50:53,528 - INFO - Saved ReCAP final solution for vali_350 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_350_solution.json
+2025-12-25 12:50:53,529 - INFO - Problem vali_350: CORRECT
+2025-12-25 12:50:53,529 - INFO - Solving problem vali_357...
+2025-12-25 12:50:53,580 - INFO - ReCAP Controller received task vali_357
+2025-12-25 12:52:09,201 - INFO - Saved ReCAP final solution for vali_357 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_357_solution.json
+2025-12-25 12:52:16,597 - INFO - Saved ReCAP final solution for vali_357 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_357_solution.json
+2025-12-25 12:52:16,658 - INFO - Saved ReCAP final solution for vali_357 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_357_solution.json
+2025-12-25 12:52:16,748 - INFO - Saved ReCAP final solution for vali_357 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_357_solution.json
+2025-12-25 12:52:17,058 - INFO - Saved ReCAP final solution for vali_357 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_357_solution.json
+2025-12-25 12:52:17,444 - INFO - Saved ReCAP final solution for vali_357 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_357_solution.json
+2025-12-25 12:52:17,446 - INFO - Problem vali_357: CORRECT
+2025-12-25 12:52:17,446 - INFO - Solving problem vali_388...
+2025-12-25 12:52:17,512 - INFO - ReCAP Controller received task vali_388
+2025-12-25 12:53:33,671 - INFO - Saved ReCAP final solution for vali_388 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_388_solution.json
+2025-12-25 12:53:35,041 - INFO - Saved ReCAP final solution for vali_388 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_388_solution.json
+2025-12-25 12:53:35,761 - INFO - Saved ReCAP final solution for vali_388 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_388_solution.json
+2025-12-25 12:53:35,965 - INFO - Saved ReCAP final solution for vali_388 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_388_solution.json
+2025-12-25 12:53:38,534 - INFO - Saved ReCAP final solution for vali_388 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_388_solution.json
+2025-12-25 12:53:38,536 - INFO - Problem vali_388: CORRECT
+2025-12-25 12:53:38,536 - INFO - Solving problem vali_413...
+2025-12-25 12:53:38,605 - INFO - ReCAP Controller received task vali_413
+2025-12-25 12:54:43,849 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:54:43,854 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:54:44,271 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:54:44,904 - INFO - Saved ReCAP final solution for vali_413 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_413_solution.json
+2025-12-25 12:54:45,112 - INFO - Saved ReCAP final solution for vali_413 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_413_solution.json
+2025-12-25 12:54:45,170 - INFO - Saved ReCAP final solution for vali_413 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_413_solution.json
+2025-12-25 12:54:45,207 - INFO - Saved ReCAP final solution for vali_413 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_413_solution.json
+2025-12-25 12:54:45,633 - INFO - Saved ReCAP final solution for vali_413 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_413_solution.json
+2025-12-25 12:54:51,755 - INFO - Saved ReCAP final solution for vali_413 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_413_solution.json
+2025-12-25 12:54:51,952 - INFO - Saved ReCAP final solution for vali_413 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_413_solution.json
+2025-12-25 12:54:52,134 - INFO - Saved ReCAP final solution for vali_413 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_413_solution.json
+2025-12-25 12:54:52,136 - INFO - Problem vali_413: INCORRECT
+2025-12-25 12:54:52,136 - INFO - Solving problem vali_435...
+2025-12-25 12:54:52,201 - INFO - ReCAP Controller received task vali_435
+2025-12-25 12:55:05,404 - WARNING - Step S1 candidate from worker A: expected numeric output but result 'The proposition to be evaluated is: 'It is the res' contains no number
+2025-12-25 12:55:05,404 - WARNING - Step S1 candidate from worker B: expected numeric output but result 'The proposition to be evaluated is: 'It is the res' contains no number
+2025-12-25 12:55:11,715 - WARNING - Step S1 result 'The proposition to be evaluated is: 'It is the res' does not contain a number but expected numeric output
+2025-12-25 12:55:55,259 - INFO - Saved ReCAP final solution for vali_435 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_435_solution.json
+2025-12-25 12:55:58,535 - INFO - Saved ReCAP final solution for vali_435 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_435_solution.json
+2025-12-25 12:56:00,975 - INFO - Saved ReCAP final solution for vali_435 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_435_solution.json
+2025-12-25 12:56:01,195 - INFO - Saved ReCAP final solution for vali_435 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_435_solution.json
+2025-12-25 12:56:01,656 - INFO - Saved ReCAP final solution for vali_435 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_435_solution.json
+2025-12-25 12:56:01,658 - INFO - Problem vali_435: CORRECT
+2025-12-25 12:56:01,658 - INFO - Solving problem vali_439...
+2025-12-25 12:56:01,726 - INFO - ReCAP Controller received task vali_439
+2025-12-25 12:58:09,337 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:58:09,740 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:58:10,141 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:58:10,147 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:58:10,389 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:58:10,391 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:58:10,819 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 12:58:18,328 - INFO - Saved ReCAP final solution for vali_439 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_439_solution.json
+2025-12-25 12:58:18,418 - INFO - Saved ReCAP final solution for vali_439 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_439_solution.json
+2025-12-25 12:58:18,930 - INFO - Saved ReCAP final solution for vali_439 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_439_solution.json
+2025-12-25 12:58:19,165 - INFO - Saved ReCAP final solution for vali_439 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_439_solution.json
+2025-12-25 12:58:19,543 - INFO - Saved ReCAP final solution for vali_439 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_439_solution.json
+2025-12-25 12:58:22,263 - INFO - Saved ReCAP final solution for vali_439 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_439_solution.json
+2025-12-25 12:58:22,266 - INFO - Problem vali_439: CORRECT
+2025-12-25 12:58:22,266 - INFO - Solving problem vali_518...
+2025-12-25 12:58:22,333 - INFO - ReCAP Controller received task vali_518
+2025-12-25 12:59:07,828 - INFO - Saved ReCAP final solution for vali_518 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_518_solution.json
+2025-12-25 12:59:13,365 - INFO - Saved ReCAP final solution for vali_518 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_518_solution.json
+2025-12-25 12:59:13,393 - INFO - Saved ReCAP final solution for vali_518 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_518_solution.json
+2025-12-25 12:59:13,695 - INFO - Saved ReCAP final solution for vali_518 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_518_solution.json
+2025-12-25 12:59:13,734 - INFO - Saved ReCAP final solution for vali_518 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_518_solution.json
+2025-12-25 12:59:13,742 - INFO - Saved ReCAP final solution for vali_518 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_518_solution.json
+2025-12-25 12:59:14,710 - INFO - Saved ReCAP final solution for vali_518 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_518_solution.json
+2025-12-25 12:59:14,713 - INFO - Problem vali_518: INCORRECT
+2025-12-25 12:59:14,713 - INFO - Solving problem vali_53...
+2025-12-25 12:59:14,781 - INFO - ReCAP Controller received task vali_53
+2025-12-25 13:00:20,533 - INFO - Saved ReCAP final solution for vali_53 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_53_solution.json
+2025-12-25 13:00:20,591 - WARNING - Step S4 candidate from worker B: expected numeric output but result 'There are no numeric units involved; the final ans' contains no number
+2025-12-25 13:00:20,592 - WARNING - Step S4 candidate from worker A: expected numeric output but result 'There are no numeric units involved; the final ans' contains no number
+2025-12-25 13:00:20,689 - INFO - Saved ReCAP final solution for vali_53 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_53_solution.json
+2025-12-25 13:00:20,943 - INFO - Saved ReCAP final solution for vali_53 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_53_solution.json
+2025-12-25 13:00:20,948 - INFO - Saved ReCAP final solution for vali_53 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_53_solution.json
+2025-12-25 13:00:20,952 - INFO - Saved ReCAP final solution for vali_53 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_53_solution.json
+2025-12-25 13:00:22,289 - INFO - Saved ReCAP final solution for vali_53 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_53_solution.json
+2025-12-25 13:00:24,422 - WARNING - Step S4 result 'There are no numeric units involved; the final ans' does not contain a number but expected numeric output
+2025-12-25 13:00:26,077 - INFO - Saved ReCAP final solution for vali_53 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_53_solution.json
+2025-12-25 13:00:26,080 - INFO - Problem vali_53: CORRECT
+2025-12-25 13:00:26,080 - INFO - Solving problem vali_546...
+2025-12-25 13:00:26,148 - INFO - ReCAP Controller received task vali_546
+2025-12-25 13:01:22,645 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:01:22,805 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:01:23,145 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:01:23,193 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:01:24,707 - INFO - Step S4 requires Python: filtered 1/6 candidates that used Python
+2025-12-25 13:01:30,998 - INFO - Saved ReCAP final solution for vali_546 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_546_solution.json
+2025-12-25 13:01:31,192 - INFO - Saved ReCAP final solution for vali_546 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_546_solution.json
+2025-12-25 13:01:32,079 - INFO - Saved ReCAP final solution for vali_546 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_546_solution.json
+2025-12-25 13:01:32,081 - INFO - Problem vali_546: CORRECT
+2025-12-25 13:01:32,081 - INFO - Solving problem vali_617...
+2025-12-25 13:01:32,150 - INFO - ReCAP Controller received task vali_617
+2025-12-25 13:02:35,356 - INFO - Saved ReCAP final solution for vali_617 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_617_solution.json
+2025-12-25 13:02:35,544 - INFO - Saved ReCAP final solution for vali_617 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_617_solution.json
+2025-12-25 13:02:35,734 - INFO - Problem vali_617: CORRECT
+2025-12-25 13:02:35,734 - INFO - Solving problem vali_626...
+2025-12-25 13:02:35,804 - INFO - ReCAP Controller received task vali_626
+2025-12-25 13:03:21,849 - WARNING - Step S3 candidate from worker B: expected numeric output but result '['Early exercise of an American put can be optimal' contains no number
+2025-12-25 13:03:21,855 - WARNING - Step S3 candidate from worker B: expected numeric output but result '['Early exercise of an American put can be optimal' contains no number
+2025-12-25 13:03:22,390 - WARNING - Step S3 candidate from worker B: expected numeric output but result '['Early exercise of an American put can be optimal' contains no number
+2025-12-25 13:03:35,446 - WARNING - Step S5 candidate from worker B: expected numeric output but result 'An increase in the value of the insurance element ' contains no number
+2025-12-25 13:03:35,447 - WARNING - Step S5 candidate from worker A: expected numeric output but result 'An increase in the value of the insurance element ' contains no number
+2025-12-25 13:03:35,633 - WARNING - Step S5 candidate from worker B: expected numeric output but result 'An increase in the value of the insurance element ' contains no number
+2025-12-25 13:03:35,633 - WARNING - Step S5 candidate from worker A: expected numeric output but result 'An increase in the value of the insurance element ' contains no number
+2025-12-25 13:03:35,633 - WARNING - Step S5 candidate from worker A: expected numeric output but result 'An increase in the value of the insurance element ' contains no number
+2025-12-25 13:03:35,708 - WARNING - Step S5 candidate from worker B: expected numeric output but result 'An increase in the value of the insurance element ' contains no number
+2025-12-25 13:03:35,708 - WARNING - Step S5 candidate from worker A: expected numeric output but result 'An increase in the value of the insurance element ' contains no number
+2025-12-25 13:03:35,708 - WARNING - Step S5 candidate from worker A: expected numeric output but result 'An increase in the value of the insurance element ' contains no number
+2025-12-25 13:03:35,708 - WARNING - Step S5 candidate from worker B: expected numeric output but result 'An increase in the value of the insurance element ' contains no number
+2025-12-25 13:03:35,760 - INFO - Saved ReCAP final solution for vali_626 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_626_solution.json
+2025-12-25 13:03:37,444 - INFO - Saved ReCAP final solution for vali_626 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_626_solution.json
+2025-12-25 13:03:37,542 - INFO - Saved ReCAP final solution for vali_626 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_626_solution.json
+2025-12-25 13:03:38,777 - WARNING - Step S5 result 'An increase in the value of the insurance element ' does not contain a number but expected numeric output
+2025-12-25 13:03:39,222 - WARNING - Step S5 result 'An increase in the value of the insurance element ' does not contain a number but expected numeric output
+2025-12-25 13:03:39,697 - WARNING - Step S5 result 'An increase in the value of the insurance element ' does not contain a number but expected numeric output
+2025-12-25 13:03:40,701 - INFO - Saved ReCAP final solution for vali_626 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_626_solution.json
+2025-12-25 13:03:41,032 - INFO - Saved ReCAP final solution for vali_626 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_626_solution.json
+2025-12-25 13:03:41,649 - INFO - Saved ReCAP final solution for vali_626 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_626_solution.json
+2025-12-25 13:03:41,650 - INFO - Problem vali_626: CORRECT
+2025-12-25 13:03:41,650 - INFO - Solving problem vali_661...
+2025-12-25 13:03:41,717 - INFO - ReCAP Controller received task vali_661
+2025-12-25 13:04:50,822 - INFO - Saved ReCAP final solution for vali_661 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_661_solution.json
+2025-12-25 13:04:51,386 - INFO - Saved ReCAP final solution for vali_661 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_661_solution.json
+2025-12-25 13:04:52,101 - INFO - Saved ReCAP final solution for vali_661 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_661_solution.json
+2025-12-25 13:04:52,219 - INFO - Saved ReCAP final solution for vali_661 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_661_solution.json
+2025-12-25 13:04:58,199 - INFO - Saved ReCAP final solution for vali_661 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_661_solution.json
+2025-12-25 13:04:58,329 - INFO - Saved ReCAP final solution for vali_661 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_661_solution.json
+2025-12-25 13:04:58,551 - INFO - Saved ReCAP final solution for vali_661 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_661_solution.json
+2025-12-25 13:04:58,697 - INFO - Saved ReCAP final solution for vali_661 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_661_solution.json
+2025-12-25 13:04:58,712 - INFO - Saved ReCAP final solution for vali_661 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_661_solution.json
+2025-12-25 13:04:58,714 - INFO - Problem vali_661: INCORRECT
+2025-12-25 13:04:58,714 - INFO - Solving problem vali_673...
+2025-12-25 13:04:58,778 - INFO - ReCAP Controller received task vali_673
+2025-12-25 13:05:10,341 - WARNING - Step S1 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:05:19,435 - WARNING - Step S1a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:05:19,435 - WARNING - Step S1a candidate from worker A: expected numeric output but result 'Confirmed via Python parsing that there are exactl' contains no number
+2025-12-25 13:05:19,435 - WARNING - Step S1a candidate from worker B: expected numeric output but result 'Confirmed via Python parsing: exactly three choice' contains no number
+2025-12-25 13:05:25,542 - WARNING - Step S1a result 'Confirmed that there are exactly three labeled cho' does not contain a number but expected numeric output
+2025-12-25 13:05:27,936 - WARNING - Step S1a_ext requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:05:27,937 - WARNING - Step S1a_ext candidate from worker A: expected numeric output but result 'Confirmed via Python that the problem text contain' contains no number
+2025-12-25 13:05:34,694 - WARNING - Step S1a_ext result 'Confirmed via Python that the problem text contain' does not contain a number but expected numeric output
+2025-12-25 13:05:37,074 - WARNING - Step S1a_ext_a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:05:37,074 - WARNING - Step S1a_ext_a candidate from worker A: expected numeric output but result 'Confirmed via Python that the problem text contain' contains no number
+2025-12-25 13:05:37,074 - WARNING - Step S1a_ext_a candidate from worker B: expected numeric output but result 'Confirmed via Python that the problem text contain' contains no number
+2025-12-25 13:05:44,413 - WARNING - Step S1a_ext_a result 'Confirmed via Python that the problem text contain' does not contain a number but expected numeric output
+2025-12-25 13:05:47,083 - WARNING - Step S1a_ext_a2 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:05:47,083 - WARNING - Step S1a_ext_a2 candidate from worker B: expected numeric output but result 'Confirmed via Python: exactly three choices labele' contains no number
+2025-12-25 13:05:55,787 - WARNING - Step S1a_ext_a2a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:05:55,787 - WARNING - Step S1a_ext_a2a candidate from worker A: expected numeric output but result 'Confirmed via Python that the 'problem' field cont' contains no number
+2025-12-25 13:06:05,572 - WARNING - Step S1a_ext_a2a_py requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:06:14,007 - WARNING - Step S1a_ext_a2a_py_fix requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:06:22,429 - WARNING - Step S1a_ext_a2a_py_fix_a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:06:22,429 - WARNING - Step S1a_ext_a2a_py_fix_a candidate from worker B: expected numeric output but result 'Confirmed via Python that the 'problem' field cont' contains no number
+2025-12-25 13:06:31,217 - WARNING - Step S1a_ext_a2a_py_fix_a1 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:06:31,217 - WARNING - Step S1a_ext_a2a_py_fix_a1 candidate from worker B: expected numeric output but result 'Confirmed via Python: the 'problem' field contains' contains no number
+2025-12-25 13:06:39,640 - WARNING - Step S1a_ext_a2a_py_fix_a1a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:06:39,640 - WARNING - Step S1a_ext_a2a_py_fix_a1a candidate from worker A: expected numeric output but result 'Confirmed via Python that the 'problem' field cont' contains no number
+2025-12-25 13:06:48,626 - WARNING - Step S1a_ext_a2a_py_fix_a1a_a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:06:48,627 - WARNING - Step S1a_ext_a2a_py_fix_a1a_a candidate from worker B: expected numeric output but result 'Confirmed via Python: problem text contains exactl' contains no number
+2025-12-25 13:06:57,465 - INFO - Saved ReCAP final solution for vali_673 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_673_solution.json
+2025-12-25 13:06:57,466 - INFO - Problem vali_673: CORRECT
+2025-12-25 13:06:57,466 - INFO - Solving problem vali_711...
+2025-12-25 13:06:57,535 - INFO - ReCAP Controller received task vali_711
+2025-12-25 13:07:09,156 - WARNING - Step S1 candidate from worker A: expected numeric output but result 'The task type is 'bool' and the final answer must ' contains no number
+2025-12-25 13:07:09,156 - WARNING - Step S1 candidate from worker B: expected numeric output but result 'The task type is 'bool' and the final required out' contains no number
+2025-12-25 13:07:14,467 - WARNING - Step S1 result 'The task type is 'bool' and the final required out' does not contain a number but expected numeric output
+2025-12-25 13:07:55,161 - INFO - Saved ReCAP final solution for vali_711 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_711_solution.json
+2025-12-25 13:07:55,544 - INFO - Saved ReCAP final solution for vali_711 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_711_solution.json
+2025-12-25 13:07:56,022 - INFO - Saved ReCAP final solution for vali_711 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_711_solution.json
+2025-12-25 13:08:00,413 - INFO - Saved ReCAP final solution for vali_711 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_711_solution.json
+2025-12-25 13:08:00,419 - INFO - Saved ReCAP final solution for vali_711 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_711_solution.json
+2025-12-25 13:08:02,214 - INFO - Saved ReCAP final solution for vali_711 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_711_solution.json
+2025-12-25 13:08:02,216 - INFO - Problem vali_711: INCORRECT
+2025-12-25 13:08:02,216 - INFO - Solving problem vali_714...
+2025-12-25 13:08:02,284 - INFO - ReCAP Controller received task vali_714
+2025-12-25 13:09:06,520 - INFO - Saved ReCAP final solution for vali_714 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_714_solution.json
+2025-12-25 13:09:13,117 - INFO - Saved ReCAP final solution for vali_714 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_714_solution.json
+2025-12-25 13:09:13,131 - INFO - Saved ReCAP final solution for vali_714 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_714_solution.json
+2025-12-25 13:09:13,235 - INFO - Saved ReCAP final solution for vali_714 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_714_solution.json
+2025-12-25 13:09:13,511 - INFO - Saved ReCAP final solution for vali_714 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_714_solution.json
+2025-12-25 13:09:13,609 - INFO - Saved ReCAP final solution for vali_714 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_714_solution.json
+2025-12-25 13:09:13,614 - INFO - Saved ReCAP final solution for vali_714 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_714_solution.json
+2025-12-25 13:09:13,621 - INFO - Saved ReCAP final solution for vali_714 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_714_solution.json
+2025-12-25 13:09:13,622 - INFO - Problem vali_714: CORRECT
+2025-12-25 13:09:13,622 - INFO - Solving problem vali_72...
+2025-12-25 13:09:13,684 - INFO - ReCAP Controller received task vali_72
+2025-12-25 13:10:16,915 - INFO - Saved ReCAP final solution for vali_72 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_72_solution.json
+2025-12-25 13:10:17,042 - INFO - Saved ReCAP final solution for vali_72 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_72_solution.json
+2025-12-25 13:10:17,607 - INFO - Saved ReCAP final solution for vali_72 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_72_solution.json
+2025-12-25 13:10:18,154 - INFO - Saved ReCAP final solution for vali_72 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_72_solution.json
+2025-12-25 13:10:18,270 - INFO - Saved ReCAP final solution for vali_72 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_72_solution.json
+2025-12-25 13:10:19,278 - INFO - Saved ReCAP final solution for vali_72 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_72_solution.json
+2025-12-25 13:10:22,850 - INFO - Saved ReCAP final solution for vali_72 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_72_solution.json
+2025-12-25 13:10:22,852 - INFO - Problem vali_72: CORRECT
+2025-12-25 13:10:22,852 - INFO - Solving problem vali_730...
+2025-12-25 13:10:22,920 - INFO - ReCAP Controller received task vali_730
+2025-12-25 13:11:33,402 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:11:33,405 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:11:34,828 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:11:35,225 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:11:35,229 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:11:42,918 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:11:43,830 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:11:44,074 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:11:44,294 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:11:45,379 - INFO - Saved ReCAP final solution for vali_730 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_730_solution.json
+2025-12-25 13:11:52,247 - INFO - Saved ReCAP final solution for vali_730 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_730_solution.json
+2025-12-25 13:11:52,978 - INFO - Saved ReCAP final solution for vali_730 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_730_solution.json
+2025-12-25 13:11:53,671 - INFO - Saved ReCAP final solution for vali_730 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_730_solution.json
+2025-12-25 13:11:56,727 - INFO - Saved ReCAP final solution for vali_730 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_730_solution.json
+2025-12-25 13:11:56,729 - INFO - Problem vali_730: INCORRECT
+2025-12-25 13:11:56,729 - INFO - Solving problem vali_753...
+2025-12-25 13:11:56,800 - INFO - ReCAP Controller received task vali_753
+2025-12-25 13:12:41,759 - INFO - Saved ReCAP final solution for vali_753 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_753_solution.json
+2025-12-25 13:12:42,519 - INFO - Saved ReCAP final solution for vali_753 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_753_solution.json
+2025-12-25 13:12:43,037 - INFO - Saved ReCAP final solution for vali_753 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_753_solution.json
+2025-12-25 13:12:43,083 - INFO - Saved ReCAP final solution for vali_753 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_753_solution.json
+2025-12-25 13:12:45,932 - INFO - Saved ReCAP final solution for vali_753 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_753_solution.json
+2025-12-25 13:12:48,365 - INFO - Saved ReCAP final solution for vali_753 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_753_solution.json
+2025-12-25 13:12:48,948 - INFO - Saved ReCAP final solution for vali_753 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_753_solution.json
+2025-12-25 13:12:48,951 - INFO - Problem vali_753: INCORRECT
+2025-12-25 13:12:48,951 - INFO - Solving problem vali_760...
+2025-12-25 13:12:49,017 - INFO - ReCAP Controller received task vali_760
+2025-12-25 13:13:52,235 - INFO - Saved ReCAP final solution for vali_760 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_760_solution.json
+2025-12-25 13:13:52,514 - INFO - Saved ReCAP final solution for vali_760 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_760_solution.json
+2025-12-25 13:13:53,891 - INFO - Saved ReCAP final solution for vali_760 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_760_solution.json
+2025-12-25 13:13:57,341 - INFO - Saved ReCAP final solution for vali_760 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_760_solution.json
+2025-12-25 13:13:57,758 - INFO - Saved ReCAP final solution for vali_760 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_760_solution.json
+2025-12-25 13:13:57,831 - INFO - Saved ReCAP final solution for vali_760 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_760_solution.json
+2025-12-25 13:13:57,941 - INFO - Saved ReCAP final solution for vali_760 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_760_solution.json
+2025-12-25 13:13:58,708 - INFO - Saved ReCAP final solution for vali_760 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_760_solution.json
+2025-12-25 13:13:58,710 - INFO - Problem vali_760: CORRECT
+2025-12-25 13:13:58,711 - INFO - Solving problem vali_789...
+2025-12-25 13:13:58,778 - INFO - ReCAP Controller received task vali_789
+2025-12-25 13:14:14,184 - WARNING - Step S1 candidate from worker A: expected numeric output but result 'Output must be a single boolean-style value (e.g.,' contains no number
+2025-12-25 13:14:14,185 - WARNING - Step S1 candidate from worker B: expected numeric output but result 'Output must be a single boolean-style value (e.g.,' contains no number
+2025-12-25 13:14:20,081 - WARNING - Step S1 result 'Output must be a single boolean-style value (e.g.,' does not contain a number but expected numeric output
+2025-12-25 13:14:51,232 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The proposition to evaluate is: 'In a default-free' contains no number
+2025-12-25 13:14:51,232 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The proposition to evaluate is: 'In a default-free' contains no number
+2025-12-25 13:14:51,646 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The proposition to evaluate is: 'In a default-free' contains no number
+2025-12-25 13:14:51,647 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The proposition to evaluate is: 'In a default-free' contains no number
+2025-12-25 13:14:51,647 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The proposition to evaluate is: 'In a default-free' contains no number
+2025-12-25 13:14:51,800 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The proposition to evaluate is: 'In a default-free' contains no number
+2025-12-25 13:14:51,800 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The proposition to evaluate is: 'In a default-free' contains no number
+2025-12-25 13:14:51,800 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The proposition to evaluate is: 'In a default-free' contains no number
+2025-12-25 13:14:51,800 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The proposition to evaluate is: 'In a default-free' contains no number
+2025-12-25 13:14:55,777 - WARNING - Step S3 result 'The proposition to evaluate is: 'In a default-free' does not contain a number but expected numeric output
+2025-12-25 13:14:56,152 - WARNING - Step S3 result 'The proposition to evaluate is: 'In a default-free' does not contain a number but expected numeric output
+2025-12-25 13:14:56,869 - WARNING - Step S3 result 'The proposition to evaluate is: 'In a default-free' does not contain a number but expected numeric output
+2025-12-25 13:15:03,808 - INFO - Saved ReCAP final solution for vali_789 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_789_solution.json
+2025-12-25 13:15:04,862 - INFO - Saved ReCAP final solution for vali_789 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_789_solution.json
+2025-12-25 13:15:05,572 - INFO - Saved ReCAP final solution for vali_789 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_789_solution.json
+2025-12-25 13:15:05,721 - INFO - Saved ReCAP final solution for vali_789 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_789_solution.json
+2025-12-25 13:15:05,909 - INFO - Saved ReCAP final solution for vali_789 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_789_solution.json
+2025-12-25 13:15:05,911 - INFO - Problem vali_789: CORRECT
+2025-12-25 13:15:05,911 - INFO - Solving problem vali_792...
+2025-12-25 13:15:05,979 - INFO - ReCAP Controller received task vali_792
+2025-12-25 13:15:59,748 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The required final output is a single lowercase bo' contains no number
+2025-12-25 13:15:59,748 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The final answer must be a single boolean value (t' contains no number
+2025-12-25 13:15:59,751 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The required final output is a single lowercase bo' contains no number
+2025-12-25 13:15:59,751 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The final answer must be a single boolean value (t' contains no number
+2025-12-25 13:15:59,751 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The final output must be a single boolean value (t' contains no number
+2025-12-25 13:15:59,805 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The required final output is a single lowercase bo' contains no number
+2025-12-25 13:15:59,805 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The final answer must be a single boolean value (t' contains no number
+2025-12-25 13:15:59,806 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The final output must be a single boolean value (t' contains no number
+2025-12-25 13:15:59,806 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The final output must be a single lowercase boolea' contains no number
+2025-12-25 13:15:59,909 - INFO - Saved ReCAP final solution for vali_792 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_792_solution.json
+2025-12-25 13:15:59,912 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The required final output is a single lowercase bo' contains no number
+2025-12-25 13:15:59,912 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The final answer must be a single boolean value (t' contains no number
+2025-12-25 13:15:59,912 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The final output must be a single boolean value (t' contains no number
+2025-12-25 13:15:59,912 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The final output must be a single lowercase boolea' contains no number
+2025-12-25 13:15:59,912 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The final answer must be a single boolean value (t' contains no number
+2025-12-25 13:15:59,915 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The required final output is a single lowercase bo' contains no number
+2025-12-25 13:15:59,915 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The final answer must be a single boolean value (t' contains no number
+2025-12-25 13:15:59,915 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The final output must be a single boolean value (t' contains no number
+2025-12-25 13:15:59,915 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The final output must be a single lowercase boolea' contains no number
+2025-12-25 13:15:59,915 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The final answer must be a single boolean value (t' contains no number
+2025-12-25 13:15:59,915 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The final answer must be a single lowercase boolea' contains no number
+2025-12-25 13:15:59,982 - INFO - Saved ReCAP final solution for vali_792 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_792_solution.json
+2025-12-25 13:16:00,274 - INFO - Saved ReCAP final solution for vali_792 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_792_solution.json
+2025-12-25 13:16:04,660 - WARNING - Step S3 result 'The required final output is a single lowercase bo' does not contain a number but expected numeric output
+2025-12-25 13:16:04,760 - WARNING - Step S3 result 'The required final output is a single lowercase bo' does not contain a number but expected numeric output
+2025-12-25 13:16:04,935 - WARNING - Step S3 result 'The final answer must be a single lowercase boolea' does not contain a number but expected numeric output
+2025-12-25 13:16:05,050 - WARNING - Step S3 result 'The final output must be a single lowercase boolea' does not contain a number but expected numeric output
+2025-12-25 13:16:05,581 - WARNING - Step S3 result 'The required final output is a single lowercase bo' does not contain a number but expected numeric output
+2025-12-25 13:16:05,860 - INFO - Saved ReCAP final solution for vali_792 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_792_solution.json
+2025-12-25 13:16:06,301 - INFO - Saved ReCAP final solution for vali_792 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_792_solution.json
+2025-12-25 13:16:06,724 - INFO - Saved ReCAP final solution for vali_792 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_792_solution.json
+2025-12-25 13:16:06,828 - INFO - Saved ReCAP final solution for vali_792 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_792_solution.json
+2025-12-25 13:16:07,250 - INFO - Saved ReCAP final solution for vali_792 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_792_solution.json
+2025-12-25 13:16:07,252 - INFO - Problem vali_792: CORRECT
+2025-12-25 13:16:07,252 - INFO - Solving problem vali_802...
+2025-12-25 13:16:07,318 - INFO - ReCAP Controller received task vali_802
+2025-12-25 13:16:28,108 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be an integer number of shar' contains no number
+2025-12-25 13:16:28,109 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single integer number o' contains no number
+2025-12-25 13:16:33,228 - WARNING - Step S2 result 'The final answer must be a single integer number o' does not contain a number but expected numeric output
+2025-12-25 13:16:34,674 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be an integer number of shar' contains no number
+2025-12-25 13:16:34,674 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single integer number o' contains no number
+2025-12-25 13:16:34,675 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single integer number o' contains no number
+2025-12-25 13:16:35,024 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be an integer number of shar' contains no number
+2025-12-25 13:16:35,024 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single integer number o' contains no number
+2025-12-25 13:16:35,024 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single integer number o' contains no number
+2025-12-25 13:16:35,024 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single integer count of' contains no number
+2025-12-25 13:16:39,278 - WARNING - Step S2 result 'The final answer must be a single integer number o' does not contain a number but expected numeric output
+2025-12-25 13:16:40,295 - WARNING - Step S2 result 'The final answer must be a single integer count of' does not contain a number but expected numeric output
+2025-12-25 13:16:41,702 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be an integer number of shar' contains no number
+2025-12-25 13:16:41,702 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single integer number o' contains no number
+2025-12-25 13:16:41,702 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single integer number o' contains no number
+2025-12-25 13:16:41,702 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single integer count of' contains no number
+2025-12-25 13:16:41,702 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single integer number o' contains no number
+2025-12-25 13:16:41,844 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be an integer number of shar' contains no number
+2025-12-25 13:16:41,845 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single integer number o' contains no number
+2025-12-25 13:16:41,845 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single integer number o' contains no number
+2025-12-25 13:16:41,845 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single integer count of' contains no number
+2025-12-25 13:16:41,845 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single integer number o' contains no number
+2025-12-25 13:16:41,845 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single integer number o' contains no number
+2025-12-25 13:16:46,337 - WARNING - Step S2 result 'The final answer must be a single integer count of' does not contain a number but expected numeric output
+2025-12-25 13:16:47,152 - WARNING - Step S2 result 'The final answer must be a single integer count of' does not contain a number but expected numeric output
+2025-12-25 13:16:48,180 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:16:48,180 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:48,180 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:48,889 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:16:48,890 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:48,890 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:48,890 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:51,127 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:16:51,128 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:51,128 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:51,128 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:51,128 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:53,958 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:16:54,953 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:16:55,217 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:16:55,217 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:55,217 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:55,217 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:55,217 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:55,217 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:55,633 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:16:55,633 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:55,633 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:55,633 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:55,633 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:55,633 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:55,633 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,278 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:16:57,278 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,278 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,278 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,278 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,278 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,278 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,278 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,567 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:16:57,567 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,567 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,567 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,567 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,567 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,567 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,568 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,568 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:57,749 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:16:59,145 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:16:59,145 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,146 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,146 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,146 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,146 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,146 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,146 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,146 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,146 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Cannot be computed from given information' contains no number
+2025-12-25 13:16:59,546 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:16:59,546 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,546 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,546 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,546 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,546 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,547 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,547 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,547 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:16:59,547 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Cannot be computed from given information' contains no number
+2025-12-25 13:16:59,547 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:00,990 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:17:01,795 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:17:02,718 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,719 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,719 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,719 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,719 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,719 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,719 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,719 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,719 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Cannot be computed from given information' contains no number
+2025-12-25 13:17:02,719 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,719 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Cannot be determined from given information' contains no number
+2025-12-25 13:17:02,932 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,933 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,933 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,933 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,933 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,933 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,933 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,933 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,933 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Cannot be computed from given information' contains no number
+2025-12-25 13:17:02,933 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:02,933 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Cannot be determined from given information' contains no number
+2025-12-25 13:17:02,933 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,339 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Cannot be computed from given information' contains no number
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Cannot be determined from given information' contains no number
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,544 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,862 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,862 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,862 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,862 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,862 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,863 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,863 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,863 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,863 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Cannot be computed from given information' contains no number
+2025-12-25 13:17:03,863 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,863 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'Cannot be determined from given information' contains no number
+2025-12-25 13:17:03,863 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,863 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'None' contains no number
+2025-12-25 13:17:03,863 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'Cannot be determined from given information' contains no number
+2025-12-25 13:17:04,479 - INFO - Saved ReCAP final solution for vali_802 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_802_solution.json
+2025-12-25 13:17:05,728 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:17:05,761 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:17:05,815 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:17:07,128 - INFO - Saved ReCAP final solution for vali_802 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_802_solution.json
+2025-12-25 13:17:07,328 - INFO - Saved ReCAP final solution for vali_802 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_802_solution.json
+2025-12-25 13:17:07,394 - INFO - Saved ReCAP final solution for vali_802 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_802_solution.json
+2025-12-25 13:17:07,887 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:17:09,382 - INFO - Saved ReCAP final solution for vali_802 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_802_solution.json
+2025-12-25 13:17:09,435 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:17:09,630 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:17:10,751 - WARNING - Step S3 result 'None' does not contain a number but expected numeric output
+2025-12-25 13:17:10,765 - INFO - Saved ReCAP final solution for vali_802 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_802_solution.json
+2025-12-25 13:17:11,208 - INFO - Saved ReCAP final solution for vali_802 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_802_solution.json
+2025-12-25 13:17:13,008 - INFO - Saved ReCAP final solution for vali_802 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_802_solution.json
+2025-12-25 13:17:13,010 - INFO - Problem vali_802: INCORRECT
+2025-12-25 13:17:13,010 - INFO - Solving problem vali_848...
+2025-12-25 13:17:13,078 - INFO - ReCAP Controller received task vali_848
+2025-12-25 13:18:07,963 - INFO - Step S3 requires Python: filtered 1/2 candidates that used Python
+2025-12-25 13:18:08,006 - INFO - Step S3 requires Python: filtered 2/3 candidates that used Python
+2025-12-25 13:18:08,225 - INFO - Step S3 requires Python: filtered 3/4 candidates that used Python
+2025-12-25 13:18:15,179 - INFO - Step S3 requires Python: filtered 3/5 candidates that used Python
+2025-12-25 13:18:15,182 - INFO - Step S3 requires Python: filtered 3/6 candidates that used Python
+2025-12-25 13:18:15,701 - INFO - Step S3 requires Python: filtered 3/7 candidates that used Python
+2025-12-25 13:18:16,523 - INFO - Step S3 requires Python: filtered 4/8 candidates that used Python
+2025-12-25 13:18:23,678 - INFO - Saved ReCAP final solution for vali_848 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_848_solution.json
+2025-12-25 13:18:24,757 - INFO - Saved ReCAP final solution for vali_848 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_848_solution.json
+2025-12-25 13:18:30,190 - INFO - Saved ReCAP final solution for vali_848 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_848_solution.json
+2025-12-25 13:18:30,385 - INFO - Saved ReCAP final solution for vali_848 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_848_solution.json
+2025-12-25 13:18:30,554 - INFO - Saved ReCAP final solution for vali_848 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_848_solution.json
+2025-12-25 13:18:30,555 - INFO - Problem vali_848: INCORRECT
+2025-12-25 13:18:30,555 - INFO - Solving problem vali_86...
+2025-12-25 13:18:30,618 - INFO - ReCAP Controller received task vali_86
+2025-12-25 13:19:20,187 - INFO - Retrying request to /chat/completions in 0.490384 seconds
+2025-12-25 13:19:22,308 - INFO - Saved ReCAP final solution for vali_86 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_86_solution.json
+2025-12-25 13:19:22,311 - INFO - Saved ReCAP final solution for vali_86 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_86_solution.json
+2025-12-25 13:19:22,970 - INFO - Saved ReCAP final solution for vali_86 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_86_solution.json
+2025-12-25 13:19:25,783 - INFO - Saved ReCAP final solution for vali_86 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_86_solution.json
+2025-12-25 13:19:25,963 - INFO - Saved ReCAP final solution for vali_86 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_86_solution.json
+2025-12-25 13:19:26,553 - INFO - Saved ReCAP final solution for vali_86 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_86_solution.json
+2025-12-25 13:19:26,555 - INFO - Problem vali_86: CORRECT
+2025-12-25 13:19:26,555 - INFO - Solving problem vali_860...
+2025-12-25 13:19:26,621 - INFO - ReCAP Controller received task vali_860
+2025-12-25 13:19:41,230 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:41,231 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:44,733 - WARNING - Step S2 result 'The final output must be a single letter (A, B, or' does not contain a number but expected numeric output
+2025-12-25 13:19:46,035 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:46,036 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:46,036 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:46,090 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:46,090 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:46,090 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:46,090 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:49,956 - WARNING - Step S2 result 'The final output must be a single letter (A, B, or' does not contain a number but expected numeric output
+2025-12-25 13:19:50,172 - WARNING - Step S2 result 'The final output must be a single letter (A, B, or' does not contain a number but expected numeric output
+2025-12-25 13:19:51,540 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:51,541 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:51,541 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:51,541 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:51,541 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The required final output must be a single letter ' contains no number
+2025-12-25 13:19:51,796 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:51,797 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:51,797 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:51,797 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:51,797 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The required final output must be a single letter ' contains no number
+2025-12-25 13:19:51,797 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The required final output is a single letter (A, B' contains no number
+2025-12-25 13:19:51,923 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:51,923 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:51,924 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:51,924 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:51,924 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The required final output must be a single letter ' contains no number
+2025-12-25 13:19:51,924 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The required final output is a single letter (A, B' contains no number
+2025-12-25 13:19:51,924 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The required final output is a single letter (A, B' contains no number
+2025-12-25 13:19:52,721 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:52,722 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:52,722 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:52,722 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:52,722 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The required final output must be a single letter ' contains no number
+2025-12-25 13:19:52,722 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The required final output is a single letter (A, B' contains no number
+2025-12-25 13:19:52,722 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The required final output is a single letter (A, B' contains no number
+2025-12-25 13:19:52,722 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final output must be a single letter (A, B, or' contains no number
+2025-12-25 13:19:54,844 - WARNING - Step S2 result 'The final output must be a single letter (A, B, or' does not contain a number but expected numeric output
+2025-12-25 13:19:54,912 - WARNING - Step S2 result 'The required final output is a single letter (A, B' does not contain a number but expected numeric output
+2025-12-25 13:19:55,382 - WARNING - Step S2 result 'The required final output is a single letter (A, B' does not contain a number but expected numeric output
+2025-12-25 13:19:56,219 - WARNING - Step S2 result 'The required final output is a single letter (A, B' does not contain a number but expected numeric output
+2025-12-25 13:20:02,745 - INFO - Saved ReCAP final solution for vali_860 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_860_solution.json
+2025-12-25 13:20:02,982 - INFO - Saved ReCAP final solution for vali_860 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_860_solution.json
+2025-12-25 13:20:03,047 - INFO - Saved ReCAP final solution for vali_860 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_860_solution.json
+2025-12-25 13:20:04,223 - INFO - Saved ReCAP final solution for vali_860 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_860_solution.json
+2025-12-25 13:20:06,236 - INFO - Saved ReCAP final solution for vali_860 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_860_solution.json
+2025-12-25 13:20:06,587 - INFO - Saved ReCAP final solution for vali_860 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_860_solution.json
+2025-12-25 13:20:06,851 - INFO - Saved ReCAP final solution for vali_860 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_860_solution.json
+2025-12-25 13:20:07,011 - INFO - Saved ReCAP final solution for vali_860 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_860_solution.json
+2025-12-25 13:20:07,098 - INFO - Saved ReCAP final solution for vali_860 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_860_solution.json
+2025-12-25 13:20:07,100 - INFO - Problem vali_860: CORRECT
+2025-12-25 13:20:07,100 - INFO - Solving problem vali_862...
+2025-12-25 13:20:07,168 - INFO - ReCAP Controller received task vali_862
+2025-12-25 13:20:25,886 - WARNING - Step S1 candidate from worker B: expected numeric output but result 'The problem is a conceptual evaluation whose final' contains no number
+2025-12-25 13:20:25,887 - WARNING - Step S1 candidate from worker A: expected numeric output but result 'The problem is a conceptual evaluation task whose ' contains no number
+2025-12-25 13:20:32,352 - WARNING - Step S1 result 'The problem is a conceptual evaluation task whose ' does not contain a number but expected numeric output
+2025-12-25 13:21:23,934 - INFO - Saved ReCAP final solution for vali_862 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_862_solution.json
+2025-12-25 13:21:24,780 - INFO - Saved ReCAP final solution for vali_862 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_862_solution.json
+2025-12-25 13:21:24,888 - INFO - Saved ReCAP final solution for vali_862 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_862_solution.json
+2025-12-25 13:21:33,589 - INFO - Saved ReCAP final solution for vali_862 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_862_solution.json
+2025-12-25 13:21:33,796 - INFO - Saved ReCAP final solution for vali_862 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_862_solution.json
+2025-12-25 13:21:35,052 - INFO - Saved ReCAP final solution for vali_862 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_862_solution.json
+2025-12-25 13:21:35,053 - INFO - Problem vali_862: CORRECT
+2025-12-25 13:21:35,053 - INFO - Solving problem vali_864...
+2025-12-25 13:21:35,113 - INFO - ReCAP Controller received task vali_864
+2025-12-25 13:22:37,792 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:22:41,987 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:22:42,706 - INFO - Step S3 requires Python: filtered 1/4 candidates that used Python
+2025-12-25 13:22:48,030 - INFO - Step S3 requires Python: filtered 2/5 candidates that used Python
+2025-12-25 13:22:48,241 - INFO - Step S3 requires Python: filtered 2/6 candidates that used Python
+2025-12-25 13:22:59,886 - INFO - Saved ReCAP final solution for vali_864 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_864_solution.json
+2025-12-25 13:23:01,443 - INFO - Saved ReCAP final solution for vali_864 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_864_solution.json
+2025-12-25 13:23:05,258 - INFO - Saved ReCAP final solution for vali_864 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_864_solution.json
+2025-12-25 13:23:05,715 - INFO - Saved ReCAP final solution for vali_864 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_864_solution.json
+2025-12-25 13:23:05,817 - INFO - Saved ReCAP final solution for vali_864 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_864_solution.json
+2025-12-25 13:23:05,818 - INFO - Problem vali_864: CORRECT
+2025-12-25 13:23:05,818 - INFO - Solving problem vali_870...
+2025-12-25 13:23:05,870 - INFO - ReCAP Controller received task vali_870
+2025-12-25 13:23:42,338 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim means that the amount and structure of e' contains no number
+2025-12-25 13:23:42,338 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:42,463 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim means that the amount and structure of e' contains no number
+2025-12-25 13:23:42,463 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:42,463 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:42,609 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim means that the amount and structure of e' contains no number
+2025-12-25 13:23:42,609 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:42,609 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:42,609 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'In simpler logical terms, the claim asserts that t' contains no number
+2025-12-25 13:23:47,117 - WARNING - Step S3 result 'The claim asserts that the level and structure of ' does not contain a number but expected numeric output
+2025-12-25 13:23:47,350 - WARNING - Step S3 result 'The claim asserts that the level and structure of ' does not contain a number but expected numeric output
+2025-12-25 13:23:48,245 - WARNING - Step S3 result 'The claim asserts that the level and structure of ' does not contain a number but expected numeric output
+2025-12-25 13:23:49,191 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim means that the amount and structure of e' contains no number
+2025-12-25 13:23:49,192 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:49,192 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:49,192 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'In simpler logical terms, the claim asserts that t' contains no number
+2025-12-25 13:23:49,192 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The statement means that the total pay that execut' contains no number
+2025-12-25 13:23:49,364 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim means that the amount and structure of e' contains no number
+2025-12-25 13:23:49,364 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:49,364 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:49,364 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'In simpler logical terms, the claim asserts that t' contains no number
+2025-12-25 13:23:49,365 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The statement means that the total pay that execut' contains no number
+2025-12-25 13:23:49,365 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim means that the amount and structure of e' contains no number
+2025-12-25 13:23:50,193 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim means that the amount and structure of e' contains no number
+2025-12-25 13:23:50,193 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:50,193 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:50,193 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'In simpler logical terms, the claim asserts that t' contains no number
+2025-12-25 13:23:50,193 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The statement means that the total pay that execut' contains no number
+2025-12-25 13:23:50,193 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim means that the amount and structure of e' contains no number
+2025-12-25 13:23:50,193 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The claim means that the total pay executives rece' contains no number
+2025-12-25 13:23:50,196 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim means that the amount and structure of e' contains no number
+2025-12-25 13:23:50,196 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:50,196 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The claim asserts that the level and structure of ' contains no number
+2025-12-25 13:23:50,196 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'In simpler logical terms, the claim asserts that t' contains no number
+2025-12-25 13:23:50,196 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The statement means that the total pay that execut' contains no number
+2025-12-25 13:23:50,197 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim means that the amount and structure of e' contains no number
+2025-12-25 13:23:50,197 - WARNING - Step S3 candidate from worker B: expected numeric output but result 'The claim means that the total pay executives rece' contains no number
+2025-12-25 13:23:50,197 - WARNING - Step S3 candidate from worker A: expected numeric output but result 'The claim means that the total pay executives rece' contains no number
+2025-12-25 13:23:53,876 - WARNING - Step S3 result 'The claim asserts that the level and structure of ' does not contain a number but expected numeric output
+2025-12-25 13:23:54,595 - WARNING - Step S3 result 'The claim asserts that the level and structure of ' does not contain a number but expected numeric output
+2025-12-25 13:23:54,826 - WARNING - Step S3 result 'The claim means that the amount and structure of e' does not contain a number but expected numeric output
+2025-12-25 13:23:54,945 - WARNING - Step S3 result 'The claim means that the amount and structure of e' does not contain a number but expected numeric output
+2025-12-25 13:24:03,858 - INFO - Saved ReCAP final solution for vali_870 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_870_solution.json
+2025-12-25 13:24:03,944 - INFO - Saved ReCAP final solution for vali_870 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_870_solution.json
+2025-12-25 13:24:04,343 - INFO - Saved ReCAP final solution for vali_870 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_870_solution.json
+2025-12-25 13:24:04,449 - INFO - Saved ReCAP final solution for vali_870 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_870_solution.json
+2025-12-25 13:24:04,788 - INFO - Saved ReCAP final solution for vali_870 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_870_solution.json
+2025-12-25 13:24:05,448 - INFO - Saved ReCAP final solution for vali_870 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_870_solution.json
+2025-12-25 13:24:05,706 - INFO - Saved ReCAP final solution for vali_870 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_870_solution.json
+2025-12-25 13:24:05,707 - INFO - Problem vali_870: CORRECT
+2025-12-25 13:24:05,707 - INFO - Solving problem vali_879...
+2025-12-25 13:24:05,771 - INFO - ReCAP Controller received task vali_879
+2025-12-25 13:24:17,735 - ERROR - Failed to parse JSON response: Expecting ',' delimiter: line 1 column 214 (char 213)
+2025-12-25 13:24:17,736 - ERROR - Content length: 6283 characters
+2025-12-25 13:24:17,736 - ERROR - Raw content (last 500 chars): tisfies NPV(r) ≈ 0, and is economically reasonable for the given cash flows."
+    },
+    {
+      "step_id": "S9",
+      "title": "Prepare final answer in required format",
+      "description": "Summarize the final IRR result clearly, following the required format: a single percentage value for Project A’s IRR, with appropriate decimal places and a percent sign, and no extraneous information.",
+      "expected_output": "A concise statement such as: \"The IRR for Project A is X.XX%.\""
+    }
+  ]
+}
+2025-12-25 13:24:29,508 - ERROR - Failed to parse JSON response: Expecting ',' delimiter: line 1 column 214 (char 213)
+2025-12-25 13:24:29,509 - ERROR - Content length: 5770 characters
+2025-12-25 13:24:29,509 - ERROR - Raw content (last 500 chars): around the IRR is consistent with a root, and the IRR value is economically plausible."
+    },
+    {
+      "step_id": "S8",
+      "title": "Prepare final formatted answer",
+      "description": "Prepare the final answer statement for the IRR of Project A, ensuring the value is presented as a percentage with the decided number of decimal places and no extraneous information (only Project A's IRR).",
+      "expected_output": "A concise statement like: 'The IRR for Project A is X.XX%.'"
+    }
+  ]
+}
+2025-12-25 13:24:41,182 - ERROR - Failed to parse JSON response: Expecting ',' delimiter: line 1 column 214 (char 213)
+2025-12-25 13:24:41,182 - ERROR - Content length: 4984 characters
+2025-12-25 13:24:41,182 - ERROR - Raw content (last 500 chars):  and that the IRR is reasonable."
+    },
+    {
+      "step_id": "S8",
+      "title": "Final consistency and format verification",
+      "description": "Verify that the final reported IRR: (1) corresponds to Project A only, (2) is in percentage format, (3) uses the chosen rounding convention, and (4) is consistent with the sanity-check results.",
+      "expected_output": "A final, validated IRR value for Project A in the required percentage format, ready to be reported as the answer."
+    }
+  ]
+}
+2025-12-25 13:24:41,182 - ERROR - Controller failed on task vali_879: Controller failed to produce JSON: Expecting ',' delimiter: line 1 column 214 (char 213)
+2025-12-25 13:24:41,186 - ERROR - Traceback (most recent call last):
+  File "/Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/multi_agent_solver/RECAP/controller.py", line 228, in handle_task
+    await self._plan(ctx)
+  File "/Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/multi_agent_solver/RECAP/controller.py", line 164, in _plan
+    parsed = await self._call_json(prompt, ctx)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/multi_agent_solver/RECAP/controller.py", line 98, in _call_json
+    raise ValueError(f"Controller failed to produce JSON: {last_error}")
+ValueError: Controller failed to produce JSON: Expecting ',' delimiter: line 1 column 214 (char 213)
+
+2025-12-25 13:24:41,186 - INFO - Problem vali_879: INCORRECT
+2025-12-25 13:24:41,186 - INFO - Solving problem vali_888...
+2025-12-25 13:24:41,255 - INFO - ReCAP Controller received task vali_888
+2025-12-25 13:25:38,807 - WARNING - Step S4 candidate from worker B: expected numeric output but result 'No numerical units are involved; the final output ' contains no number
+2025-12-25 13:25:38,808 - WARNING - Step S4 candidate from worker A: expected numeric output but result 'No numerical units are involved; the final answer ' contains no number
+2025-12-25 13:25:42,419 - WARNING - Step S4 candidate from worker B: expected numeric output but result 'No numerical units are involved; the final output ' contains no number
+2025-12-25 13:25:42,419 - WARNING - Step S4 candidate from worker A: expected numeric output but result 'No numerical units are involved; the final answer ' contains no number
+2025-12-25 13:25:42,420 - WARNING - Step S4 candidate from worker A: expected numeric output but result 'No numerical units are involved, and the final ans' contains no number
+2025-12-25 13:25:42,634 - WARNING - Step S4 candidate from worker B: expected numeric output but result 'No numerical units are involved; the final output ' contains no number
+2025-12-25 13:25:42,634 - WARNING - Step S4 candidate from worker A: expected numeric output but result 'No numerical units are involved; the final answer ' contains no number
+2025-12-25 13:25:42,634 - WARNING - Step S4 candidate from worker A: expected numeric output but result 'No numerical units are involved, and the final ans' contains no number
+2025-12-25 13:25:42,634 - WARNING - Step S4 candidate from worker B: expected numeric output but result 'No numerical units are involved, and the final ans' contains no number
+2025-12-25 13:25:42,713 - WARNING - Step S4 candidate from worker B: expected numeric output but result 'No numerical units are involved; the final output ' contains no number
+2025-12-25 13:25:42,713 - WARNING - Step S4 candidate from worker A: expected numeric output but result 'No numerical units are involved; the final answer ' contains no number
+2025-12-25 13:25:42,713 - WARNING - Step S4 candidate from worker A: expected numeric output but result 'No numerical units are involved, and the final ans' contains no number
+2025-12-25 13:25:42,714 - WARNING - Step S4 candidate from worker B: expected numeric output but result 'No numerical units are involved, and the final ans' contains no number
+2025-12-25 13:25:42,714 - WARNING - Step S4 candidate from worker B: expected numeric output but result 'No numeric units are involved; the final answer mu' contains no number
+2025-12-25 13:25:42,888 - WARNING - Step S4 candidate from worker B: expected numeric output but result 'No numerical units are involved; the final output ' contains no number
+2025-12-25 13:25:42,888 - WARNING - Step S4 candidate from worker A: expected numeric output but result 'No numerical units are involved; the final answer ' contains no number
+2025-12-25 13:25:42,888 - WARNING - Step S4 candidate from worker A: expected numeric output but result 'No numerical units are involved, and the final ans' contains no number
+2025-12-25 13:25:42,888 - WARNING - Step S4 candidate from worker B: expected numeric output but result 'No numerical units are involved, and the final ans' contains no number
+2025-12-25 13:25:42,888 - WARNING - Step S4 candidate from worker B: expected numeric output but result 'No numeric units are involved; the final answer mu' contains no number
+2025-12-25 13:25:42,889 - WARNING - Step S4 candidate from worker A: expected numeric output but result 'No numeric units are involved, and the required fi' contains no number
+2025-12-25 13:25:44,085 - WARNING - Step S4 result 'No numerical units are involved; the final answer ' does not contain a number but expected numeric output
+2025-12-25 13:25:47,581 - WARNING - Step S4 result 'No numerical units are involved; the final output ' does not contain a number but expected numeric output
+2025-12-25 13:25:47,691 - WARNING - Step S4 result 'No numerical units are involved; the final output ' does not contain a number but expected numeric output
+2025-12-25 13:25:47,960 - WARNING - Step S4 result 'No numerical units are involved; the final output ' does not contain a number but expected numeric output
+2025-12-25 13:25:48,066 - WARNING - Step S4 result 'No numeric units are involved, and the required fi' does not contain a number but expected numeric output
+2025-12-25 13:25:49,488 - INFO - Saved ReCAP final solution for vali_888 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_888_solution.json
+2025-12-25 13:25:54,944 - INFO - Saved ReCAP final solution for vali_888 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_888_solution.json
+2025-12-25 13:25:58,095 - INFO - Saved ReCAP final solution for vali_888 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_888_solution.json
+2025-12-25 13:25:58,100 - INFO - Saved ReCAP final solution for vali_888 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_888_solution.json
+2025-12-25 13:25:58,103 - INFO - Saved ReCAP final solution for vali_888 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_888_solution.json
+2025-12-25 13:25:58,705 - INFO - Saved ReCAP final solution for vali_888 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_888_solution.json
+2025-12-25 13:25:59,157 - INFO - Saved ReCAP final solution for vali_888 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_888_solution.json
+2025-12-25 13:26:00,141 - INFO - Saved ReCAP final solution for vali_888 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_888_solution.json
+2025-12-25 13:26:00,144 - INFO - Problem vali_888: INCORRECT
+2025-12-25 13:26:00,144 - INFO - Solving problem vali_892...
+2025-12-25 13:26:00,211 - INFO - ReCAP Controller received task vali_892
+2025-12-25 13:26:21,519 - WARNING - Step S1 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:26:32,700 - WARNING - Step S1a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:26:43,116 - WARNING - Step S1a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:26:43,288 - WARNING - Step S1a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:26:54,650 - WARNING - Step S1a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:26:54,655 - WARNING - Step S1a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:27:04,441 - WARNING - Step S1a_calc requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:27:14,207 - WARNING - Step S1a_calc_fix requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:27:25,844 - WARNING - Step S1a_calc_fix requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:27:26,106 - WARNING - Step S1a_calc_fix requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:27:35,543 - WARNING - Step S1a_calc_fix requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:27:35,547 - WARNING - Step S1a_calc_fix requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:27:44,812 - WARNING - Step S1a_calc_fix requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:27:45,293 - WARNING - Step S1a_calc_fix requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:27:45,550 - INFO - Saved ReCAP final solution for vali_892 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_892_solution.json
+2025-12-25 13:27:52,884 - INFO - Saved ReCAP final solution for vali_892 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_892_solution.json
+2025-12-25 13:27:55,219 - INFO - Saved ReCAP final solution for vali_892 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_892_solution.json
+2025-12-25 13:27:55,219 - INFO - Problem vali_892: INCORRECT
+2025-12-25 13:27:55,219 - INFO - Solving problem vali_894...
+2025-12-25 13:27:55,279 - INFO - ReCAP Controller received task vali_894
+2025-12-25 13:29:03,636 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:29:04,137 - WARNING - Step S3 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:29:05,079 - INFO - Saved ReCAP final solution for vali_894 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_894_solution.json
+2025-12-25 13:29:05,081 - INFO - Step S3 requires Python: filtered 1/4 candidates that used Python
+2025-12-25 13:29:05,438 - INFO - Step S3 requires Python: filtered 2/5 candidates that used Python
+2025-12-25 13:29:05,715 - INFO - Step S3 requires Python: filtered 3/6 candidates that used Python
+2025-12-25 13:29:12,223 - INFO - Saved ReCAP final solution for vali_894 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_894_solution.json
+2025-12-25 13:29:13,063 - INFO - Saved ReCAP final solution for vali_894 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_894_solution.json
+2025-12-25 13:29:13,264 - INFO - Saved ReCAP final solution for vali_894 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_894_solution.json
+2025-12-25 13:29:13,475 - INFO - Saved ReCAP final solution for vali_894 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_894_solution.json
+2025-12-25 13:29:13,581 - INFO - Saved ReCAP final solution for vali_894 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_894_solution.json
+2025-12-25 13:29:13,584 - INFO - Problem vali_894: INCORRECT
+2025-12-25 13:29:13,584 - INFO - Solving problem vali_904...
+2025-12-25 13:29:13,651 - INFO - ReCAP Controller received task vali_904
+2025-12-25 13:30:24,886 - INFO - Saved ReCAP final solution for vali_904 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_904_solution.json
+2025-12-25 13:30:25,003 - INFO - Saved ReCAP final solution for vali_904 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_904_solution.json
+2025-12-25 13:30:27,818 - INFO - Saved ReCAP final solution for vali_904 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_904_solution.json
+2025-12-25 13:30:30,175 - INFO - Saved ReCAP final solution for vali_904 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_904_solution.json
+2025-12-25 13:30:30,654 - INFO - Saved ReCAP final solution for vali_904 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_904_solution.json
+2025-12-25 13:30:30,799 - INFO - Saved ReCAP final solution for vali_904 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_904_solution.json
+2025-12-25 13:30:31,812 - INFO - Saved ReCAP final solution for vali_904 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_904_solution.json
+2025-12-25 13:30:32,327 - INFO - Saved ReCAP final solution for vali_904 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_904_solution.json
+2025-12-25 13:30:32,330 - INFO - Problem vali_904: CORRECT
+2025-12-25 13:30:32,330 - INFO - Solving problem vali_907...
+2025-12-25 13:30:32,395 - INFO - ReCAP Controller received task vali_907
+2025-12-25 13:31:43,762 - INFO - Saved ReCAP final solution for vali_907 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_907_solution.json
+2025-12-25 13:31:50,760 - INFO - Saved ReCAP final solution for vali_907 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_907_solution.json
+2025-12-25 13:31:50,861 - INFO - Saved ReCAP final solution for vali_907 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_907_solution.json
+2025-12-25 13:31:51,110 - INFO - Saved ReCAP final solution for vali_907 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_907_solution.json
+2025-12-25 13:31:51,763 - INFO - Saved ReCAP final solution for vali_907 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_907_solution.json
+2025-12-25 13:31:51,909 - INFO - Saved ReCAP final solution for vali_907 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_907_solution.json
+2025-12-25 13:31:51,910 - INFO - Problem vali_907: CORRECT
+2025-12-25 13:31:51,910 - INFO - Solving problem vali_917...
+2025-12-25 13:31:51,975 - INFO - ReCAP Controller received task vali_917
+2025-12-25 13:32:49,845 - INFO - Saved ReCAP final solution for vali_917 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_917_solution.json
+2025-12-25 13:32:55,681 - INFO - Saved ReCAP final solution for vali_917 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_917_solution.json
+2025-12-25 13:32:56,272 - INFO - Saved ReCAP final solution for vali_917 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_917_solution.json
+2025-12-25 13:32:56,708 - INFO - Saved ReCAP final solution for vali_917 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_917_solution.json
+2025-12-25 13:32:56,818 - INFO - Saved ReCAP final solution for vali_917 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_917_solution.json
+2025-12-25 13:32:57,156 - INFO - Saved ReCAP final solution for vali_917 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_917_solution.json
+2025-12-25 13:32:57,210 - INFO - Saved ReCAP final solution for vali_917 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_917_solution.json
+2025-12-25 13:32:58,037 - INFO - Saved ReCAP final solution for vali_917 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_917_solution.json
+2025-12-25 13:32:58,039 - INFO - Problem vali_917: INCORRECT
+2025-12-25 13:32:58,039 - INFO - Solving problem vali_929...
+2025-12-25 13:32:58,106 - INFO - ReCAP Controller received task vali_929
+2025-12-25 13:33:51,712 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:33:51,844 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:33:52,197 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:33:52,344 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:33:52,916 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:33:58,266 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:33:58,422 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:33:58,536 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:33:58,652 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:33:58,779 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:33:58,786 - WARNING - Step S4 requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:33:59,305 - INFO - Step S4 requires Python: filtered 1/13 candidates that used Python
+2025-12-25 13:33:59,879 - INFO - Step S4 requires Python: filtered 2/14 candidates that used Python
+2025-12-25 13:34:03,064 - INFO - Saved ReCAP final solution for vali_929 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_929_solution.json
+2025-12-25 13:34:05,316 - INFO - Saved ReCAP final solution for vali_929 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_929_solution.json
+2025-12-25 13:34:05,417 - INFO - Saved ReCAP final solution for vali_929 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_929_solution.json
+2025-12-25 13:34:05,601 - INFO - Saved ReCAP final solution for vali_929 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_929_solution.json
+2025-12-25 13:34:05,606 - INFO - Saved ReCAP final solution for vali_929 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_929_solution.json
+2025-12-25 13:34:05,731 - INFO - Saved ReCAP final solution for vali_929 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_929_solution.json
+2025-12-25 13:34:05,809 - INFO - Saved ReCAP final solution for vali_929 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_929_solution.json
+2025-12-25 13:34:05,908 - INFO - Saved ReCAP final solution for vali_929 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_929_solution.json
+2025-12-25 13:34:06,748 - INFO - Saved ReCAP final solution for vali_929 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_929_solution.json
+2025-12-25 13:34:06,750 - INFO - Problem vali_929: INCORRECT
+2025-12-25 13:34:06,750 - INFO - Solving problem vali_944...
+2025-12-25 13:34:06,817 - INFO - ReCAP Controller received task vali_944
+2025-12-25 13:35:10,228 - INFO - Saved ReCAP final solution for vali_944 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_944_solution.json
+2025-12-25 13:35:11,126 - INFO - Saved ReCAP final solution for vali_944 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_944_solution.json
+2025-12-25 13:35:15,007 - INFO - Saved ReCAP final solution for vali_944 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_944_solution.json
+2025-12-25 13:35:15,218 - INFO - Saved ReCAP final solution for vali_944 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_944_solution.json
+2025-12-25 13:35:15,320 - INFO - Saved ReCAP final solution for vali_944 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_944_solution.json
+2025-12-25 13:35:15,325 - INFO - Saved ReCAP final solution for vali_944 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_944_solution.json
+2025-12-25 13:35:15,854 - INFO - Saved ReCAP final solution for vali_944 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_944_solution.json
+2025-12-25 13:35:15,855 - INFO - Problem vali_944: CORRECT
+2025-12-25 13:35:15,855 - INFO - Solving problem vali_970...
+2025-12-25 13:35:15,912 - INFO - ReCAP Controller received task vali_970
+2025-12-25 13:36:11,770 - WARNING - Step S3a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:36:11,833 - WARNING - Step S3a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:36:12,489 - WARNING - Step S3a requires Python but no candidates used it. Refiner will update plan to add explicit calculation step.
+2025-12-25 13:36:12,712 - INFO - Step S3a requires Python: filtered 1/5 candidates that used Python
+2025-12-25 13:36:12,869 - INFO - Step S3a requires Python: filtered 1/6 candidates that used Python
+2025-12-25 13:36:13,701 - INFO - Saved ReCAP final solution for vali_970 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_970_solution.json
+2025-12-25 13:36:14,921 - INFO - Saved ReCAP final solution for vali_970 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_970_solution.json
+2025-12-25 13:36:15,364 - INFO - Saved ReCAP final solution for vali_970 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_970_solution.json
+2025-12-25 13:36:19,426 - INFO - Saved ReCAP final solution for vali_970 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_970_solution.json
+2025-12-25 13:36:19,550 - INFO - Saved ReCAP final solution for vali_970 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_970_solution.json
+2025-12-25 13:36:19,661 - INFO - Saved ReCAP final solution for vali_970 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_970_solution.json
+2025-12-25 13:36:21,253 - INFO - Saved ReCAP final solution for vali_970 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_970_solution.json
+2025-12-25 13:36:21,381 - INFO - Saved ReCAP final solution for vali_970 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_970_solution.json
+2025-12-25 13:36:21,383 - INFO - Problem vali_970: CORRECT
+2025-12-25 13:36:21,383 - INFO - Solving problem vali_985...
+2025-12-25 13:36:21,451 - INFO - ReCAP Controller received task vali_985
+2025-12-25 13:37:01,519 - INFO - Saved ReCAP final solution for vali_985 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_985_solution.json
+2025-12-25 13:37:01,966 - INFO - Saved ReCAP final solution for vali_985 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_985_solution.json
+2025-12-25 13:37:02,070 - INFO - Saved ReCAP final solution for vali_985 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_985_solution.json
+2025-12-25 13:37:07,639 - INFO - Saved ReCAP final solution for vali_985 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_985_solution.json
+2025-12-25 13:37:07,640 - INFO - Problem vali_985: CORRECT
+2025-12-25 13:37:07,640 - INFO - Solving problem vali_987...
+2025-12-25 13:37:07,708 - INFO - ReCAP Controller received task vali_987
+2025-12-25 13:37:23,766 - WARNING - Step S1 candidate from worker A: expected numeric output but result 'The statement is claiming that regulatory agencies' contains no number
+2025-12-25 13:37:23,766 - WARNING - Step S1 candidate from worker B: expected numeric output but result 'The statement claims that regulatory agencies have' contains no number
+2025-12-25 13:37:30,120 - WARNING - Step S1 result 'The statement is claiming that regulatory agencies' does not contain a number but expected numeric output
+2025-12-25 13:37:32,772 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:32,773 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:39,594 - WARNING - Step S2 result 'The final answer must be a single bare boolean val' does not contain a number but expected numeric output
+2025-12-25 13:37:41,601 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:41,601 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:41,601 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:41,735 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:41,735 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:41,735 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:41,735 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:48,427 - WARNING - Step S2 result 'The final answer must be a single bare boolean val' does not contain a number but expected numeric output
+2025-12-25 13:37:48,978 - WARNING - Step S2 result 'The final answer must be a single bare boolean val' does not contain a number but expected numeric output
+2025-12-25 13:37:50,726 - WARNING - Step S1 candidate from worker A: expected numeric output but result 'The statement is claiming that regulatory agencies' contains no number
+2025-12-25 13:37:50,726 - WARNING - Step S1 candidate from worker B: expected numeric output but result 'The statement claims that regulatory agencies have' contains no number
+2025-12-25 13:37:50,727 - WARNING - Step S1 candidate from worker B: expected numeric output but result 'The statement is asserting that although regulator' contains no number
+2025-12-25 13:37:50,881 - WARNING - Step S1 candidate from worker A: expected numeric output but result 'The statement is claiming that regulatory agencies' contains no number
+2025-12-25 13:37:50,882 - WARNING - Step S1 candidate from worker B: expected numeric output but result 'The statement claims that regulatory agencies have' contains no number
+2025-12-25 13:37:50,882 - WARNING - Step S1 candidate from worker B: expected numeric output but result 'The statement is asserting that although regulator' contains no number
+2025-12-25 13:37:50,882 - WARNING - Step S1 candidate from worker A: expected numeric output but result 'The statement is asserting that although regulator' contains no number
+2025-12-25 13:37:57,324 - WARNING - Step S1 result 'The statement is asserting that although regulator' does not contain a number but expected numeric output
+2025-12-25 13:37:57,372 - WARNING - Step S1 result 'The statement is asserting that although regulator' does not contain a number but expected numeric output
+2025-12-25 13:37:59,395 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,396 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,396 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,396 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,396 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'Final answer must be a single bare boolean value o' contains no number
+2025-12-25 13:37:59,444 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,445 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,445 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,445 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,445 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'Final answer must be a single bare boolean value o' contains no number
+2025-12-25 13:37:59,445 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'Final output must be a single bare boolean value o' contains no number
+2025-12-25 13:37:59,458 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,458 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,458 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,458 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,458 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'Final answer must be a single bare boolean value o' contains no number
+2025-12-25 13:37:59,458 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'Final output must be a single bare boolean value o' contains no number
+2025-12-25 13:37:59,458 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'Final answer must be a single bare boolean literal' contains no number
+2025-12-25 13:37:59,609 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,609 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,609 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,609 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'The final answer must be a single bare boolean val' contains no number
+2025-12-25 13:37:59,609 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'Final answer must be a single bare boolean value o' contains no number
+2025-12-25 13:37:59,609 - WARNING - Step S2 candidate from worker B: expected numeric output but result 'Final output must be a single bare boolean value o' contains no number
+2025-12-25 13:37:59,609 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'Final answer must be a single bare boolean literal' contains no number
+2025-12-25 13:37:59,609 - WARNING - Step S2 candidate from worker A: expected numeric output but result 'Final output must be a single bare boolean value o' contains no number
+2025-12-25 13:38:05,436 - WARNING - Step S2 result 'The final answer must be a single bare boolean val' does not contain a number but expected numeric output
+2025-12-25 13:38:05,685 - WARNING - Step S2 result 'Final output must be a single bare boolean value o' does not contain a number but expected numeric output
+2025-12-25 13:38:05,767 - WARNING - Step S2 result 'Final output must be a single bare boolean value o' does not contain a number but expected numeric output
+2025-12-25 13:38:05,808 - WARNING - Step S2 result 'Final answer must be a single bare boolean literal' does not contain a number but expected numeric output
+2025-12-25 13:38:17,332 - INFO - Saved ReCAP final solution for vali_987 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_987_solution.json
+2025-12-25 13:38:17,380 - INFO - Saved ReCAP final solution for vali_987 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_987_solution.json
+2025-12-25 13:38:17,478 - INFO - Saved ReCAP final solution for vali_987 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_987_solution.json
+2025-12-25 13:38:17,572 - INFO - Saved ReCAP final solution for vali_987 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_987_solution.json
+2025-12-25 13:38:17,751 - INFO - Saved ReCAP final solution for vali_987 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_987_solution.json
+2025-12-25 13:38:18,270 - INFO - Saved ReCAP final solution for vali_987 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_987_solution.json
+2025-12-25 13:38:25,227 - INFO - Saved ReCAP final solution for vali_987 to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_outputs/vali_987_solution.json
+2025-12-25 13:38:25,230 - INFO - Problem vali_987: CORRECT
+2025-12-25 13:38:25,346 - INFO - Results saved to /Users/alimehrabian/Documents/GitHub/automated_capability_evaluation/src/task_solve_models/Results/recap_results_ctrl_gpt-5.1_wk_gpt-5.1_gpt-5.1_evaluation_batch.json

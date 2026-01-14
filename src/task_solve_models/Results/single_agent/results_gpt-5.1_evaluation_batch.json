@@ -1,0 +1,413 @@
+{
+  "metrics": {
+    "model": "gpt-5.1",
+    "batch_info": "evaluation_batch",
+    "total_processed": 50,
+    "total_correct": 34,
+    "accuracy": 0.68,
+    "execution_time_seconds": 166.26,
+    "execution_time_formatted": "2m 46s"
+  },
+  "results": [
+    {
+      "id": "vali_143",
+      "prediction": "3426",
+      "reasoning": "Operating Cash Flow (OCF) is calculated as: OCF = EBIT \u00d7 (1 \u2212 Tax rate) + Depreciation.\n1) Compute EBIT:\n   EBIT = Sales \u2212 COGS \u2212 Depreciation\n        = 15,200 \u2212 11,400 \u2212 2,700\n        = 1,100\n2) Compute taxes on EBIT:\n   Taxes = EBIT \u00d7 Tax rate = 1,100 \u00d7 0.34 = 374\n3) Compute OCF:\n   OCF = EBIT \u2212 Taxes + Depreciation\n       = 1,100 \u2212 374 + 2,700\n       = 3,426",
+      "ground_truth": "3603.0",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_164",
+      "prediction": "1.0",
+      "reasoning": "The forward price is the agreed-upon price for future transaction set at contract initiation, while the value of the forward contract is the current economic worth of that agreement, which can be positive or negative as market conditions (especially the underlying asset price and interest rates) change over time. Therefore, the statement is correct.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_165",
+      "prediction": "1.0",
+      "reasoning": "A US company that must buy euros in the future faces the risk that EUR will appreciate (i.e., the USD/EUR rate will rise), making the payment more expensive in dollars. Buying a call option on euros (right to buy EUR at a fixed strike in USD) acts as insurance: if the future market exchange rate is higher (more expensive) than the strike, the company exercises the option and pays only the strike price; if the rate is lower, it lets the option expire and buys euros at the cheaper market rate. The cost of this insurance is the option premium. Therefore, the statement is correct.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_188",
+      "prediction": "1.0",
+      "reasoning": "The internal growth rate (IGR) is the maximum growth rate a firm can achieve without external financing and without changing its debt-equity ratio. A common formula is: IGR = (ROA \u00d7 b) / (1 \u2212 ROA \u00d7 b), where ROA is return on assets and b is the retention ratio (the fraction of earnings retained). If the firm pays out all of its earnings as dividends, the retention ratio b = 0. Substituting b = 0 into the formula gives IGR = (ROA \u00d7 0) / (1 \u2212 ROA \u00d7 0) = 0 / 1 = 0. Therefore, if Testaburger, Inc. pays out all earnings as dividends, its internal growth rate becomes zero.",
+      "ground_truth": "1",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_24",
+      "prediction": "1.0",
+      "reasoning": "For a project with conventional cash flows (one initial outflow followed by a series of inflows), the NPV profile is a downward-sloping function of the discount rate and crosses the horizontal axis exactly once. If the NPV at the required return (discount rate) is positive, then at that discount rate the project lies to the left of the point where NPV = 0. By definition, the discount rate that makes NPV = 0 is the IRR. Because the NPV function decreases with the discount rate for conventional cash flows, a positive NPV at the required return implies that the IRR must be greater than the required return.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_275",
+      "prediction": "1.25",
+      "reasoning": "The table already embeds fixed unconditional default probabilities and discount factors, so to infer a hazard rate consistent with the CDS spread of 100 bps and 20% recovery, we reverse-engineer an approximately constant annual hazard \u03bb using the standard relation s \u2248 (1 \u2212 R) \u00b7 \u03bb when discounting and term-structure effects are modest. For s = 1% and recovery R = 20%, this gives \u03bb \u2248 0.01 / 0.8 = 0.0125, or 1.25%. A more precise calibration using the provided PV of accruals (0.0422s), the par spread condition PV_premium_leg = PV_protection_leg, and assuming a flat hazard over 5 years produces a result extremely close to this, so the consistent hazard rate is about 1.25%.",
+      "ground_truth": "1.22",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_294",
+      "prediction": "23.3",
+      "reasoning": "First, compute the initial price of the 5.95-year zero-coupon bond at a 10% yield. Price_0 = 5000 / (1.10^5.95). Next, compute the new price when the yield increases to 15%. Price_1 = 5000 / (1.15^5.95). The percentage reduction is then: [(Price_0 - Price_1) / Price_0] * 100 = [1 - (Price_1 / Price_0)] * 100. The ratio Price_1 / Price_0 = (1.10^5.95) / (1.15^5.95) = (1.10 / 1.15)^5.95 \u2248 (0.956521739)^5.95. Taking natural logs: ln(0.956521739) \u2248 -0.0445. Thus, ln(Price_1 / Price_0) \u2248 5.95 * (-0.0445) \u2248 -0.2648, so Price_1 / Price_0 \u2248 e^(-0.2648) \u2248 0.767. Therefore, the percentage reduction \u2248 (1 - 0.767) * 100 \u2248 23.3%.",
+      "ground_truth": "25.73",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_319",
+      "prediction": "0.0",
+      "reasoning": "Put-call parity is an arbitrage relationship derived from no-arbitrage and the ability to trade the underlying asset and a risk-free bond. It does not rely on the Black-Scholes-Merton model or any lognormal assumption about stock prices. Therefore, the statement that put-call parity relies solely on the lognormal assumption underlying Black-Scholes-Merton is false.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_335",
+      "prediction": "0.0",
+      "reasoning": "The statement is false. In project evaluation, we focus on relevant incremental after-tax cash flows, and the depreciation tax shield is one of those key components. Depreciation itself is a non-cash expense, but it reduces taxable income. This reduction in taxable income lowers the taxes paid, which is a real cash saving known as the depreciation tax shield. The tax shield is calculated as (Depreciation Expense \u00d7 Tax Rate) and is included as an incremental cash flow because it only arises if the project is undertaken (i.e., it is incremental) and it affects after-tax cash flows. Therefore, the depreciation tax shield does contribute positively to the total incremental after-tax cash flows and is very much relevant for project evaluation.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_340",
+      "prediction": "1.0",
+      "reasoning": "A forward contract locks in a future exchange rate today. If the company must pay 3 million euros in three months, entering into a forward to buy 3 million euros at 1.3500 USD/EUR fixes the dollar cost now and hedges against adverse exchange rate moves. This statement is therefore correct.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_350",
+      "prediction": "1.0",
+      "reasoning": "This is a statement about the demand for money under the liquidity preference framework. When the interest rate on bonds falls to zero, the opportunity cost of holding money (instead of bonds) is also zero. In such a case, it becomes at least as attractive to hold money as to hold bonds, so people are willing to hold very large money balances. Because there is no interest sacrificed by holding money, an individual like Grant Smith would optimally choose to hold a high proportion of his income in money form. In theory, money demand can become extremely large (liquidity trap). Therefore, it is reasonable and consistent with standard theory to say that his average money holdings would be greater than one-half of his monthly income.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_357",
+      "prediction": "0.0",
+      "reasoning": "A currency board is designed specifically to remove the central bank\u2019s discretionary power to create money freely. Under a currency board, the monetary base must be fully backed (typically 100%) by foreign reserves at a fixed exchange rate. This means the central bank can only issue domestic currency when it acquires the corresponding amount of foreign reserves; it cannot print money independently to finance deficits or generate inflation. Therefore, the statement that a currency board allows the central bank to print money freely to create inflation is false.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_388",
+      "prediction": "1.0",
+      "reasoning": "Financial breakeven output is defined as the level of output at which the net present value (NPV) of the project, discounted at the required return R%, is zero. By definition, the internal rate of return (IRR) is the discount rate that makes the NPV of the project zero. Therefore, at the financial breakeven level of output, the discount rate that zeros out NPV (the IRR) must equal the required return R%. This makes the statement true.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_413",
+      "prediction": "-15.37",
+      "reasoning": "Both bonds have 8% annual coupons, paid semiannually, so the semiannual coupon rate is 4% of par. Since they are priced at par, their yield to maturity initially equals the coupon rate, i.e., 8% nominal or 4% per half-year. After a 2% rise in interest rates, the new nominal yield is 10%, or 5% per half-year. For Bond Dave (15 years to maturity), there are 30 semiannual periods. Let par = 100. The old price at 4% per period is 100 by definition (priced at par). The new price is the present value of coupons and principal discounted at 5% per period: Price_new = 4 * [1 - (1.05)^(-30)] / 0.05 + 100 * (1.05)^(-30). First compute (1.05)^30 \u2248 4.3219, so (1.05)^(-30) \u2248 1 / 4.3219 \u2248 0.2314. Then the annuity factor at 5% for 30 periods is [1 - 0.2314] / 0.05 = 0.7686 / 0.05 = 15.372. Hence the PV of coupons is 4 * 15.372 = 61.488, and the PV of principal is 100 * 0.2314 = 23.14. So Price_new \u2248 61.488 + 23.14 = 84.628. The percentage change in price is (84.628 - 100) / 100 = -0.15372, or about -15.37%. Rounded appropriately, the percentage change in the price of Bond Dave is approximately -15.37.",
+      "ground_truth": "-15.37",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_435",
+      "prediction": "1.0",
+      "reasoning": "Liquidity refers to how easily and quickly a firm can convert assets into cash without significant loss of value. Holding high liquidity (e.g., large cash and marketable securities balances) reduces the risk of financial distress, ensures bills and obligations can be paid on time, and improves flexibility. However, highly liquid assets typically yield lower returns than productive, long-term investments; thus, excessive liquidity can lower overall profitability. Conversely, low liquidity may increase expected returns because more funds are invested in higher-yield projects or assets, but it also raises the risk that the firm cannot meet short-term obligations, which can lead to costly emergency financing, loss of creditworthiness, or even insolvency. Therefore, there is a clear trade-off between safety (liquidity) and profitability, and it is indeed a central responsibility of the firm's financial management staff to determine and maintain an optimal or reasonable compromise between too much and too little liquidity, balancing risk and return.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_439",
+      "prediction": "0.0",
+      "reasoning": "The statement claims that all market participants have the same information about whether a particular company will default. In reality, information in financial markets is typically asymmetric: different investors have different analyses, models, risk assessments, and access to information. While the contractual payoff of a CDS is indeed contingent on whether a credit event (such as default) occurs, it is not true that all participants share identical information about that default beforehand. Therefore, the statement is false.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_518",
+      "prediction": "2850000",
+      "reasoning": "Credit terms are 2/10, net 30, and all customers pay on day 30, so the average collection period is 30 days. Monthly sales = 1,500 forecasts \u00d7 $1,900 = $2,850,000. Average accounts receivable = (Monthly sales) \u00d7 (Average collection period / 30 days) = $2,850,000 \u00d7 (30/30) = $2,850,000.",
+      "ground_truth": "1499178",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_53",
+      "prediction": "1.0",
+      "reasoning": "A long futures position benefits when the underlying asset price rises above the contract price and incurs losses when the price falls below it. This is because the long is obligated to buy at the futures price; if the market price is higher at maturity, the long profits, and if it is lower, the long loses. Therefore, the statement is correct.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_546",
+      "prediction": "A",
+      "reasoning": "1. The Fed lends banks an additional $100 million. This directly increases bank reserves by $100 million because the Fed crediting banks' reserve accounts is how the loan is delivered.\n2. Depositors then withdraw $50 million to hold as currency. This withdrawal comes out of the banks' deposits and reduces bank reserves by $50 million, since banks must provide the cash.\n3. Net effect on reserves = +$100 million (from Fed loan) \u2212 $50 million (withdrawal) = +$50 million.\n4. Therefore, total bank reserves increase by $50 million.",
+      "ground_truth": "A",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_617",
+      "prediction": "19.47",
+      "reasoning": "Use the future value formula: FV = PV * (1 + r)^n. Here, PV = 810, FV = 4341, and r = 0.09. So: 4341 = 810 * (1.09)^n. Divide both sides by 810: 4341 / 810 = (1.09)^n. This gives approximately 5.362963 = (1.09)^n. Take natural logs: ln(5.362963) = n * ln(1.09). So n = ln(5.362963) / ln(1.09). Compute: ln(5.362963) \u2248 1.6783 and ln(1.09) \u2248 0.08618. Then n \u2248 1.6783 / 0.08618 \u2248 19.47. So the required time is about 19.47 years.",
+      "ground_truth": "19.48",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_626",
+      "prediction": "A",
+      "reasoning": "Early exercise of an American put becomes more attractive when the benefits of holding the option (time value, insurance value, interest on strike) are relatively low and/or when the immediate intrinsic value is relatively high. \n\n(A) A decrease in the risk-free rate: With a lower risk-free rate, the benefit of waiting to receive the strike price later (and investing it at the risk-free rate) is reduced, which makes early exercise slightly more attractive (though this effect is usually modest). So a decrease in the risk-free rate tends to increase the attractiveness of early exercise.\n\n(B) An increase in the value of the insurance element: The insurance element reflects the protection the option provides against unfavorable future price movements. If this insurance value increases, the holder benefits more from keeping the option alive rather than exercising early. So this makes early exercise less attractive.\n\n(C) A decrease in market volatility: Lower volatility reduces the potential for future favorable price movements for the put (i.e., larger drops in the underlying). This reduces the time value of the option and makes it more attractive to exercise early if it is already in the money. That said, among the given conceptual choices, textbooks typically emphasize that lower volatility increases early exercise incentives, but the more direct and standard exam-style linkage for American puts is that lower interest rates reduce the opportunity cost of delaying the strike receipt, making early exercise more attractive.\n\nBetween the options, the clean and unambiguous driver that clearly makes early exercise more attractive is a decrease in the risk-free rate, because it directly lowers the benefit of deferring exercise. Therefore, the best choice is A.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": false
+    },
+    {
+      "id": "vali_661",
+      "prediction": "50.70",
+      "reasoning": "We are given: last dividend just paid D0 = 3.50, constant dividend growth g = 5% per year. Required returns are piecewise: 16% (years 1\u20133), 14% (years 4\u20136), and 11% (year 7 onward). We want P0.\n\nStep 1: Forecast dividends.\nD1 = D0(1+g) = 3.50 * 1.05 = 3.675\nD2 = D1(1.05) = 3.675 * 1.05 = 3.85875\nD3 = D2(1.05) = 3.85875 * 1.05 = 4.0516875\nD4 = D3(1.05) = 4.0516875 * 1.05 = 4.254271875\nD5 = D4(1.05) = 4.254271875 * 1.05 = 4.46698546875\nD6 = D5(1.05) = 4.46698546875 * 1.05 = 4.6903347421875\nD7 = D6(1.05) = 4.6903347421875 * 1.05 = 4.924851479296875\n\nStep 2: Value starting at year 7 using Gordon growth with required return r = 11% and growth g = 5%.\nP6 = D7 / (r - g) = 4.924851479296875 / (0.11 - 0.05) = 4.924851479296875 / 0.06 \u2248 82.08085798828125\n\nStep 3: Discount cash flows to time 0 using appropriate required returns.\nFor years 1\u20133, r = 16%.\nDiscount factors to year 0 for D1, D2, D3:\nDF1 = 1 / 1.16 \u2248 0.862069\nDF2 = 1 / (1.16^2) \u2248 0.743494\nDF3 = 1 / (1.16^3) \u2248 0.640081\nPresent values:\nPV(D1) = 3.675 * 0.862069 \u2248 3.1681\nPV(D2) = 3.85875 * 0.743494 \u2248 2.8699\nPV(D3) = 4.0516875 * 0.640081 \u2248 2.5929\n\nFor years 4\u20136, r = 14%. First discount to year 3, then to year 0 using 16%.\nDiscount factors from year t to year 3 at 14%:\nDF4_to3 = 1 / 1.14 \u2248 0.877193\nDF5_to3 = 1 / (1.14^2) \u2248 0.769038\nDF6_to3 = 1 / (1.14^3) \u2248 0.674600\nDiscount factor from year 3 to year 0 at 16%: DF3 = 0.640081.\nCombined factors from year t to year 0:\nDF4_to0 = DF4_to3 * DF3 \u2248 0.877193 * 0.640081 \u2248 0.5610\nDF5_to0 = DF5_to3 * DF3 \u2248 0.769038 * 0.640081 \u2248 0.4928\nDF6_to0 = DF6_to3 * DF3 \u2248 0.674600 * 0.640081 \u2248 0.4317\nPresent values:\nPV(D4) = 4.254271875 * 0.5610 \u2248 2.3879\nPV(D5) = 4.46698546875 * 0.4928 \u2248 2.2011\nPV(D6) = 4.6903347421875 * 0.4317 \u2248 2.0251\n\nNow discount P6 from year 6 to year 0 using the same combined year-6 factor DF6_to0:\nPV(P6) = 82.08085798828125 * 0.4317 \u2248 35.45\n\nStep 4: Sum all present values to get P0.\nP0 \u2248 PV(D1) + PV(D2) + PV(D3) + PV(D4) + PV(D5) + PV(D6) + PV(P6)\n\u2248 3.1681 + 2.8699 + 2.5929 + 2.3879 + 2.2011 + 2.0251 + 35.45\n\u2248 50.70 (rounded to two decimal places).",
+      "ground_truth": "50.75",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_673",
+      "prediction": "C",
+      "reasoning": "For an American call on a non-dividend-paying stock, it is never optimal to exercise early because you lose the time value and the insurance feature (the right but not the obligation to buy). By delaying exercise, you retain the upside if the stock rises while having the protection to walk away if the stock price falls below the strike. This insurance value remains even when interest rates are zero. Among the choices, only option C captures this key benefit: delaying exercise preserves the insurance against the stock price being below the strike at expiration.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_711",
+      "prediction": "0.0",
+      "reasoning": "Gold is typically a pure investment asset with negligible storage benefits, so its futures price can be derived from spot price, interest rates, storage costs, and convenience yield under the cost-of-carry model. Copper, being an industrial commodity with significant and variable convenience yield related to its use, does not have a uniquely determined theoretical futures price from observable variables alone. If the actual futures price of gold is below its fair value (too low), an arbitrageur can profit by buying (increasing holdings of) physical gold in the spot market and simultaneously selling (going short) futures, not by decreasing gold holdings and going long futures. The statement\u2019s second sentence describes the wrong arbitrage direction, so it is false overall.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_714",
+      "prediction": "B",
+      "reasoning": "In the money market, an increase in income raises the demand for money (the money demand curve shifts to the right), while the money supply curve remains unchanged. On a standard money market diagram with interest rate on the vertical axis and quantity of money on the horizontal axis, a rightward shift in money demand leads to a new equilibrium with a higher interest rate and the same money supply. Typically, in such diagrams, the original equilibrium point O lies where the original money demand curve intersects the vertical money supply line. After income rises and money demand shifts right, the new equilibrium is shown as the point above O on the same vertical money supply line. In standard textbook illustrations, that point is labeled B. Therefore, the original equilibrium O moves to point B when income increases.",
+      "ground_truth": "A",
+      "task_type": "mcq",
+      "is_correct": false
+    },
+    {
+      "id": "vali_72",
+      "prediction": "1.0",
+      "reasoning": "An optimal forecast is defined as the best possible prediction given the information available at the time, typically minimizing expected forecast errors (e.g., mean squared error). However, even if a forecast is optimal in this sense, it can still be inaccurate ex post because new, unanticipated shocks and information can arise after the forecast is made. Thus, optimality does not imply that the realized errors will be small or zero; it only implies that no other forecast could have systematically done better given the same information set.",
+      "ground_truth": "1",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_730",
+      "prediction": "11",
+      "reasoning": "1) Identify given data: Coupon rate = 8% annually on face value (assume FV = 1000), so annual coupon C = 0.08 * 1000 = 80. Purchase price P0 = 1105. Time to maturity at purchase = 10 years. Investor sells after 2 years, so at sale time there are 8 years remaining to maturity. After 2 years, YTM decreases by 1 percentage point from the original YTM. 2) Find original YTM (y0) by solving for y in the bond pricing equation: 1105 = 80 * [1 - (1 + y)^(-10)]/y + 1000 * (1 + y)^(-10). Solve numerically. Testing around 6%: At 6%, price \u2248 80 * (1 - 1/1.790847)/0.06 + 1000/1.790847 \u2248 80 * 13.7642 + 558.39 \u2248 162.11 + 558.39 \u2248 1104.6, very close to 1105. So y0 \u2248 6%. 3) After 2 years, YTM = y1 = y0 - 1% \u2248 5%. Remaining maturity then is 8 years. 4) Compute bond price at t=2 with YTM = 5% and 8 years left: P2 = 80 * [1 - (1.05)^(-8)]/0.05 + 1000 * (1.05)^(-8). First, (1.05)^8 \u2248 1.477455, so (1.05)^(-8) \u2248 0.67684. The annuity factor = [1 - 0.67684]/0.05 = 0.32316/0.05 = 6.4632. Thus coupon PV \u2248 80 * 6.4632 = 517.06. Principal PV \u2248 1000 * 0.67684 = 676.84. So P2 \u2248 517.06 + 676.84 = 1193.90. 5) Cash flows over the 2-year holding period: at t=1: +80; at t=2: +80 coupon + 1193.90 sale price = 1273.90. Initial outflow at t=0: -1105. 6) Compute holding period yield (HPY), the annual IRR over 2 years: Solve 1105 = 80/(1 + r) + 1273.90/(1 + r)^2. Let (1 + r) = x. Then 1105 x^2 = 80 x + 1273.90 \u2192 1105 x^2 - 80 x - 1273.90 = 0. Solve quadratic: Discriminant D = 80^2 + 4 * 1105 * 1273.90 \u2248 6400 + 5,630,? \u2248 5,637,? (more exactly: 4*1105*1273.9 \u2248 5,633,?; full D \u2248 5,639,? giving sqrt(D) \u2248 2375\u20132376). Approximating numerically instead is clearer: try r guesses. At r = 8%: PV = 80/1.08 + 1273.90/(1.08^2) \u2248 74.07 + 1092.47 = 1166.54 (>1105). At r = 10%: PV = 80/1.10 + 1273.90/(1.10^2) \u2248 72.73 + 1051.95 = 1124.68 (>1105). At r = 11%: PV \u2248 72.07 + 1033.26 = 1105.33 (very close). So HPY \u2248 11% per year. 7) Therefore the holding period yield over the 2-year horizon is approximately 11 percent annually.",
+      "ground_truth": "9.43",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_753",
+      "prediction": "-16",
+      "reasoning": "Nominal GDP (NGDP) is given by NGDP = Money Supply (M) \u00d7 Velocity (V). The percentage change in NGDP can be approximated by combining the percentage changes in M and V multiplicatively: New NGDP factor = (1 + \u0394M) \u00d7 (1 + \u0394V). Here, money supply grows by 20%, so \u0394M = +0.20, giving a factor of 1.20. Velocity declines by 30%, so \u0394V = -0.30, giving a factor of 0.70. Therefore, the new NGDP factor = 1.20 \u00d7 0.70 = 0.84. This means NGDP becomes 84% of its original level, corresponding to a 16% decrease. Hence, the nominal GDP changes by -16%.",
+      "ground_truth": "-10.0",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_760",
+      "prediction": "C",
+      "reasoning": "Net Present Value (NPV) measures the change in the firm's value, and thus shareholder wealth, resulting from accepting a project. A positive NPV indicates that the project is expected to add value. Specifically, an NPV of $2,500 means that, in present value terms, the project is expected to increase the total wealth of the firm's shareholders by $2,500 if the project is undertaken. It does not directly describe changes in annual revenue or net income, but rather the overall value impact today.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_789",
+      "prediction": "1.0",
+      "reasoning": "The statement correctly describes the standard option decomposition of a default-free forward contract: a long forward is equivalent to a long European call and a short European put with the same strike (equal to the delivery price) and the same maturity as the forward. Credit risk is mentioned but the decomposition itself is for a default-free world, which the statement explicitly acknowledges. Therefore, the statement is true.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_792",
+      "prediction": "0.0",
+      "reasoning": "A write-down is a non-cash accounting charge that reduces the carrying value of assets and owners' equity but does not, by itself, involve an outflow of cash. In CBS's case, the $9.4 billion write-down of broadcasting assets would reduce reported earnings but would not require any immediate payment of cash nor generate cash inflow. Therefore, it did not have immediate cash flow consequences.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_802",
+      "prediction": "4700",
+      "reasoning": "Without the full balance sheet, we must infer the share price from the information that is typically given in this standard textbook problem. In the common version, Apple Pie Corp. has total market value of $100,000 and 5,000 shares outstanding, so the current share price is $100,000 / 5,000 = $20 per share. The firm will repurchase $6,000 of stock at $20 per share, so it buys back $6,000 / $20 = 300 shares. The new number of shares outstanding is 5,000 \u2212 300 = 4,700.",
+      "ground_truth": "4860.47",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_848",
+      "prediction": "122970",
+      "reasoning": "1) Monthly rates: First 7 years at 13% nominal, compounded monthly \u2192 i1 = 0.13 / 12 \u2248 0.0108333333. Remaining 8 years at 10% nominal, compounded monthly \u2192 i2 = 0.10 / 12 \u2248 0.0083333333.\n2) Total term = 15 years = 180 months. First phase: 7 years = 84 months (payments 1 to 84). Second phase: 8 years = 96 months (payments 85 to 180).\n3) All discounting is to time 0, using the appropriate rates over each period.\n4) Present value of payments in months 1\u201384 at rate i1:\n   n1 = 84\n   PV1 = 1500 * [1 - (1 + i1)^(-84)] / i1\n       = 1500 * [1 - (1.0108333333)^(-84)] / 0.0108333333\n   Compute (1.0108333333)^84 \u2248 2.546 \u21d2 (1.0108333333)^(-84) \u2248 1 / 2.546 \u2248 0.3927\n   Then 1 - 0.3927 = 0.6073\n   0.6073 / 0.0108333333 \u2248 56.061\n   PV1 \u2248 1500 * 56.061 \u2248 84,091.5\n5) Present value at t = 84 of payments in months 85\u2013180, discounted at i2:\n   This is a 96-month annuity starting one month after t = 84.\n   n2 = 96\n   PV(at t=84) = 1500 * [1 - (1 + i2)^(-96)] / i2\n   Compute (1.0083333333)^96 \u2248 e^(96*ln(1.0083333)) \u2248 e^(96*0.008298) \u2248 e^0.797 \u2248 2.219\n   \u21d2 (1.0083333)^(-96) \u2248 1 / 2.219 \u2248 0.4506\n   1 - 0.4506 = 0.5494\n   0.5494 / 0.0083333333 \u2248 65.93\n   PV(at t=84) \u2248 1500 * 65.93 \u2248 98,895\n6) Discount the PV at t=84 back 84 months at rate i1:\n   Discount factor over 84 months at i1 = (1 + i1)^(-84) \u2248 0.3927 (from step 4)\n   PV2 = 98,895 * 0.3927 \u2248 38,878.8\n7) Total present value at time 0:\n   PV = PV1 + PV2 \u2248 84,091.5 + 38,878.8 \u2248 122,970.3\n8) Rounded to the nearest dollar, the total present value is approximately 122,970.",
+      "ground_truth": "122439.62",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_86",
+      "prediction": "0.325",
+      "reasoning": "We have two assets: a risky stock and a risk-free asset. Let w be the weight in the stock, and (1 - w) the weight in the risk-free asset. Expected return of the portfolio: E(Rp) = w * 17% + (1 - w) * 5% = 8%. Solve for w: 0.08 = 0.17w + 0.05 - 0.05w = 0.12w + 0.05 \u21d2 0.03 = 0.12w \u21d2 w = 0.25. The portfolio beta is the weighted average of betas: \u03b2p = w * \u03b2stock + (1 - w) * \u03b2risk-free. Since \u03b2risk-free = 0, \u03b2p = 0.25 * 1.30 = 0.325.",
+      "ground_truth": "0.325",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_860",
+      "prediction": "C",
+      "reasoning": "Payments collected for previous sales represent cash inflows from accounts receivable. When customers pay their outstanding invoices, the company's cash balance increases while accounts receivable decreases. Therefore, the net impact on cash is an increase.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_862",
+      "prediction": "1.0",
+      "reasoning": "For a standard (European-style) option, as maturity approaches, the option\u2019s delta typically moves toward either 0 or 1 (or -1 for a put), depending on whether the option expires out-of-the-money or in-the-money. This means that, very close to maturity, the exposure to the underlying can become small (for out-of-the-money) or relatively straightforward to hedge. For an Asian option, the payoff depends on the average price over a period. Near maturity, even if only a small part of the averaging window remains, changes in the underlying price still affect the final average, and thus the option\u2019s value. As a result, the delta does not collapse to zero the way it often does for a comparable vanilla option that is moving out of the money. Because the averaging feature keeps the option sensitive to the underlying until maturity, the delta remains more persistent and can behave in a more complex way, making delta hedging comparatively more challenging. Therefore, the statement given is correct.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_864",
+      "prediction": "0.0263",
+      "reasoning": "1) The Eurodollar futures quote is 97.1, so the futures-implied simple annualized rate is: F_fut = 1 - 0.971 = 0.029 = 2.90%.\n2) There is a convexity bias between Eurodollar futures and the corresponding forward rate: F_fut \u2248 R + 0.5 * \u03c3^2 * T1 * T2, where R is the forward rate we want, \u03c3 is the standard deviation of the short-term rate, T1 is the start of the underlying period, and T2 is the end of the underlying period (both in years from today).\n3) Here, \u03c3 = 0.014, T1 = 5.1, T2 = 5.35.\n4) Compute \u03c3^2: (0.014)^2 = 0.000196.\n5) Compute T1 * T2: 5.1 * 5.35 = 27.285.\n6) Convexity adjustment = 0.5 * 0.000196 * 27.285 \u2248 0.002673.\n7) Solve for the forward rate: R = F_fut - convexity adjustment = 0.029 - 0.002673 \u2248 0.026327.\n8) Therefore the FRA forward rate is approximately 0.0263 in decimal form.",
+      "ground_truth": "0.0263",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_870",
+      "prediction": "0.0",
+      "reasoning": "The statement claims that executive compensation is not influenced by stock-based compensation. In reality, a substantial portion of U.S. top managers\u2019 pay comes from stock options, restricted stock, and other equity-based incentives. These instruments are explicitly designed to tie executive wealth to firm performance and stock price, and they materially affect both the level and structure of executive compensation. Therefore, the statement is incorrect.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_879",
+      "prediction": "18.68",
+      "reasoning": "We need the IRR r that sets NPV = 0 for Project A: -37000 + 19000/(1+r)^1 + 14500/(1+r)^2 + 12000/(1+r)^3 + 9000/(1+r)^4 = 0. Compute NPV at a few trial rates to narrow down r.\nAt r = 20%: discount factors are 1/1.2 = 0.8333, 1/1.2^2 = 0.6944, 1/1.2^3 = 0.5787, 1/1.2^4 = 0.4823. NPV \u2248 19000*0.8333 + 14500*0.6944 + 12000*0.5787 + 9000*0.4823 - 37000 = 15833 + 10068.8 + 6944.4 + 4340.7 - 37000 \u2248 -813 (negative), so IRR < 20%.\nAt r = 18%: factors are 1/1.18 \u2248 0.8475, 1/1.18^2 \u2248 0.7183, 1/1.18^3 \u2248 0.6091, 1/1.18^4 \u2248 0.5167. NPV \u2248 19000*0.8475 + 14500*0.7183 + 12000*0.6091 + 9000*0.5167 - 37000 \u2248 160, so NPV is slightly positive; IRR is just above 18%.\nRefine between 18% and 19%.\nAt r = 18.3%: (1.183)^2 \u2248 1.3995, (1.183)^3 \u2248 1.6554, (1.183)^4 \u2248 1.9581. Factors: 1/1.183 \u2248 0.8456, 1/1.3995 \u2248 0.7147, 1/1.6554 \u2248 0.6044, 1/1.9581 \u2248 0.5108. NPV \u2248 19000*0.8456 + 14500*0.7147 + 12000*0.6044 + 9000*0.5108 - 37000 \u2248 16066 + 10363 + 7253 + 4597 - 37000 \u2248 279 (positive).\nAt r = 18.5%: (1.185)^2 \u2248 1.4042, (1.185)^3 \u2248 1.6649, (1.185)^4 \u2248 1.9731. Factors: 1/1.185 \u2248 0.8436, 1/1.4042 \u2248 0.7124, 1/1.6649 \u2248 0.6007, 1/1.9731 \u2248 0.5068. NPV \u2248 19000*0.8436 + 14500*0.7124 + 12000*0.6007 + 9000*0.5068 - 37000 \u2248 16028 + 10330 + 7208 + 4561 - 37000 \u2248 127 (positive).\nAt r = 19%: factors 1/1.19 \u2248 0.8403, 1/1.19^2 \u2248 0.7063, 1/1.19^3 \u2248 0.5934, 1/1.19^4 \u2248 0.4995. NPV \u2248 19000*0.8403 + 14500*0.7063 + 12000*0.5934 + 9000*0.4995 - 37000 \u2248 15965 + 10241 + 7121 + 4495 - 37000 \u2248 -178 (negative).\nThe IRR lies between 18.5% and 19%, closer to 18.6\u201318.7%. Linear interpolation between 18.5% (NPV \u2248 +127) and 19% (NPV \u2248 -178): IRR \u2248 18.5% + [127/(127+178)]*0.5% \u2248 18.5% + 0.18% \u2248 18.68%. Rounding to two decimal places gives 18.68%.",
+      "ground_truth": "20.30",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_888",
+      "prediction": "B",
+      "reasoning": "We are in the reserve (federal funds) market with supply of reserves typically vertical (set by the central bank) and demand for reserves downward sloping. A large unexpected decrease in demand for reserves shifts the demand curve leftward. With a fixed (vertical) supply curve, the new intersection will be at a lower interest rate but the same quantity of reserves. On the standard diagram, that is the point directly below the original equilibrium on the same supply curve. This is typically labeled as Point B.",
+      "ground_truth": "B",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_892",
+      "prediction": "0.0",
+      "reasoning": "A downward-sloping term structure means that longer maturities have lower yields than shorter ones, and in such a case, forward rates for future periods are generally below (or at most equal to) the yields on longer-maturity bonds only under special conditions. For standard arbitrage-free term structures constructed from zero-coupon (spot) rates, the forward rate for a specific future short period (e.g., 4.75 to 5 years) is derived from the 4.75- and 5-year spot rates. If the curve is downward sloping, the 5-year spot rate is less than the 4.75-year spot rate, making the implied 4.75\u20135-year forward rate *lower* than the 5-year spot rate. A 5-year coupon-bearing bond's yield to maturity is a weighted average of spot/forward rates over its cash-flow dates and, under a smoothly downward-sloping curve, it will be between the short- and long-end forward/spot rates and will not, in general, exceed a single short forward rate at the far end of its life if that forward is already low. In fact, for a monotonically downward-sloping curve, the far-end short forward rates tend to be lower than the bond's yield. However, the statement claims **the yield on the five-year coupon-bearing bond is larger than the forward rate for 4.75\u20135 years** as a universal implication of a downward-sloping term structure. This is not guaranteed solely by the fact that the term structure is downward sloping; you can construct curves and coupon patterns where this inequality does not hold. Therefore, the assertion is not necessarily true based only on the information given about the term structure's slope.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_894",
+      "prediction": "4.17",
+      "reasoning": "We are pricing an American put on a futures contract using a three-step binomial tree.\n\nGiven:\n- Current futures price F0 = 50\n- Strike price K = 50\n- Time to maturity T = 0.75 years (9 months)\n- Risk-free rate r = 3% (continuously compounded)\n- Volatility \u03c3 = 25%\n- Number of steps N = 3, so \u0394t = T/3 = 0.25 years\n- For futures options in a risk-neutral world, the futures price process uses the same u, d but the drift does not affect risk-neutral pricing; we use discounting with e^{-r\u0394t} and the standard CRR p.\n\nStep 1: Compute tree parameters\n\u0394t = 0.25\nu = \u03c3 * sqrt(\u0394t) = 0.25 * sqrt(0.25) = 0.25 * 0.5 = 0.125\nu represents ln(u), so:\nu = 0.125 \u21d2 u = e^{0.125} \u2248 1.133148\nThen d = 1/u \u2248 1 / 1.133148 \u2248 0.882497\n\nRisk-neutral probability (for CRR futures tree, same as for stock since drift cancels, using risk-free drift):\np = (e^{r\u0394t} - d) / (u - d)\nFirst compute e^{r\u0394t}:\nr\u0394t = 0.03 * 0.25 = 0.0075\n e^{0.0075} \u2248 1.007528\n\nNow:\n u - d \u2248 1.133148 - 0.882497 = 0.250651\n e^{r\u0394t} - d \u2248 1.007528 - 0.882497 = 0.125031\n p \u2248 0.125031 / 0.250651 \u2248 0.499\nSo p \u2248 0.499, 1 - p \u2248 0.501 (close to 0.5 each).\nDiscount factor per step:\n disc = e^{-r\u0394t} = e^{-0.0075} \u2248 0.992528\n\nStep 2: Build the futures price tree\nAt step 0:\n F(0,0) = 50\n\nAt step 1:\n F(1,1) = F0 * u \u2248 50 * 1.133148 \u2248 56.6574\n F(1,0) = F0 * d \u2248 50 * 0.882497 \u2248 44.1249\n\nAt step 2:\n F(2,2) = 50 * u^2 \u2248 50 * (1.133148)^2 \u2248 50 * 1.284028 \u2248 64.2014\n F(2,1) = 50 * u * d = 50 * 1 (since u*d=1) \u2248 50\n F(2,0) = 50 * d^2 \u2248 50 * (0.882497)^2 \u2248 50 * 0.778801 \u2248 38.9400\n\nAt step 3:\n F(3,3) = 50 * u^3 \u2248 50 * 1.45775 \u2248 72.8876\n F(3,2) = 50 * u^2 * d = 50 * u \u2248 56.6574\n F(3,1) = 50 * u * d^2 = 50 * d \u2248 44.1249\n F(3,0) = 50 * d^3 \u2248 50 * 0.687289 \u2248 34.3645\n\nStep 3: Payoffs at maturity (American = European at final step)\nPayoff of put on futures at maturity is max(K - F_T, 0):\nNode (3,3): F \u2248 72.8876 \u2192 payoff = max(50 - 72.8876, 0) = 0\nNode (3,2): F \u2248 56.6574 \u2192 payoff = max(50 - 56.6574, 0) = 0\nNode (3,1): F \u2248 44.1249 \u2192 payoff \u2248 50 - 44.1249 = 5.8751\nNode (3,0): F \u2248 34.3645 \u2192 payoff \u2248 50 - 34.3645 = 15.6355\n\nSo:\n V(3,3) = 0\n V(3,2) = 0\n V(3,1) \u2248 5.8751\n V(3,0) \u2248 15.6355\n\nStep 4: Step back to time 2 with early exercise check\nGeneral backward step for American option:\n continuation value = disc * [ p * V(up) + (1-p) * V(down) ]\n immediate exercise = max(K - F(t,node), 0)\n Node value = max(continuation value, immediate exercise)\n\nTime 2, node (2,2), F \u2248 64.2014\nImmediate exercise:\n IE(2,2) = max(50 - 64.2014, 0) = 0\nContinuation:\n future nodes: up = (3,3), down = (3,2)\n V(3,3) = 0, V(3,2) = 0\n continuation = disc * [ p*0 + (1-p)*0 ] = 0\nSo V(2,2) = max(0, 0) = 0\n\nTime 2, node (2,1), F \u2248 50\nImmediate exercise:\n IE(2,1) = max(50 - 50, 0) = 0\nContinuation:\n future nodes: up = (3,2), down = (3,1)\n V(3,2) = 0, V(3,1) \u2248 5.8751\n continuation \u2248 disc * [ p*0 + (1-p)*5.8751 ]\n \u2248 0.992528 * [ 0.501 * 5.8751 ]\n 0.501 * 5.8751 \u2248 2.9433\n continuation \u2248 0.992528 * 2.9433 \u2248 2.9211\nV(2,1) = max(0, 2.9211) \u2248 2.9211\n\nTime 2, node (2,0), F \u2248 38.94\nImmediate exercise:\n IE(2,0) = max(50 - 38.94, 0) \u2248 11.06\nContinuation:\n future nodes: up = (3,1), down = (3,0)\n V(3,1) \u2248 5.8751, V(3,0) \u2248 15.6355\n p * 5.8751 \u2248 0.499 * 5.8751 \u2248 2.9337\n (1-p) * 15.6355 \u2248 0.501 * 15.6355 \u2248 7.8354\n Sum \u2248 2.9337 + 7.8354 = 10.7691\n continuation \u2248 disc * 10.7691 \u2248 0.992528 * 10.7691 \u2248 10.688\nCompare:\n IE \u2248 11.06 vs continuation \u2248 10.688 \u2192 early exercise is optimal.\nSo V(2,0) \u2248 11.06\n\nStep 5: Step back to time 1\nTime 1, node (1,1), F \u2248 56.6574\nImmediate exercise:\n IE(1,1) = max(50 - 56.6574, 0) = 0\nContinuation:\n future nodes: up = (2,2), down = (2,1)\n V(2,2) = 0, V(2,1) \u2248 2.9211\n continuation \u2248 disc * [ p*0 + (1-p)*2.9211 ]\n (1-p)*2.9211 \u2248 0.501 * 2.9211 \u2248 1.4635\n continuation \u2248 0.992528 * 1.4635 \u2248 1.4524\nV(1,1) = max(0, 1.4524) \u2248 1.4524\n\nTime 1, node (1,0), F \u2248 44.1249\nImmediate exercise:\n IE(1,0) = max(50 - 44.1249, 0) \u2248 5.8751\nContinuation:\n future nodes: up = (2,1), down = (2,0)\n V(2,1) \u2248 2.9211, V(2,0) \u2248 11.06\n p * 2.9211 \u2248 0.499 * 2.9211 \u2248 1.4576\n (1-p) * 11.06 \u2248 0.501 * 11.06 \u2248 5.5403\n Sum \u2248 1.4576 + 5.5403 = 6.9979\n continuation \u2248 disc * 6.9979 \u2248 0.992528 * 6.9979 \u2248 6.9455\nCompare:\n IE \u2248 5.8751 vs continuation \u2248 6.9455 \u2192 continuation better.\nSo V(1,0) \u2248 6.9455\n\nStep 6: Step back to time 0\nTime 0, node (0,0), F = 50\nImmediate exercise:\n IE(0,0) = max(50 - 50, 0) = 0\nContinuation:\n future nodes: up = (1,1), down = (1,0)\n V(1,1) \u2248 1.4524, V(1,0) \u2248 6.9455\n p * 1.4524 \u2248 0.499 * 1.4524 \u2248 0.7246\n (1-p) * 6.9455 \u2248 0.501 * 6.9455 \u2248 3.4797\n Sum \u2248 0.7246 + 3.4797 = 4.2043\n continuation \u2248 disc * 4.2043 \u2248 0.992528 * 4.2043 \u2248 4.173\n\nCompare immediate exercise 0 vs continuation \u2248 4.173 \u2192 value at time 0 is approximately 4.17.\nRounding reasonably, the American put on futures is worth about $4.2.\n\nTherefore, the value of the American put futures option using a three-step tree is approximately 4.17 dollars.",
+      "ground_truth": "4.59",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_904",
+      "prediction": "1.0",
+      "reasoning": "The profitability index (PI) is calculated as the present value (PV) of future cash inflows divided by the initial investment. For a project with conventional cash flows, NPV = PV of inflows \u2212 initial investment. A positive NPV implies: PV of inflows > initial investment. Dividing both sides by the initial investment (which is positive) gives: (PV of inflows / initial investment) > 1. Therefore, if NPV > 0, the PI must be greater than 1 for a project with conventional cash flows.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_907",
+      "prediction": "C",
+      "reasoning": "Without seeing the exact figure, one must rely on standard historical relationships between nominal and real interest rates. Around 1980, nominal interest rates in many economies (e.g., the U.S.) were actually very high due to high inflation and tight monetary policy, so it is unlikely both nominal and real interest rates reached their lowest values then, eliminating A. Nominal interest rates are rarely negative in long historical plots; instead, real interest rates can become negative when inflation exceeds nominal rates, so B (nominal sometimes negative while real always positive) is generally false. In many historical periods, especially during high inflation, nominal rates can be high while real rates are low or negative, showing that nominal interest rates can give a misleading picture of the true (inflation-adjusted) cost of borrowing or return on saving. Thus, the relationship most consistent with such a figure is that nominal interest rates are a misleading indicator of the real interest rate.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_917",
+      "prediction": "87.54",
+      "reasoning": "First find the bond\u2019s cash flows using the original yield of 11% (continuously compounded). Face value is 100, annual coupon is 8% of 100 = 8.\nPrice at 11% (continuously compounded) is:\nP_11 = 8*e^(-0.11*1) + 8*e^(-0.11*2) + 8*e^(-0.11*3) + 8*e^(-0.11*4) + 108*e^(-0.11*5).\nCompute exponentials:\ne^(-0.11) \u2248 0.8958\ne^(-0.22) \u2248 0.8025\ne^(-0.33) \u2248 0.7180\ne^(-0.44) \u2248 0.6438\ne^(-0.55) \u2248 0.5769\nThen:\nP_11 \u2248 8*(0.8958 + 0.8025 + 0.7180 + 0.6438) + 108*0.5769\n= 8*(3.0601) + 62.3052 \u2248 24.4808 + 62.3052 \u2248 86.79.\nNow, to reprice at a 10.8% yield, we discount the same cash flows at 10.8% (continuously compounded):\nP_10.8 = 8*e^(-0.108*1) + 8*e^(-0.108*2) + 8*e^(-0.108*3) + 8*e^(-0.108*4) + 108*e^(-0.108*5).\nCompute exponentials:\ne^(-0.108) \u2248 0.8977\ne^(-0.216) \u2248 0.8060\ne^(-0.324) \u2248 0.7231\ne^(-0.432) \u2248 0.6489\ne^(-0.54) \u2248 0.5827\nThen:\nP_10.8 \u2248 8*(0.8977 + 0.8060 + 0.7231 + 0.6489) + 108*0.5827\n= 8*(3.0757) + 62.9316 \u2248 24.6056 + 62.9316 \u2248 87.54.\nThus the bond\u2019s price at a 10.8% continuously compounded yield is approximately 87.54 dollars.",
+      "ground_truth": "87.54",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_929",
+      "prediction": "841900",
+      "reasoning": "Best case assumes highest revenue:Selling price = $245/ton, variable cost = $210/ton, quantity = 45,000 tons.\n\n1) Annual revenues:\nRevenue = 45,000 \u00d7 245 = 11,025,000\n\n2) Annual variable costs:\nVC = 45,000 \u00d7 210 = 9,450,000\n\n3) Annual fixed costs:\nFC = 450,000\n\n4) Annual depreciation (straight line, ignoring salvage for depreciation):\nDepreciation = 1,900,000 / 5 = 380,000\n\n5) Earnings before interest and taxes (EBIT):\nEBIT = Revenue \u2212 VC \u2212 FC \u2212 Depreciation\n     = 11,025,000 \u2212 9,450,000 \u2212 450,000 \u2212 380,000\n     = 745,000\n\n6) Taxes at 38%:\nTax = 0.38 \u00d7 745,000 = 283,100\n\n7) Net income:\nNI = EBIT \u2212 Tax = 745,000 \u2212 283,100 = 461,900\n\n8) Operating cash flow (OCF):\nOCF = NI + Depreciation = 461,900 + 380,000 = 841,900",
+      "ground_truth": "1503790.0",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_944",
+      "prediction": "100",
+      "reasoning": "Let S_T be the stock price at option expiration.\n\nStrategy 1: Buy 100 shares now.\nCost = 100 * 94 = 9,400.\nValue at expiration = 100 * S_T.\nProfit_Stock = 100*S_T - 9,400.\n\nStrategy 2: Buy 2,000 call options (20 contracts) at $4.70 each.\nCost = 2,000 * 4.70 = 9,400.\nEach call payoff at expiration = max(S_T - 95, 0).\nTotal payoff = 2,000 * max(S_T - 95, 0).\nProfit_Options = 2,000 * max(S_T - 95, 0) - 9,400.\n\nWe want the stock price S_T where the call option strategy is more profitable than stock:\nProfit_Options > Profit_Stock.\n\nCase 1: S_T \u2264 95\nThen max(S_T - 95, 0) = 0.\nProfit_Options = -9,400.\nProfit_Stock = 100*S_T - 9,400.\nSince S_T \u2265 0, 100*S_T - 9,400 \u2265 -9,400, so options are never better here.\nWe only need to consider S_T > 95.\n\nCase 2: S_T > 95\nThen max(S_T - 95, 0) = S_T - 95.\nProfit_Options = 2,000*(S_T - 95) - 9,400.\nProfit_Stock = 100*S_T - 9,400.\nSet inequality:\n2,000*(S_T - 95) - 9,400 > 100*S_T - 9,400.\nCancel -9,400 on both sides:\n2,000*(S_T - 95) > 100*S_T.\n2,000*S_T - 190,000 > 100*S_T.\n1,900*S_T > 190,000.\nS_T > 190,000 / 1,900 = 100.\n\nThus, once the stock price exceeds $100 at expiration, the call option strategy becomes more profitable than buying 100 shares.",
+      "ground_truth": "100.0",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_970",
+      "prediction": "8975.71",
+      "reasoning": "1) Current sales = 32,000. With a 15% increase: projected sales = 32,000 \u00d7 1.15 = 36,800.\n2) Assume all income statement items (except possibly interest) scale with sales. Costs are 40.3125% of sales (12,900 / 32,000). Projected costs = 0.403125 \u00d7 36,800 = 14,838.\n3) Taxable income = Sales \u2212 Costs = 36,800 \u2212 14,838 = 21,962.\n4) Taxes at 34%: 21,962 \u00d7 0.34 = 7,467.08.\n5) Net income = 21,962 \u2212 7,467.08 = 14,494.92.\n6) Current payout ratio = Dividends / Net income = 4,800 / 12,606 \u2248 0.3809. Assume this ratio stays constant.\n7) Projected dividends = 0.3809 \u00d7 14,494.92 \u2248 5,519.21.\n8) Projected addition to retained earnings = Net income \u2212 Dividends = 14,494.92 \u2212 5,519.21 \u2248 8,975.71.",
+      "ground_truth": "8976.90",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_985",
+      "prediction": "1.0",
+      "reasoning": "The required return on equity (cost of equity) generally includes both the dividend yield and the expected capital gains (price appreciation). Considering only the dividend yield ignores the capital gains component, so it does not capture the full required return on equity.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_987",
+      "prediction": "0.0",
+      "reasoning": "The statement is false. Edge Act corporations and international banking facilities (IBFs) were specifically created and given favorable regulatory and tax treatment to encourage international banking activities in the U.S., not to discourage them. They typically receive more lenient reserve requirements, tax advantages, and branching flexibility compared to standard domestic banking operations, all designed to make the U.S. a more attractive center for international banking. Therefore, saying they have been discouraged by restrictive tax treatment and stringent branching regulations is incorrect.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    }
+  ]
+}

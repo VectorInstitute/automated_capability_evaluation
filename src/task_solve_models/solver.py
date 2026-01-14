@@ -53,32 +53,60 @@ class FinancialProblemSolver:
 
         try:
             response = await self.model_client.create([system_message, user_message])
-            content = str(response.content)
+            content = str(response.content).strip()
             
-            # Simple cleanup for markdown code blocks if present
-            content = re.sub(r"```json\s*", "", content)
-            content = re.sub(r"```\s*$", "", content)
-            content = content.strip()
+            # Robust Extraction Logic
+            prediction = None
+            reasoning = "No reasoning provided"
             
-            try:
-                parsed_response = json.loads(content)
-                return {
-                    "id": problem.get("id"),
-                    "prediction": parsed_response.get("answer"),
-                    "reasoning": parsed_response.get("reasoning"),
-                    "ground_truth": problem.get("ground_truth"),
-                    "task_type": task_type
-                }
-            except json.JSONDecodeError:
-                log.error(f"Failed to parse JSON response for problem {problem.get('id')}")
-                return {
-                    "id": problem.get("id"),
-                    "prediction": None,
-                    "reasoning": "JSON Parse Error",
-                    "ground_truth": problem.get("ground_truth"),
-                    "task_type": task_type,
-                    "raw_response": content
-                }
+            # Attempt 1: Regex Extraction (More robust than pure JSON parsing)
+            # Look for JSON-like patterns or explicit labels
+            
+            # Try to find a JSON block first
+            json_match = re.search(r"\{.*\}", content, re.DOTALL)
+            if json_match:
+                try:
+                    # Clean up the potential JSON string
+                    json_str = json_match.group(0)
+                    # Handle common LLM JSON errors like unescaped newlines
+                    json_str = re.sub(r'"\s*\n\s*"', '", "', json_str)
+                    
+                    parsed = json.loads(json_str)
+                    prediction = parsed.get("answer")
+                    reasoning = parsed.get("reasoning", reasoning)
+                except Exception:
+                    pass # Fallback to regex if JSON fails
+            
+            # If JSON parsing failed or didn't find the answer, try direct regex
+            if prediction is None:
+                # Look for "answer": "..." or "answer": 123
+                ans_match = re.search(r'"answer":\s*["\']?(.*?)["\']?[\s,}]', content, re.IGNORECASE)
+                if ans_match:
+                    prediction = ans_match.group(1).strip()
+                
+                # Look for reasoning
+                reas_match = re.search(r'"reasoning":\s*["\']?(.*?)["\']?[\s,}]', content, re.IGNORECASE | re.DOTALL)
+                if reas_match:
+                    reasoning = reas_match.group(1).strip()
+                else:
+                    # Use the whole content if reasoning not found separately
+                    reasoning = content
+
+            # Final Cleanup
+            if prediction is None and not json_match:
+                # If everything failed, the model might have just outputted the answer directly
+                # (especially smaller models)
+                prediction = content
+                reasoning = "Raw model response"
+
+            return {
+                "id": problem.get("id"),
+                "prediction": prediction,
+                "reasoning": reasoning,
+                "ground_truth": problem.get("ground_truth"),
+                "task_type": task_type,
+                "raw_response": content
+            }
 
         except Exception as e:
             log.error(f"Error calling model for problem {problem.get('id')}: {e}")

@@ -1,0 +1,416 @@
+{
+  "metrics": {
+    "model": "deepseek-llm",
+    "batch_info": "evaluation_batch",
+    "total_processed": 50,
+    "total_correct": 15,
+    "accuracy": 0.3,
+    "execution_time_seconds": 1473.0,
+    "execution_time_formatted": "24m 32s"
+  },
+  "results": [
+    {
+      "id": "vali_143",
+      "prediction": 4250.38,
+      "reasoning": "To find the operating cash flow, we need to calculate net income first and then subtract the non-cash expenses.",
+      "ground_truth": "3603.0",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_164",
+      "prediction": "1",
+      "reasoning": "The forward price refers to the agreed-upon future market rate at a specific point in time and is an input variable in determining the value of a forward contract. The value of a forward contract on the other hand, represents the net present value (or profit/loss) as per today's date and reflects the present worth of future cash flows linked with investment decisions.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_165",
+      "prediction": "1.0",
+      "reasoning": "To determine if a call option is beneficial, we first need to calculate the potential savings from using it compared to holding euros directly. We will use an FX forward rate that reflects both financing and exchange risk.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_188",
+      "prediction": "0.0",
+      "reasoning": "Testaburger, Inc. pays out all of its earnings in the form of dividends. This means that there is no retained earnings for the company to reinvest or use for internal growth. Without any investment in new projects, assets, or operations, the internal growth rate naturally becomes zero over time.",
+      "ground_truth": "1",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_24",
+      "prediction": "1.0",
+      "reasoning": "To determine if the IRR is greater than the required return, we first need to understand what each of these terms means in the context of a project's cash flow analysis.\nThe NPV (Net Present Value) of an investment is calculated by considering the present value of all future cash flows and discounting them back to their current value using the risk-free rate as the discount rate. A positive NPV indicates that the project offers a net gain, so it's likely to be accepted.\nThe IRR (Internal Rate of Return) of an investment is the rate at which the discounted payback equals zero. That means all cash inflows will increase in value more than all outflows until reaching a point where there are no more outflows - which indicates that we have regained our total initial investment and can expect this project to continue generating positive cash flows.\nSince both variables measure a single concept, they should align if the project has a real NPV greater than 0. However, it's stated as: The IRR must be greater than the required return (or hurdle rate).\nThis might create an inconsistency because if the initial assumption was true and we were given more information about this specific question, then yes - a positive NPV requires a positive IRR.\nThe correct statement should be 'Both variables measuring profitability are necessary to meet our investment requirements.'",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_275",
+      "prediction": 0.25,
+      "reasoning": "First, calculate the present value of accrual payments using the given tables and discount factors for each time period.",
+      "ground_truth": "1.22",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_294",
+      "prediction": "5",
+      "reasoning": "Portfolio",
+      "ground_truth": "25.73",
+      "task_type": "calcu",
+      "raw_response": "{\n    \"reasoning\": \"Portfolio A consists of two zero-coupon bonds, a one-year bond with face value of $2000 and a 10 year bond with face value of $6000. The current yield is given as 10% per annum for all bonds including portfolio A. \\n\\nPortfolio B consists of only on zero-coupon bond, which has a maturity of 5.95 years and has a face value of $5000 with the same stated current yield which is 10% for this too.\",\n    \"answer\": 5 },\n    \"reasoning\": \"The original current yield for portfolio A and B are different, but both are also subject to an increase in yields. The amount by which we calculate these new bond values allows us to determine the percentage difference when comparing them. \\n\\nGiven that the bonds in question all earn a 10% rate of return per annum without considering compounding, if this increases by 5%, it would result in the yield being 15%. The original yield can be achieved at an interest rate of 8% since both portfolios have different effective yields due to their bond durations. Consequently, the total value of portfolio B gets reduced as compared to that of Portfolio A when rates increase.\"\n}",
+      "is_correct": false
+    },
+    {
+      "id": "vali_319",
+      "prediction": "1.0 for True/Yes",
+      "reasoning": "To solve this problem, we can use the put-call parity formula and compare it with Black-Scholes-Merton model.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_335",
+      "prediction": "1.0",
+      "reasoning": "To evaluate a project, we need to consider the incremental aftertax cash flows relevant to the project's profitability and risk. Depreciation tax shields represent one approach for companies managing taxable income from operations but do not directly impact the financial performance of the company being evaluated in terms of after-tax cash flow.\n\nTherefore, when evaluating projects, we have a focus on the total incremental after-tax cash flows excluding any depreciation and considering taxes separately.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_340",
+      "prediction": "1.0",
+      "reasoning": "To determine if the company should enter into a forward contract to buy euros at a fixed price near the current spot price of $1.350, we need to compare the costs and risks associated with both options.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_350",
+      "prediction": "1.0",
+      "reasoning": "If interest rates on bonds go to zero, investors may lose their incentives to hold cash in bond accounts because the returns from these investments will be negligible or negative due to the elimination of prevailing market yields. Grant Smith's average holdings of money balances relative to his monthly income can maintain a higher percentage if he invests part of it into different avenues such as savings accounts, short-term CDs, and other low-risk investment choices where returns are higher than zero. This leads him to have more liquidity in case he requires urgent use while enjoying higher returns on investments.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_357",
+      "prediction": "0.0",
+      "reasoning": "A currency board (also known as a fixed exchange rate regime) and monetary policy that targets an exchange rate differ in their objectives, advantages, and disadvantages. Currency boards aim to maintain a fixed exchange rate by printing money freely while monetary policies target specific exchange rates through adjustments of interest rates or other tools.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_388",
+      "prediction": "1.0",
+      "reasoning": "To solve this problem, we need to calculate the costs and revenues associated with the project over its life span, as well as compute the IRR of the project using straight-line depreciation formula. We also need to use the financial breakeven level of output concept which states that at a specific output level, the project earns exactly enough cash flow to meet its required return (cost and financing expenses) plus cover all opportunity cost on invested capital. The answer is equal if IRR equals the required rate.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_413",
+      "prediction": 0.156,
+      "reasoning": "To calculate the percentage change in the price of Bond Dave, first find out how much extra interest that bond earns if interest rates rise by 2 percent, then use this added interest amount to find the new price of Bond Dave and finally determine this new price as a percentage of its initial price before the rate increase. When comparing this to the original price with which interest rates were at their lowest level, the comparison will give a measure of how much higher (or lower) the bond's price was in relationship to when it first came onto the market.",
+      "ground_truth": "-15.37",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_435",
+      "prediction": "1",
+      "reasoning": "To determine the appropriate liquidity level, an organization's financial management staff should analyze various factors that affect the company's operations and financial position. These factors can be categorized into three main groups - credit risk, operational risk, and market risk. Higher liquidity implies higher cash reserves on hand while lower liquidity levels might lead to borrowing or selling assets at unfavorable prices due to external circumstances.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_439",
+      "prediction": "1",
+      "reasoning": "Credit default swaps are financial contracts that allow investors to bet on whether a company will default on its debt or not. If the investor believes the probability of default is high, they pay more than the amount of the credit if everything goes fine.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_518",
+      "prediction": 6750.0,
+      "reasoning": "To find the average balance sheet amount in accounts receivable, we will use the following information from the problem given: Credit terms are 2/10, net 30, and forecasts sell for $1,900 each. Thus, to calculate it, we can divide by the total number of units sold during a certain period.",
+      "ground_truth": "1499178",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_53",
+      "prediction": "1",
+      "reasoning": "A futures contract is an agreement between two parties to buy or sell a specific asset at a predetermined price and time in the future. An investor takes a long position through this contract, which allows them to profit from changes in the underlying market's prices.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_546",
+      "prediction": "B",
+      "reasoning": "After the Fed lends an additional $100 million to five banks and depositors withdraw $50 million as currency, it means that money has left the banking system. Banks' reserves stay the same but not included in the extra lending or withdrawn, which brings a negative change of -$8/$50 to the net monetary aggregate ($270/320). Thus, the remaining balance is $192m after subtracting both amounts from it, and this is why reserve decreases. The correct answer would be B (Reserves decrease by $50 million).",
+      "ground_truth": "A",
+      "task_type": "mcq",
+      "raw_response": "{\n   \"reasoning\": \"After the Fed lends an additional $100 million to five banks and depositors withdraw $50 million as currency, it means that money has left the banking system. Banks' reserves stay the same but not included in the extra lending or withdrawn, which brings a negative change of -$8/$50 to the net monetary aggregate ($270/320). Thus, the remaining balance is $192m after subtracting both amounts from it, and this is why reserve decreases. The correct answer would be B (Reserves decrease by $50 million).\"\n   \"answer\": \"B\"\n}",
+      "is_correct": false
+    },
+    {
+      "id": "vali_617",
+      "prediction": 4,
+      "reasoning": "To solve for the time period (years) it requires, we can use the present worth formula - P = \frac{F_{value}}{V^{T}} *(1+R)^t - V where 'Present value' is given as 810; 'Interest rate' is given as 9; 'Future Value'; and 'Time (years)' is unknown. In this scenario, we can plug in the appropriate values of P = \frac{F_{value}}{V^{T}} *(1+R)^t - V into our formula.",
+      "ground_truth": "19.48",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_626",
+      "prediction": "B",
+      "reasoning": "When the value of an American put option's insurance element increases or market volatility decreases, the attractiveness of early exercise of that put option also rises.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": false
+    },
+    {
+      "id": "vali_661",
+      "prediction": 29.86,
+      "reasoning": "To find the current stock price, we need to calculate the present value of the future dividend payments. We will use Gordon Growth Model which states that the current dividend equals dividends factor (g) times the next year's expected earnings per share divided by N(r - g). Since there is a constant 5 percent growth rate in dividends indefinitely, we can represent it as a constant dividend payment of $3.50 each year. The required return for the first three years and the subsequent years can be represented as different discount rates, d1 = 16%, d2 = 14% until t=3, then r = 11%. The Gordon Growth Model would give us this present value by calculating (d/(r - g))^(t/v). By plugging in these values to the formula, we can find the current stock price.",
+      "ground_truth": "50.75",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_673",
+      "prediction": "C",
+      "reasoning": "Delaying exercise of an American call option on a non-dividend-paying stock even when interest rates are zero is not optimal because this strategy does not offer insurance against the stock price falling below the strike price by the expiration date, which leads to missed opportunities. Exercising early reduces exposure to market volatility.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_711",
+      "prediction": "1.0",
+      "reasoning": "The futures price of gold can be calculated using its current spot price and other observable variables such as supply, demand, and interest rates. However, the futures price of copper cannot be accurately forecasted in the same way because it is influenced by more obscure economic factors that are not easily quantifiable or predictable.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_714",
+      "prediction": "C",
+      "reasoning": "When the income is rising, it indicates that individuals have more purchasing power in the market, causing a decrease in the interest rate (i.e., higher equilibrium point of supply and demand). Consequently, the original balance point O will shift towards Point C as both points A and B are lower than its current position due to the increase in income.",
+      "ground_truth": "A",
+      "task_type": "mcq",
+      "is_correct": false
+    },
+    {
+      "id": "vali_72",
+      "prediction": "0.0 for False/No",
+      "reasoning": "Forecasters' predictions of inflation are based on a range of economic factors and variables, which may be impacted by various internal and external influences beyond their control. Therefore, forecasters might struggle to produce accurate forecasts consistently.",
+      "ground_truth": "1",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_730",
+      "prediction": 7.421,
+      "reasoning": "To calculate the holding period yield, we first need to understand how the YTM and HPY are related. If interest rates didn't change, then a bond's price would remain at its initial amount (assuming no other factors affecting it). However, when the market interest rates increase by 1 percent for your bond, the remaining life of eight years will become shorter as time decay accelerates due to lower future cash flows. As a result, you should recognize that holding period yield calculations also include discount factor adjustments based on changes in YTM and the remaining length of a bond's maturity, considering the duration risk which can adversely impact an investor with bonds purchased at higher prices after market rate fluctuations.",
+      "ground_truth": "9.43",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_753",
+      "prediction": "0.8",
+      "reasoning": "To",
+      "ground_truth": "-10.0",
+      "task_type": "calcu",
+      "raw_response": "{\n   \"reasoning\": \"To calculate the percentage change in nominal GDP, we need to consider both changes in money supply and velocity separately. Suppose initial money supply M0 and velocity of circulation V0 are given; the new values for these parameters after the respective changes will be modified as M1 = 1.2M0 (as money supply grows by 20%) and V1 = 0.7V0 (since velocity declines by 30%). To calculate the final GDP, we'll need empirical data or estimates of GPD per unit of money circulation (\\(GDP/M\\)) and also a measure for the total volume of goods and services traded (for example, by the P) over time. However, without these values for V1*P(t), it would be challenging to express changes in nominal GDP precisely.\",\n   \"answer\": 0.8\n}",
+      "is_correct": false
+    },
+    {
+      "id": "vali_760",
+      "prediction": "C",
+      "reasoning": "An NPV of $2,500 represents the net present value of additional cash inflows generated by a firm's shareholders due to accepting this project compared to rejecting it. Since NPV considers both the amount and timing of cash flows, an increase in NPV indicates that the project is worth investing in.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_789",
+      "prediction": "1.0",
+      "reasoning": "Under a default-free world assumption, the forward contract aims to capture the expected returns of future cash flows under uncertainty. Using options as part of this strategy help increase the flexibility and diversity of possible strategies while protecting from credit risk associated with counterparties.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_792",
+      "prediction": "1",
+      "reasoning": "CBS had to record a $9.4 billion write-down on its broadcasting assets in February 2006. This resulted from the inherent value of these assets decreasing significantly, as determined by financial analysts and accountants evaluating their position within the business' balance sheet.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_802",
+      "prediction": "4500",
+      "reasoning": "To solve this problem, you need to balance the equation of stocks and find out how many shares will be outstanding after repurchasing some stock.",
+      "ground_truth": "4860.47",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_848",
+      "prediction": "-742.28",
+      "reasoning": "To calculate the total present value of the annuity, we need to determine the future value and discount it using given interest rates on a monthly basis.",
+      "ground_truth": "122439.62",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_86",
+      "prediction": 1.3,
+      "reasoning": "First, we can calculate the portfolio's return on investment (ROI) for each of the two assets - stock and risk-free asset.",
+      "ground_truth": "0.325",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_860",
+      "prediction": "B. Decrease",
+      "reasoning": "When payments for previous sales are collected, it means the company is receiving money that had previously been owed to them. This increase cash balance on the company's balance sheet and improve its liquidity position.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": false
+    },
+    {
+      "id": "vali_862",
+      "prediction": "1.0",
+      "reasoning": "The delta of an Asian option does not approach zero as the maturity date is approached due to its unique path-dependent payoffs structure. Therefore, it makes the process of delta hedging more complex and challenging in comparison with regular options.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_864",
+      "prediction": "0.3",
+      "reasoning": "To find the forward interest rate in an FRA, we need to calculate the risk-free rate of return required by a buyer participating in the contract over the time horizon provided (5.1 years), taking into account the Eurodollar futures quote and the standard deviation of the change in the short-term interest rate.",
+      "ground_truth": "0.0263",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_870",
+      "prediction": "1.0",
+      "reasoning": "To evaluate if executive compensation is too high and should be cut back, we can compare it to the performance of the companies they lead as well as other CEOs from different industries. We also need to consider stock-based compensation.",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_879",
+      "prediction": 0.1538461538461539,
+      "reasoning": "Given the cash flows for both Projects A and B, we need to find the internal rate of return (IRR) for Project A. We can do this by solving a quadratic equation or using a financial calculator.",
+      "ground_truth": "20.30",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_888",
+      "prediction": "B",
+      "reasoning": "When there's a large unexpected decrease in the demand for reserves, the supply curve shifts to the right and the equilibrium price (Point O) will shift down due to the law of demand or downward sloping demand curve. The new equilibrium point on the vertical axis is Point B.",
+      "ground_truth": "B",
+      "task_type": "mcq",
+      "is_correct": true
+    },
+    {
+      "id": "vali_892",
+      "prediction": "0.0",
+      "reasoning": "In the given scenario, we can deduce that if we are considering a long bond, its yield is greater than its forward rate in a period between 4.75 and 5 years in the future. This discrepancy occurs because of an upward sloping term structure of interest rates which indicates a correlation between yields on bonds with different maturities.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_894",
+      "prediction": 457.289,
+      "reasoning": "To determine the value of an American put futures option using a three-step tree, we need to calculate its present value and discount it from today's date until expiration.",
+      "ground_truth": "4.59",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_904",
+      "prediction": "1.0",
+      "reasoning": "To determine if the profitability index must be greater than 1 for a project to have positive NPV, we can create an equation using the conventional cash flows of the project.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": true
+    },
+    {
+      "id": "vali_907",
+      "prediction": "A",
+      "reasoning": "When comparing the attached figure, nominal interest rate is the actual interest rate on a loan or investment that takes into account inflation rates, while estimated real interest rate does not consider changes in prices since it's based on a fixed price index. The two measures would likely differ at certain points over time due to changes in both money and economic policy.",
+      "ground_truth": "C",
+      "task_type": "mcq",
+      "is_correct": false
+    },
+    {
+      "id": "vali_917",
+      "prediction": 735.6480920505473,
+      "reasoning": "To find the price of a bond with a continuous yield, we need to use the formula for continuous compounding. The formula is Price = C / (r - R), where 'C' represents the money received from coupon payments at end of each year and 'r', 'R' represent the stated continuously compounded annual yield for the bond. In this case, r=10.8%, so we can substitute them into our formula.",
+      "ground_truth": "87.54",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_929",
+      "prediction": 2736894.32,
+      "reasoning": "To calculate the best case operating cash flow (OCF) for this project, we need to consider initial investment of $1,900,000 in threading equipment and the ongoing variable costs per ton of $210.",
+      "ground_truth": "1503790.0",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_944",
+      "prediction": 100,
+      "reasoning": "To determine when the call option strategy beats buying shares, we need to compare their returns under different stock price scenarios. For simplicity, let's assume that the stock price will increase linearly from its current $94 level.",
+      "ground_truth": "100.0",
+      "task_type": "calcu",
+      "is_correct": true
+    },
+    {
+      "id": "vali_970",
+      "prediction": 6704.2905,
+      "reasoning": "Step by step, we first calculate the impact of a 15% increase in sales on both the income statement and balance sheet. Then, determine new net income from the new sales figure using the payout ratio. Lastly, recalculate addition to retained earnings.",
+      "ground_truth": "8976.90",
+      "task_type": "calcu",
+      "is_correct": false
+    },
+    {
+      "id": "vali_985",
+      "prediction": "0.0",
+      "reasoning": "The dividend yield component is just one of the factors that influence an investor's total expected return on equity. It does not take into account other elements such as capital gains, dividends, and voting rights. A complete view must thus also incorporate the company's growth prospects, profitability, management quality, and industry-specific characteristics.",
+      "ground_truth": "1.0",
+      "task_type": "bool",
+      "is_correct": false
+    },
+    {
+      "id": "vali_987",
+      "prediction": "1.0",
+      "reasoning": "Regulatory agencies have created certain incentives to promote international banking by removing restrictive tax treatments and reducing stringent branching regulations on Edge Act corporations and International Banking Facilities (IBFs).",
+      "ground_truth": "0.0",
+      "task_type": "bool",
+      "is_correct": false
+    }
+  ]
+}
