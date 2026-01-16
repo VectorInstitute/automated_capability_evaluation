@@ -16,6 +16,8 @@ from src.utils import (
     compute_benchmark_difficulty,
     compute_benchmark_novelty,
     compute_benchmark_separability,
+    compute_differential_entropy,
+    compute_kl_divergence,
     compute_mdm,
     compute_mmd,
     compute_pad,
@@ -346,18 +348,18 @@ def main(cfg: DictConfig) -> None:
             # Structure: model_dir/...json files (no generation subdirectories)
             accuracies = _collect_accuracies_from_dir(model_dir)
 
-            if not accuracies:
-                logger.warning("No accuracies found for model '%s' in %s", model_name, model_dir)
-                continue
+        if not accuracies:
+            logger.warning("No accuracies found for model '%s' in %s", model_name, model_dir)
+            continue
 
-            avg_acc = sum(accuracies) / len(accuracies)
-            model_to_accuracy[model_name] = avg_acc
-            logger.info(
-                "Model '%s' mean accuracy over %d JSON files: %.4f",
-                model_name,
-                len(accuracies),
-                avg_acc,
-            )
+        avg_acc = sum(accuracies) / len(accuracies)
+        model_to_accuracy[model_name] = avg_acc
+        logger.info(
+            "Model '%s' mean accuracy over %d JSON files: %.4f",
+            model_name,
+            len(accuracies),
+            avg_acc,
+        )
 
     if not model_to_accuracy:
         logger.error("No valid model accuracies found in %s", base_scores_dir)
@@ -403,10 +405,11 @@ def main(cfg: DictConfig) -> None:
         except Exception as e:  # noqa: BLE001
             logger.warning("Error computing novelty: %s", e)
     
-    # Compute diversity metrics if capabilities directory is provided
+    # Compute embedding-based metrics if capabilities directory is provided
     capabilities_dir = getattr(cfg.quality_eval_cfg, "capabilities_dir", None)
     if capabilities_dir:
-        metrics_to_compute = getattr(cfg.quality_eval_cfg, "diversity_metrics", ["pad", "mmd", "mdm"])
+        internal_diversity_metrics = getattr(cfg.quality_eval_cfg, "internal_diversity_metrics", ["mdm", "entropy"])
+        comparison_metrics = getattr(cfg.quality_eval_cfg, "comparison_metrics", ["pad", "mmd", "kl_divergence"])
         embedding_model = getattr(cfg.quality_eval_cfg, "embedding_model", "text-embedding-3-large")
         embedding_backend = getattr(cfg.quality_eval_cfg, "embedding_backend", "openai")
         embed_dimensions = getattr(cfg.quality_eval_cfg, "embedding_dimensions", 3072)
@@ -416,7 +419,7 @@ def main(cfg: DictConfig) -> None:
         if synth_dataloader_config:
             synth_dataloader_config = dict(synth_dataloader_config)
         
-        logger.info("Computing diversity metrics for capabilities in %s", capabilities_dir)
+        logger.info("Computing embedding-based metrics for capabilities in %s", capabilities_dir)
         
         # Load capabilities and generate embeddings
         synth_embeddings, capabilities = _load_capabilities_and_generate_embeddings(
@@ -462,8 +465,8 @@ def main(cfg: DictConfig) -> None:
                 )
                 
                 if len(real_embeddings) > 0:
-                    # Compute metrics that require both synthetic and real data
-                    if "pad" in metrics_to_compute:
+                    # Compute comparison metrics that require both synthetic and real data
+                    if "pad" in comparison_metrics:
                         try:
                             pad_score = compute_pad(
                                 synth_embeddings,
@@ -474,7 +477,7 @@ def main(cfg: DictConfig) -> None:
                         except Exception as e:  # noqa: BLE001
                             logger.warning("Error computing PAD: %s", e)
                     
-                    if "mmd" in metrics_to_compute:
+                    if "mmd" in comparison_metrics:
                         try:
                             mmd_kernel = getattr(cfg.quality_eval_cfg, "mmd_kernel", "polynomial")
                             mmd_degree = getattr(cfg.quality_eval_cfg, "mmd_degree", 3)
@@ -487,13 +490,25 @@ def main(cfg: DictConfig) -> None:
                             logger.info("MMD score (%s kernel): %.4f", mmd_kernel, mmd_score)
                         except Exception as e:  # noqa: BLE001
                             logger.warning("Error computing MMD: %s", e)
+                    
+                    if "kl_divergence" in comparison_metrics:
+                        try:
+                            kl_k = getattr(cfg.quality_eval_cfg, "kl_k", 4)
+                            kl_score = compute_kl_divergence(
+                                synth_embeddings,
+                                real_embeddings,
+                                k=kl_k,
+                            )
+                            logger.info("KL divergence score (k=%d): %.4f", kl_k, kl_score)
+                        except Exception as e:  # noqa: BLE001
+                            logger.warning("Error computing KL divergence: %s", e)
                 else:
                     logger.warning("No real data embeddings generated, skipping comparison metrics")
             else:
-                logger.info("No real_data_dir provided, skipping PAD and MMD (require real data)")
+                logger.info("No real_data_dir provided, skipping comparison metrics (require real data)")
             
-            # Compute MDM (can be computed without real data - measures internal diversity)
-            if "mdm" in metrics_to_compute:
+            # Compute internal diversity metrics (only need synthetic data)
+            if "mdm" in internal_diversity_metrics:
                 try:
                     mdm_n_clusters = getattr(cfg.quality_eval_cfg, "mdm_n_clusters", 5)
                     mdm_metric = getattr(cfg.quality_eval_cfg, "mdm_metric", "euclidean")
@@ -505,6 +520,17 @@ def main(cfg: DictConfig) -> None:
                     logger.info("MDM score (%d clusters, %s metric): %.4f", mdm_n_clusters, mdm_metric, mdm_score)
                 except Exception as e:  # noqa: BLE001
                     logger.warning("Error computing MDM: %s", e)
+            
+            if "entropy" in internal_diversity_metrics:
+                try:
+                    entropy_k = getattr(cfg.quality_eval_cfg, "entropy_k", 4)
+                    entropy_score = compute_differential_entropy(
+                        synth_embeddings,
+                        k=entropy_k,
+                    )
+                    logger.info("Differential entropy score (k=%d): %.4f", entropy_k, entropy_score)
+                except Exception as e:  # noqa: BLE001
+                    logger.warning("Error computing differential entropy: %s", e)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ from typing import Iterable, List, Mapping, Union
 
 import numpy as np
 from scipy.stats import spearmanr
+from scipy.special import digamma, gammaln
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
@@ -18,6 +19,7 @@ from sklearn.metrics.pairwise import (
     linear_kernel,
     sigmoid_kernel,
 )
+from sklearn.neighbors import NearestNeighbors
 import kmedoids
 from sklearn.metrics import pairwise_distances
 
@@ -447,5 +449,106 @@ def compute_mdm(
         dists = diss[cluster_points_idx, medoid_idx]
         total_dist += np.mean(dists)
     return total_dist / n_clusters
+
+
+# ===========================
+# ---- Information-Theoretic Metrics (Entropy, KL-Divergence)
+# ===========================
+
+def compute_differential_entropy(
+    embeddings: np.ndarray,
+    k: int = 4,
+) -> float:
+    """
+    Compute the differential entropy of a set of embeddings using k-nearest neighbors.
+    
+    Differential entropy measures the diversity/uncertainty in the embedding distribution.
+    Higher values indicate more diverse data.
+    
+    This implementation uses the k-NN estimator for differential entropy:
+        H(X) ≈ digamma(N) - digamma(k) + log(volume) + d * mean(log(eps))
+    
+    where:
+    - N is the number of samples
+    - d is the embedding dimension
+    - k is the number of neighbors
+    - eps is the distance to the k-th nearest neighbor
+    
+    Args:
+        embeddings: Embedding matrix of shape (n_samples, n_features)
+        k: Number of nearest neighbors to use (default: 4)
+    
+    Returns:
+        float: Differential entropy value (higher is more diverse)
+    """
+    N, d = embeddings.shape
+    if N < k + 1:
+        raise ValueError(
+            f"Cannot compute entropy: need at least {k + 1} samples, but got {N}."
+        )
+    
+    nbrs = NearestNeighbors(n_neighbors=k + 1).fit(embeddings)
+    distances, _ = nbrs.kneighbors(embeddings)
+    eps = distances[:, -1]
+    eps[eps == 0] = np.nextafter(0, 1)
+    
+    log_vol = (d / 2) * np.log(np.pi) - gammaln(d / 2 + 1)
+    entropy = digamma(N) - digamma(k) + log_vol + d * np.mean(np.log(eps))
+    return float(entropy)
+
+
+def compute_kl_divergence(
+    p_embeddings: np.ndarray,
+    q_embeddings: np.ndarray,
+    k: int = 4,
+    eps: float = 1e-10,
+) -> float:
+    """
+    Compute the KL divergence between two sets of embeddings using k-nearest neighbors.
+    
+    KL divergence measures how different distribution P is from distribution Q.
+    Higher values indicate more novelty (P is more different from Q).
+    
+    This implementation uses the k-NN estimator for KL divergence:
+        KL(P||Q) ≈ (d/n) * sum(log(nu/rho)) + log(m/(n-1))
+    
+    where:
+    - P is the distribution of p_embeddings (n samples)
+    - Q is the distribution of q_embeddings (m samples)
+    - d is the embedding dimension
+    - rho is the distance to the k-th nearest neighbor in P
+    - nu is the distance to the k-th nearest neighbor in Q
+    
+    Args:
+        p_embeddings: Embeddings of distribution P, shape (n_samples_p, n_features)
+        q_embeddings: Embeddings of distribution Q, shape (n_samples_q, n_features)
+        k: Number of nearest neighbors to use (default: 4)
+        eps: Small epsilon to avoid division by zero (default: 1e-10)
+    
+    Returns:
+        float: KL divergence value (higher is more novel/different)
+    """
+    n, d = p_embeddings.shape
+    m, _ = q_embeddings.shape
+    
+    if n < k + 1:
+        raise ValueError(
+            f"Cannot compute KL divergence: P needs at least {k + 1} samples, but got {n}."
+        )
+    if m < k:
+        raise ValueError(
+            f"Cannot compute KL divergence: Q needs at least {k} samples, but got {m}."
+        )
+    
+    # Find k-th nearest neighbor in P for each point in P
+    nbrs_p = NearestNeighbors(n_neighbors=k + 1).fit(p_embeddings)
+    rho = np.maximum(nbrs_p.kneighbors(p_embeddings)[0][:, k], eps)
+    
+    # Find k-th nearest neighbor in Q for each point in P
+    nbrs_q = NearestNeighbors(n_neighbors=k).fit(q_embeddings)
+    nu = np.maximum(nbrs_q.kneighbors(p_embeddings)[0][:, k - 1], eps)
+    
+    kl_div = (d / n) * np.sum(np.log(nu / rho)) + np.log(m / (n - 1))
+    return float(kl_div)
 
 

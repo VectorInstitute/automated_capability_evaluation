@@ -24,10 +24,16 @@ quality_eval_cfg:
   # embedding_dimensions is ignored for HuggingFace models (uses model's native dimension)
   embedding_dimensions: 3072
   
-  diversity_metrics:
-    - "pad"
-    - "mmd"
-    - "mdm"
+  # Internal diversity metrics (only need synthetic data)
+  internal_diversity_metrics:
+    - "mdm"      # Mean Distance to Medoid - measures internal coherence
+    - "entropy"  # Differential Entropy - measures diversity/uncertainty
+  
+  # Comparison metrics (need both synthetic and real data)
+  comparison_metrics:
+    - "pad"           # Proxy-A-Distance - measures distribution similarity
+    - "mmd"           # Maximum Mean Discrepancy - measures distribution distance
+    - "kl_divergence" # KL Divergence - measures novelty (how different from real)
   
   pad_classifier: "LogisticRegression"  # Options: "LogisticRegression", "RandomForest", "MLP"
   
@@ -36,6 +42,10 @@ quality_eval_cfg:
   
   mdm_n_clusters: 5
   mdm_metric: "euclidean"
+  
+  entropy_k: 4  # Number of nearest neighbors for differential entropy computation
+  
+  kl_k: 4  # Number of nearest neighbors for KL divergence computation
 
 exp_cfg:
   exp_id: "quality_evaluation"
