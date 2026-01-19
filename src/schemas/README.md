@@ -4,8 +4,10 @@ This directory contains standardized schemas for all ACE pipeline stages, ensuri
 
 ## Structure
 
-- **[`PIPELINE_SCHEMAS.md`](PIPELINE_SCHEMAS.md)** - Complete documentation of input/output formats for each stage
-- **Python Dataclasses** - Type-safe data structures for each stage:
+### Generation Pipeline
+
+- **[`GENERATION_PIPELINE_SCHEMAS.md`](GENERATION_PIPELINE_SCHEMAS.md)** - Documentation for generation pipeline stages
+- **Python Dataclasses** - Type-safe data structures:
   - [`experiment_schemas.py`](experiment_schemas.py) - Experiment (Stage 0)
   - [`domain_schemas.py`](domain_schemas.py) - Domain (Stage 0)
   - [`metadata_schemas.py`](metadata_schemas.py) - Common metadata (PipelineMetadata)
@@ -14,8 +16,8 @@ This directory contains standardized schemas for all ACE pipeline stages, ensuri
   - [`task_schemas.py`](task_schemas.py) - Task generation (Stage 3)
   - [`solution_schemas.py`](solution_schemas.py) - Solution generation (Stage 4)
   - [`validation_schemas.py`](validation_schemas.py) - Validation (Stage 5)
-- **I/O Utilities** - Save and load functions:
-  - [`io_utils.py`](io_utils.py) - Functions to save/load all stage outputs (save/load functions for all 7 stage outputs)
+- **I/O Utilities**:
+  - [`io_utils.py`](io_utils.py) - Save/load functions for generation pipeline outputs
 
 ## Usage
 
@@ -34,11 +36,11 @@ from src.schemas import (
 )
 
 # Create area
-domain = Domain(name="Personal Finance", domain_id="domain_000")
+domain = Domain(domain_name="Personal Finance", domain_id="domain_000")
 area = Area(
-    name="Cash Flow & Budget Management",
+    area_name="Cash Flow & Budget Management",
     area_id="area_000",
-    description="Design and monitor budgets...",
+    area_description="Design and monitor budgets...",
     domain=domain,
     # generation_metadata is optional
 )
@@ -77,6 +79,8 @@ areas, metadata = load_areas(Path("output/areas.json"))
 
 ## Pipeline Stages
 
+### Generation Pipeline
+
 0. **Experiment Setup** → `Experiment`, `Domain`
 1. **Area Generation** → `Area`
 2. **Capability Generation** → `Capability`
@@ -84,4 +88,4 @@ areas, metadata = load_areas(Path("output/areas.json"))
 4. **Solution Generation** → `TaskSolution`
 5. **Validation** → `ValidationResult`
 
-See [`PIPELINE_SCHEMAS.md`](PIPELINE_SCHEMAS.md) for detailed specifications.
+See [`GENERATION_PIPELINE_SCHEMAS.md`](GENERATION_PIPELINE_SCHEMAS.md) for detailed specifications.

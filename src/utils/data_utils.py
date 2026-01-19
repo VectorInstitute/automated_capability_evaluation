@@ -243,11 +243,21 @@ def check_cfg(cfg: DictConfig, logger: logging.Logger) -> None:
         cfg (DictConfig): The provided configuration.
         logger (logging.Logger): The logger instance to log messages.
     """
-    assert cfg.capabilities_cfg.num_gen_capabilities > 0
+    assert getattr(cfg, "exp_cfg", None) is not None, "exp_cfg must be set."
+    assert getattr(cfg.exp_cfg, "exp_id", ""), "exp_id must be set in exp_cfg."
+    assert getattr(cfg, "global_cfg", None) is not None, "global_cfg must be set."
+    assert getattr(cfg.global_cfg, "output_dir", ""), (
+        "global_cfg.output_dir must be set."
+    )
+    assert getattr(cfg.global_cfg, "domain", ""), "global_cfg.domain must be set."
+    assert getattr(cfg.global_cfg, "pipeline_type", None) is not None, (
+        "global_cfg.pipeline_type must be set."
+    )
+    assert cfg.capabilities_cfg.num_capabilities > 0
     assert cfg.capabilities_cfg.num_gen_capabilities_per_run > 0
     num_capabilities = int(
-        cfg.capabilities_cfg.num_gen_capabilities
-        * (1 + cfg.capabilities_cfg.num_gen_capabilities_buffer)
+        cfg.capabilities_cfg.num_capabilities
+        * (1 + cfg.capabilities_cfg.num_capabilities_buffer)
     )
     assert num_capabilities >= cfg.capabilities_cfg.num_gen_capabilities_per_run, (
         "The total number of capabilities to generate must be greater than or equal to the number of capabilities to generate per run."
@@ -256,13 +266,6 @@ def check_cfg(cfg: DictConfig, logger: logging.Logger) -> None:
     additional_c = cfg.capabilities_cfg.num_gen_capabilities_per_run - rem_c
     if rem_c != 0:
         logger.warning(f"{additional_c} additional capabilities might be generated.")
-    if "discover_new" in cfg.lbo_cfg.pipeline_id:
-        assert (
-            cfg.dimensionality_reduction_cfg.discover_new_reduced_dimensionality_method
-            in ["pca", "cut-embedding"]
-        ), (
-            "The dimensionality reduction method must be either 'pca' or 'cut-embedding' when using the discover_new pipelines."
-        )
 
 
 def get_run_id(cfg: DictConfig) -> str:
@@ -280,8 +283,8 @@ def get_run_id(cfg: DictConfig) -> str:
     if cfg.exp_cfg.exp_id:
         run_id = str(cfg.exp_cfg.exp_id)
     else:
-        run_id = f"{cfg.scientist_llm.name}_C{cfg.capabilities_cfg.num_gen_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
-        if cfg.capabilities_cfg.method == "hierarchical":
-            run_id += f"_A{cfg.capabilities_cfg.num_capability_areas}"
+        run_id = f"{cfg.scientist_llm.name}_C{cfg.capabilities_cfg.num_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
+        if cfg.get("areas_cfg", {}).get("num_areas"):
+            run_id += f"_A{cfg.areas_cfg.num_areas}"
         run_id += f"_T{cfg.capabilities_cfg.num_gen_tasks_per_capability}"
     return run_id

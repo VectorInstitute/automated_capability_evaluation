@@ -5,17 +5,6 @@ from typing import Dict, List, Optional
 
 
 @dataclass
-class Capability:
-    """Represents a capability to be tested."""
-
-    name: str
-    description: str
-    domain: str
-    area: Optional[str] = None
-    example_tasks: List[Dict] = field(default_factory=list)
-
-
-@dataclass
 class SubTopic:
     """Represents a sub-topic within a capability."""
 
@@ -48,8 +37,8 @@ class Blueprint:
 
 
 @dataclass
-class Task:
-    """Represents a generated multiple-choice task."""
+class GeneratedTask:
+    """Represents a generated multiple-choice task (internal use)."""
 
     task_id: str
     blueprint_id: int

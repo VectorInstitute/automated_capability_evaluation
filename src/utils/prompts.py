@@ -5,64 +5,23 @@ You will be particularly rewarded for a comprehensive design of capabilities.
 Valid capabilities will be added to a capability archive.
 In each generation, previously accepted capabilities for the specified domain will be provided as context.
 
-Each capability should be designed according to the METR Standard, which requires the following Python format:
-```python
-class Capability:
-    @staticmethod
-    def repr_tasks() -> dict[str, dict]:
-        # Returns a mapping from task ids to arbitrary data that is specific to each capability.
-        # Each capability should contain 3 distinct tasks in the dictionary, labelled "1", "2" and "3".
-        # Each task should be a dictionary with the following keys:
-        # - "problem": The problem or question text.
-        # - "answer": The expected answer to the problem.
-        # ... implementation ...
+Respond precisely in the following JSON format:
 
-    @staticmethod
-    def get_instructions(t: dict) -> str:
-        # This method should return a string containing initial capability instructions.
-        # ... implementation ...
-
-    @staticmethod
-    def score(t: dict, submission: str) -> float | None:
-        # ‘score‘ is called after the subject model submits a solution.
-        # Return 0 on failure and 1 on success.
-        # Throwing an exception will result in a score of 0.
-        # ... implementation ...
-```
-The following points should be considered while designing the Capability class:
-1. The instructions should enforce the final answer in the form "ANSWER: $ANSWER" ONLY for those capabilities that expect a short and objective answer. It should not be part of instructions for capabilities with long-form, detailed and subjective answers for e.g. explanations, proofs, essays, etc.
-2. If the instructions enforces the final answer in the form "ANSWER: $ANSWER", then the score function should first call a helper function to parse the submission string and extract the answer:
-```python
-def parse_submission(submission: str) -> str:
-    # Parse the submission string to extract the answer based on the "ANSWER" keyword.
-    # Return an empty string if no match is found.
-```
-3. The score function should use a helper function that uses a large language model (LLM) as a judge to score the submission:
-```python
-def evaluate_with_llm_judge(
-    submission: str,
-    target: str,
-) -> bool:
-    # Evaluate the submission using an LLM judge.
-```
-4. DO NOT re-implement the `parse_submission()` or `evaluate_with_llm_judge()` helper functions.
-
-Respond precisely in the following format, including the JSON start and end markers:
-
-THOUGHT: <THOUGHT>
-RESPONSE JSON:
 {
-    "capability_0": <JSON>,
-    "capability_1": <JSON>,
-    ...
+    "thought": <STR>,
+    "capabilities": [
+        {
+            "name": <STR>,
+            "description": <STR>
+        },
+        ...
+    ]
 }
 
-In <THOUGHT>, briefly think and reason about what kind of capability you want to propose.
-In <JSON>, provide a JSON response of the new capability with the following fields:
-- "name": A concise, descriptive label (lowercase, no spaces, e.g., "personalized_budget_planning").
-- "description": A clear explanation of what the capability entails (e.g., "Ability to generate a realistic monthly budget tailored to an individual's income, fixed and variable expenses, and financial goals. Requires understanding spending categories, prioritization, and basic cash flow allocation.").
-- "domain": The domain to which the capability belongs to (e.g., personal finance, math, etc.).
-- "class": The fully implemented Python code for the Capability class. This should be easily human-readable.
+In "thought", briefly think and reason about what kind of capabilities you want to propose.
+In "capabilities", provide an array of new capability objects with the following fields:
+- "name": A concise, descriptive label (lowercase, underscores for spaces, e.g., "personalized_budget_planning").
+- "description": A clear and detailed explanation of what the capability entails, including the skills and knowledge required (e.g., "Ability to generate a realistic monthly budget tailored to an individual's income, fixed and variable expenses, and financial goals. Requires understanding spending categories, prioritization, and basic cash flow allocation.").
 
 Do not download additional data from the internet or access the file system.
 
@@ -82,39 +41,37 @@ Sample capability:
 Existing capability names:
 {prev_capabilities}
 
-Generate {num_gen_capabilities} new capabilities within the {domain} domain that are **semantically and functionally distinct** from the existing capabilities.
+Generate {num_capabilities} new capabilities within the {domain} domain that are **semantically and functionally distinct** from the existing capabilities.
 """
 
 HIERARCHICAL_CAPABILITY_GENERATION_USER_PROMPT = """
-A sample capability JSON is provided below. The names of all existing capabilities are also provided.
-
-Sample capability:
-{{sample_capability_json}}
+The names of all existing capabilities are provided below.
 
 Existing capability names:
 {{prev_capabilities}}
 
-Generate {{num_gen_capabilities}} new capabilities for the "{capability_area}" area within the {{domain}} domain that do not overlap with the existing capabilities.
+Generate {{num_capabilities}} new capabilities for the "{area}" area within the {{domain}} domain that do not overlap with the existing capabilities.
 """
 
-HIERARCHICAL_CAPABILITY_AREAS_GENERATION_USER_PROMPT = """
+AREAS_GENERATION_USER_PROMPT = """
 You are an expert in designing capabilities to assess the abilities of foundation models.
 For the domain of {domain}, identify {num_areas} high-level, broad, diverse, and non-overlapping areas for capability generation.
 Each area should cover {num_capabilities_per_area} capabilities, which will be generated in the next step.
 Aim for each area to cover a broad subdomain or skill cluster within the domain.
 
-Respond precisely in the following format:
+Respond in the following JSON format:
 
-RESPONSE JSON:
 {response_json_format}
 """
 
-CAPABILITY_AREAS_GENERATION_RESPONSE_JSON_FORMAT = """
-{
-    "area_0": <STR>,
-    "area_1": <STR>,
-    ...
-}""".strip("\n")
+AREAS_GENERATION_RESPONSE_JSON_FORMAT = """
+{{
+    "areas": [
+        <STR>,
+        <STR>,
+        ...
+    ]
+}}"""
 
 SCORE_BASED_NEW_CAPABILITY_DISCOVERY_USER_PROMPT = """
 A sample capability JSON is provided below. Additionally, the names of all existing capabilities and their respective scores for the subject LLM are provided.

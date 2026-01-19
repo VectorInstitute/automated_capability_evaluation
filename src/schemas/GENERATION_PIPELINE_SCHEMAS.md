@@ -244,39 +244,39 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 **File:** [`domain_schemas.py`](domain_schemas.py)
 
 **Fields:**
-- `name`: String (required, human-readable domain name)
+- `domain_name`: String (required, human-readable domain name)
 - `domain_id`: String (required)
-- `description`: String (optional, domain description)
+- `domain_description`: String (optional, domain description)
 
 ### Area
 
 **File:** [`area_schemas.py`](area_schemas.py)
 
 **Fields:**
-- `name`: String (required, human-readable area name)
+- `area_name`: String (required, human-readable area name)
 - `area_id`: String (required)
 - `domain`: Domain (required, Domain dataclass object)
-- `description`: String (required, area description)
+- `area_description`: String (required, area description)
 - `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
   - This field can contain any generation-specific data (e.g., generation method, parameters, intermediate steps)
   - Structure is flexible and depends on the generation method
 
-**Note:** When serialized to JSON, the `domain` object is flattened to `domain` (string) and `domain_id` (string) fields.
+**Note:** When serialized to JSON, the `domain` object is flattened to `domain_name` and `domain_id` fields.
 
 ### Capability
 
 **File:** [`capability_schemas.py`](capability_schemas.py)
 
 **Fields:**
-- `name`: String (required, capability name)
+- `capability_name`: String (required, capability name)
 - `capability_id`: String (required)
 - `area`: Area (required, Area dataclass object)
-- `description`: String (required, capability description)
+- `capability_description`: String (required, capability description)
 - `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
   - This field can contain any generation-specific data (e.g., generation method, parameters, intermediate steps)
   - Structure is flexible and depends on the generation method
 
-**Note:** When serialized to JSON, the `area` object is flattened to `area` (string), `area_id` (string), `domain` (string), and `domain_id` (string) fields.
+**Note:** When serialized to JSON, the `area` object is flattened to `area_name`, `area_id`, `domain_name`, and `domain_id` fields.
 
 ### Task
 
@@ -284,10 +284,16 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 
 **Fields:**
 - `task_id`: String (required, unique within capability)
-- `task`: String (required, the task/problem text)
+- `task`: String (required, the task/problem text, includes MCQ stem and options text)
+- `task_type`: String (optional, e.g., "multiple_choice", "open_ended")
+- `solution_type`: String (optional, e.g., "multiple_choice", "open_ended")
+- `difficulty`: String (optional, e.g., "easy", "medium", "hard")
+- `bloom_level`: String (optional, e.g., "remember", "understand", "apply", "analyze", "evaluate", "create")
+- `choices`: List[Dict] (optional, for MCQ) — each item `{ "label": "A", "solution": "<option text>" }`
 - `capability`: Capability (required, Capability dataclass object)
+- `generation_metadata`: Dict (optional; use sparingly for experiment-specific details)
 
-**Note:** When serialized to JSON, the `capability` object is flattened to `capability` (string), `capability_id` (string), `area` (string), `area_id` (string), `domain` (string), and `domain_id` (string) fields.
+**Note:** When serialized to JSON, the `capability` object is flattened to `capability_name`, `capability_id`, `capability_description`, `area_name`, `area_id`, `area_description`, `domain_name`, `domain_id`, and `domain_description` fields.
 
 ### TaskSolution
 
@@ -304,7 +310,7 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
   - This field can contain any generation-specific data (e.g., debate rounds, agent interactions, pipeline type)
   - Structure is flexible and depends on the generation method (agentic, single-agent, etc.)
 
-**Note:** When serialized to JSON, the `task_obj` object is flattened to `capability` (string), `capability_id` (string), `area` (string), `area_id` (string), `domain` (string), and `domain_id` (string) fields.
+**Note:** When serialized to JSON, the `task_obj` object is flattened to include all Task fields plus the capability/area/domain hierarchy with standardized naming (`capability_name`, `area_name`, `domain_name`, etc.).
 
 ### ValidationResult
 
@@ -312,16 +318,16 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 
 **Fields:**
 - `task_id`: String (required)
-- `task`: String (required, the task/problem text from Stage 3)
+- `task`: String (required, the task/problem text)
+- `task_solution`: TaskSolution (required, the full task solution being validated)
 - `verification`: Boolean (required, overall validation status - whether the solution is verified/valid)
 - `feedback`: String (required, detailed feedback on the validation)
-- `task_obj`: Task (required, Task dataclass object with full hierarchy)
 - `score`: Float (optional, validation score, typically 0.0 to 1.0)
 - `generation_metadata`: Dict (optional, nested dictionary containing process-specific information)
   - This field can contain any validation-specific data (e.g., validation method, criteria details, error details)
   - Structure is flexible and depends on the validation method
 
-**Note:** When serialized to JSON, the `task_obj` object is flattened to `capability` (string), `capability_id` (string), `area` (string), `area_id` (string), `domain` (string), and `domain_id` (string) fields.
+**Note:** When serialized to JSON, the `task_solution` object is flattened to include all TaskSolution fields (task_id, task, solution, reasoning, numerical_answer) plus the capability/area/domain hierarchy.
 
 ---
 
@@ -395,9 +401,9 @@ This stage creates two files:
     "resume": false
   },
   "domain": {
-    "name": "personal finance",
+    "domain_name": "personal finance",
     "domain_id": "domain_000",
-    "description": "Personal finance domain covering budgeting, investing, retirement planning, etc."
+    "domain_description": "Personal finance domain covering budgeting, investing, retirement planning, etc."
   }
 }
 ```
@@ -433,10 +439,10 @@ This stage creates two files:
   },
   "areas": [
     {
-      "name": "Cash Flow & Budget Management",
+      "area_name": "Cash Flow & Budget Management",
       "area_id": "area_000",
-      "description": "Design and monitor budgets using various methodologies...",
-      "domain": "personal finance",
+      "area_description": "Design and monitor budgets using various methodologies...",
+      "domain_name": "personal finance",
       "domain_id": "domain_000"
     }
   ]
@@ -479,12 +485,12 @@ This stage creates two files:
   },
   "capabilities": [
     {
-      "name": "budget_policy_and_structure",
+      "capability_name": "budget_policy_and_structure",
       "capability_id": "cap_000",
-      "description": "Define the strategic framework and methodology for budgeting...",
-      "area": "Cash Flow & Budget Management",
+      "capability_description": "Define the strategic framework and methodology for budgeting...",
+      "area_name": "Cash Flow & Budget Management",
       "area_id": "area_000",
-      "domain": "personal finance",
+      "domain_name": "personal finance",
       "domain_id": "domain_000"
     }
   ]
@@ -530,20 +536,22 @@ This stage creates two files:
       "task_id": "task_000",
       "task": "You are advising a client who wants to set up a zero-based budget...",
       "capability_id": "cap_000",
-      "capability": "budget_policy_and_structure",
-      "area": "Cash Flow & Budget Management",
+      "capability_name": "budget_policy_and_structure",
+      "capability_description": "Define the strategic framework and methodology for budgeting...",
+      "area_name": "Cash Flow & Budget Management",
       "area_id": "area_000",
-      "domain": "personal finance",
+      "domain_name": "personal finance",
       "domain_id": "domain_000"
     },
     {
       "task_id": "task_001",
       "task": "A family of four needs to restructure their budget...",
       "capability_id": "cap_000",
-      "capability": "budget_policy_and_structure",
-      "area": "Cash Flow & Budget Management",
+      "capability_name": "budget_policy_and_structure",
+      "capability_description": "Define the strategic framework and methodology for budgeting...",
+      "area_name": "Cash Flow & Budget Management",
       "area_id": "area_000",
-      "domain": "personal finance",
+      "domain_name": "personal finance",
       "domain_id": "domain_000"
     }
   ]
@@ -586,11 +594,12 @@ This stage creates two files:
   },
   "task_id": "task_000",
   "task": "You are advising a client who wants to set up a zero-based budget...",
-  "capability": "budget_policy_and_structure",
+  "capability_name": "budget_policy_and_structure",
   "capability_id": "cap_000",
-  "area": "Cash Flow & Budget Management",
+  "capability_description": "Define the strategic framework and methodology for budgeting...",
+  "area_name": "Cash Flow & Budget Management",
   "area_id": "area_000",
-  "domain": "personal finance",
+  "domain_name": "personal finance",
   "domain_id": "domain_000",
   "solution": "The optimal approach is to use a zero-based budgeting methodology...",
   "reasoning": "Both agents agreed on the zero-based approach because...",
@@ -657,11 +666,12 @@ This stage creates two files:
   },
   "task_id": "task_000",
   "task": "You are advising a client who wants to set up a zero-based budget...",
-  "capability": "budget_policy_and_structure",
+  "capability_name": "budget_policy_and_structure",
   "capability_id": "cap_000",
-  "area": "Cash Flow & Budget Management",
+  "capability_description": "Define the strategic framework and methodology for budgeting...",
+  "area_name": "Cash Flow & Budget Management",
   "area_id": "area_000",
-  "domain": "personal finance",
+  "domain_name": "personal finance",
   "domain_id": "domain_000",
   "verification": true,
   "feedback": "Solution addresses all aspects of the task...",

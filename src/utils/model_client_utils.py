@@ -16,13 +16,6 @@ from autogen_core.models import (
 )
 from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from tenacity import (
-    before_sleep_log,
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
 
 
 MAX_TOKENS = 1024 * 30
@@ -30,85 +23,6 @@ MAX_TOKENS = 1024 * 30
 logger = logging.getLogger(__name__)
 
 GEMINI_STUDIO_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/"
-
-
-class RetryableModelClient:
-    """Wrap a client and retry `create` on transient API errors."""
-
-    def __init__(self, client: Any, max_retries: int = 3):
-        self.client = client
-        self.max_retries = max_retries
-
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
-        retry=retry_if_exception_type(
-            (
-                openai.RateLimitError,
-                openai.APITimeoutError,
-                openai.InternalServerError,
-                anthropic.RateLimitError,
-                anthropic.APITimeoutError,
-                anthropic.InternalServerError,
-            )
-        ),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-        reraise=True,
-    )
-    async def create(self, *args: Any, **kwargs: Any) -> Any:
-        """Create with retry logic for transient errors."""
-        return await self.client.create(*args, **kwargs)
-
-    def __getattr__(self, name: str) -> Any:
-        """Delegate all other attributes to the wrapped client."""
-        return getattr(self.client, name)
-
-
-def get_model_client(model_name: str, seed: Optional[int] = None, **kwargs: Any) -> Any:
-    """Legacy factory: return a retry-wrapped client for `model_name`."""
-    n = model_name.lower()
-
-    if n.startswith(("gpt-", "o1-", "o3-", "gpt-5")):
-        kwargs.setdefault("max_completion_tokens", MAX_TOKENS)
-        openai_client = OpenAIChatCompletionClient(
-            model=model_name, seed=seed, **kwargs
-        )
-        return RetryableModelClient(openai_client)
-
-    if "claude" in n:
-        kwargs.setdefault("max_tokens", MAX_TOKENS)
-        kwargs.setdefault("timeout", None)
-        anthropic_client = AnthropicChatCompletionClient(model=model_name, **kwargs)
-        return RetryableModelClient(anthropic_client)
-
-    if "gemini" in n:
-        api_key = kwargs.pop("api_key", os.getenv("GOOGLE_API_KEY"))
-        if not api_key:
-            raise ValueError("Set GOOGLE_API_KEY for Gemini (AI Studio).")
-
-        model_info = kwargs.pop(
-            "model_info",
-            ModelInfo(
-                vision=True,
-                function_calling=True,
-                json_output=True,
-                structured_output=True,
-                family="unknown",
-            ),
-        )
-
-        kwargs.setdefault("max_completion_tokens", MAX_TOKENS)
-
-        client = OpenAIChatCompletionClient(
-            model=model_name,
-            base_url=GEMINI_STUDIO_BASE,
-            api_key=api_key,
-            model_info=model_info,
-            **kwargs,
-        )
-        return RetryableModelClient(client)
-
-    raise ValueError(f"Unsupported model '{model_name}'.")
 
 
 def get_standard_model_client(
@@ -121,7 +35,23 @@ def get_standard_model_client(
     n = model_name.lower()
 
     # OpenAI GPT / o-series models
-    if n.startswith(("gpt-", "o1-", "o3-", "gpt-5")):
+    if n.startswith(("gpt-", "o1-", "o3-", "gpt-5", "o4-")):
+        # Convert max_tokens to max_completion_tokens for OpenAI
+        if "max_tokens" in kwargs:
+            kwargs["max_completion_tokens"] = kwargs.pop("max_tokens")
+
+        # o-series and gpt-5 models don't support custom temperature
+        # Remove temperature if it's set for these models
+        if (
+            any(key in n for key in ("o1-", "o3-", "o4-", "gpt-5"))
+            and "temperature" in kwargs
+        ):
+            logger.debug(
+                "Removing 'temperature' parameter for model '%s' - not supported",
+                model_name,
+            )
+            kwargs.pop("temperature")
+
         return OpenAIChatCompletionClient(model=model_name, seed=seed, **kwargs)
 
     # Anthropic Claude models
@@ -172,47 +102,26 @@ class ModelCallMode:
 async def async_call_model(
     model_client: ChatCompletionClient,
     *,
-    model_name: Optional[str] = None,
     system_prompt: Optional[str] = None,
     user_prompt: Optional[str] = None,
     messages: Optional[Sequence[Any]] = None,
     mode: str = ModelCallMode.TEXT,
-    temperature: Optional[float] = None,
-    max_tokens: Optional[int] = None,
-    top_p: Optional[float] = None,
-    seed: Optional[int] = None,
     max_attempts: int = 3,
     extra_kwargs: Optional[Mapping[str, Any]] = None,
 ) -> Any:
-    """Perform a standard async model call with provider-aware args and output modes.
+    """Perform a standard async model call with output modes and retry logic.
 
     - Builds messages from prompts if `messages` is None.
-    - Maps `temperature`, `max_tokens`, `top_p`, `seed` to the right provider kwargs.
     - `mode`:
       - TEXT: return `str` content.
       - JSON_PARSE: parse JSON and return `dict`.
       - STRUCTURED: return the raw provider response.
-    - Retries only for empty content / JSON parse failures; other errors raise
-      `ModelCallError` immediately.
+    - Retries on transient API errors (rate limits, timeouts, server errors),
+      empty content, and JSON parse failures.
+
+    Note: temperature, max_tokens, seed should be passed to get_standard_model_client()
+    when creating the client, not here.
     """
-    # Try to infer model name if not provided explicitly.
-    resolved_model_name: Optional[str] = model_name
-    if resolved_model_name is None:
-        underlying = getattr(model_client, "client", model_client)
-        resolved_model_name = getattr(underlying, "model", None)
-
-    # Identify provider family from the model name.
-    provider: Optional[str] = None
-    lowered_name = (
-        resolved_model_name.lower() if isinstance(resolved_model_name, str) else ""
-    )
-    if lowered_name.startswith(("gpt-", "o1-", "o3-", "gpt-5")):
-        provider = "openai"
-    elif "claude" in lowered_name:
-        provider = "anthropic"
-    elif "gemini" in lowered_name:
-        provider = "gemini"
-
     if messages is None:
         if user_prompt is None and system_prompt is None:
             raise ValueError(
@@ -231,44 +140,19 @@ async def async_call_model(
         raise ValueError("max_attempts must be at least 1")
 
     last_error: Exception | None = None
-    drop_temperature_for_model = False
+
+    # Define retryable exceptions
+    retryable_exceptions = (
+        openai.RateLimitError,
+        openai.APITimeoutError,
+        openai.InternalServerError,
+        anthropic.RateLimitError,
+        anthropic.APITimeoutError,
+        anthropic.InternalServerError,
+    )
 
     for attempt in range(1, max_attempts + 1):
         request_kwargs: Dict[str, Any] = {}
-
-        if temperature is not None and not drop_temperature_for_model:
-            if provider == "openai" and lowered_name:
-                # "o1" models: special handling, often ignore temperature.
-                # "o3-mini", "o3", "o4-mini": temperature is not always supported.
-                if any(
-                    key in lowered_name for key in ("o1", "o3-mini", "o3", "o4-mini")
-                ):
-                    logger.debug(
-                        "Not sending 'temperature' for model '%s' due to known "
-                        "limitations.",
-                        resolved_model_name,
-                    )
-                else:
-                    request_kwargs["temperature"] = temperature
-            elif provider in {"anthropic", "gemini", None}:
-                # Anthropic Claude and Gemini generally support temperature;
-                # for unknown providers we optimistically pass it through.
-                request_kwargs["temperature"] = temperature
-
-        # Map unified `max_tokens` to provider-specific kwarg.
-        if max_tokens is not None:
-            if provider in {"openai", "gemini"}:
-                request_kwargs["max_completion_tokens"] = max_tokens
-            elif provider == "anthropic":
-                request_kwargs["max_tokens"] = max_tokens
-            else:
-                request_kwargs["max_tokens"] = max_tokens
-
-        # `top_p` only for OpenAI-style providers.
-        if top_p is not None and provider in {"openai", "gemini", None}:
-            request_kwargs["top_p"] = top_p
-        if seed is not None:
-            request_kwargs["seed"] = seed
 
         # Output / structured config
         if mode in (ModelCallMode.JSON_PARSE, ModelCallMode.STRUCTURED):
@@ -287,31 +171,27 @@ async def async_call_model(
                 messages=list(messages),  # type: ignore[arg-type]
                 **request_kwargs,
             )
-        except TypeError as exc:
-            # Some models (e.g., certain reasoning or o-series models) do not
-            # support temperature or other generation parameters. If the error
-            # message clearly points to 'temperature', drop it and retry once.
-            if (
-                "temperature" in str(exc)
-                and "temperature" in request_kwargs
-                and not drop_temperature_for_model
-            ):
-                logger.warning(
-                    "Model rejected 'temperature' parameter; retrying without it. "
-                    "Error was: %s",
-                    exc,
-                )
-                drop_temperature_for_model = True
-                last_error = exc
-                continue
+        except retryable_exceptions as exc:
+            # Retry on transient API errors
             last_error = exc
-            logger.error("Model call failed with TypeError: %s", exc)
+            if attempt < max_attempts:
+                wait_time = min(2**attempt, 10)  # Exponential backoff, max 10s
+                logger.warning(
+                    "Transient API error on attempt %d/%d: %s. Retrying in %ds...",
+                    attempt,
+                    max_attempts,
+                    exc,
+                    wait_time,
+                )
+                import asyncio
+
+                await asyncio.sleep(wait_time)
+                continue
+            logger.error("Max retries reached for transient API error: %s", exc)
             break
-        except Exception as exc:  # pragma: no cover - network/SDK errors
-            # Let lower-level client / infrastructure handle any network or
-            # transient retries. At this layer we convert to ModelCallError
-            # without additional retry loops to avoid duplicating behaviour.
-            logger.error("Model call failed with unexpected error: %s", exc)
+        except Exception as exc:
+            # Non-retryable error - fail immediately
+            logger.error("Model call failed with non-retryable error: %s", exc)
             last_error = exc
             break
 
