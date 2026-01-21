@@ -329,7 +329,7 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 
 **Convenience Properties:**
 - `task_id`: Returns `task_solution.task_id`
-- `task`: Returns `task_solution.task_text` (the task/problem text)
+- `task_text`: Returns `task_solution.task_text` (the task/problem text)
 
 **Note:** When serialized to JSON, the `task_solution` object is flattened to include all TaskSolution fields (task_id, task, solution, reasoning, numerical_answer) plus the capability/area/domain hierarchy.
 
