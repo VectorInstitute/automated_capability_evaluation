@@ -78,11 +78,9 @@ def solve_tasks(
             }
 
             task_solution = TaskSolution(
-                task_id=task.task_id,
-                task=task.task,
+                task=task,
                 solution=solution,
                 reasoning=reasoning,
-                task_obj=task,
                 generation_metadata=generation_metadata,
             )
             task_solutions.append(task_solution)
