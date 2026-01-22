@@ -26,9 +26,9 @@ class ValidationResult:
         return self.task_solution.task_id
 
     @property
-    def task_text(self) -> str:
-        """Get task text from the task_solution for convenience."""
-        return self.task_solution.task_text
+    def task_statement(self) -> str:
+        """Get task statement from the task_solution for convenience."""
+        return self.task_solution.task_statement
 
     def to_dict(self):
         """Convert to dictionary.

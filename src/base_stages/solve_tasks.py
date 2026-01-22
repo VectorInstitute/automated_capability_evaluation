@@ -56,7 +56,7 @@ def solve_tasks(
                 capability_area=capability.area.area_name,
                 capability_name=capability.capability_name,
                 capability_description=capability.capability_description,
-                task_text=task.task,
+                task_text=task.task_statement,
             )
 
             response = asyncio.run(

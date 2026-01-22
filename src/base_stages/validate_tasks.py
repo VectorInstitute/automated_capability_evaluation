@@ -39,14 +39,13 @@ def validate_tasks(
         capability = task_solution.task.capability
 
         try:
-            task_obj = task_solution.task
+            task = task_solution.task
 
             # Use structured fields from Task if available, fallback to metadata/parsing
             blueprint_text = "N/A"
-            if task_obj.difficulty and task_obj.bloom_level:
+            if task.difficulty and task.bloom_level:
                 blueprint_text = (
-                    f"Difficulty: {task_obj.difficulty}, "
-                    f"Bloom's Level: {task_obj.bloom_level}"
+                    f"Difficulty: {task.difficulty}, Bloom's Level: {task.bloom_level}"
                 )
             elif task_solution.generation_metadata:
                 blueprint_text = task_solution.generation_metadata.get(
@@ -54,13 +53,13 @@ def validate_tasks(
                 )
 
             # Extract question (first part before choices)
-            task_lines = task_solution.task_text.strip().split("\n")
-            question = task_lines[0] if task_lines else task_solution.task_text
+            task_lines = task_solution.task_statement.strip().split("\n")
+            question = task_lines[0] if task_lines else task_solution.task_statement
 
             # Use structured choices if available, otherwise parse from text
             choices = {}
-            if task_obj.choices:
-                for choice in task_obj.choices:
+            if task.choices:
+                for choice in task.choices:
                     choices[choice["label"]] = choice["solution"]
             else:
                 # Fallback: parse from task text

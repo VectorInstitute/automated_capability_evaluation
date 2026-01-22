@@ -26,9 +26,9 @@ class TaskSolution:
         return self.task.task_id
 
     @property
-    def task_text(self) -> str:
-        """Get task text from the task object for convenience."""
-        return self.task.task
+    def task_statement(self) -> str:
+        """Get task statement from the task object for convenience."""
+        return self.task.task_statement
 
     def to_dict(self):
         """Convert to dictionary.

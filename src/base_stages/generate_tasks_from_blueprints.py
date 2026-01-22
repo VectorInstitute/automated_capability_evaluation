@@ -114,7 +114,7 @@ def generate_tasks_from_blueprints(
 
                 task = Task(
                     task_id=task_id,
-                    task=task_text,
+                    task_statement=task_text,
                     task_type="multiple_choice",
                     solution_type="multiple_choice",
                     difficulty=blueprint.difficulty,

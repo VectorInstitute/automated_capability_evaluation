@@ -15,7 +15,7 @@ class Task:
     """Dataclass for task."""
 
     task_id: str
-    task: str
+    task_statement: str
     capability: Capability
     task_type: Optional[str] = None  # e.g., "multiple_choice", "open_ended"
     solution_type: Optional[str] = None  # e.g., "multiple_choice", "open_ended"
@@ -30,7 +30,7 @@ class Task:
         """Convert to dictionary."""
         result = {
             "task_id": self.task_id,
-            "task": self.task,
+            "task_statement": self.task_statement,
             "task_type": self.task_type,
             "solution_type": self.solution_type,
             "difficulty": self.difficulty,
@@ -48,7 +48,7 @@ class Task:
         capability = Capability.from_dict(data)
         return cls(
             task_id=data["task_id"],
-            task=data["task"],
+            task_statement=data["task_statement"],
             task_type=data.get("task_type"),
             solution_type=data.get("solution_type"),
             difficulty=data.get("difficulty"),
