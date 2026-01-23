@@ -14,16 +14,27 @@ from src.schemas.solution_schemas import TaskSolution
 class ValidationResult:
     """Dataclass for validation result."""
 
-    task_id: str
-    task: str
     task_solution: TaskSolution
     verification: bool
     feedback: str
     score: Optional[float] = None
     generation_metadata: Optional[Dict] = field(default_factory=dict)
 
+    @property
+    def task_id(self) -> str:
+        """Get task_id from the task_solution for convenience."""
+        return self.task_solution.task_id
+
+    @property
+    def task_statement(self) -> str:
+        """Get task statement from the task_solution for convenience."""
+        return self.task_solution.task_statement
+
     def to_dict(self):
-        """Convert to dictionary."""
+        """Convert to dictionary.
+
+        Flattens the task_solution fields into the result for JSON serialization.
+        """
         result = self.task_solution.to_dict()
         result["verification"] = self.verification
         result["feedback"] = self.feedback
@@ -38,8 +49,6 @@ class ValidationResult:
         """Create from dictionary."""
         task_solution = TaskSolution.from_dict(data)
         return cls(
-            task_id=data["task_id"],
-            task=data["task"],
             task_solution=task_solution,
             verification=data["verification"],
             feedback=data["feedback"],

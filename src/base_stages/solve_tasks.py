@@ -56,7 +56,7 @@ def solve_tasks(
                 capability_area=capability.area.area_name,
                 capability_name=capability.capability_name,
                 capability_description=capability.capability_description,
-                task_text=task.task,
+                task_text=task.task_statement,
             )
 
             response = asyncio.run(
@@ -78,11 +78,9 @@ def solve_tasks(
             }
 
             task_solution = TaskSolution(
-                task_id=task.task_id,
-                task=task.task,
+                task=task,
                 solution=solution,
                 reasoning=reasoning,
-                task_obj=task,
                 generation_metadata=generation_metadata,
             )
             task_solutions.append(task_solution)

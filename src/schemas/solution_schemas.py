@@ -14,17 +14,28 @@ from src.schemas.task_schemas import Task
 class TaskSolution:
     """Dataclass for task solution."""
 
-    task_id: str
-    task: str
+    task: Task
     solution: str
     reasoning: str
-    task_obj: Task
     numerical_answer: Optional[str] = None
     generation_metadata: Optional[Dict] = field(default_factory=dict)
 
+    @property
+    def task_id(self) -> str:
+        """Get task_id from the task object for convenience."""
+        return self.task.task_id
+
+    @property
+    def task_statement(self) -> str:
+        """Get task statement from the task object for convenience."""
+        return self.task.task_statement
+
     def to_dict(self):
-        """Convert to dictionary."""
-        result = self.task_obj.to_dict()
+        """Convert to dictionary.
+
+        Flattens the task object fields into the result for JSON serialization.
+        """
+        result = self.task.to_dict()
         result["solution"] = self.solution
         result["reasoning"] = self.reasoning
         if self.numerical_answer is not None:
@@ -36,13 +47,11 @@ class TaskSolution:
     @classmethod
     def from_dict(cls, data: dict):
         """Create from dictionary."""
-        task_obj = Task.from_dict(data)
+        task = Task.from_dict(data)
         return cls(
-            task_id=data["task_id"],
-            task=data["task"],
+            task=task,
             solution=data["solution"],
             reasoning=data["reasoning"],
-            task_obj=task_obj,
             numerical_answer=data.get("numerical_answer"),
             generation_metadata=data.get("generation_metadata", {}),
         )
