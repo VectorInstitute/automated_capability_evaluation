@@ -516,13 +516,13 @@ Analyze the question and provide your answer with reasoning.
 
 
 def format_subtopic_prompt(
-    capability_name,
-    capability_description,
-    capability_domain,
-    capability_area=None,
-    min_subtopics=3,
-    max_subtopics=8,
-):
+    capability_name: str,
+    capability_description: str,
+    capability_domain: str,
+    capability_area: str | None = None,
+    min_subtopics: int = 3,
+    max_subtopics: int = 8,
+) -> tuple[str, str]:
     """Format subtopic extraction prompts.
 
     Args:
@@ -554,12 +554,12 @@ def format_subtopic_prompt(
 
 
 def format_combination_prompt(
-    capability_name,
-    capability_description,
-    capability_domain,
-    capability_area,
-    content_list,
-):
+    capability_name: str,
+    capability_description: str,
+    capability_domain: str,
+    capability_area: str | None,
+    content_list: str,
+) -> tuple[str, str]:
     """Format combination finding prompts."""
     system_prompt = COMBINATION_SYSTEM_PROMPT.format(
         capability_domain=capability_domain,
@@ -577,16 +577,16 @@ def format_combination_prompt(
 
 
 def format_blueprint_prompt(
-    capability_name,
-    capability_description,
-    capability_domain,
-    capability_area,
-    subtopic,
-    difficulty,
-    difficulty_description,
-    reasoning,
-    reasoning_description,
-):
+    capability_name: str,
+    capability_description: str,
+    capability_domain: str,
+    capability_area: str | None,
+    subtopic: str,
+    difficulty: str,
+    difficulty_description: str,
+    reasoning: str,
+    reasoning_description: str,
+) -> tuple[str, str]:
     """Format blueprint generation prompts."""
     user_prompt = BLUEPRINT_USER_PROMPT_TEMPLATE.format(
         capability_name=capability_name,
@@ -604,12 +604,12 @@ def format_blueprint_prompt(
 
 
 def format_question_prompt(
-    capability_name,
-    capability_description,
-    capability_domain,
-    capability_area,
-    blueprint_description,
-):
+    capability_name: str,
+    capability_description: str,
+    capability_domain: str,
+    capability_area: str | None,
+    blueprint_description: str,
+) -> tuple[str, str]:
     """Format question generation prompts (Stage 3 - Step 1).
 
     Args:
@@ -635,12 +635,12 @@ def format_question_prompt(
 
 
 def format_options_prompt(
-    capability_name,
-    capability_description,
-    capability_domain,
-    capability_area,
-    question,
-):
+    capability_name: str,
+    capability_description: str,
+    capability_domain: str,
+    capability_area: str | None,
+    question: str,
+) -> tuple[str, str]:
     """Format options generation prompts (Stage 3 - Step 2).
 
     Args:
@@ -666,18 +666,18 @@ def format_options_prompt(
 
 
 def format_verification_prompt(
-    capability_domain,
-    capability_area,
-    capability_name,
-    capability_description,
-    task_blueprint,
-    question,
-    option_a,
-    option_b,
-    option_c,
-    option_d,
-    correct_answer,
-):
+    capability_domain: str,
+    capability_area: str | None,
+    capability_name: str,
+    capability_description: str,
+    task_blueprint: str,
+    question: str,
+    option_a: str,
+    option_b: str,
+    option_c: str,
+    option_d: str,
+    correct_answer: str,
+) -> tuple[str, str]:
     """Format verification prompts."""
     user_prompt = VERIFICATION_USER_PROMPT_TEMPLATE.format(
         capability_domain=capability_domain,
@@ -696,12 +696,12 @@ def format_verification_prompt(
 
 
 def format_solution_prompt(
-    capability_domain,
-    capability_area,
-    capability_name,
-    capability_description,
-    task_text,
-):
+    capability_domain: str,
+    capability_area: str | None,
+    capability_name: str,
+    capability_description: str,
+    task_text: str,
+) -> tuple[str, str]:
     """Format solution generation prompts.
 
     Args:
