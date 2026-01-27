@@ -5,6 +5,7 @@ This stage initializes the experiment and creates domain metadata.
 
 import logging
 from pathlib import Path
+from typing import Any, Dict, cast
 
 from omegaconf import DictConfig, OmegaConf
 
@@ -56,7 +57,9 @@ def run_stage0(cfg: DictConfig) -> None:
         domain=domain_name,
         domain_id=domain_id,
         pipeline_type=pipeline_type,
-        configuration=config_dict,
+        configuration=cast(Dict[str, Any], config_dict)
+        if isinstance(config_dict, dict)
+        else {},
     )
 
     metadata = PipelineMetadata(

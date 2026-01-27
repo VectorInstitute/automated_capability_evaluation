@@ -117,7 +117,7 @@ def generate_and_set_capabilities_embeddings(
     capabilities: List[Capability],
     embedding_model_name: str,
     embed_dimensions: int,
-    rep_string_order="and",
+    rep_string_order: str = "and",
 ) -> None:
     """Generate the capabilities embeddings using the OpenAI embedding model.
 

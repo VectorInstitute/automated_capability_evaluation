@@ -227,4 +227,4 @@ def filter_schema_capabilities_by_embeddings(
     )
 
     filtered_capabilities = [capabilities[i] for i in remaining_indices]
-    return filtered_capabilities, remaining_indices
+    return filtered_capabilities, list(remaining_indices)
