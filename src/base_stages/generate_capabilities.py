@@ -37,7 +37,7 @@ def generate_capabilities(
     -------
         List of generated Capability objects
     """
-    capabilities = []
+    capabilities: List[Capability] = []
 
     # Calculate number of runs needed
     num_runs = int(np.ceil(num_capabilities / num_capabilities_per_run))

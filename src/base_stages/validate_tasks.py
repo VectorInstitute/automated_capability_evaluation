@@ -114,7 +114,7 @@ def validate_tasks(
                     "suggested_improvements": response.get(
                         "suggested_improvements", ""
                     ),
-                    **task_solution.generation_metadata,
+                    **(task_solution.generation_metadata or {}),
                 },
             )
             validation_results.append(validation_result)

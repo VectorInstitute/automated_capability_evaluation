@@ -6,6 +6,7 @@ The correct answer is NOT determined here — that happens in Stage 4.
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 from omegaconf import DictConfig
 
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 def run_stage3(
     cfg: DictConfig,
     capabilities_tag: str,
-    tasks_tag: str = None,
+    tasks_tag: Optional[str] = None,
 ) -> str:
     """Stage 3: Generate tasks for each capability.
 
@@ -159,4 +160,5 @@ def run_stage3(
                 # Continue with next capability instead of failing completely
                 continue
 
+    assert tasks_tag is not None
     return tasks_tag

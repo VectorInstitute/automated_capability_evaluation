@@ -168,7 +168,7 @@ async def async_call_model(
 
         try:
             response = await model_client.create(
-                messages=list(messages),  # type: ignore[arg-type]
+                messages=list(messages),
                 **request_kwargs,
             )
         except retryable_exceptions as exc:
