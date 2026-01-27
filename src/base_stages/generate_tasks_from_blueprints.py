@@ -7,6 +7,7 @@ from typing import List
 from autogen_core.models import ChatCompletionClient
 
 from src.base_stages.task_dataclasses import Blueprint
+from src.schemas.capability_schemas import Capability
 from src.schemas.task_schemas import Task
 from src.utils.base_generation_prompts import (
     format_options_prompt,
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def generate_tasks_from_blueprints(
-    capability,
+    capability: Capability,
     blueprints: list[Blueprint],
     client: ChatCompletionClient,
     tasks_per_blueprint: int = 3,
@@ -45,7 +46,7 @@ def generate_tasks_from_blueprints(
     """
     logger.info("Generating tasks from blueprints...")
 
-    all_tasks = []
+    all_tasks: List[Task] = []
 
     for blueprint in blueprints:
         logger.info(
@@ -137,7 +138,8 @@ def generate_tasks_from_blueprints(
         tasks_for_blueprint = [
             t
             for t in all_tasks
-            if t.generation_metadata.get("blueprint_id") == blueprint.combination_id
+            if t.generation_metadata
+            and t.generation_metadata.get("blueprint_id") == blueprint.combination_id
         ]
         logger.info(f"  Generated {len(tasks_for_blueprint)} tasks for this blueprint")
 

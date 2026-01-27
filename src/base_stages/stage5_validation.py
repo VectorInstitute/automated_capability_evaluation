@@ -6,6 +6,7 @@ and align with the task requirements.
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 from omegaconf import DictConfig
 
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 def run_stage5(
     cfg: DictConfig,
     solution_tag: str,
-    validation_tag: str = None,
+    validation_tag: Optional[str] = None,
 ) -> str:
     """Stage 5: Validate generated task solutions.
 
@@ -65,6 +66,7 @@ def run_stage5(
 
     if not solutions_base_dir.exists():
         logger.error(f"Solutions directory not found: {solutions_base_dir}")
+        assert validation_tag is not None
         return validation_tag
 
     # Find all area directories
@@ -165,4 +167,5 @@ def run_stage5(
                 continue
 
     logger.info(f"Stage 5 completed. Validation tag: {validation_tag}")
+    assert validation_tag is not None
     return validation_tag

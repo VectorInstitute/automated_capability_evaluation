@@ -10,6 +10,7 @@ from src.base_stages.task_constants import (
     DIFFICULTY_LEVELS,
 )
 from src.base_stages.task_dataclasses import Combination, SubTopic
+from src.schemas.capability_schemas import Capability
 from src.utils.base_generation_prompts import format_combination_prompt
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def find_valid_combinations(
-    capability, subtopics: list[SubTopic], client: ChatCompletionClient
+    capability: Capability, subtopics: list[SubTopic], client: ChatCompletionClient
 ) -> list[Combination]:
     """Find valid combinations of Content, Difficulty, and Reasoning.
 

@@ -7,6 +7,7 @@ by similarity to remove duplicates.
 import logging
 import math
 from pathlib import Path
+from typing import Optional
 
 from omegaconf import DictConfig
 
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 def run_stage2(
     cfg: DictConfig,
     areas_tag: str,
-    capabilities_tag: str = None,
+    capabilities_tag: Optional[str] = None,
 ) -> str:
     """Stage 2: Generate capabilities, embed, and filter.
 
@@ -171,4 +172,5 @@ def run_stage2(
             f"{capabilities_path}"
         )
 
+    assert capabilities_tag is not None
     return capabilities_tag

@@ -10,6 +10,7 @@ from src.base_stages.task_constants import (
     DIFFICULTY_LEVELS,
 )
 from src.base_stages.task_dataclasses import Blueprint, Combination
+from src.schemas.capability_schemas import Capability
 from src.utils.base_generation_prompts import format_blueprint_prompt
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def generate_blueprints(
-    capability,
+    capability: Capability,
     combinations: list[Combination],
     client: ChatCompletionClient,
 ) -> list[Blueprint]:
