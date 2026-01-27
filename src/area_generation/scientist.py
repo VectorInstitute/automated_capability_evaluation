@@ -42,7 +42,7 @@ class AreaScientist(RoutedAgent):
         self,
         model_client: ChatCompletionClient,
         scientist_id: str,
-        langfuse_client: Langfuse = None,
+        langfuse_client: Langfuse,
     ) -> None:
         super().__init__(f"Area Scientist {scientist_id}")
         self._model_client = model_client
