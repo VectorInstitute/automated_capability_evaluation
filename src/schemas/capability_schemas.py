@@ -4,8 +4,10 @@ Defines Capability dataclass for capability within an area. Capabilities
 are specific skills or abilities.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from src.schemas.area_schemas import Area
 
@@ -18,11 +20,11 @@ class Capability:
     capability_id: str
     area: Area
     capability_description: str
-    generation_metadata: Optional[Dict] = field(default_factory=dict)
+    generation_metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        result = {
+        result: Dict[str, Any] = {
             "capability_name": self.capability_name,
             "capability_id": self.capability_id,
             "capability_description": self.capability_description,
@@ -33,7 +35,7 @@ class Capability:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: Dict[str, Any]) -> Capability:
         """Create from dictionary."""
         area = Area.from_dict(data)
         return cls(

@@ -3,8 +3,10 @@
 Defines Domain dataclass for domain.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Dict, Optional
 
 
 @dataclass
@@ -15,9 +17,9 @@ class Domain:
     domain_id: str
     domain_description: Optional[str] = None
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        result = {
+        result: Dict[str, Any] = {
             "domain_name": self.domain_name,
             "domain_id": self.domain_id,
         }
@@ -26,7 +28,7 @@ class Domain:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: Dict[str, Any]) -> Domain:
         """Create from dictionary."""
         return cls(
             domain_name=data["domain_name"],

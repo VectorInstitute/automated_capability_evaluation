@@ -4,8 +4,10 @@ Defines Task dataclass for task. Tasks are concrete evaluation items
 that test a capability.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from src.schemas.capability_schemas import Capability
 
@@ -24,11 +26,11 @@ class Task:
     choices: Optional[List[Dict[str, str]]] = (
         None  # [{"label": "A", "solution": "..."}]
     )
-    generation_metadata: Optional[Dict] = field(default_factory=dict)
+    generation_metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        result = {
+        result: Dict[str, Any] = {
             "task_id": self.task_id,
             "task_statement": self.task_statement,
             "task_type": self.task_type,
@@ -43,7 +45,7 @@ class Task:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: Dict[str, Any]) -> Task:
         """Create from dictionary."""
         capability = Capability.from_dict(data)
         return cls(

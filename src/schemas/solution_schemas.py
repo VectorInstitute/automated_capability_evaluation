@@ -4,8 +4,10 @@ Defines TaskSolution dataclass for task solution, including solution text,
 reasoning, and optional numerical answer.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from src.schemas.task_schemas import Task
 
@@ -18,7 +20,7 @@ class TaskSolution:
     solution: str
     reasoning: str
     numerical_answer: Optional[str] = None
-    generation_metadata: Optional[Dict] = field(default_factory=dict)
+    generation_metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
 
     @property
     def task_id(self) -> str:
@@ -30,12 +32,12 @@ class TaskSolution:
         """Get task statement from the task object for convenience."""
         return self.task.task_statement
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary.
 
         Flattens the task object fields into the result for JSON serialization.
         """
-        result = self.task.to_dict()
+        result: Dict[str, Any] = self.task.to_dict()
         result["solution"] = self.solution
         result["reasoning"] = self.reasoning
         if self.numerical_answer is not None:
@@ -45,7 +47,7 @@ class TaskSolution:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: Dict[str, Any]) -> TaskSolution:
         """Create from dictionary."""
         task = Task.from_dict(data)
         return cls(
