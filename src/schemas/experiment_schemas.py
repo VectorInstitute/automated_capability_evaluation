@@ -3,6 +3,8 @@
 Defines Experiment dataclass containing experiment configuration and metadata.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -17,9 +19,9 @@ class Experiment:
     pipeline_type: Optional[str] = None
     configuration: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        result = {
+        result: Dict[str, Any] = {
             "experiment_id": self.experiment_id,
             "domain": self.domain,
             "domain_id": self.domain_id,
@@ -30,7 +32,7 @@ class Experiment:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: Dict[str, Any]) -> Experiment:
         """Create from dictionary."""
         return cls(
             experiment_id=data["experiment_id"],

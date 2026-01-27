@@ -5,9 +5,9 @@ import logging
 
 from autogen_core.models import ChatCompletionClient
 
-from src.base_stages.prompts import format_verification_prompt
 from src.schemas.solution_schemas import TaskSolution
 from src.schemas.validation_schemas import ValidationResult
+from src.utils.base_generation_prompts import format_verification_prompt
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
@@ -36,28 +36,45 @@ def validate_tasks(
         logger.info(
             f"Validating task {i + 1}/{len(task_solutions)}: {task_solution.task_id}"
         )
-        capability = task_solution.task_obj.capability
+        capability = task_solution.task.capability
 
         try:
-            blueprint_info = task_solution.generation_metadata or {}
-            blueprint_text = blueprint_info.get("blueprint", "N/A")
+            task = task_solution.task
 
-            task_lines = task_solution.task.strip().split("\n")
-            question = task_lines[0] if task_lines else ""
+            # Use structured fields from Task if available, fallback to metadata/parsing
+            blueprint_text = "N/A"
+            if task.difficulty and task.bloom_level:
+                blueprint_text = (
+                    f"Difficulty: {task.difficulty}, Bloom's Level: {task.bloom_level}"
+                )
+            elif task_solution.generation_metadata:
+                blueprint_text = task_solution.generation_metadata.get(
+                    "blueprint", "N/A"
+                )
 
+            # Extract question (first part before choices)
+            task_lines = task_solution.task_statement.strip().split("\n")
+            question = task_lines[0] if task_lines else task_solution.task_statement
+
+            # Use structured choices if available, otherwise parse from text
             choices = {}
-            for task_line in task_lines[1:]:
-                line = task_line.strip()
-                if line and len(line) > 2 and line[1] == ".":
-                    choice_letter = line[0]
-                    choice_text = line[3:].strip()
-                    choices[choice_letter] = choice_text
+            if task.choices:
+                for choice in task.choices:
+                    choices[choice["label"]] = choice["solution"]
+            else:
+                # Fallback: parse from task text
+                for task_line in task_lines[1:]:
+                    line = task_line.strip()
+                    if line and len(line) > 2 and line[1] == ".":
+                        choice_letter = line[0]
+                        choice_text = line[3:].strip()
+                        choices[choice_letter] = choice_text
 
             system_prompt, user_prompt = format_verification_prompt(
-                capability_domain=capability.area.domain.name,
-                capability_area=capability.area.name,
-                capability_name=capability.name,
-                capability_description=capability.description,
+                capability_domain=capability.area.domain.domain_name,
+                capability_area=capability.area.area_name,
+                capability_name=capability.capability_name,
+                capability_description=capability.capability_description,
                 task_blueprint=blueprint_text,
                 question=question,
                 option_a=choices.get("A", ""),
@@ -79,8 +96,6 @@ def validate_tasks(
             overall_aligned = response.get("overall_verdict", "Fail") == "Pass"
 
             validation_result = ValidationResult(
-                task_id=task_solution.task_id,
-                task=task_solution.task,
                 task_solution=task_solution,
                 verification=overall_aligned,
                 feedback=response.get("explanation", ""),
@@ -99,17 +114,17 @@ def validate_tasks(
                     "suggested_improvements": response.get(
                         "suggested_improvements", ""
                     ),
-                    **task_solution.generation_metadata,
+                    **(task_solution.generation_metadata or {}),
                 },
             )
             validation_results.append(validation_result)
 
-            status = "✓ PASS" if overall_aligned else "✗ FAIL"
+            status = "PASS" if overall_aligned else "FAIL"
             logger.info(f"  {status}")
 
         except Exception as e:
-            logger.error(f"  Failed to validate {task_solution.task_id}: {e}")
-            logger.info("  ✗ ERROR - Skipping this task")
+            logger.error(f"Error validating {task_solution.task_id}: {e}")
+            logger.info("ERROR - Skipping this task")
             continue
 
     return validation_results

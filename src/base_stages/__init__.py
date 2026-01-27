@@ -13,18 +13,21 @@ Stages:
 Utilities:
 - generate_areas: Area generation using LLM
 - generate_capabilities: Capability generation using LLM
-- generate_diverse_tasks: Orchestrates subtopic→combination→blueprint→task pipeline
-- generate_tasks: Task (question + options) generation
+- generate_diverse_tasks_pipeline: Orchestrates subtopic→combination→blueprint→task
+  pipeline
+- generate_tasks_from_blueprints: Task (question + options) generation from blueprints
 - solve_tasks: Task solving to determine correct answers
 - validate_tasks: Task validation
 
 Supporting modules:
 - task_constants: Bloom's taxonomy, difficulty levels
 - task_dataclasses: SubTopic, Combination, Blueprint, etc.
-- task_prompts: All LLM prompts for task generation pipeline
 - extract_subtopics: Sub-topic extraction
 - find_combinations: Valid combination finding
 - generate_blueprints: Blueprint generation
+
+Prompts:
+- Prompts are in src/utils/base_generation_prompts.py
 """
 
 from src.base_stages.stage0_setup import run_stage0

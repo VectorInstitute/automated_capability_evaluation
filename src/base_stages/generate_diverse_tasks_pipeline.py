@@ -8,7 +8,9 @@ from autogen_core.models import ChatCompletionClient
 from src.base_stages.extract_subtopics import extract_subtopics
 from src.base_stages.find_combinations import find_valid_combinations
 from src.base_stages.generate_blueprints import generate_blueprints
-from src.base_stages.generate_tasks import generate_tasks
+from src.base_stages.generate_tasks_from_blueprints import (
+    generate_tasks_from_blueprints,
+)
 from src.schemas.capability_schemas import Capability
 from src.schemas.task_schemas import Task
 
@@ -40,7 +42,9 @@ def generate_diverse_tasks_for_capability(
     -------
         List of Task objects (questions + options, no answers)
     """
-    logger.info(f"Generating diverse tasks for capability: {capability.name}")
+    logger.info(
+        f"Generating diverse tasks for capability: {capability.capability_name}"
+    )
 
     logger.info("Step 1: Extracting sub-topics")
     subtopics = extract_subtopics(capability, client, min_subtopics, max_subtopics)
@@ -55,7 +59,9 @@ def generate_diverse_tasks_for_capability(
     logger.info(f"Generated {len(blueprints)} blueprints")
 
     logger.info("Step 4: Generating tasks")
-    tasks = generate_tasks(capability, blueprints, client, tasks_per_blueprint)
+    tasks = generate_tasks_from_blueprints(
+        capability, blueprints, client, tasks_per_blueprint
+    )
     logger.info(f"Generated {len(tasks)} tasks")
 
     return tasks

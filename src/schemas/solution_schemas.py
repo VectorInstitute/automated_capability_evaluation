@@ -4,8 +4,10 @@ Defines TaskSolution dataclass for task solution, including solution text,
 reasoning, and optional numerical answer.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from src.schemas.task_schemas import Task
 
@@ -14,17 +16,28 @@ from src.schemas.task_schemas import Task
 class TaskSolution:
     """Dataclass for task solution."""
 
-    task_id: str
-    task: str
+    task: Task
     solution: str
     reasoning: str
-    task_obj: Task
     numerical_answer: Optional[str] = None
-    generation_metadata: Optional[Dict] = field(default_factory=dict)
+    generation_metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
 
-    def to_dict(self):
-        """Convert to dictionary."""
-        result = self.task_obj.to_dict()
+    @property
+    def task_id(self) -> str:
+        """Get task_id from the task object for convenience."""
+        return self.task.task_id
+
+    @property
+    def task_statement(self) -> str:
+        """Get task statement from the task object for convenience."""
+        return self.task.task_statement
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary.
+
+        Flattens the task object fields into the result for JSON serialization.
+        """
+        result: Dict[str, Any] = self.task.to_dict()
         result["solution"] = self.solution
         result["reasoning"] = self.reasoning
         if self.numerical_answer is not None:
@@ -34,15 +47,13 @@ class TaskSolution:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: Dict[str, Any]) -> TaskSolution:
         """Create from dictionary."""
-        task_obj = Task.from_dict(data)
+        task = Task.from_dict(data)
         return cls(
-            task_id=data["task_id"],
-            task=data["task"],
+            task=task,
             solution=data["solution"],
             reasoning=data["reasoning"],
-            task_obj=task_obj,
             numerical_answer=data.get("numerical_answer"),
             generation_metadata=data.get("generation_metadata", {}),
         )

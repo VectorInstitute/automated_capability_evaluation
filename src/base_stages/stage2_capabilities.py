@@ -7,6 +7,7 @@ by similarity to remove duplicates.
 import logging
 import math
 from pathlib import Path
+from typing import Optional
 
 from omegaconf import DictConfig
 
@@ -17,7 +18,7 @@ from src.utils import constants
 from src.utils.capability_management_utils import (
     filter_schema_capabilities_by_embeddings,
 )
-from src.utils.embedding_utils import generate_schema_capabilities_embeddings
+from src.utils.embedding_utils import generate_capability_embeddings
 from src.utils.model_client_utils import get_standard_model_client
 from src.utils.timestamp_utils import iso_timestamp, timestamp_tag
 
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 def run_stage2(
     cfg: DictConfig,
     areas_tag: str,
-    capabilities_tag: str = None,
+    capabilities_tag: Optional[str] = None,
 ) -> str:
     """Stage 2: Generate capabilities, embed, and filter.
 
@@ -93,14 +94,14 @@ def run_stage2(
 
         if is_resume and capabilities_path.exists():
             logger.info(
-                f"Skipping area {area.name} ({area.area_id}) - "
+                f"Skipping area {area.area_name} ({area.area_id}) - "
                 f"capabilities already exist at {capabilities_path}"
             )
             continue
 
         logger.info(
             f"Generating {num_capabilities_per_area} capabilities for area: "
-            f"{area.name} ({area.area_id}) [target: {target_num_capabilities_per_area}]"
+            f"{area.area_name} ({area.area_id}) [target: {target_num_capabilities_per_area}]"
         )
 
         # Generate capabilities
@@ -112,7 +113,7 @@ def run_stage2(
         )
 
         # Sort capabilities
-        capabilities = sorted(capabilities, key=lambda x: x.name)
+        capabilities = sorted(capabilities, key=lambda x: x.capability_name)
         if len(capabilities) < target_num_capabilities_per_area:
             logger.warning(
                 f"Only {len(capabilities)} capabilities were created. "
@@ -122,11 +123,13 @@ def run_stage2(
 
         # Skip embedding/filtering if no capabilities were generated
         if not capabilities:
-            logger.warning(f"No capabilities generated for area {area.name}. Skipping.")
+            logger.warning(
+                f"No capabilities generated for area {area.area_name}. Skipping."
+            )
             continue
 
-        # Generate embeddings for schema capabilities
-        embeddings = generate_schema_capabilities_embeddings(
+        # Generate embeddings for capabilities
+        embeddings = generate_capability_embeddings(
             capabilities=capabilities,
             embedding_model_name=cfg.embedding_cfg.embedding_model,
             embed_dimensions=cfg.embedding_cfg.embedding_size,
@@ -169,4 +172,5 @@ def run_stage2(
             f"{capabilities_path}"
         )
 
+    assert capabilities_tag is not None
     return capabilities_tag

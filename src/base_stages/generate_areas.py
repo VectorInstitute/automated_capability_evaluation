@@ -6,12 +6,12 @@ from typing import List
 
 from autogen_core.models import ChatCompletionClient
 
-from src.base_stages.prompts import (
+from src.schemas.area_schemas import Area
+from src.schemas.domain_schemas import Domain
+from src.utils.base_generation_prompts import (
     AREAS_GENERATION_RESPONSE_JSON_FORMAT,
     AREAS_GENERATION_USER_PROMPT,
 )
-from src.schemas.area_schemas import Area
-from src.schemas.domain_schemas import Domain
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
@@ -40,7 +40,7 @@ def generate_areas(
     user_prompt = AREAS_GENERATION_USER_PROMPT.format(
         num_areas=num_areas,
         num_capabilities_per_area=num_capabilities_per_area,
-        domain=domain.name,
+        domain=domain.domain_name,
         response_json_format=AREAS_GENERATION_RESPONSE_JSON_FORMAT,
     )
 
@@ -56,10 +56,10 @@ def generate_areas(
     areas = []
     for idx, area_name in enumerate(response.get("areas", [])):
         area = Area(
-            name=area_name,
+            area_name=area_name,
             area_id=f"area_{idx:03d}",
             domain=domain,
-            description="",
+            area_description="",
         )
         areas.append(area)
 

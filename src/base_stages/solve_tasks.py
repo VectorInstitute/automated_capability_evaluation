@@ -11,9 +11,9 @@ from typing import List, Optional
 
 from autogen_core.models import ChatCompletionClient
 
-from src.base_stages.prompts import format_solution_prompt
 from src.schemas.solution_schemas import TaskSolution
 from src.schemas.task_schemas import Task
+from src.utils.base_generation_prompts import format_solution_prompt
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
@@ -52,11 +52,11 @@ def solve_tasks(
             task_gen_metadata = task.generation_metadata or {}
 
             system_prompt, user_prompt = format_solution_prompt(
-                capability_domain=capability.area.domain.name,
-                capability_area=capability.area.name,
-                capability_name=capability.name,
-                capability_description=capability.description,
-                task_text=task.task,
+                capability_domain=capability.area.domain.domain_name,
+                capability_area=capability.area.area_name,
+                capability_name=capability.capability_name,
+                capability_description=capability.capability_description,
+                task_text=task.task_statement,
             )
 
             response = asyncio.run(
@@ -78,11 +78,9 @@ def solve_tasks(
             }
 
             task_solution = TaskSolution(
-                task_id=task.task_id,
-                task=task.task,
+                task=task,
                 solution=solution,
                 reasoning=reasoning,
-                task_obj=task,
                 generation_metadata=generation_metadata,
             )
             task_solutions.append(task_solution)

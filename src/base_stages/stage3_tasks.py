@@ -6,10 +6,11 @@ The correct answer is NOT determined here — that happens in Stage 4.
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 from omegaconf import DictConfig
 
-from src.base_stages.generate_diverse_tasks import (
+from src.base_stages.generate_diverse_tasks_pipeline import (
     generate_diverse_tasks_for_capability,
 )
 from src.schemas.io_utils import load_capabilities, save_tasks
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 def run_stage3(
     cfg: DictConfig,
     capabilities_tag: str,
-    tasks_tag: str = None,
+    tasks_tag: Optional[str] = None,
 ) -> str:
     """Stage 3: Generate tasks for each capability.
 
@@ -116,7 +117,7 @@ def run_stage3(
                 continue
 
             logger.info(
-                f"Generating tasks for capability: {capability.name} "
+                f"Generating tasks for capability: {capability.capability_name} "
                 f"({area_id}/{capability_id})"
             )
 
@@ -130,7 +131,9 @@ def run_stage3(
                     max_subtopics=max_subtopics,
                 )
 
-                logger.info(f"Generated {len(tasks)} tasks for {capability.name}")
+                logger.info(
+                    f"Generated {len(tasks)} tasks for {capability.capability_name}"
+                )
 
                 # Save tasks
                 metadata = PipelineMetadata(
@@ -157,4 +160,5 @@ def run_stage3(
                 # Continue with next capability instead of failing completely
                 continue
 
+    assert tasks_tag is not None
     return tasks_tag

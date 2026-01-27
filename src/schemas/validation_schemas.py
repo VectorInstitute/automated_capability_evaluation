@@ -4,8 +4,10 @@ Defines ValidationResult dataclass for validation result, including
 verification status, feedback, and optional score.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from src.schemas.solution_schemas import TaskSolution
 
@@ -14,17 +16,28 @@ from src.schemas.solution_schemas import TaskSolution
 class ValidationResult:
     """Dataclass for validation result."""
 
-    task_id: str
-    task: str
     task_solution: TaskSolution
     verification: bool
     feedback: str
     score: Optional[float] = None
-    generation_metadata: Optional[Dict] = field(default_factory=dict)
+    generation_metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
 
-    def to_dict(self):
-        """Convert to dictionary."""
-        result = self.task_solution.to_dict()
+    @property
+    def task_id(self) -> str:
+        """Get task_id from the task_solution for convenience."""
+        return self.task_solution.task_id
+
+    @property
+    def task_statement(self) -> str:
+        """Get task statement from the task_solution for convenience."""
+        return self.task_solution.task_statement
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary.
+
+        Flattens the task_solution fields into the result for JSON serialization.
+        """
+        result: Dict[str, Any] = self.task_solution.to_dict()
         result["verification"] = self.verification
         result["feedback"] = self.feedback
         if self.score is not None:
@@ -34,12 +47,10 @@ class ValidationResult:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: Dict[str, Any]) -> ValidationResult:
         """Create from dictionary."""
         task_solution = TaskSolution.from_dict(data)
         return cls(
-            task_id=data["task_id"],
-            task=data["task"],
             task_solution=task_solution,
             verification=data["verification"],
             feedback=data["feedback"],

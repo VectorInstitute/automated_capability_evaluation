@@ -20,7 +20,6 @@ from src.utils import constants, prompts, templates
 from src.utils.capability_utils import (
     parse_python_class_str,
     read_score_inspect_json,
-    run_inspect_evals,
 )
 from src.utils.data_utils import (
     list_dir,
@@ -1041,11 +1040,10 @@ class Capability:
             return
         os.makedirs(log_dir, exist_ok=True)
 
-        run_inspect_evals(
-            path=self.name,
-            model=subject_llm,
-            log_dir=log_dir,
-            **kwargs,
+        # TODO: run_inspect_evals was removed - this legacy method needs updating
+        raise NotImplementedError(
+            "run_inspect_evals function was removed. "
+            "Use the new evaluation pipeline instead."
         )
 
         # Transfer the logs to the GCP bucket

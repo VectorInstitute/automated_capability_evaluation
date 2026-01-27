@@ -117,7 +117,7 @@ def generate_and_set_capabilities_embeddings(
     capabilities: List[Capability],
     embedding_model_name: str,
     embed_dimensions: int,
-    rep_string_order="and",
+    rep_string_order: str = "and",
 ) -> None:
     """Generate the capabilities embeddings using the OpenAI embedding model.
 
@@ -167,21 +167,16 @@ def generate_and_set_capabilities_embeddings(
         )
 
 
-def generate_schema_capabilities_embeddings(
-    capabilities: List[Any],  # List of schema Capability objects
+def generate_capability_embeddings(
+    capabilities: List[Any],  # List of Capability objects
     embedding_model_name: str,
     embed_dimensions: int,
 ) -> List[torch.Tensor]:
-    """Generate embeddings for schema-based capabilities.
-
-    This function generates embeddings for capabilities that use the schema
-    dataclass (from src.schemas.capability_schemas) instead of the old
-    Capability class. It returns the embeddings as a list rather than
-    mutating the capability objects.
+    """Generate embeddings for capability dataclasses and return tensors.
 
     Args
     ----
-        capabilities (List[Any]): The list of schema Capability objects.
+        capabilities (List[Any]): The list of Capability objects.
         embedding_model_name (str): The name of the embedding model to use.
         embed_dimensions (int): The number of dimensions for the embeddings.
 
@@ -201,11 +196,8 @@ def generate_schema_capabilities_embeddings(
     texts = []
     for capability in capabilities:
         # Create representation string from area, name, and description
-        rep_string = (
-            f"{capability.area.name}, {capability.name}, {capability.description}"
-        )
+        rep_string = f"{capability.area.area_name}, {capability.capability_name}, {capability.capability_description}"
         logger.debug(f"Representation string: {rep_string}")
         texts.append(rep_string)
 
-    embeddings = embedding_generator.generate_embeddings(texts)
-    return embeddings
+    return embedding_generator.generate_embeddings(texts)

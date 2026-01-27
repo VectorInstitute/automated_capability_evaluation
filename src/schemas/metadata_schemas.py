@@ -9,9 +9,11 @@ Note: PipelineMetadata tracks execution context, not content (content identifier
 in the data objects themselves).
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 
 @dataclass
@@ -42,7 +44,7 @@ class PipelineMetadata:
     output_stage_tag: Optional[str] = None
     resume: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Set default timestamp if not provided.
 
         Automatically generates a UTC timestamp in ISO 8601 format if not set.
@@ -50,9 +52,9 @@ class PipelineMetadata:
         if not self.timestamp:
             self.timestamp = datetime.utcnow().isoformat() + "Z"
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """Convert metadata to dictionary for JSON serialization."""
-        result = {
+        result: Dict[str, Any] = {
             "experiment_id": self.experiment_id,
             "output_base_dir": self.output_base_dir,
             "timestamp": self.timestamp,
@@ -65,7 +67,7 @@ class PipelineMetadata:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: Dict[str, Any]) -> PipelineMetadata:
         """Create PipelineMetadata from dictionary (e.g., loaded from JSON)."""
         return cls(
             experiment_id=data["experiment_id"],

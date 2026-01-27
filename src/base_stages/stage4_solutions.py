@@ -6,6 +6,7 @@ for each multiple-choice question.
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 from omegaconf import DictConfig
 
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 def run_stage4(
     cfg: DictConfig,
     tasks_tag: str,
-    solution_tag: str = None,
+    solution_tag: Optional[str] = None,
 ) -> str:
     """Stage 4: Generate solutions for tasks.
 
@@ -66,6 +67,7 @@ def run_stage4(
 
     if not tasks_base_dir.exists():
         logger.error(f"Tasks directory not found: {tasks_base_dir}")
+        assert solution_tag is not None
         return solution_tag
 
     area_dirs = [d for d in tasks_base_dir.iterdir() if d.is_dir()]
@@ -156,4 +158,5 @@ def run_stage4(
                 )
                 continue
 
+    assert solution_tag is not None
     return solution_tag

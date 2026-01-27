@@ -50,7 +50,9 @@ def run_stage1(cfg: DictConfig) -> str:
     )
 
     num_areas = cfg.areas_cfg.num_areas
-    logger.info(f"Generating {num_areas} capability areas for domain: {domain.name}")
+    logger.info(
+        f"Generating {num_areas} capability areas for domain: {domain.domain_name}"
+    )
 
     areas = generate_areas(
         domain=domain,

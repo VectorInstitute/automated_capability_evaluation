@@ -4,7 +4,7 @@ import json
 import logging
 import traceback
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from autogen_core import (
     DefaultTopicId,
@@ -47,7 +47,7 @@ class AreaModerator(RoutedAgent):
         num_final_areas: int,
         max_round: int,
         output_dir: Path,
-        langfuse_client: Langfuse = None,
+        langfuse_client: Langfuse,
     ) -> None:
         super().__init__("Area Moderator")
         self._model_client = model_client
@@ -288,7 +288,7 @@ class AreaModerator(RoutedAgent):
                 )
                 raise
 
-    async def _finalize_areas(self, final_areas: dict) -> None:
+    async def _finalize_areas(self, final_areas: Dict[str, Any]) -> None:
         """Save final areas to file."""
         with self._langfuse_client.start_as_current_span(
             name="moderator_finalize_areas"

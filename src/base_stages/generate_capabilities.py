@@ -7,12 +7,12 @@ from typing import List
 import numpy as np
 from autogen_core.models import ChatCompletionClient
 
-from src.base_stages.prompts import (
+from src.schemas.area_schemas import Area
+from src.schemas.capability_schemas import Capability
+from src.utils.base_generation_prompts import (
     CAPABILITY_GENERATION_SYSTEM_PROMPT,
     CAPABILITY_GENERATION_USER_PROMPT,
 )
-from src.schemas.area_schemas import Area
-from src.schemas.capability_schemas import Capability
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
@@ -37,7 +37,7 @@ def generate_capabilities(
     -------
         List of generated Capability objects
     """
-    capabilities = []
+    capabilities: List[Capability] = []
 
     # Calculate number of runs needed
     num_runs = int(np.ceil(num_capabilities / num_capabilities_per_run))
@@ -45,7 +45,7 @@ def generate_capabilities(
     # Generate capabilities in batches
     num_capabilities_left = num_capabilities
     for run in range(num_runs):
-        logger.info(f"Capability generation for area: {area.name} at run {run}")
+        logger.info(f"Capability generation for area: {area.area_name} at run {run}")
 
         run_capabilities = generate_capabilities_using_llm(
             area=area,
@@ -82,10 +82,10 @@ def generate_capabilities_using_llm(
     """
     sys_prompt = CAPABILITY_GENERATION_SYSTEM_PROMPT
     user_prompt = CAPABILITY_GENERATION_USER_PROMPT.format(
-        area=area.name,
-        domain=area.domain.name,
+        area=area.area_name,
+        domain=area.domain.domain_name,
         num_capabilities=num_capabilities,
-        prev_capabilities="\n".join([elm.name for elm in prev_capabilities]),
+        prev_capabilities="\n".join([elm.capability_name for elm in prev_capabilities]),
     )
 
     response = asyncio.run(
@@ -104,10 +104,10 @@ def generate_capabilities_using_llm(
         try:
             capability_id = f"cap_{(idx + id_offset):03d}"
             capability = Capability(
-                name=capability_dict["name"],
+                capability_name=capability_dict["name"],
                 capability_id=capability_id,
                 area=area,
-                description=capability_dict["description"],
+                capability_description=capability_dict["description"],
             )
         except Exception as e:
             logger.warning(

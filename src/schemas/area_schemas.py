@@ -4,8 +4,10 @@ Defines Area dataclass for domain area. Areas are high-level categories
 within a domain.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from src.schemas.domain_schemas import Domain
 
@@ -14,39 +16,32 @@ from src.schemas.domain_schemas import Domain
 class Area:
     """Dataclass for domain area."""
 
-    name: str
+    area_name: str
     area_id: str
     domain: Domain
-    description: str
-    generation_metadata: Optional[Dict] = field(default_factory=dict)
+    area_description: str
+    generation_metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        result = {
-            "name": self.name,
+        result: Dict[str, Any] = {
+            "area_name": self.area_name,
             "area_id": self.area_id,
-            "domain": self.domain.name,
-            "domain_id": self.domain.domain_id,
-            "description": self.description,
+            "area_description": self.area_description,
+            **self.domain.to_dict(),
         }
         if self.generation_metadata:
             result["generation_metadata"] = self.generation_metadata
         return result
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: Dict[str, Any]) -> Area:
         """Create from dictionary."""
-        domain = Domain.from_dict(
-            {
-                "name": data["domain"],
-                "domain_id": data["domain_id"],
-                "description": data.get("domain_description"),
-            }
-        )
+        domain = Domain.from_dict(data)
         return cls(
-            name=data["name"],
+            area_name=data["area_name"],
             area_id=data["area_id"],
             domain=domain,
-            description=data["description"],
+            area_description=data["area_description"],
             generation_metadata=data.get("generation_metadata", {}),
         )

@@ -6,6 +6,7 @@ and align with the task requirements.
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 from omegaconf import DictConfig
 
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 def run_stage5(
     cfg: DictConfig,
     solution_tag: str,
-    validation_tag: str = None,
+    validation_tag: Optional[str] = None,
 ) -> str:
     """Stage 5: Validate generated task solutions.
 
@@ -47,17 +48,10 @@ def run_stage5(
         validation_tag = timestamp_tag()
         logger.info(f"Starting new Stage 5 with validation_tag: {validation_tag}")
 
-    # Initialize validator LLM client
-    validator_llm_gen_cfg = dict(
-        cfg.get("validator_llm", {})
-        .get("generation_cfg", {})
-        .get("task_validation", {})
-    )
-    validator_llm_name = cfg.get("validator_llm", {}).get(
-        "name", cfg.scientist_llm.name
-    )
+    # Initialize validator LLM client using task_verify config
+    validator_llm_gen_cfg = dict(cfg.scientist_llm.generation_cfg.task_verify)
     validator_llm_client = get_standard_model_client(
-        validator_llm_name,
+        cfg.scientist_llm.name,
         seed=validator_llm_gen_cfg.get("seed", cfg.exp_cfg.seed),
         temperature=validator_llm_gen_cfg.get(
             "temperature", constants.DEFAULT_TEMPERATURE
@@ -72,6 +66,7 @@ def run_stage5(
 
     if not solutions_base_dir.exists():
         logger.error(f"Solutions directory not found: {solutions_base_dir}")
+        assert validation_tag is not None
         return validation_tag
 
     # Find all area directories
@@ -172,4 +167,5 @@ def run_stage5(
                 continue
 
     logger.info(f"Stage 5 completed. Validation tag: {validation_tag}")
+    assert validation_tag is not None
     return validation_tag

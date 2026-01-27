@@ -19,14 +19,6 @@ This directory contains standardized schemas for all ACE pipeline stages, ensuri
 - **I/O Utilities**:
   - [`io_utils.py`](io_utils.py) - Save/load functions for generation pipeline outputs
 
-### Evaluation Pipeline
-
-- **[`EVALUATION_PIPELINE_SCHEMAS.md`](EVALUATION_PIPELINE_SCHEMAS.md)** - Documentation for evaluation pipeline stages
-- **Python Dataclasses**:
-  - [`eval_schemas.py`](eval_schemas.py) - EvalConfig, EvalDataset, CapabilityScore
-- **I/O Utilities**:
-  - [`eval_io_utils.py`](eval_io_utils.py) - Save/load functions for evaluation pipeline outputs
-
 ## Usage
 
 ### Using Python Dataclasses
@@ -44,11 +36,11 @@ from src.schemas import (
 )
 
 # Create area
-domain = Domain(name="Personal Finance", domain_id="domain_000")
+domain = Domain(domain_name="Personal Finance", domain_id="domain_000")
 area = Area(
-    name="Cash Flow & Budget Management",
+    area_name="Cash Flow & Budget Management",
     area_id="area_000",
-    description="Design and monitor budgets...",
+    area_description="Design and monitor budgets...",
     domain=domain,
     # generation_metadata is optional
 )
@@ -97,11 +89,3 @@ areas, metadata = load_areas(Path("output/areas.json"))
 5. **Validation** → `ValidationResult`
 
 See [`GENERATION_PIPELINE_SCHEMAS.md`](GENERATION_PIPELINE_SCHEMAS.md) for detailed specifications.
-
-### Evaluation Pipeline
-
-0. **Setup and Dataset Preparation** → `EvalConfig`, `EvalDataset`
-1. **Evaluation Execution** → Inspect AI logs (creates `eval_tag`)
-2. **Score Aggregation** → `CapabilityScore`
-
-See [`EVALUATION_PIPELINE_SCHEMAS.md`](EVALUATION_PIPELINE_SCHEMAS.md) for detailed specifications.

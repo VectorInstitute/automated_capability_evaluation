@@ -5,12 +5,13 @@ import logging
 
 from autogen_core.models import ChatCompletionClient
 
-from src.base_stages.prompts import format_blueprint_prompt
 from src.base_stages.task_constants import (
     BLOOMS_TAXONOMY,
     DIFFICULTY_LEVELS,
 )
 from src.base_stages.task_dataclasses import Blueprint, Combination
+from src.schemas.capability_schemas import Capability
+from src.utils.base_generation_prompts import format_blueprint_prompt
 from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def generate_blueprints(
-    capability,
+    capability: Capability,
     combinations: list[Combination],
     client: ChatCompletionClient,
 ) -> list[Blueprint]:
@@ -44,10 +45,10 @@ def generate_blueprints(
         )
 
         system_prompt, user_prompt = format_blueprint_prompt(
-            capability_name=capability.name,
-            capability_description=capability.description,
-            capability_domain=capability.area.domain.name,
-            capability_area=capability.area.name,
+            capability_name=capability.capability_name,
+            capability_description=capability.capability_description,
+            capability_domain=capability.area.domain.domain_name,
+            capability_area=capability.area.area_name,
             subtopic=combo.content,
             difficulty=combo.difficulty,
             difficulty_description=DIFFICULTY_LEVELS[combo.difficulty.lower()][
