@@ -4,6 +4,8 @@ Defines TaskSolution dataclass for task solution, including solution text,
 reasoning, and optional numerical answer.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -45,7 +47,7 @@ class TaskSolution:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TaskSolution":
+    def from_dict(cls, data: Dict[str, Any]) -> TaskSolution:
         """Create from dictionary."""
         task = Task.from_dict(data)
         return cls(

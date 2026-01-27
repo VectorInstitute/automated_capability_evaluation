@@ -4,6 +4,8 @@ Defines Task dataclass for task. Tasks are concrete evaluation items
 that test a capability.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -43,7 +45,7 @@ class Task:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Task":
+    def from_dict(cls, data: Dict[str, Any]) -> Task:
         """Create from dictionary."""
         capability = Capability.from_dict(data)
         return cls(

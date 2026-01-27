@@ -9,6 +9,8 @@ Note: PipelineMetadata tracks execution context, not content (content identifier
 in the data objects themselves).
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Optional
@@ -65,7 +67,7 @@ class PipelineMetadata:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PipelineMetadata":
+    def from_dict(cls, data: Dict[str, Any]) -> PipelineMetadata:
         """Create PipelineMetadata from dictionary (e.g., loaded from JSON)."""
         return cls(
             experiment_id=data["experiment_id"],

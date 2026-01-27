@@ -4,6 +4,8 @@ Defines ValidationResult dataclass for validation result, including
 verification status, feedback, and optional score.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -45,7 +47,7 @@ class ValidationResult:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ValidationResult":
+    def from_dict(cls, data: Dict[str, Any]) -> ValidationResult:
         """Create from dictionary."""
         task_solution = TaskSolution.from_dict(data)
         return cls(

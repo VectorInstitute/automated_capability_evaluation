@@ -4,6 +4,8 @@ Defines Area dataclass for domain area. Areas are high-level categories
 within a domain.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -33,7 +35,7 @@ class Area:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Area":
+    def from_dict(cls, data: Dict[str, Any]) -> Area:
         """Create from dictionary."""
         domain = Domain.from_dict(data)
         return cls(

@@ -3,6 +3,8 @@
 Defines Experiment dataclass containing experiment configuration and metadata.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -30,7 +32,7 @@ class Experiment:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Experiment":
+    def from_dict(cls, data: Dict[str, Any]) -> Experiment:
         """Create from dictionary."""
         return cls(
             experiment_id=data["experiment_id"],

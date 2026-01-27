@@ -4,6 +4,8 @@ Defines Capability dataclass for capability within an area. Capabilities
 are specific skills or abilities.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -33,7 +35,7 @@ class Capability:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Capability":
+    def from_dict(cls, data: Dict[str, Any]) -> Capability:
         """Create from dictionary."""
         area = Area.from_dict(data)
         return cls(
