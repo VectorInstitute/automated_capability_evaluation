@@ -4,7 +4,7 @@ import json
 import logging
 import traceback
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from autogen_core import (
     DefaultTopicId,
@@ -48,7 +48,7 @@ class CapabilityModerator(RoutedAgent):
         max_round: int,
         output_dir: Path,
         domain: str,
-        langfuse_client: Langfuse = None,
+        langfuse_client: Langfuse,
     ) -> None:
         super().__init__("Capability Moderator")
         self._model_client = model_client
@@ -322,7 +322,7 @@ class CapabilityModerator(RoutedAgent):
                 raise
 
     async def _finalize_capabilities(
-        self, final_capabilities: dict, area_name: str
+        self, final_capabilities: Dict[str, Any], area_name: str
     ) -> None:
         """Save final capabilities to file."""
         with self._langfuse_client.start_as_current_span(
