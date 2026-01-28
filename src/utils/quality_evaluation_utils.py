@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import statistics
-from typing import Iterable, List, Mapping, Union
+import warnings
+from typing import Iterable, List, Mapping, Optional, Union
 
 import numpy as np
 from scipy.stats import spearmanr
@@ -23,7 +24,16 @@ from sklearn.neighbors import NearestNeighbors
 import kmedoids
 from sklearn.metrics import pairwise_distances
 
+# Optional UMAP import
+try:
+    from umap import UMAP
+    UMAP_AVAILABLE = True
+except ImportError:
+    UMAP_AVAILABLE = False
+    UMAP = None
 
+
+# Source paper: AutoBencher - https://arxiv.org/abs/2407.08351
 def compute_benchmark_difficulty(
     accuracies: Union[Iterable[float], Mapping[str, float]],
 ) -> float:
@@ -60,6 +70,7 @@ def compute_benchmark_difficulty(
     return 1.0 - best_acc
 
 
+# Source paper: AutoBencher - https://arxiv.org/abs/2407.08351
 def compute_benchmark_separability(
     accuracies: Union[Iterable[float], Mapping[str, float]],
 ) -> float:
@@ -96,6 +107,7 @@ def compute_benchmark_separability(
     return sum(abs_devs) / len(abs_devs)
 
 
+# Source paper: Data Swarms - https://arxiv.org/abs/2506.00741
 def compute_benchmark_consistency(
     model_to_generation_accuracies: Mapping[str, Iterable[float]],
 ) -> float:
@@ -180,6 +192,7 @@ def compute_benchmark_consistency(
     return consistency
 
 
+# Source paper: AutoBencher - https://arxiv.org/abs/2407.08351
 def compute_benchmark_novelty(
     current_accuracies: Mapping[str, float],
     prior_datasets_accuracies: List[Mapping[str, float]],
@@ -305,6 +318,7 @@ def compute_benchmark_novelty(
 # ---- Diversity Metrics (PAD, MMD, MDM)
 # ===========================
 
+# Source paper: SynQue - https://arxiv.org/abs/2511.03928
 def compute_pad(
     x_syn_emb: np.ndarray,
     x_real_emb: np.ndarray,
@@ -356,6 +370,7 @@ def compute_pad(
     return 2 * (1 - 2 * average_loss)
 
 
+# Source paper: SynQue - https://arxiv.org/abs/2511.03928
 def compute_mmd(
     X: np.ndarray,
     Y: np.ndarray,
@@ -412,6 +427,7 @@ def compute_mmd(
     return np.mean(XX) + np.mean(YY) - 2 * np.mean(XY)
 
 
+# Source paper: SynQue - https://arxiv.org/abs/2511.03928
 def compute_mdm(
     embeddings: np.ndarray,
     n_clusters: int = 5,
@@ -455,9 +471,66 @@ def compute_mdm(
 # ---- Information-Theoretic Metrics (Entropy, KL-Divergence)
 # ===========================
 
+def _apply_umap_reduction(
+    embeddings: np.ndarray,
+    n_components: Optional[int] = None,
+    n_neighbors: int = 15,
+    min_dist: float = 0.1,
+    metric: str = "cosine",
+) -> np.ndarray:
+    """
+    Optionally apply UMAP dimensionality reduction to embeddings.
+    
+    Args:
+        embeddings: Embedding matrix of shape (n_samples, n_features)
+        n_components: Target dimension. If None, returns original embeddings.
+        n_neighbors: Number of neighbors for UMAP (default: 15)
+        min_dist: Minimum distance for UMAP (default: 0.1)
+        metric: Distance metric for UMAP (default: "cosine")
+    
+    Returns:
+        Reduced embeddings if n_components is provided, otherwise original embeddings
+    """
+    if n_components is None:
+        return embeddings
+    
+    if not UMAP_AVAILABLE:
+        raise ImportError(
+            "UMAP is required for dimensionality reduction. "
+            "Install it with: pip install umap-learn"
+        )
+    
+    if embeddings.shape[1] <= n_components:
+        # Already at or below target dimension
+        return embeddings
+    
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        umap_model = UMAP(
+            n_neighbors=n_neighbors,
+            min_dist=min_dist,
+            n_components=n_components,
+            metric=metric,
+            random_state=42,
+        )
+        reduced_embeddings = umap_model.fit_transform(embeddings)
+    
+    # Renormalize (like InfoSynth does)
+    norms = np.linalg.norm(reduced_embeddings, axis=1, keepdims=True)
+    eps = 1e-12
+    reduced_embeddings = reduced_embeddings / (norms + eps)
+    
+    return reduced_embeddings
+
+
+# Source paper: InfoSyth - https://arxiv.org/abs/2601.00575
 def compute_differential_entropy(
     embeddings: np.ndarray,
     k: int = 4,
+    umap_n_components: Optional[int] = None,
+    umap_n_neighbors: int = 15,
+    umap_min_dist: float = 0.1,
+    umap_metric: str = "cosine",
 ) -> float:
     """
     Compute the differential entropy of a set of embeddings using k-nearest neighbors.
@@ -477,10 +550,24 @@ def compute_differential_entropy(
     Args:
         embeddings: Embedding matrix of shape (n_samples, n_features)
         k: Number of nearest neighbors to use (default: 4)
+        umap_n_components: Optional UMAP target dimension. If None, uses original embeddings.
+        umap_n_neighbors: Number of neighbors for UMAP (default: 15)
+        umap_min_dist: Minimum distance for UMAP (default: 0.1)
+        umap_metric: Distance metric for UMAP (default: "cosine")
     
     Returns:
         float: Differential entropy value (higher is more diverse)
     """
+    # Apply UMAP reduction if requested
+    if umap_n_components is not None:
+        embeddings = _apply_umap_reduction(
+            embeddings,
+            n_components=umap_n_components,
+            n_neighbors=umap_n_neighbors,
+            min_dist=umap_min_dist,
+            metric=umap_metric,
+        )
+    
     N, d = embeddings.shape
     if N < k + 1:
         raise ValueError(
@@ -497,11 +584,16 @@ def compute_differential_entropy(
     return float(entropy)
 
 
+# Source paper: InfoSyth - https://arxiv.org/abs/2601.00575
 def compute_kl_divergence(
     p_embeddings: np.ndarray,
     q_embeddings: np.ndarray,
     k: int = 4,
     eps: float = 1e-10,
+    umap_n_components: Optional[int] = None,
+    umap_n_neighbors: int = 15,
+    umap_min_dist: float = 0.1,
+    umap_metric: str = "cosine",
 ) -> float:
     """
     Compute the KL divergence between two sets of embeddings using k-nearest neighbors.
@@ -524,10 +616,29 @@ def compute_kl_divergence(
         q_embeddings: Embeddings of distribution Q, shape (n_samples_q, n_features)
         k: Number of nearest neighbors to use (default: 4)
         eps: Small epsilon to avoid division by zero (default: 1e-10)
+        umap_n_components: Optional UMAP target dimension. If None, uses original embeddings.
+        umap_n_neighbors: Number of neighbors for UMAP (default: 15)
+        umap_min_dist: Minimum distance for UMAP (default: 0.1)
+        umap_metric: Distance metric for UMAP (default: "cosine")
     
     Returns:
         float: KL divergence value (higher is more novel/different)
     """
+    # Apply UMAP reduction if requested (apply to both embeddings together for consistency)
+    if umap_n_components is not None:
+        # Stack embeddings, apply UMAP, then split back
+        # This ensures both distributions are reduced in the same space
+        combined_embeddings = np.vstack([p_embeddings, q_embeddings])
+        reduced_combined = _apply_umap_reduction(
+            combined_embeddings,
+            n_components=umap_n_components,
+            n_neighbors=umap_n_neighbors,
+            min_dist=umap_min_dist,
+            metric=umap_metric,
+        )
+        p_embeddings = reduced_combined[:len(p_embeddings)]
+        q_embeddings = reduced_combined[len(p_embeddings):]
+    
     n, d = p_embeddings.shape
     m, _ = q_embeddings.shape
     

@@ -59,7 +59,7 @@ def _collect_accuracies_from_dir(directory: str) -> List[float]:
     return accuracies
 
 
-def _load_model_accuracies_from_dir(base_dir: str) -> Dict[str, float]:
+def _load_avg_model_accuracies_from_dir(base_dir: str) -> Dict[str, float]:
     """
     Load model accuracies from a directory structure.
     
@@ -385,7 +385,7 @@ def main(cfg: DictConfig) -> None:
             logger.info("Loading prior datasets for novelty computation...")
             prior_datasets_accuracies: List[Dict[str, float]] = []
             for prior_dir in prior_datasets:
-                prior_acc = _load_model_accuracies_from_dir(prior_dir)
+                prior_acc = _load_avg_model_accuracies_from_dir(prior_dir)
                 if prior_acc:
                     prior_datasets_accuracies.append(prior_acc)
                     logger.info(
@@ -494,12 +494,21 @@ def main(cfg: DictConfig) -> None:
                     if "kl_divergence" in comparison_metrics:
                         try:
                             kl_k = getattr(cfg.quality_eval_cfg, "kl_k", 4)
+                            umap_n_components = getattr(cfg.quality_eval_cfg, "umap_n_components", None)
+                            umap_n_neighbors = getattr(cfg.quality_eval_cfg, "umap_n_neighbors", 15)
+                            umap_min_dist = getattr(cfg.quality_eval_cfg, "umap_min_dist", 0.1)
+                            umap_metric = getattr(cfg.quality_eval_cfg, "umap_metric", "cosine")
                             kl_score = compute_kl_divergence(
                                 synth_embeddings,
                                 real_embeddings,
                                 k=kl_k,
+                                umap_n_components=umap_n_components,
+                                umap_n_neighbors=umap_n_neighbors,
+                                umap_min_dist=umap_min_dist,
+                                umap_metric=umap_metric,
                             )
-                            logger.info("KL divergence score (k=%d): %.4f", kl_k, kl_score)
+                            umap_info = f" (UMAP: {umap_n_components}D)" if umap_n_components else ""
+                            logger.info("KL divergence score (k=%d)%s: %.4f", kl_k, umap_info, kl_score)
                         except Exception as e:  # noqa: BLE001
                             logger.warning("Error computing KL divergence: %s", e)
                 else:
@@ -524,11 +533,20 @@ def main(cfg: DictConfig) -> None:
             if "entropy" in internal_diversity_metrics:
                 try:
                     entropy_k = getattr(cfg.quality_eval_cfg, "entropy_k", 4)
+                    umap_n_components = getattr(cfg.quality_eval_cfg, "umap_n_components", None)
+                    umap_n_neighbors = getattr(cfg.quality_eval_cfg, "umap_n_neighbors", 15)
+                    umap_min_dist = getattr(cfg.quality_eval_cfg, "umap_min_dist", 0.1)
+                    umap_metric = getattr(cfg.quality_eval_cfg, "umap_metric", "cosine")
                     entropy_score = compute_differential_entropy(
                         synth_embeddings,
                         k=entropy_k,
+                        umap_n_components=umap_n_components,
+                        umap_n_neighbors=umap_n_neighbors,
+                        umap_min_dist=umap_min_dist,
+                        umap_metric=umap_metric,
                     )
-                    logger.info("Differential entropy score (k=%d): %.4f", entropy_k, entropy_score)
+                    umap_info = f" (UMAP: {umap_n_components}D)" if umap_n_components else ""
+                    logger.info("Differential entropy score (k=%d)%s: %.4f", entropy_k, umap_info, entropy_score)
                 except Exception as e:  # noqa: BLE001
                     logger.warning("Error computing differential entropy: %s", e)
 
