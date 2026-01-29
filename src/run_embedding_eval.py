@@ -77,7 +77,7 @@ def main(cfg: DictConfig) -> None:
     rmse_dict = defaultdict(list)
     avg_std_dict = defaultdict(list)
     for dim_reduction_method in ["t-sne", "pca"]:
-        for rep_string_order in ["n", "nd", "and"]:  # typos: ignore
+        for rep_string_order in ["n", "nd", "and"]:
             # Embed capabilities using openai embedding model
             generate_and_set_capabilities_embeddings(
                 capabilities=capabilities,
