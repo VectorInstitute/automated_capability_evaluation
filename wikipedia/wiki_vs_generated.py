@@ -1,7 +1,6 @@
-"""
-This script matches Wikipedia capabilities with generated capabilities using the pre-categorized
-Wikipedia data. It loads the categorized Wikipedia capabilities
-and matches them to generated capabilities.
+"""Match Wikipedia capabilities with generated capabilities.
+
+Uses pre-categorized Wikipedia data to load and match capabilities.
 """
 
 import glob
@@ -45,7 +44,7 @@ class GeneratedCapability:
 
 
 class GeneratedVsWikipedia:
-    """Matches Wikipedia capabilities with generated capabilities using batching (reversed version)."""
+    """Match Wikipedia capabilities with generated capabilities using batching."""
 
     def __init__(self, cfg: DictConfig):
         self.cfg = cfg
@@ -60,8 +59,7 @@ class GeneratedVsWikipedia:
         )
 
     def load_wikipedia_capabilities(self) -> Dict[str, List[WikipediaCapability]]:
-        """
-        Load Wikipedia capabilities from the new JSON format in wikipedia/pages/ directory.
+        """Load Wikipedia capabilities from JSON format in wikipedia/pages/.
 
         Returns
         -------
@@ -205,9 +203,9 @@ class GeneratedVsWikipedia:
         wikipedia_cap: WikipediaCapability,
         generated_caps_batch: List[GeneratedCapability],
     ) -> str:
-        """Match a single Wikipedia capability against a batch of generated capabilities.
+        """Match a Wikipedia capability against a batch of generated capabilities.
 
-        Returns the exact generated capability name if a match is found, otherwise "none".
+        Returns generated capability name if matched, otherwise "none".
         """
         if not generated_caps_batch:
             return "none"
@@ -335,8 +333,8 @@ class GeneratedVsWikipedia:
         """Match capabilities based on configured direction.
 
         Returns a mapping:
-        - generated_to_wikipedia: {generated_capability_name -> wikipedia_capability_name}
-        - wikipedia_to_generated: {wikipedia_capability_name -> generated_capability_name}
+        - generated_to_wikipedia: {generated_name -> wikipedia_name}
+        - wikipedia_to_generated: {wikipedia_name -> generated_name}
         """
         results: Dict[str, str] = {}
 
@@ -454,7 +452,7 @@ class GeneratedVsWikipedia:
 
         # Flatten Wikipedia capabilities for output
         all_wikipedia_caps = []
-        for area, caps in categorized_wikipedia_caps.items():
+        for _area, caps in categorized_wikipedia_caps.items():
             all_wikipedia_caps.extend(caps)
 
         # Create detailed results with metadata
@@ -536,8 +534,7 @@ class GeneratedVsWikipedia:
 
 @hydra.main(version_base=None, config_path="cfg", config_name="wiki_vs_generated")
 def main(cfg: DictConfig) -> None:
-    """
-    Main function to run generated-Wikipedia matching (generated -> Wikipedia direction).
+    """Run generated-Wikipedia capability matching.
 
     Args:
         cfg: Configuration for the matching process

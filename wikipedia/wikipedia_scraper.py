@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""
-Wikipedia Glossary Scraper with Categorization and Summary Generation
+"""Wikipedia Glossary Scraper with Categorization and Summary Generation.
 
-This script scrapes the Wikipedia "Glossary of areas of mathematics" page,
-categorizes each mathematical area, generates summaries using GPT,
-and saves everything as JSON files with complete information.
+Scrape the Wikipedia "Glossary of areas of mathematics" page,
+categorize each mathematical area, generate summaries using GPT,
+and save everything as JSON files with complete information.
 
 Source: https://en.wikipedia.org/wiki/Glossary_of_areas_of_mathematics
 """
@@ -222,7 +221,7 @@ def categorize_capability_with_gpt(
 
 
 class WikipediaGlossaryScraper:
-    """Scraper for Wikipedia glossary of areas of mathematics with categorization and summarization."""
+    """Scrape Wikipedia glossary of areas of mathematics."""
 
     def __init__(
         self, base_url: str, output_dir: str, gpt_model: Optional[Model] = None
@@ -313,13 +312,13 @@ class WikipediaGlossaryScraper:
                 # Stop at the first h2 (start of second section)
                 if child.name == "h2":
                     break
-                # Capture paragraphs and short intro divs (infobox/sidebar divs are skipped)
+                # Capture paragraphs and intro divs (skip infobox/sidebar)
                 if child.name == "p":
                     text = child.get_text(" ", strip=True)
                     if text:
                         intro_texts.append(text)
                 elif child.name in ("div",):
-                    # Some pages wrap first paragraphs in a div; extract contained paragraph texts
+                    # Some pages wrap first paragraphs in a div
                     inner_paras = child.find_all("p", recursive=False)
                     for p in inner_paras:
                         text = p.get_text(" ", strip=True)
@@ -506,8 +505,7 @@ class WikipediaGlossaryScraper:
             return False
 
     def scrape_and_save(self) -> int:
-        """
-        Main method to scrape the glossary, categorize, summarize, and save all entries.
+        """Scrape glossary, categorize, summarize, and save all entries.
 
         Returns
         -------
@@ -611,17 +609,17 @@ class WikipediaGlossaryScraper:
 
 
 def main() -> int:
-    """Main function to run the scraper."""
+    """Run the scraper."""
     # Configuration
-    WIKIPEDIA_URL = "https://en.wikipedia.org/wiki/Glossary_of_areas_of_mathematics"
+    wikipedia_url = "https://en.wikipedia.org/wiki/Glossary_of_areas_of_mathematics"
     # Save pages in the same directory as the script
-    OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "pages")
+    output_dir = os.path.join(os.path.dirname(__file__), "pages")
 
     logger.info(
         "Starting Wikipedia Glossary Scraper with Categorization and Summarization"
     )
-    logger.info(f"Source URL: {WIKIPEDIA_URL}")
-    logger.info(f"Output directory: {OUTPUT_DIR}")
+    logger.info(f"Source URL: {wikipedia_url}")
+    logger.info(f"Output directory: {output_dir}")
 
     # Initialize GPT model if available
     gpt_model = None
@@ -646,7 +644,7 @@ def main() -> int:
         )
 
     # Create scraper instance
-    scraper = WikipediaGlossaryScraper(WIKIPEDIA_URL, OUTPUT_DIR, gpt_model)
+    scraper = WikipediaGlossaryScraper(wikipedia_url, output_dir, gpt_model)
 
     # Run the scraper
     saved_count = scraper.scrape_and_save()

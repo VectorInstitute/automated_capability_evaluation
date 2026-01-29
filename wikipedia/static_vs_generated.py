@@ -40,7 +40,7 @@ class AreaInfo:
 
 
 class DatasetQuestionCategorizer:
-    """Class to categorize questions from selected dataset using two-step LLM approach."""
+    """Categorize questions from selected dataset using two-step LLM approach."""
 
     def __init__(self, cfg: DictConfig) -> None:
         self.cfg = cfg
@@ -62,13 +62,13 @@ class DatasetQuestionCategorizer:
     def extract_areas_and_capabilities_from_generated(
         self, generated_dir: str
     ) -> Tuple[List[AreaInfo], Dict[str, List[CapabilityInfo]]]:
-        """Extract all areas and capabilities from the generated capabilities directory."""
+        """Extract areas and capabilities from the generated capabilities directory."""
         logger.info("Extracting areas and capabilities from generated capabilities...")
 
         areas: List[AreaInfo] = []
         capabilities_by_area: Dict[str, List[CapabilityInfo]] = {}
 
-        # Get all capability directories (handle nested structure like math/<capability_name>/)
+        # Get all capability directories (nested structure like math/<capability_name>/)
         capability_dirs = glob.glob(os.path.join(generated_dir, "*/"))
         print(f"Found {len(capability_dirs)} capability directories")
 
@@ -112,7 +112,7 @@ class DatasetQuestionCategorizer:
     def extract_areas_and_capabilities_from_wikipedia(
         self, wikipedia_dir: str
     ) -> Tuple[List[AreaInfo], Dict[str, List[CapabilityInfo]]]:
-        """Extract all areas and capabilities from the Wikipedia pages directory containing individual JSON files."""
+        """Extract areas and capabilities from Wikipedia pages directory."""
         logger.info(
             f"Extracting areas and capabilities from Wikipedia pages directory: {wikipedia_dir}"
         )
@@ -210,12 +210,12 @@ class DatasetQuestionCategorizer:
 
         # Try normalized match
         area_key: str
-        for area_key in self.capabilities_by_area.keys():
+        for area_key in self.capabilities_by_area:
             if self._normalize_text(area_key) == predicted_normalized:
                 return area_key
 
         # Try partial match (contains)
-        for area_key in self.capabilities_by_area.keys():
+        for area_key in self.capabilities_by_area:
             if (
                 predicted_normalized in self._normalize_text(area_key)
                 or self._normalize_text(area_key) in predicted_normalized
@@ -279,7 +279,7 @@ class DatasetQuestionCategorizer:
         return questions
 
     def load_math_questions(self, math_data_dir: str) -> List[Dict[str, Any]]:
-        """Load MATH dataset questions from a directory containing JSON files (recursive)."""
+        """Load MATH dataset questions from directory containing JSON files."""
         logger.info(f"Loading MATH questions from {math_data_dir}...")
         questions: List[Dict[str, Any]] = []
 
@@ -315,7 +315,7 @@ class DatasetQuestionCategorizer:
 
         Args:
             dataset_name: The logical name of the dataset (e.g., "gsm8k").
-            dataset_path: The path to the dataset file/directory as required by the dataset loader.
+            dataset_path: Path to dataset file/directory for the loader.
         """
         if not dataset_name:
             raise ValueError("dataset_name must be provided")
@@ -331,7 +331,7 @@ class DatasetQuestionCategorizer:
         )
 
     def load_checkpoint(self, checkpoint_path: str) -> Tuple[List[Dict[str, Any]], int]:
-        """Load existing checkpoint and return processed questions and last processed index."""
+        """Load checkpoint and return processed questions and last index."""
         if not os.path.exists(checkpoint_path):
             logger.info(
                 f"No checkpoint found at {checkpoint_path}, starting from beginning"
@@ -389,7 +389,7 @@ class DatasetQuestionCategorizer:
     async def categorize_question_by_area(
         self, question: str, areas: List[AreaInfo], **kwargs: Any
     ) -> str:
-        """Categorize a question into one of the available areas (returns exact area name)."""
+        """Categorize a question into one of the available areas."""
         area_names = [area.name for area in areas]
         area_bullets = "\n".join([f"- {area.name}" for area in areas])
 
@@ -589,7 +589,7 @@ class DatasetQuestionCategorizer:
     config_name="static_vs_generated",
 )
 def main(cfg: DictConfig) -> None:
-    """Main function to run question categorization."""
+    """Run question categorization."""
     # Set up logging
     logging.basicConfig(level=logging.INFO)
 
