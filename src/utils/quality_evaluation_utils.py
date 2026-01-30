@@ -4,29 +4,31 @@ from __future__ import annotations
 
 import statistics
 import warnings
-from typing import Iterable, List, Mapping, Optional, Union
+from typing import Iterable, List, Mapping, Union
 
+import kmedoids
 import numpy as np
-from scipy.stats import spearmanr
 from scipy.special import digamma, gammaln
-from sklearn.linear_model import LogisticRegression
+from scipy.stats import spearmanr
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import pairwise_distances
 from sklearn.metrics.pairwise import (
-    polynomial_kernel,
-    rbf_kernel,
     laplacian_kernel,
     linear_kernel,
+    polynomial_kernel,
+    rbf_kernel,
     sigmoid_kernel,
 )
+from sklearn.model_selection import train_test_split
 from sklearn.neighbors import NearestNeighbors
-import kmedoids
-from sklearn.metrics import pairwise_distances
+from sklearn.neural_network import MLPClassifier
+
 
 # Optional UMAP import
 try:
     from umap import UMAP
+
     UMAP_AVAILABLE = True
 except ImportError:
     UMAP_AVAILABLE = False
@@ -50,16 +52,18 @@ def compute_benchmark_difficulty(
         accuracies: Either an iterable of accuracy values in [0.0, 1.0] for each model,
             or a mapping from model name to accuracy in [0.0, 1.0].
 
-    Returns:
+    Returns
+    -------
         A float in [0.0, 1.0] representing the benchmark difficulty.
 
-    Raises:
+    Raises
+    ------
         ValueError: If no accuracies are provided.
     """
     # Handle Mapping by extracting values, otherwise treat as iterable
     if isinstance(accuracies, Mapping):
         accuracies = accuracies.values()
-    
+
     accuracies = list(accuracies)
     if not accuracies:
         raise ValueError("Cannot compute difficulty: no accuracies provided.")
@@ -88,16 +92,18 @@ def compute_benchmark_separability(
         accuracies: Either an iterable of accuracy values in [0.0, 1.0] for each model,
             or a mapping from model name to accuracy in [0.0, 1.0].
 
-    Returns:
+    Returns
+    -------
         A non-negative float representing separability.
 
-    Raises:
+    Raises
+    ------
         ValueError: If no accuracies are provided.
     """
     # Handle Mapping by extracting values, otherwise treat as iterable
     if isinstance(accuracies, Mapping):
         accuracies = accuracies.values()
-    
+
     accuracies = list(accuracies)
     if not accuracies:
         raise ValueError("Cannot compute separability: no accuracies provided.")
@@ -112,12 +118,14 @@ def compute_benchmark_consistency(
     model_to_generation_accuracies: Mapping[str, Iterable[float]],
 ) -> float:
     """
-    Compute benchmark consistency given per-model accuracies across multiple dataset generations.
+    Compute benchmark consistency from per-model accuracies across generations.
 
-    Consistency measures how stable model performance is across different dataset generations.
+    Consistency measures how stable model performance is across
+    different dataset generations.
     The consistency of a benchmark is defined as:
 
-        CONSISTENCY(D_gen, M) = 1 - 1/n * Σ_{i=1}^n std({performance(m_i) | D_gen,j}_{j=1}^k)
+        CONSISTENCY(D_gen, M) = 1 - 1/n * Σ_i std(performance(m_i))
+        over dataset generations j=1..k
 
     where:
     - n is the number of models
@@ -133,11 +141,13 @@ def compute_benchmark_consistency(
             on a different dataset generation. Each model should have the same number
             of generations (k).
 
-    Returns:
+    Returns
+    -------
         A float in [0.0, 1.0] representing the benchmark consistency.
         Higher values indicate more consistent performance across generations.
 
-    Raises:
+    Raises
+    ------
         ValueError: If no models are provided, or if models have inconsistent
             numbers of generations, or if any model has fewer than 2 generations
             (std requires at least 2 values).
@@ -186,10 +196,8 @@ def compute_benchmark_consistency(
     # Average the standard deviations across all models
     mean_std = sum(model_stds) / len(model_stds)
 
-    # Consistency = 1 - mean_std
     # Clamp to [0, 1] in case of numerical issues
-    consistency = max(0.0, min(1.0, 1.0 - mean_std))
-    return consistency
+    return max(0.0, min(1.0, 1.0 - mean_std))
 
 
 # Source paper: AutoBencher - https://arxiv.org/abs/2407.08351
@@ -198,9 +206,10 @@ def compute_benchmark_novelty(
     prior_datasets_accuracies: List[Mapping[str, float]],
 ) -> float:
     """
-    Compute benchmark novelty by comparing current dataset performance to prior datasets.
+    Compute benchmark novelty by comparing current to prior dataset performance.
 
-    Novelty measures how much new information a dataset reveals about existing models
+    Novelty measures how much new information a dataset reveals
+    about existing models
     over existing benchmarks. The formula is:
 
         NOVELTY(D_c, D_prev, M) = 1 - RANKCORR(v̂_c, v_c)
@@ -224,11 +233,13 @@ def compute_benchmark_novelty(
             All mappings must contain the same set of models, and these models
             must match the models in current_accuracies.
 
-    Returns:
+    Returns
+    -------
         A float in [0.0, 1.0] representing the benchmark novelty.
         Higher values indicate more novel/unique performance patterns.
 
-    Raises:
+    Raises
+    ------
         ValueError: If no prior datasets provided, models don't match, or
             regression fails (e.g., singular matrix).
 
@@ -262,24 +273,24 @@ def compute_benchmark_novelty(
     num_models = len(current_models)
     num_prior = len(prior_datasets_accuracies)
 
-    # V_prev: each column is a prior dataset's accuracies
-    V_prev = np.zeros((num_models, num_prior))
+    # v_prev: each column is a prior dataset's accuracies
+    v_prev = np.zeros((num_models, num_prior))
     for i, prior_acc in enumerate(prior_datasets_accuracies):
         for j, model in enumerate(current_models):
-            V_prev[j, i] = prior_acc[model]
+            v_prev[j, i] = prior_acc[model]
 
     # v_c: current dataset's accuracies
     v_c = np.array([current_accuracies[model] for model in current_models])
 
-    # Perform linear regression: v_c = V_prev * θ + b
-    # We solve: min ||V_prev * θ + b - v_c||²
-    # To use np.linalg.lstsq, we reformulate as: [V_prev, 1] * [θ; b] = v_c
+    # Perform linear regression: v_c = v_prev * θ + b
+    # We solve: min ||v_prev * θ + b - v_c||²
+    # To use np.linalg.lstsq, we reformulate as: [v_prev, 1] * [θ; b] = v_c
     # where 1 is a column vector of ones (for the intercept b)
-    
+
     # Augment design matrix with column of ones for intercept
     ones = np.ones((num_models, 1))
-    X = np.hstack([V_prev, ones])
-    
+    X = np.hstack([v_prev, ones])
+
     try:
         # Solve using least squares: X * params = v_c
         # params = [θ; b]
@@ -294,8 +305,8 @@ def compute_benchmark_novelty(
     theta = params[:-1]  # First N elements
     b = params[-1]  # Last element (intercept)
 
-    # Compute predicted values: v̂_c = V_prev * θ + b
-    v_pred = V_prev @ theta + b
+    # Compute predicted values: v̂_c = v_prev * θ + b
+    v_pred = v_prev @ theta + b
 
     # Compute rank correlation (Spearman correlation) using scipy
     try:
@@ -308,15 +319,14 @@ def compute_benchmark_novelty(
     if np.isnan(rank_corr) or not np.isfinite(rank_corr):
         return 1.0
 
-    # Novelty = 1 - rank_correlation
     # Clamp to [0, 1] in case of numerical issues (e.g., negative correlation)
-    novelty = max(0.0, min(1.0, 1.0 - rank_corr))
-    return novelty
+    return float(max(0.0, min(1.0, 1.0 - rank_corr)))
 
 
 # ===========================
 # ---- Diversity Metrics (PAD, MMD, MDM)
 # ===========================
+
 
 # Source paper: SynQue - https://arxiv.org/abs/2511.03928
 def compute_pad(
@@ -326,29 +336,30 @@ def compute_pad(
 ) -> float:
     """
     Compute the Proxy-A-Distance (PAD) between two sets of embeddings.
-    
+
     PAD measures the distance between synthetic and real data distributions
     by training a classifier to distinguish between them. Lower values indicate
     more similar distributions.
-    
+
     Args:
         x_syn_emb: Embeddings of synthetic data, shape (n_samples, n_features)
         x_real_emb: Embeddings of real data, shape (n_samples, n_features)
         classifier_name: Classifier to use ("LogisticRegression", "RandomForest", "MLP")
-    
-    Returns:
+
+    Returns
+    -------
         float: PAD value (typically in range [0, 2], lower is better)
     """
     y_syn_train = np.zeros(len(x_syn_emb))
     y_real_train = np.ones(len(x_real_emb))
     x_train = np.concatenate([x_syn_emb, x_real_emb], axis=0)
     y_train = np.concatenate([y_syn_train, y_real_train], axis=0)
-    
+
     # Split into train/validation
     x_train, x_val, y_train, y_val = train_test_split(
         x_train, y_train, test_size=0.2, random_state=42
     )
-    
+
     # Classifier
     if classifier_name == "LogisticRegression":
         classifier = LogisticRegression(random_state=42, max_iter=1000)
@@ -357,74 +368,75 @@ def compute_pad(
     elif classifier_name == "MLP":
         classifier = MLPClassifier(
             hidden_layer_sizes=(128, 64),
-            activation='relu',
+            activation="relu",
             max_iter=200,
-            random_state=42
+            random_state=42,
         )
     else:
         raise ValueError(f"Unknown classifier: {classifier_name}")
-    
+
     classifier.fit(x_train, y_train)
     y_pred_proba = classifier.predict_proba(x_val)[:, 1]
     average_loss = np.mean(np.abs(y_pred_proba - y_val))
-    return 2 * (1 - 2 * average_loss)
+    return float(2 * (1 - 2 * average_loss))
 
 
 # Source paper: SynQue - https://arxiv.org/abs/2511.03928
 def compute_mmd(
-    X: np.ndarray,
-    Y: np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
     kernel: str = "polynomial",
     degree: int = 3,
     gamma: float | None = None,
     coef0: float = 1,
 ) -> float:
     """
-    Compute the Maximum Mean Discrepancy (MMD) between two samples: X and Y.
-    
+    Compute the Maximum Mean Discrepancy (MMD) between two samples: x and y.
+
     MMD measures the distance between two distributions in a reproducing kernel
     Hilbert space. Lower values indicate more similar distributions.
-    
+
     Args:
-        X: First sample, shape (n_samples_X, n_features)
-        Y: Second sample, shape (n_samples_Y, n_features)
+        x: First sample, shape (n_samples_x, n_features)
+        y: Second sample, shape (n_samples_y, n_features)
         kernel: Kernel name ("polynomial", "rbf", "laplacian", "linear", "sigmoid")
         degree: Degree for polynomial kernel (default: 3)
         gamma: Gamma parameter for kernels (default: None, auto)
         coef0: Coef0 for polynomial/sigmoid kernel
-    
-    Returns:
+
+    Returns
+    -------
         float: MMD value (non-negative, lower is better)
     """
     kernel = kernel.lower() if isinstance(kernel, str) else kernel
     if kernel == "polynomial":
         kfunc = polynomial_kernel
-        XX = kfunc(X, X, degree=degree, gamma=gamma, coef0=coef0)
-        YY = kfunc(Y, Y, degree=degree, gamma=gamma, coef0=coef0)
-        XY = kfunc(X, Y, degree=degree, gamma=gamma, coef0=coef0)
+        xx = kfunc(x, x, degree=degree, gamma=gamma, coef0=coef0)
+        yy = kfunc(y, y, degree=degree, gamma=gamma, coef0=coef0)
+        xy = kfunc(x, y, degree=degree, gamma=gamma, coef0=coef0)
     elif kernel == "rbf":
         kfunc = rbf_kernel
-        XX = kfunc(X, X, gamma=gamma)
-        YY = kfunc(Y, Y, gamma=gamma)
-        XY = kfunc(X, Y, gamma=gamma)
+        xx = kfunc(x, x, gamma=gamma)
+        yy = kfunc(y, y, gamma=gamma)
+        xy = kfunc(x, y, gamma=gamma)
     elif kernel == "laplacian":
         kfunc = laplacian_kernel
-        XX = kfunc(X, X, gamma=gamma)
-        YY = kfunc(Y, Y, gamma=gamma)
-        XY = kfunc(X, Y, gamma=gamma)
+        xx = kfunc(x, x, gamma=gamma)
+        yy = kfunc(y, y, gamma=gamma)
+        xy = kfunc(x, y, gamma=gamma)
     elif kernel == "linear":
         kfunc = linear_kernel
-        XX = kfunc(X, X)
-        YY = kfunc(Y, Y)
-        XY = kfunc(X, Y)
+        xx = kfunc(x, x)
+        yy = kfunc(y, y)
+        xy = kfunc(x, y)
     elif kernel == "sigmoid":
         kfunc = sigmoid_kernel
-        XX = kfunc(X, X, gamma=gamma, coef0=coef0)
-        YY = kfunc(Y, Y, gamma=gamma, coef0=coef0)
-        XY = kfunc(X, Y, gamma=gamma, coef0=coef0)
+        xx = kfunc(x, x, gamma=gamma, coef0=coef0)
+        yy = kfunc(y, y, gamma=gamma, coef0=coef0)
+        xy = kfunc(x, y, gamma=gamma, coef0=coef0)
     else:
         raise ValueError(f"Unknown kernel: {kernel}")
-    return np.mean(XX) + np.mean(YY) - 2 * np.mean(XY)
+    return float(np.mean(xx) + np.mean(yy) - 2 * np.mean(xy))
 
 
 # Source paper: SynQue - https://arxiv.org/abs/2511.03928
@@ -434,29 +446,31 @@ def compute_mdm(
     metric: str = "euclidean",
 ) -> float:
     """
-    Compute the mean distance of points in each cluster to its medoid, then average across clusters.
-    
-    MDM measures the internal diversity/coherence of a set of embeddings by clustering
+    Compute mean distance to medoid per cluster, then average across clusters.
+
+    MDM measures the internal diversity/coherence of a set of embeddings
+    by clustering
     them and computing the average distance to cluster medoids. Lower values indicate
     more coherent/diverse clusters.
-    
+
     Args:
         embeddings: Embedding matrix of shape (n_samples, n_features)
         n_clusters: Number of clusters/medoids to use
         metric: Distance metric for KMedoids ('euclidean', 'cosine', etc.)
-    
-    Returns:
+
+    Returns
+    -------
         float: Mean distance to medoid (averaged over all clusters)
     """
     n_samples = len(embeddings)
     if n_samples < n_clusters:
         n_clusters = max(1, n_samples)
-    
+
     diss = pairwise_distances(embeddings, metric=metric)
     pam_result = kmedoids.fasterpam(diss, n_clusters, random_state=42)
     labels = pam_result.labels
     medoid_indices = pam_result.medoids
-    
+
     total_dist = 0.0
     for i, medoid_idx in enumerate(medoid_indices):
         cluster_points_idx = np.where(labels == i)[0]
@@ -471,6 +485,7 @@ def compute_mdm(
 # ---- Information-Theoretic Metrics (Entropy, KL-Divergence)
 # ===========================
 
+
 def fit_umap_shared(
     embeddings_list: List[np.ndarray],
     n_components: int,
@@ -479,7 +494,7 @@ def fit_umap_shared(
     metric: str = "cosine",
 ) -> List[np.ndarray]:
     """
-    Fit UMAP on the concatenation of all embedding arrays, then split back (InfoSynth-style).
+    Fit UMAP on the concatenation of all embedding arrays, then split back.
 
     This ensures entropy and KL divergence are comparable across datasets by using
     a single shared low-dimensional space.
@@ -491,13 +506,12 @@ def fit_umap_shared(
         min_dist: Minimum distance for UMAP (default: 0.1).
         metric: Distance metric for UMAP (default: "cosine").
 
-    Returns:
+    Returns
+    -------
         List of reduced embedding arrays in the same order as embeddings_list.
     """
     if not UMAP_AVAILABLE:
-        raise ImportError(
-            "UMAP is required. Install it with: pip install umap-learn"
-        )
+        raise ImportError("UMAP is required. Install it with: pip install umap-learn")
     if not embeddings_list:
         return []
     counts = [emb.shape[0] for emb in embeddings_list]
@@ -526,9 +540,9 @@ def compute_differential_entropy(embeddings: np.ndarray, k: int = 4) -> float:
     """
     Compute the differential entropy of a set of embeddings using k-nearest neighbors.
 
-    Differential entropy measures the diversity/uncertainty in the embedding distribution.
-    Higher values indicate more diverse data. For a shared space across datasets, apply
-    UMAP (e.g. fit_umap_shared) to embeddings before calling this function.
+    Differential entropy measures the diversity/uncertainty in the
+    embedding distribution.
+    Higher values indicate more diverse data.
 
     This implementation uses the k-NN estimator for differential entropy:
         H(X) ≈ digamma(N) - digamma(k) + log(volume) + d * mean(log(eps))
@@ -543,22 +557,24 @@ def compute_differential_entropy(embeddings: np.ndarray, k: int = 4) -> float:
         embeddings: Embedding matrix of shape (n_samples, n_features)
         k: Number of nearest neighbors to use (default: 4)
 
-    Returns:
+    Returns
+    -------
         float: Differential entropy value (higher is more diverse)
     """
-    N, d = embeddings.shape
-    if N < k + 1:
+    n_samples, d = embeddings.shape
+    if k + 1 > n_samples:
         raise ValueError(
-            f"Cannot compute entropy: need at least {k + 1} samples, but got {N}."
+            f"Cannot compute entropy: need at least {k + 1} samples, "
+            f"but got {n_samples}."
         )
-    
+
     nbrs = NearestNeighbors(n_neighbors=k + 1).fit(embeddings)
     distances, _ = nbrs.kneighbors(embeddings)
     eps = distances[:, -1]
     eps[eps == 0] = np.nextafter(0, 1)
-    
+
     log_vol = (d / 2) * np.log(np.pi) - gammaln(d / 2 + 1)
-    entropy = digamma(N) - digamma(k) + log_vol + d * np.mean(np.log(eps))
+    entropy = digamma(n_samples) - digamma(k) + log_vol + d * np.mean(np.log(eps))
     return float(entropy)
 
 
@@ -573,8 +589,7 @@ def compute_kl_divergence(
     Compute the KL divergence between two sets of embeddings using k-nearest neighbors.
 
     KL divergence measures how different distribution P is from distribution Q.
-    Higher values indicate more novelty (P is more different from Q). For a shared
-    space, apply UMAP (e.g. fit_umap_shared) to [P, Q] before calling this function.
+    Higher values indicate more novelty (P is more different from Q).
 
     This implementation uses the k-NN estimator for KL divergence:
         KL(P||Q) ≈ (d/n) * sum(log(nu/rho)) + log(m/(n-1))
@@ -592,12 +607,13 @@ def compute_kl_divergence(
         k: Number of nearest neighbors to use (default: 4)
         eps: Small epsilon to avoid division by zero (default: 1e-10)
 
-    Returns:
+    Returns
+    -------
         float: KL divergence value (higher is more novel/different)
     """
     n, d = p_embeddings.shape
     m, _ = q_embeddings.shape
-    
+
     if n < k + 1:
         raise ValueError(
             f"Cannot compute KL divergence: P needs at least {k + 1} samples, but got {n}."
@@ -606,16 +622,14 @@ def compute_kl_divergence(
         raise ValueError(
             f"Cannot compute KL divergence: Q needs at least {k} samples, but got {m}."
         )
-    
+
     # Find k-th nearest neighbor in P for each point in P
     nbrs_p = NearestNeighbors(n_neighbors=k + 1).fit(p_embeddings)
     rho = np.maximum(nbrs_p.kneighbors(p_embeddings)[0][:, k], eps)
-    
+
     # Find k-th nearest neighbor in Q for each point in P
     nbrs_q = NearestNeighbors(n_neighbors=k).fit(q_embeddings)
     nu = np.maximum(nbrs_q.kneighbors(p_embeddings)[0][:, k - 1], eps)
-    
+
     kl_div = (d / n) * np.sum(np.log(nu / rho)) + np.log(m / (n - 1))
     return float(kl_div)
-
-
