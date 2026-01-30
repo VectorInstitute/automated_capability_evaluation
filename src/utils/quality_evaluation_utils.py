@@ -471,39 +471,40 @@ def compute_mdm(
 # ---- Information-Theoretic Metrics (Entropy, KL-Divergence)
 # ===========================
 
-def _apply_umap_reduction(
-    embeddings: np.ndarray,
-    n_components: Optional[int] = None,
+def fit_umap_shared(
+    embeddings_list: List[np.ndarray],
+    n_components: int,
     n_neighbors: int = 15,
     min_dist: float = 0.1,
     metric: str = "cosine",
-) -> np.ndarray:
+) -> List[np.ndarray]:
     """
-    Optionally apply UMAP dimensionality reduction to embeddings.
-    
+    Fit UMAP on the concatenation of all embedding arrays, then split back (InfoSynth-style).
+
+    This ensures entropy and KL divergence are comparable across datasets by using
+    a single shared low-dimensional space.
+
     Args:
-        embeddings: Embedding matrix of shape (n_samples, n_features)
-        n_components: Target dimension. If None, returns original embeddings.
-        n_neighbors: Number of neighbors for UMAP (default: 15)
-        min_dist: Minimum distance for UMAP (default: 0.1)
-        metric: Distance metric for UMAP (default: "cosine")
-    
+        embeddings_list: List of embedding matrices, each shape (n_i, n_features).
+        n_components: UMAP target dimension.
+        n_neighbors: Number of neighbors for UMAP (default: 15).
+        min_dist: Minimum distance for UMAP (default: 0.1).
+        metric: Distance metric for UMAP (default: "cosine").
+
     Returns:
-        Reduced embeddings if n_components is provided, otherwise original embeddings
+        List of reduced embedding arrays in the same order as embeddings_list.
     """
-    if n_components is None:
-        return embeddings
-    
     if not UMAP_AVAILABLE:
         raise ImportError(
-            "UMAP is required for dimensionality reduction. "
-            "Install it with: pip install umap-learn"
+            "UMAP is required. Install it with: pip install umap-learn"
         )
-    
-    if embeddings.shape[1] <= n_components:
-        # Already at or below target dimension
-        return embeddings
-    
+    if not embeddings_list:
+        return []
+    counts = [emb.shape[0] for emb in embeddings_list]
+    split_indices = np.cumsum(counts)[:-1]
+    combined = np.vstack(embeddings_list)
+    if combined.shape[1] <= n_components:
+        return [emb.copy() for emb in embeddings_list]
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         umap_model = UMAP(
@@ -513,61 +514,38 @@ def _apply_umap_reduction(
             metric=metric,
             random_state=42,
         )
-        reduced_embeddings = umap_model.fit_transform(embeddings)
-    
-    # Renormalize (like InfoSynth does)
-    norms = np.linalg.norm(reduced_embeddings, axis=1, keepdims=True)
+        reduced = umap_model.fit_transform(combined)
+    norms = np.linalg.norm(reduced, axis=1, keepdims=True)
     eps = 1e-12
-    reduced_embeddings = reduced_embeddings / (norms + eps)
-    
-    return reduced_embeddings
+    reduced = reduced / (norms + eps)
+    return np.split(reduced, split_indices, axis=0)
 
 
 # Source paper: InfoSyth - https://arxiv.org/abs/2601.00575
-def compute_differential_entropy(
-    embeddings: np.ndarray,
-    k: int = 4,
-    umap_n_components: Optional[int] = None,
-    umap_n_neighbors: int = 15,
-    umap_min_dist: float = 0.1,
-    umap_metric: str = "cosine",
-) -> float:
+def compute_differential_entropy(embeddings: np.ndarray, k: int = 4) -> float:
     """
     Compute the differential entropy of a set of embeddings using k-nearest neighbors.
-    
+
     Differential entropy measures the diversity/uncertainty in the embedding distribution.
-    Higher values indicate more diverse data.
-    
+    Higher values indicate more diverse data. For a shared space across datasets, apply
+    UMAP (e.g. fit_umap_shared) to embeddings before calling this function.
+
     This implementation uses the k-NN estimator for differential entropy:
         H(X) ≈ digamma(N) - digamma(k) + log(volume) + d * mean(log(eps))
-    
+
     where:
     - N is the number of samples
     - d is the embedding dimension
     - k is the number of neighbors
     - eps is the distance to the k-th nearest neighbor
-    
+
     Args:
         embeddings: Embedding matrix of shape (n_samples, n_features)
         k: Number of nearest neighbors to use (default: 4)
-        umap_n_components: Optional UMAP target dimension. If None, uses original embeddings.
-        umap_n_neighbors: Number of neighbors for UMAP (default: 15)
-        umap_min_dist: Minimum distance for UMAP (default: 0.1)
-        umap_metric: Distance metric for UMAP (default: "cosine")
-    
+
     Returns:
         float: Differential entropy value (higher is more diverse)
     """
-    # Apply UMAP reduction if requested
-    if umap_n_components is not None:
-        embeddings = _apply_umap_reduction(
-            embeddings,
-            n_components=umap_n_components,
-            n_neighbors=umap_n_neighbors,
-            min_dist=umap_min_dist,
-            metric=umap_metric,
-        )
-    
     N, d = embeddings.shape
     if N < k + 1:
         raise ValueError(
@@ -590,55 +568,33 @@ def compute_kl_divergence(
     q_embeddings: np.ndarray,
     k: int = 4,
     eps: float = 1e-10,
-    umap_n_components: Optional[int] = None,
-    umap_n_neighbors: int = 15,
-    umap_min_dist: float = 0.1,
-    umap_metric: str = "cosine",
 ) -> float:
     """
     Compute the KL divergence between two sets of embeddings using k-nearest neighbors.
-    
+
     KL divergence measures how different distribution P is from distribution Q.
-    Higher values indicate more novelty (P is more different from Q).
-    
+    Higher values indicate more novelty (P is more different from Q). For a shared
+    space, apply UMAP (e.g. fit_umap_shared) to [P, Q] before calling this function.
+
     This implementation uses the k-NN estimator for KL divergence:
         KL(P||Q) ≈ (d/n) * sum(log(nu/rho)) + log(m/(n-1))
-    
+
     where:
     - P is the distribution of p_embeddings (n samples)
     - Q is the distribution of q_embeddings (m samples)
     - d is the embedding dimension
     - rho is the distance to the k-th nearest neighbor in P
     - nu is the distance to the k-th nearest neighbor in Q
-    
+
     Args:
         p_embeddings: Embeddings of distribution P, shape (n_samples_p, n_features)
         q_embeddings: Embeddings of distribution Q, shape (n_samples_q, n_features)
         k: Number of nearest neighbors to use (default: 4)
         eps: Small epsilon to avoid division by zero (default: 1e-10)
-        umap_n_components: Optional UMAP target dimension. If None, uses original embeddings.
-        umap_n_neighbors: Number of neighbors for UMAP (default: 15)
-        umap_min_dist: Minimum distance for UMAP (default: 0.1)
-        umap_metric: Distance metric for UMAP (default: "cosine")
-    
+
     Returns:
         float: KL divergence value (higher is more novel/different)
     """
-    # Apply UMAP reduction if requested (apply to both embeddings together for consistency)
-    if umap_n_components is not None:
-        # Stack embeddings, apply UMAP, then split back
-        # This ensures both distributions are reduced in the same space
-        combined_embeddings = np.vstack([p_embeddings, q_embeddings])
-        reduced_combined = _apply_umap_reduction(
-            combined_embeddings,
-            n_components=umap_n_components,
-            n_neighbors=umap_n_neighbors,
-            min_dist=umap_min_dist,
-            metric=umap_metric,
-        )
-        p_embeddings = reduced_combined[:len(p_embeddings)]
-        q_embeddings = reduced_combined[len(p_embeddings):]
-    
     n, d = p_embeddings.shape
     m, _ = q_embeddings.shape
     

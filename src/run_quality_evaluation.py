@@ -21,6 +21,7 @@ from src.utils import (
     compute_mdm,
     compute_mmd,
     compute_pad,
+    fit_umap_shared,
 )
 from src.utils import constants
 from src.utils.data_utils import get_run_id
@@ -40,10 +41,10 @@ logger = logging.getLogger(__name__)
 def _collect_accuracies_from_dir(directory: str) -> List[float]:
     """
     Collect all accuracy values from JSON files in a directory (recursively).
-    
+
     Args:
         directory: Directory to walk recursively for JSON files.
-        
+
     Returns:
         List of accuracy values found in the directory.
     """
@@ -62,29 +63,29 @@ def _collect_accuracies_from_dir(directory: str) -> List[float]:
 def _load_avg_model_accuracies_from_dir(base_dir: str) -> Dict[str, float]:
     """
     Load model accuracies from a directory structure.
-    
+
     Args:
         base_dir: Directory containing per-model subdirectories with JSON files.
-        
+
     Returns:
         Dictionary mapping model name to average accuracy.
     """
     model_to_accuracy: Dict[str, float] = {}
-    
+
     if not os.path.isdir(base_dir):
         logger.warning("Directory does not exist: %s", base_dir)
         return model_to_accuracy
-    
+
     for model_name in os.listdir(base_dir):
         model_dir = os.path.join(base_dir, model_name)
         if not os.path.isdir(model_dir):
             continue
-        
+
         accuracies = _collect_accuracies_from_dir(model_dir)
         if accuracies:
             avg_acc = sum(accuracies) / len(accuracies)
             model_to_accuracy[model_name] = avg_acc
-    
+
     return model_to_accuracy
 
 
@@ -93,31 +94,31 @@ def _create_dataloader_from_config(
     dataloader_config: Dict[str, Any],
 ) -> DatasetDataloader:
     """Create a dataloader from configuration.
-    
+
     Args:
         data_path: Path to the data
         dataloader_config: Configuration dict with 'type' and other fields
-        
+
     Returns:
         DatasetDataloader instance
     """
     dataloader_type = dataloader_config.get("type", "capability")
-    
+
     if dataloader_type == "capability":
         return CapabilityDataloader(data_path)
-    
+
     elif dataloader_type == "huggingface":
         from datasets import load_dataset
         dataset_name = dataloader_config.get("dataset_name")
         split = dataloader_config.get("split", "train")
         subset = dataloader_config.get("subset", None)
         dataset = load_dataset(dataset_name, name=subset, split=split)
-        
+
         return HuggingFaceDatasetDataloader(
             dataset=dataset,
             text_field=dataloader_config.get("text_field", "problem"),
         )
-    
+
     elif dataloader_type == "jsonl":
         return JSONLDataloader(
             jsonl_path=data_path,
@@ -127,7 +128,7 @@ def _create_dataloader_from_config(
             instructions_field=dataloader_config.get("instructions_field"),
             task_field=dataloader_config.get("task_field", "problem"),
         )
-    
+
     elif dataloader_type == "csv":
         return CSVDataloader(
             csv_path=data_path,
@@ -137,7 +138,7 @@ def _create_dataloader_from_config(
             instructions_field=dataloader_config.get("instructions_field"),
             task_field=dataloader_config.get("task_field", "problem"),
         )
-    
+
     else:
         raise ValueError(f"Unknown dataloader type: {dataloader_type}")
 
@@ -148,22 +149,22 @@ def _load_capabilities_and_generate_embeddings(
     embed_dimensions: int,
     dataloader_config: Optional[Dict[str, Any]] = None,
     embedding_backend: str = "openai",
-) -> tuple[np.ndarray, List[Any]]:
+) -> tuple[np.ndarray, List[str]]:
     """
     Load capabilities from directory and generate embeddings.
-    
+
     Supports both capability format (default) and custom dataloaders.
     Always uses the dataloader system for consistency.
-    
+
     Args:
         capabilities_dir: Directory containing capability subdirectories OR path to data file
         embedding_model_name: Name of embedding model to use
         embed_dimensions: Number of embedding dimensions
         dataloader_config: Optional configuration for custom dataloader.
                           If None, defaults to capability format.
-        
+
     Returns:
-        Tuple of (embeddings array, list of items/capabilities)
+        Tuple of (embeddings array, list of extracted texts)
     """
     # Use dataloader system: default to capability format if no config provided
     if dataloader_config:
@@ -176,16 +177,16 @@ def _load_capabilities_and_generate_embeddings(
             return np.array([]), []
         logger.info("Using capability format dataloader for %s", capabilities_dir)
         dataloader = CapabilityDataloader(capabilities_dir)
-    
+
     # Extract texts using the dataloader
     texts = load_texts_from_dataloader(dataloader)
-    
+
     if not texts:
         logger.warning("No texts extracted from %s", capabilities_dir)
         return np.array([]), []
-    
+
     logger.info("Extracted %d texts for embedding", len(texts))
-    
+
     # Generate embeddings
     logger.info(
         "Generating embeddings using %s (backend=%s)",
@@ -210,7 +211,7 @@ def _load_capabilities_and_generate_embeddings(
                 exc,
             )
             return np.array([]), []
-        
+
         hf_model = SentenceTransformer(embedding_model_name)
         embeddings_array = hf_model.encode(
             texts,
@@ -228,8 +229,8 @@ def _load_capabilities_and_generate_embeddings(
     else:
         logger.error("Unknown embedding_backend: %s", embedding_backend)
         return np.array([]), []
-    
-    return embeddings_array, []
+
+    return embeddings_array, texts
 
 
 def _extract_accuracy_from_inspect_json(json_path: str) -> float | None:
@@ -246,7 +247,7 @@ def _extract_accuracy_from_inspect_json(json_path: str) -> float | None:
         if "error" in data or "results" not in data:
             # File has error or no results, skip it
             return None
-        
+
         scores = data["results"]["scores"]
         if not scores:
             return None
@@ -291,7 +292,7 @@ def main(cfg: DictConfig) -> None:
     model_to_accuracy: Dict[str, float] = {}
     # For consistency: map model to list of accuracies per generation
     model_to_generation_accuracies: Dict[str, List[float]] = {}
-    
+
     # Get prior dataset names to exclude them from current dataset
     prior_datasets = getattr(cfg.quality_eval_cfg, "prior_datasets", [])
     prior_dataset_names = set()
@@ -299,7 +300,7 @@ def main(cfg: DictConfig) -> None:
         # Extract the directory name from the path
         prior_name = os.path.basename(os.path.normpath(prior_path))
         prior_dataset_names.add(prior_name)
-    
+
     for model_name in os.listdir(base_scores_dir):
         # Skip if this is a prior dataset directory
         if model_name in prior_dataset_names:
@@ -314,7 +315,7 @@ def main(cfg: DictConfig) -> None:
             d for d in os.listdir(model_dir)
             if os.path.isdir(os.path.join(model_dir, d))
         ]
-        
+
         if subdirs:
             # Structure: model_dir/generation_dir/...json files
             # Each subdirectory represents a different dataset generation
@@ -322,7 +323,7 @@ def main(cfg: DictConfig) -> None:
             for gen_dir_name in sorted(subdirs):
                 gen_dir = os.path.join(model_dir, gen_dir_name)
                 gen_accuracies = _collect_accuracies_from_dir(gen_dir)
-                
+
                 if gen_accuracies:
                     avg_gen_acc = sum(gen_accuracies) / len(gen_accuracies)
                     generation_accuracies.append(avg_gen_acc)
@@ -330,7 +331,7 @@ def main(cfg: DictConfig) -> None:
                         "Model '%s' generation '%s': %.4f (from %d JSON files)",
                         model_name, gen_dir_name, avg_gen_acc, len(gen_accuracies)
                     )
-            
+
             if generation_accuracies:
                 model_to_generation_accuracies[model_name] = generation_accuracies
                 # Overall average across all generations
@@ -369,7 +370,7 @@ def main(cfg: DictConfig) -> None:
     separability = compute_benchmark_separability(model_to_accuracy)
     logger.info("Benchmark difficulty: %.4f", difficulty)
     logger.info("Benchmark separability: %.4f", separability)
-    
+
     # Compute consistency if we have multiple generations per model
     if model_to_generation_accuracies:
         try:
@@ -377,7 +378,7 @@ def main(cfg: DictConfig) -> None:
             logger.info("Benchmark consistency: %.4f", consistency)
         except ValueError as e:
             logger.warning("Could not compute consistency: %s", e)
-    
+
     # Compute novelty if prior datasets are provided
     prior_datasets = getattr(cfg.quality_eval_cfg, "prior_datasets", [])
     if prior_datasets:
@@ -394,7 +395,7 @@ def main(cfg: DictConfig) -> None:
                     )
                 else:
                     logger.warning("No accuracies found in prior dataset: %s", prior_dir)
-            
+
             if prior_datasets_accuracies:
                 novelty = compute_benchmark_novelty(model_to_accuracy, prior_datasets_accuracies)
                 logger.info("Benchmark novelty: %.4f", novelty)
@@ -404,7 +405,7 @@ def main(cfg: DictConfig) -> None:
             logger.warning("Could not compute novelty: %s", e)
         except Exception as e:  # noqa: BLE001
             logger.warning("Error computing novelty: %s", e)
-    
+
     # Compute embedding-based metrics if capabilities directory is provided
     capabilities_dir = getattr(cfg.quality_eval_cfg, "capabilities_dir", None)
     if capabilities_dir:
@@ -413,14 +414,14 @@ def main(cfg: DictConfig) -> None:
         embedding_model = getattr(cfg.quality_eval_cfg, "embedding_model", "text-embedding-3-large")
         embedding_backend = getattr(cfg.quality_eval_cfg, "embedding_backend", "openai")
         embed_dimensions = getattr(cfg.quality_eval_cfg, "embedding_dimensions", 3072)
-        
+
         # Get dataloader config if provided
         synth_dataloader_config = getattr(cfg.quality_eval_cfg, "synthetic_dataloader_config", None)
         if synth_dataloader_config:
             synth_dataloader_config = dict(synth_dataloader_config)
-        
+
         logger.info("Computing embedding-based metrics for capabilities in %s", capabilities_dir)
-        
+
         # Load capabilities and generate embeddings
         synth_embeddings, capabilities = _load_capabilities_and_generate_embeddings(
             capabilities_dir=capabilities_dir,
@@ -429,14 +430,15 @@ def main(cfg: DictConfig) -> None:
             dataloader_config=synth_dataloader_config,
             embedding_backend=embedding_backend,
         )
-        
+
         if len(synth_embeddings) == 0:
             logger.warning("No embeddings generated, skipping diversity metrics")
         else:
+            real_embeddings = None
             # Check if real data directory/file is provided for comparison
             real_data_dir = getattr(cfg.quality_eval_cfg, "real_data_dir", None)
             real_dataloader_config = getattr(cfg.quality_eval_cfg, "real_dataloader_config", None)
-            
+
             # Check if we have real data: either a valid path OR a dataloader config (for HuggingFace, etc.)
             has_real_data = False
             # Case 1: local path (capability/JSONL/CSV formats)
@@ -445,12 +447,12 @@ def main(cfg: DictConfig) -> None:
             # Case 2: HuggingFace dataset via dataloader (real_data_dir may be None)
             elif real_dataloader_config and real_dataloader_config.get("type") == "huggingface":
                 has_real_data = True
-            
+
             if has_real_data:
                 # Get real data dataloader config if provided
                 if real_dataloader_config:
                     real_dataloader_config = dict(real_dataloader_config)
-                
+
                 if real_data_dir:
                     logger.info("Loading real data embeddings from %s", real_data_dir)
                 else:
@@ -463,7 +465,7 @@ def main(cfg: DictConfig) -> None:
                     dataloader_config=real_dataloader_config,
                     embedding_backend=embedding_backend,
                 )
-                
+
                 if len(real_embeddings) > 0:
                     # Compute comparison metrics that require both synthetic and real data
                     if "pad" in comparison_metrics:
@@ -476,7 +478,7 @@ def main(cfg: DictConfig) -> None:
                             logger.info("PAD score: %.4f", pad_score)
                         except Exception as e:  # noqa: BLE001
                             logger.warning("Error computing PAD: %s", e)
-                    
+
                     if "mmd" in comparison_metrics:
                         try:
                             mmd_kernel = getattr(cfg.quality_eval_cfg, "mmd_kernel", "polynomial")
@@ -490,32 +492,60 @@ def main(cfg: DictConfig) -> None:
                             logger.info("MMD score (%s kernel): %.4f", mmd_kernel, mmd_score)
                         except Exception as e:  # noqa: BLE001
                             logger.warning("Error computing MMD: %s", e)
-                    
-                    if "kl_divergence" in comparison_metrics:
-                        try:
-                            kl_k = getattr(cfg.quality_eval_cfg, "kl_k", 4)
-                            umap_n_components = getattr(cfg.quality_eval_cfg, "umap_n_components", None)
-                            umap_n_neighbors = getattr(cfg.quality_eval_cfg, "umap_n_neighbors", 15)
-                            umap_min_dist = getattr(cfg.quality_eval_cfg, "umap_min_dist", 0.1)
-                            umap_metric = getattr(cfg.quality_eval_cfg, "umap_metric", "cosine")
-                            kl_score = compute_kl_divergence(
-                                synth_embeddings,
-                                real_embeddings,
-                                k=kl_k,
-                                umap_n_components=umap_n_components,
-                                umap_n_neighbors=umap_n_neighbors,
-                                umap_min_dist=umap_min_dist,
-                                umap_metric=umap_metric,
-                            )
-                            umap_info = f" (UMAP: {umap_n_components}D)" if umap_n_components else ""
-                            logger.info("KL divergence score (k=%d)%s: %.4f", kl_k, umap_info, kl_score)
-                        except Exception as e:  # noqa: BLE001
-                            logger.warning("Error computing KL divergence: %s", e)
                 else:
                     logger.warning("No real data embeddings generated, skipping comparison metrics")
             else:
                 logger.info("No real_data_dir provided, skipping comparison metrics (require real data)")
-            
+
+            # Joint UMAP (InfoSynth-style): fit on all datasets so entropy/KL are in a shared space
+            umap_n_components = getattr(cfg.quality_eval_cfg, "umap_n_components", None)
+            umap_n_neighbors = getattr(cfg.quality_eval_cfg, "umap_n_neighbors", 15)
+            umap_min_dist = getattr(cfg.quality_eval_cfg, "umap_min_dist", 0.1)
+            umap_metric = getattr(cfg.quality_eval_cfg, "umap_metric", "cosine")
+            need_joint_umap = (
+                umap_n_components is not None
+                and (
+                    "entropy" in internal_diversity_metrics
+                    or (
+                        "kl_divergence" in comparison_metrics
+                        and real_embeddings is not None
+                        and len(real_embeddings) > 0
+                    )
+                )
+            )
+            synth_reduced = None
+            real_reduced = None
+            if need_joint_umap:
+                all_emb = [synth_embeddings]
+                if real_embeddings is not None and len(real_embeddings) > 0:
+                    all_emb.append(real_embeddings)
+                reduced_list = fit_umap_shared(
+                    all_emb,
+                    umap_n_components,
+                    n_neighbors=umap_n_neighbors,
+                    min_dist=umap_min_dist,
+                    metric=umap_metric,
+                )
+                synth_reduced = reduced_list[0]
+                if len(reduced_list) > 1:
+                    real_reduced = reduced_list[1]
+
+            # KL divergence (uses joint UMAP when need_joint_umap so synth and real share a space)
+            if (
+                "kl_divergence" in comparison_metrics
+                and real_embeddings is not None
+                and len(real_embeddings) > 0
+            ):
+                try:
+                    kl_k = getattr(cfg.quality_eval_cfg, "kl_k", 4)
+                    kl_synth = synth_reduced if real_reduced is not None else synth_embeddings
+                    kl_real = real_reduced if real_reduced is not None else real_embeddings
+                    kl_score = compute_kl_divergence(kl_synth, kl_real, k=kl_k)
+                    umap_info = f" (UMAP: {umap_n_components}D)" if umap_n_components else ""
+                    logger.info("KL divergence score (k=%d)%s: %.4f", kl_k, umap_info, kl_score)
+                except Exception as e:  # noqa: BLE001
+                    logger.warning("Error computing KL divergence: %s", e)
+
             # Compute internal diversity metrics (only need synthetic data)
             if "mdm" in internal_diversity_metrics:
                 try:
@@ -529,22 +559,12 @@ def main(cfg: DictConfig) -> None:
                     logger.info("MDM score (%d clusters, %s metric): %.4f", mdm_n_clusters, mdm_metric, mdm_score)
                 except Exception as e:  # noqa: BLE001
                     logger.warning("Error computing MDM: %s", e)
-            
+
             if "entropy" in internal_diversity_metrics:
                 try:
                     entropy_k = getattr(cfg.quality_eval_cfg, "entropy_k", 4)
-                    umap_n_components = getattr(cfg.quality_eval_cfg, "umap_n_components", None)
-                    umap_n_neighbors = getattr(cfg.quality_eval_cfg, "umap_n_neighbors", 15)
-                    umap_min_dist = getattr(cfg.quality_eval_cfg, "umap_min_dist", 0.1)
-                    umap_metric = getattr(cfg.quality_eval_cfg, "umap_metric", "cosine")
-                    entropy_score = compute_differential_entropy(
-                        synth_embeddings,
-                        k=entropy_k,
-                        umap_n_components=umap_n_components,
-                        umap_n_neighbors=umap_n_neighbors,
-                        umap_min_dist=umap_min_dist,
-                        umap_metric=umap_metric,
-                    )
+                    entropy_emb = synth_reduced if synth_reduced is not None else synth_embeddings
+                    entropy_score = compute_differential_entropy(entropy_emb, k=entropy_k)
                     umap_info = f" (UMAP: {umap_n_components}D)" if umap_n_components else ""
                     logger.info("Differential entropy score (k=%d)%s: %.4f", entropy_k, umap_info, entropy_score)
                 except Exception as e:  # noqa: BLE001
