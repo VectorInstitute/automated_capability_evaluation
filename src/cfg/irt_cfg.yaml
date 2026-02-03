@@ -1,0 +1,31 @@
+# IRT analysis configuration (src/run_irt_analysis.py).
+# CLI overrides: data_cfg.scores_dir=/path, data_cfg.per_capability=true
+
+defaults:
+  - _self_
+
+hydra:
+  run:
+    dir: .
+
+data_cfg: # Set this to the path to the scores directory containing evaluation JSON files
+  scores_dir: data/scores_sample  # required; all **/*.json under this dir
+  per_capability: true  # true: fit per capability; false: one combined fit
+
+output_cfg:
+  output_dir: null  # null = irt_results/<dataset_id>_<timestamp> in project root
+  output_filename: irt_analysis.json
+
+irt_cfg:
+  model_type: "3PL"  # 1PL, 2PL, or 3PL
+  max_iterations: 1000
+  tolerance: 1.0e-6
+  quadrature_n: 41
+
+# Top-level fallbacks when nested keys not overridden
+model_type: "3PL"
+max_iterations: 2000
+quadrature_n: 41
+output_dir: null
+dataset_id: null
+verbose: false
