@@ -7,6 +7,7 @@ ensuring consistent input/output formats regardless of internal implementation.
 from src.schemas.area_schemas import Area
 from src.schemas.capability_schemas import Capability
 from src.schemas.domain_schemas import Domain
+from src.schemas.irt_schemas import IRTAnalysis, IRTItemParameters
 from src.schemas.experiment_schemas import Experiment
 from src.schemas.io_utils import (
     load_areas,
@@ -40,6 +41,9 @@ __all__ = [
     "Area",
     # Capability schemas
     "Capability",
+    # IRT schemas
+    "IRTAnalysis",
+    "IRTItemParameters",
     # Task schemas
     "Task",
     # Solution schemas
