@@ -8,9 +8,11 @@ hydra:
   run:
     dir: .
 
-data_cfg: # Set this to the path to the scores directory containing evaluation JSON files
+data_cfg:
   scores_dir: data/scores_sample  # required; all **/*.json under this dir
   per_capability: true  # true: fit per capability; false: one combined fit
+  # If set, task JSONs under this dir (**/tasks.json) are updated with IRT params and saved to output_dir/updated_tasks/
+  capabilities_dir: /projects/aieng/public/ace/artifacts/negin_ace/taks/math
 
 output_cfg:
   output_dir: null  # null = irt_results/<dataset_id>_<timestamp> in project root

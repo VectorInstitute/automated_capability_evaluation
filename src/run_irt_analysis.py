@@ -21,10 +21,12 @@ from src.utils.data_utils import list_dir, write_json_file
 from src.utils.irt_utils import (
     build_response_matrix_from_inspect_score_files,
     create_response_matrix_from_flat,
+    discover_tasks_files,
     extract_question_responses,
     fit_3pl_irt,
     group_response_data_by_capability,
     load_score_files,
+    update_tasks_with_irt_and_save,
 )
 
 logger = logging.getLogger(__name__)
@@ -153,6 +155,7 @@ def run_irt_analysis_flat(
     output_filename: str = "irt_analysis.json",
     dataset_id: str | None = None,
     per_capability: bool = False,
+    capabilities_dir: str | None = None,
 ) -> IRTAnalysis | Dict[str, IRTAnalysis]:
     """
     Run IRT pipeline using flat loading: load all **/*.json under scores_dir,
@@ -168,6 +171,8 @@ def run_irt_analysis_flat(
         per_capability: If True, group by capability (eval.task), fit IRT separately
             per capability, and save one JSON with all capability analyses. If False,
             one combined response matrix and one IRT fit (current behavior).
+        capabilities_dir: If set with output_dir, task JSONs under this dir (**/tasks.json)
+            are updated with IRT item parameters and saved to output_dir/updated_tasks/.
 
     Returns
     -------
@@ -250,6 +255,26 @@ def run_irt_analysis_flat(
                 out_path,
                 len(analyses),
             )
+        if capabilities_dir and output_dir:
+            task_files = discover_tasks_files(capabilities_dir)
+            for cap_name, analysis in analyses.items():
+                if cap_name not in task_files:
+                    continue
+                params_plain = {
+                    qid: {
+                        "difficulty": p.difficulty,
+                        "discrimination": p.discrimination,
+                        "guessing": p.guessing,
+                    }
+                    for qid, p in analysis.item_parameters.items()
+                }
+                update_tasks_with_irt_and_save(
+                    capability_name=cap_name,
+                    item_parameters=params_plain,
+                    task_files=task_files[cap_name],
+                    capabilities_dir=capabilities_dir,
+                    output_dir=output_dir,
+                )
         return analyses
 
     # Combined: one response matrix, one IRT fit
@@ -273,6 +298,27 @@ def run_irt_analysis_flat(
         out_path = os.path.join(output_dir, output_filename)
         write_json_file(out_path, analysis.to_dict())
         logger.info("IRT analysis saved to %s", out_path)
+    if capabilities_dir and output_dir and question_info:
+        task_files = discover_tasks_files(capabilities_dir)
+        cap_to_params: Dict[str, Dict[str, Dict[str, float]]] = {}
+        for qid, p in analysis.item_parameters.items():
+            cap = question_info.get(qid, {}).get("task", "")
+            if cap:
+                cap_to_params.setdefault(cap, {})[qid] = {
+                    "difficulty": p.difficulty,
+                    "discrimination": p.discrimination,
+                    "guessing": p.guessing,
+                }
+        for cap_name, params in cap_to_params.items():
+            if cap_name not in task_files:
+                continue
+            update_tasks_with_irt_and_save(
+                capability_name=cap_name,
+                item_parameters=params,
+                task_files=task_files[cap_name],
+                capabilities_dir=capabilities_dir,
+                output_dir=output_dir,
+            )
     return analysis
 
 
@@ -414,6 +460,13 @@ def main(cfg: DictConfig) -> None:
     dataset_id = str(dataset_id) if dataset_id is not None else "flat"
     output_dir = _resolve_output_dir(cfg, dataset_id)
     per_capability = bool(data_cfg.get("per_capability", False))
+    capabilities_dir_val = data_cfg.get("capabilities_dir")
+    capabilities_dir = (
+        str(capabilities_dir_val).strip()
+        if capabilities_dir_val
+        and str(capabilities_dir_val).strip().lower() not in ("null", "")
+        else None
+    )
 
     run_irt_analysis_flat(
         scores_dir=scores_dir,
@@ -425,6 +478,7 @@ def main(cfg: DictConfig) -> None:
         output_filename=output_filename,
         dataset_id=dataset_id if dataset_id != "flat" else None,
         per_capability=per_capability,
+        capabilities_dir=capabilities_dir,
     )
     logger.info(
         "IRT analysis completed (per_capability=%s).",

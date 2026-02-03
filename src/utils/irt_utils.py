@@ -564,3 +564,149 @@ def calculate_response_statistics(
             }
 
     return stats
+
+
+def discover_tasks_files(
+    capabilities_dir: str,
+) -> Dict[str, List[Tuple[str, Dict[str, Any]]]]:
+    """Discover tasks.json files under capabilities_dir and group by capability name.
+
+    Args
+    ----
+        capabilities_dir: Base directory to search for **/tasks.json.
+
+    Returns
+    -------
+        capability_name -> [(absolute_file_path, loaded_data)], where data has "metadata" and "tasks".
+        Capability name is taken from the first task's capability_name in each file.
+    """
+    if not os.path.isdir(capabilities_dir):
+        logger.warning("Capabilities dir does not exist: %s", capabilities_dir)
+        return {}
+
+    pattern = os.path.join(capabilities_dir, "**", "tasks.json")
+    files = glob.glob(pattern, recursive=True)
+    out: Dict[str, List[Tuple[str, Dict[str, Any]]]] = defaultdict(list)
+
+    for path in files:
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:
+            logger.warning("Failed to load %s: %s", path, e)
+            continue
+        tasks = data.get("tasks", [])
+        if not tasks:
+            logger.debug("No tasks in %s", path)
+            continue
+        # Use capability_name from first task (tasks from one file belong to one capability)
+        first = tasks[0]
+        cap_name = first.get("capability_name") or first.get("capability_id") or ""
+        if not cap_name:
+            logger.debug("No capability_name in %s", path)
+            continue
+        out[cap_name].append((os.path.abspath(path), data))
+
+    logger.info(
+        "Discovered tasks files for %d capabilities under %s",
+        len(out),
+        capabilities_dir,
+    )
+    return dict(out)
+
+
+def update_tasks_with_irt_and_save(
+    capability_name: str,
+    item_parameters: Dict[str, Dict[str, float]],
+    task_files: List[Tuple[str, Dict[str, Any]]],
+    capabilities_dir: str,
+    output_dir: str,
+) -> int:
+    """Update task dicts with IRT params and save to output_dir/updated_tasks/<rel_path>.
+
+    item_parameters is keyed by unique_question_id (e.g. capability_name_task_id) or task_id.
+    Adds irt_difficulty, irt_discrimination, irt_guessing to each matching task.
+
+    Returns
+    -------
+        Number of files written.
+    """
+    capabilities_dir_abs = os.path.abspath(capabilities_dir)
+    out_subdir = os.path.join(output_dir, "updated_tasks")
+    written = 0
+
+    # Set of task identifiers we have IRT params for (normalize to bare task_id for comparison)
+    prefix = capability_name + "_"
+    irt_task_ids_bare = set()
+    for k in item_parameters:
+        if k.startswith(prefix):
+            irt_task_ids_bare.add(k[len(prefix) :])
+        else:
+            irt_task_ids_bare.add(k)
+
+    for file_path, data in task_files:
+        tasks = data.get("tasks", [])
+        if not tasks:
+            continue
+        file_task_ids = {t.get("task_id") for t in tasks if t.get("task_id")}
+
+        # Check if the capability file's tasks match what we have scores for
+        file_ids_match_irt = file_task_ids <= irt_task_ids_bare
+        irt_ids_in_file = {
+            tid for tid in irt_task_ids_bare if tid in file_task_ids
+        }
+        irt_ids_not_in_file = irt_task_ids_bare - file_task_ids
+        if not file_ids_match_irt or irt_ids_not_in_file:
+            logger.warning(
+                "Capability %s: task set mismatch in %s. "
+                "File has %d task_ids; IRT has %d. "
+                "File tasks not in IRT: %s. IRT tasks not in file: %s.",
+                capability_name,
+                file_path,
+                len(file_task_ids),
+                len(irt_task_ids_bare),
+                sorted(file_task_ids - irt_ids_in_file)[:10]
+                + (["..."] if len(file_task_ids - irt_ids_in_file) > 10 else []),
+                sorted(irt_ids_not_in_file)[:10]
+                + (["..."] if len(irt_ids_not_in_file) > 10 else []),
+            )
+
+        updated = 0
+        for task in tasks:
+            task_id = task.get("task_id")
+            if not task_id:
+                continue
+            unique_id = f"{capability_name}_{task_id}"
+            params = item_parameters.get(unique_id) or item_parameters.get(task_id)
+            if not params:
+                continue
+            task["irt_difficulty"] = params.get("difficulty")
+            task["irt_discrimination"] = params.get("discrimination")
+            task["irt_guessing"] = params.get("guessing")
+            updated += 1
+
+        if updated == 0:
+            logger.debug(
+                "No IRT match for capability %s in %s (task_ids in file may not match scores)",
+                capability_name,
+                file_path,
+            )
+            continue
+
+        try:
+            rel = os.path.relpath(file_path, capabilities_dir_abs)
+        except ValueError:
+            rel = os.path.basename(file_path)
+        out_path = os.path.join(out_subdir, rel)
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        written += 1
+        logger.info(
+            "Updated %d tasks with IRT params for %s -> %s",
+            updated,
+            capability_name,
+            out_path,
+        )
+
+    return written
