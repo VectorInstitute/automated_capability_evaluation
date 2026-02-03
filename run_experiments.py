@@ -43,6 +43,7 @@ from src.task_solver.messages import Task
 from src.task_solver.moderator import TaskSolverModerator
 from src.task_solver.scientist import TaskSolverScientist
 from src.task_solver.tool_assisted_scientist import ToolAssistedScientist
+from src.tools.toolkit import ScientificToolKit
 from src.utils.model_client_utils import get_model_client
 
 
@@ -68,6 +69,8 @@ class ExperimentRunner:
         num_tasks: int = 15,
         condition: str = "both",
         output_dir: str = "experiment_results",
+        enable_tool_selection: bool = True,
+        tasks_file: str = "selected_tasks.json",
     ):
         """Initialize experiment runner.
         
@@ -77,11 +80,15 @@ class ExperimentRunner:
             num_tasks: Number of tasks per capability to run (1-15)
             condition: Which condition to run - 'baseline', 'tool_assisted', or 'both'
             output_dir: Directory for saving results
+            enable_tool_selection: Whether to enable dynamic tool selection (default: True)
+            tasks_file: Path to tasks JSON file (default: selected_tasks.json)
         """
         self.model_name = model_name
         self.num_rounds = num_rounds
         self.num_tasks = num_tasks
         self.condition = condition
+        self.enable_tool_selection = enable_tool_selection
+        self.tasks_file = Path(tasks_file)
         self.results_dir = Path(output_dir)
         self.results_dir.mkdir(parents=True, exist_ok=True)
         
@@ -106,29 +113,38 @@ class ExperimentRunner:
         }
     
     def load_tasks(self) -> List[Dict[str, Any]]:
-        """Load tasks from selected_tasks.json file."""
-        tasks_file = Path("selected_tasks.json")
-        
-        if not tasks_file.exists():
+        """Load tasks from specified tasks file."""
+        if not self.tasks_file.exists():
             raise FileNotFoundError(
-                f"Tasks file not found: {tasks_file}\n"
-                f"Please run extract_tasks.py first."
+                f"Tasks file not found: {self.tasks_file}\n"
+                f"Please provide a valid tasks file path."
             )
         
-        with open(tasks_file, "r", encoding="utf-8") as f:
+        with open(self.tasks_file, "r", encoding="utf-8") as f:
             all_tasks = json.load(f)
         
-        # Select specified number of tasks from each capability
         selected_tasks = []
-        for capability_name, task_list in all_tasks.items():
-            # Take up to num_tasks from each capability
-            for task in task_list[:self.num_tasks]:
-                task_copy = task.copy()
-                task_copy["capability_name"] = capability_name
-                task_copy["area_name"] = "math"  # All tasks are math
-                selected_tasks.append(task_copy)
         
-        log.info(f"Loaded {len(selected_tasks)} tasks ({self.num_tasks} per capability)")
+        # If using a custom tasks file (not default), load all tasks as-is
+        if self.tasks_file != Path("selected_tasks.json"):
+            for capability_name, task_list in all_tasks.items():
+                for task in task_list:
+                    task_copy = task.copy()
+                    task_copy["capability_name"] = capability_name
+                    task_copy["area_name"] = "math"  # All tasks are math
+                    selected_tasks.append(task_copy)
+            log.info(f"Loaded {len(selected_tasks)} tasks from {self.tasks_file}")
+        else:
+            # For default file, apply num_tasks limit per capability
+            for capability_name, task_list in all_tasks.items():
+                # Take up to num_tasks from each capability
+                for task in task_list[:self.num_tasks]:
+                    task_copy = task.copy()
+                    task_copy["capability_name"] = capability_name
+                    task_copy["area_name"] = "math"  # All tasks are math
+                    selected_tasks.append(task_copy)
+            log.info(f"Loaded {len(selected_tasks)} tasks ({self.num_tasks} per capability)")
+        
         return selected_tasks
     
     async def run_single_task(
@@ -211,7 +227,24 @@ class ExperimentRunner:
                     ),
                 )
             else:
-                # Use ToolAssistedScientist
+                # Use ToolAssistedScientist with toolkit
+                # Create toolkits for scientists
+                toolkit_a = ScientificToolKit(
+                    model_client=get_model_client(
+                        model_name=self.model_name,
+                        seed=42,
+                    ),
+                    enable_tool_selection=self.enable_tool_selection,
+                )
+                
+                toolkit_b = ScientificToolKit(
+                    model_client=get_model_client(
+                        model_name=self.model_name,
+                        seed=42,
+                    ),
+                    enable_tool_selection=self.enable_tool_selection,
+                )
+                
                 await ToolAssistedScientist.register(
                     runtime,
                     "TaskSolverScientistA",
@@ -222,6 +255,7 @@ class ExperimentRunner:
                         ),
                         scientist_id="A",
                         langfuse_client=self.langfuse_client,
+                        toolkit=toolkit_a,
                     ),
                 )
                 
@@ -235,6 +269,7 @@ class ExperimentRunner:
                         ),
                         scientist_id="B",
                         langfuse_client=self.langfuse_client,
+                        toolkit=toolkit_b,
                     ),
                 )
             
@@ -612,8 +647,28 @@ Examples:
         default="experiment_results",
         help="Output directory for results (default: experiment_results)"
     )
+    parser.add_argument(
+        "--tasks-file",
+        default="selected_tasks.json",
+        help="Path to tasks JSON file (default: selected_tasks.json)"
+    )
+    parser.add_argument(
+        "--enable-tool-selection",
+        action="store_true",
+        default=True,
+        help="Enable dynamic tool selection (default: True)"
+    )
+    parser.add_argument(
+        "--disable-tool-selection",
+        action="store_true",
+        default=False,
+        help="Disable dynamic tool selection (use all tools by default)"
+    )
     
     args = parser.parse_args()
+    
+    # Handle tool selection flag
+    enable_tool_selection = args.enable_tool_selection and not args.disable_tool_selection
     
     runner = ExperimentRunner(
         model_name=args.model,
@@ -621,6 +676,8 @@ Examples:
         num_tasks=args.num_tasks,
         condition=args.condition,
         output_dir=args.output,
+        enable_tool_selection=enable_tool_selection,
+        tasks_file=args.tasks_file,
     )
     await runner.run_experiment()
 

@@ -18,13 +18,13 @@ from autogen_core.models import (
 )
 from langfuse import Langfuse
 
-from src.task_solver.code_executor import PythonCodeExecutor
 from src.task_solver.messages import (
     AgentRevisionRequest,
     AgentSolution,
     TaskSolutionRequest,
     ToolAssistedAgentSolution,
 )
+from src.tools.toolkit import ScientificToolKit
 from src.utils.json_utils import parse_llm_json_response
 from src.utils.tool_assisted_prompts import (
     TOOL_ASSISTED_ROUND_1_PROMPT,
@@ -54,8 +54,8 @@ class ToolAssistedScientist(RoutedAgent):
         Unique identifier for this scientist agent in the debate.
     _langfuse_client : Langfuse
         Langfuse client for tracing and logging scientist activity.
-    _code_executor : PythonCodeExecutor
-        Executor for running Python code with restricted imports.
+    _toolkit : ScientificToolKit
+        Toolkit for tool selection and code execution.
     """
 
     def __init__(
@@ -63,13 +63,13 @@ class ToolAssistedScientist(RoutedAgent):
         model_client: ChatCompletionClient,
         scientist_id: str,
         langfuse_client: Langfuse,
-        code_timeout: int = 30,
+        toolkit: ScientificToolKit,
     ) -> None:
         super().__init__(f"Tool-Assisted Scientist {scientist_id}")
         self._model_client = model_client
         self._scientist_id = scientist_id
         self._langfuse_client = langfuse_client
-        self._code_executor = PythonCodeExecutor(timeout=code_timeout)
+        self._toolkit = toolkit
 
     def _extract_solution_components(
         self, response: str
@@ -244,7 +244,9 @@ class ToolAssistedScientist(RoutedAgent):
                     MAX_CODE_EXECUTION_ATTEMPTS,
                 )
                 
-                execution_result = self._code_executor.execute(code)
+                execution_result = self._toolkit.execute_code(code)
+                # Convert dict to object-like access
+                execution_result = type('obj', (object,), {'success': execution_result['success'], 'output': execution_result['output'], 'error': execution_result.get('error')})()
 
                 if execution_result.success:
                     code_output = execution_result.output
@@ -392,8 +394,25 @@ Return your corrected solution in the same JSON format with fixed code."""
                     }
                 )
 
+                # Step 1: Prepare tool context for problem
+                log.info(f"Scientist {self._scientist_id}: Preparing tool context")
+                tool_context = await self._toolkit.prepare_tools(message.problem)
+                
+                span.update(
+                    metadata={
+                        "tool_selection_needs_tools": tool_context.get("needs_tools"),
+                        "tool_selection_reasoning": tool_context.get("reasoning"),
+                        "selected_tools": tool_context.get("selected_libraries", []),
+                    }
+                )
+                
+                # Step 2: Format tool context for prompt
+                tool_context_str = self._toolkit.format_tool_context(tool_context)
+                
+                # Step 3: Create prompt with tool context
                 prompt = TOOL_ASSISTED_ROUND_1_PROMPT.format(
-                    problem_text=message.problem
+                    problem_text=message.problem,
+                    tool_context=tool_context_str
                 )
 
                 system_message = SystemMessage(content=TOOL_ASSISTED_SYSTEM_MESSAGE)

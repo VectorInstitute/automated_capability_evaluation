@@ -29,6 +29,8 @@ TOOL_ASSISTED_ROUND_1_PROMPT = """Can you solve the following problem? You have 
 
 PROBLEM: {problem_text}
 
+{tool_context}
+
 **Instructions:**
 1. First, explain your mathematical approach and reasoning
 2. If helpful, write Python code to verify your solution or perform computations

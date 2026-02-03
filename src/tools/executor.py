@@ -1,74 +1,76 @@
-"""Python code execution module for tool-assisted task solving."""
+"""Python code executor with restricted imports."""
 
 import ast
 import sys
 import traceback
+from dataclasses import dataclass, field
 from io import StringIO
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 
+@dataclass
 class CodeExecutionResult:
-    """Result of code execution.
+    """Result of code execution."""
+    success: bool
+    output: str
+    error: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
     
-    Attributes
-    ----------
-    success : bool
-        Whether the code executed successfully.
-    output : str
-        Standard output from the code execution.
-    error : str | None
-        Error message if execution failed, None otherwise.
-    """
-    
-    def __init__(self, success: bool, output: str, error: str | None = None):
-        self.success = success
-        self.output = output
-        self.error = error
-    
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert result to dictionary."""
         return {
             "success": self.success,
             "output": self.output,
             "error": self.error,
+            "metadata": self.metadata,
         }
 
 
-class PythonCodeExecutor:
-    """Execute Python code with restricted imports for mathematical computations.
-    
-    This executor allows SymPy, NumPy, and SciPy for mathematical tasks while
-    restricting potentially dangerous operations.
+class PythonExecutor:
+    """Execute Python code with restricted imports for safe execution."
     
     Attributes
     ----------
-    allowed_imports : set[str]
+    allowed_imports : List[str]
         Set of allowed module names for import.
     timeout : int
         Maximum execution time in seconds (not enforced in basic implementation).
     """
     
-    def __init__(self, timeout: int = 30):
-        """Initialize the code executor.
+    def __init__(
+        self,
+        allowed_imports: Optional[List[str]] = None,
+        timeout: int = 30
+    ):
+        """Initialize the Python executor.
         
         Parameters
         ----------
-        timeout : int, optional
-            Maximum execution time in seconds, by default 30.
-            Note: Timeout enforcement requires additional implementation.
+        allowed_imports : Optional[List[str]]
+            List of allowed module names. If None, uses default scientific libs.
+        timeout : int
+            Maximum execution time in seconds.
         """
-        self.allowed_imports = {
-            'sympy',
-            'numpy',
-            'scipy',
-            'math',
-            'fractions',
-            'decimal',
-            'cmath',
-        }
-        self.timeout = timeout
+        if allowed_imports is None:
+            allowed_imports = [
+                'sympy',
+                'numpy',
+                'scipy',
+                'math',
+                'fractions',
+                'decimal',
+                'cmath',
+            ]
+        
+        self._allowed_imports = set(allowed_imports)
+        self._timeout = timeout
     
-    def _validate_syntax(self, code: str) -> tuple[bool, str | None]:
+    @property
+    def supported_libraries(self) -> List[str]:
+        """List of supported libraries/modules."""
+        return list(self._allowed_imports)
+    
+    def validate_syntax(self, code: str) -> tuple[bool, Optional[str]]:
         """Validate Python syntax.
         
         Parameters
@@ -78,7 +80,7 @@ class PythonCodeExecutor:
             
         Returns
         -------
-        tuple[bool, str | None]
+        tuple[bool, Optional[str]]
             (is_valid, error_message)
         """
         try:
@@ -86,18 +88,53 @@ class PythonCodeExecutor:
             return True, None
         except SyntaxError as e:
             return False, f"Syntax error at line {e.lineno}: {e.msg}"
+        except Exception as e:
+            return False, f"Validation error: {str(e)}"
     
-    def _create_restricted_globals(self) -> dict[str, Any]:
+    def _validate_imports(self, code: str) -> tuple[bool, Optional[str]]:
+        """Validate that only allowed imports are used.
+        
+        Parameters
+        ----------
+        code : str
+            Python code to validate.
+            
+        Returns
+        -------
+        tuple[bool, Optional[str]]
+            (is_valid, error_message)
+        """
+        try:
+            tree = ast.parse(code)
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.Import, ast.ImportFrom)):
+                    if isinstance(node, ast.ImportFrom):
+                        module_name = node.module
+                    else:
+                        module_name = node.names[0].name if node.names else None
+                    
+                    if module_name:
+                        base_module = module_name.split('.')[0]
+                        if base_module not in self._allowed_imports:
+                            return False, (
+                                f"Import of '{module_name}' is not allowed. "
+                                f"Allowed modules: {', '.join(sorted(self._allowed_imports))}"
+                            )
+            return True, None
+        except Exception as e:
+            return False, f"Import validation error: {str(e)}"
+    
+    def _create_restricted_globals(self) -> Dict[str, Any]:
         """Create a restricted global namespace for code execution.
         
         Returns
         -------
-        dict[str, Any]
+        Dict[str, Any]
             Dictionary with restricted builtins and allowed imports.
         """
         # Restricted builtins - only safe operations
         safe_builtins = {
-            '__import__': __import__,  # Required for import statements to work
+            '__import__': __import__,
             'print': print,
             'range': range,
             'len': len,
@@ -135,13 +172,15 @@ class PythonCodeExecutor:
             '__builtins__': safe_builtins,
         }
     
-    def execute(self, code: str) -> CodeExecutionResult:
+    def execute(self, code: str, context: Optional[Dict[str, Any]] = None) -> CodeExecutionResult:
         """Execute Python code with safety restrictions.
         
         Parameters
         ----------
         code : str
             Python code to execute.
+        context : Optional[Dict[str, Any]]
+            Additional context (currently unused).
             
         Returns
         -------
@@ -149,7 +188,7 @@ class PythonCodeExecutor:
             Result object containing success status, output, and any errors.
         """
         # Validate syntax first
-        is_valid, error_msg = self._validate_syntax(code)
+        is_valid, error_msg = self.validate_syntax(code)
         if not is_valid:
             return CodeExecutionResult(
                 success=False,
@@ -157,39 +196,20 @@ class PythonCodeExecutor:
                 error=error_msg
             )
         
-        # Validate imports using AST
-        try:
-            tree = ast.parse(code)
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.Import, ast.ImportFrom)):
-                    if isinstance(node, ast.ImportFrom):
-                        module_name = node.module
-                    else:
-                        module_name = node.names[0].name if node.names else None
-                    
-                    if module_name:
-                        base_module = module_name.split('.')[0]
-                        if base_module not in self.allowed_imports:
-                            return CodeExecutionResult(
-                                success=False,
-                                output="",
-                                error=(
-                                    f"Import of '{module_name}' is not allowed. "
-                                    f"Allowed modules: {', '.join(sorted(self.allowed_imports))}"
-                                )
-                            )
-        except Exception as e:
+        # Validate imports
+        is_valid, error_msg = self._validate_imports(code)
+        if not is_valid:
             return CodeExecutionResult(
                 success=False,
                 output="",
-                error=f"Import validation error: {str(e)}"
+                error=error_msg
             )
         
         # Create restricted execution environment
         restricted_globals = self._create_restricted_globals()
         
         # Pre-import allowed modules to make them available
-        for module_name in self.allowed_imports:
+        for module_name in self._allowed_imports:
             try:
                 restricted_globals[module_name] = __import__(module_name)
             except ImportError:
@@ -207,7 +227,8 @@ class PythonCodeExecutor:
             return CodeExecutionResult(
                 success=True,
                 output=output,
-                error=None
+                error=None,
+                metadata={"executor": "python"}
             )
             
         except Exception as e:
@@ -217,7 +238,8 @@ class PythonCodeExecutor:
             return CodeExecutionResult(
                 success=False,
                 output=captured_output.getvalue(),
-                error=error_msg
+                error=error_msg,
+                metadata={"executor": "python"}
             )
             
         finally:
@@ -225,21 +247,27 @@ class PythonCodeExecutor:
             sys.stdout = old_stdout
 
 
-def execute_python_code(code: str, timeout: int = 30) -> dict[str, Any]:
+def execute_python_code(
+    code: str,
+    allowed_imports: Optional[List[str]] = None,
+    timeout: int = 30
+) -> Dict[str, Any]:
     """Convenience function to execute Python code.
     
     Parameters
     ----------
     code : str
         Python code to execute.
-    timeout : int, optional
-        Maximum execution time in seconds, by default 30.
+    allowed_imports : Optional[List[str]]
+        List of allowed imports.
+    timeout : int
+        Maximum execution time in seconds.
         
     Returns
     -------
-    dict[str, Any]
-        Dictionary with 'success', 'output', and 'error' keys.
+    Dict[str, Any]
+        Dictionary with 'success', 'output', 'error', and 'metadata' keys.
     """
-    executor = PythonCodeExecutor(timeout=timeout)
+    executor = PythonExecutor(allowed_imports=allowed_imports, timeout=timeout)
     result = executor.execute(code)
     return result.to_dict()
