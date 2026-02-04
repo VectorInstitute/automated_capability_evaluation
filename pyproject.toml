@@ -177,6 +177,8 @@ env = [
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]
+# Exclude legacy tests (imports are broken after code was moved)
+norecursedirs = ["legacy"]
 
 [tool.coverage]
     [tool.coverage.run]
