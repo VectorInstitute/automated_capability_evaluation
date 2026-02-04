@@ -12,7 +12,7 @@ import json
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from omegaconf import DictConfig
 
@@ -36,7 +36,7 @@ class EvalSetupError(Exception):
 def _validate_inputs(
     experiment_dir: Path,
     validation_tag: str,
-    eval_cfg: dict,
+    eval_cfg: Dict[str, Any],
 ) -> None:
     """Validate all required inputs exist.
 
@@ -120,8 +120,8 @@ def _group_by_capability(
     grouped = defaultdict(list)
     for _, validation in validated_tasks:
         task_solution = validation.task_solution
-        area_id = task_solution.task_obj.capability.area.area_id
-        cap_id = task_solution.task_obj.capability.capability_id
+        area_id = task_solution.task.capability.area.area_id
+        cap_id = task_solution.task.capability.capability_id
         grouped[(area_id, cap_id)].append(validation)
     return grouped
 
@@ -146,16 +146,16 @@ def _create_eval_dataset(
     """
     # Get capability info from first validation
     first = validations[0]
-    capability = first.task_solution.task_obj.capability
+    capability = first.task_solution.task.capability
 
     # Build tasks list
-    tasks = []
+    tasks: List[Dict[str, str]] = []
     for v in validations:
         ts = v.task_solution
         tasks.append(
             {
                 "id": ts.task_id,
-                "input": ts.task,
+                "input": ts.task_statement,
                 "target": ts.solution,
             }
         )
@@ -163,8 +163,8 @@ def _create_eval_dataset(
     return EvalDataset(
         area_id=area_id,
         capability_id=capability_id,
-        capability_name=capability.name,
-        domain=capability.area.domain.name,
+        capability_name=capability.capability_name,
+        domain=capability.area.domain.domain_name,
         tasks=tasks,
         num_tasks=len(tasks),
         prompt_template=prompt_template,

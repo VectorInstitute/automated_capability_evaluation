@@ -9,7 +9,7 @@ See: https://inspect.aisi.org.uk/
 import logging
 import math
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from inspect_ai.log import read_eval_log
 from omegaconf import DictConfig
@@ -50,7 +50,7 @@ def _find_result_dirs(results_dir: Path, subject_llm: str) -> List[Path]:
     return result_dirs
 
 
-def _compute_stats(scores: List[float]) -> Dict:
+def _compute_stats(scores: List[float]) -> Dict[str, Any]:
     """Compute mean and standard error from scores.
 
     Args:
@@ -76,7 +76,7 @@ def _compute_stats(scores: List[float]) -> Dict:
     return {"mean": mean, "std_err": std_err, "num_tasks": n}
 
 
-def _parse_inspect_logs(result_dir: Path) -> Dict:
+def _parse_inspect_logs(result_dir: Path) -> Dict[str, Any]:
     """Parse Inspect logs to extract scores.
 
     Args:
@@ -188,8 +188,8 @@ def run_eval_stage2(
             area_id = result_dir.parent.name
 
             # Get capability info from dataset
-            dataset = dataset_map.get((area_id, cap_id))
-            if not dataset:
+            cap_dataset = dataset_map.get((area_id, cap_id))
+            if cap_dataset is None:
                 logger.warning(
                     "  No dataset found for %s/%s, skipping",
                     area_id,
@@ -204,7 +204,7 @@ def run_eval_stage2(
             score = CapabilityScore(
                 area_id=area_id,
                 capability_id=cap_id,
-                capability_name=dataset.capability_name,
+                capability_name=cap_dataset.capability_name,
                 subject_llm=llm_name,
                 mean=parsed["mean"],
                 std_err=parsed["std_err"],

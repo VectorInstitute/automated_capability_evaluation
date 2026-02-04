@@ -8,7 +8,7 @@ See: https://inspect.aisi.org.uk/
 
 import logging
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 from inspect_ai import Task
 from inspect_ai import eval as inspect_eval
@@ -106,7 +106,7 @@ def _create_inspect_task(
 def _run_inspect_eval(
     dataset: EvalDataset,
     subject_llm: str,
-    judge_llm: dict,
+    judge_llm: Dict[str, str],
     output_dir: Path,
 ) -> bool:
     """Run Inspect evaluation for a single capability/LLM combination.

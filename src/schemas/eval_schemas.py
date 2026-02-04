@@ -2,8 +2,8 @@
 
 Defines dataclasses for evaluation pipeline:
 - EvalConfig: Configuration for evaluation run (Stage 0 output)
-- EvalDataset: Dataset for one capability (Stage 1 output)
-- CapabilityScore: Score for one capability (Stage 3 output)
+- EvalDataset: Dataset for one capability (Stage 0 output)
+- CapabilityScore: Score for one capability (Stage 2 output)
 """
 
 from dataclasses import dataclass
@@ -52,8 +52,8 @@ class EvalConfig:
 class EvalDataset:
     """Dataset prepared for Inspect evaluation.
 
-    Created by Eval Stage 1 (Dataset Preparation). Contains all info needed
-    to run Inspect evaluation for one capability.
+    Created by Eval Stage 0 (Setup and Dataset Preparation). Contains all info
+    needed to run Inspect evaluation for one capability.
     """
 
     area_id: str
@@ -96,7 +96,7 @@ class EvalDataset:
 class CapabilityScore:
     """Score for a single capability from evaluation.
 
-    Created by Eval Stage 3 (Score Aggregation). Represents the evaluation
+    Created by Eval Stage 2 (Score Aggregation). Represents the evaluation
     result for one capability with one subject LLM.
     """
 
