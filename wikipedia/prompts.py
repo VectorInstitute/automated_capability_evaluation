@@ -1,6 +1,5 @@
 """Centralized prompts for all Wikipedia-related scripts."""
 
-
 # System prompts
 SYSTEM_PROMPT_MATH_CAPABILITIES = "You are an expert in mathematical capabilities."
 SYSTEM_PROMPT_MATH_TAXONOMIST = (
@@ -42,7 +41,9 @@ Return ONLY the exact area name from the list above, nothing else."""
 
 
 # User prompts - functions that generate user prompts
-def get_wikipedia_to_generated_prompt(wikipedia_cap_name: str, wikipedia_cap_description: str, capabilities_list: str) -> str:
+def get_wikipedia_to_generated_prompt(
+    wikipedia_cap_name: str, wikipedia_cap_description: str, capabilities_list: str
+) -> str:
     """Generate prompt for matching Wikipedia capability to generated capabilities."""
     return f"""You are an expert in mathematical capabilities. Determine which generated capability best matches the given Wikipedia capability.
 
@@ -65,7 +66,9 @@ Instructions:
 Answer with only the capability name or "none":"""
 
 
-def get_generated_to_wikipedia_prompt(generated_cap_name: str, generated_cap_description: str, capabilities_list: str) -> str:
+def get_generated_to_wikipedia_prompt(
+    generated_cap_name: str, generated_cap_description: str, capabilities_list: str
+) -> str:
     """Generate prompt for matching generated capability to Wikipedia capabilities."""
     return f"""You are an expert in mathematical capabilities. Find the Wikipedia capability that most closely matches the generated capability.
 
@@ -112,4 +115,3 @@ def get_capability_summary_prompt(description: str) -> str:
 def get_capability_categorization_prompt(description: str) -> str:
     """Generate prompt for categorizing a mathematical capability."""
     return f"Please categorize this mathematical concept into one of the 10 areas listed above:\n\n{description}"
-

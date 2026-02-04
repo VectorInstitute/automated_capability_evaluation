@@ -33,12 +33,6 @@ repos:
       types: [python]
       exclude: "tests"
 
-  - repo: https://github.com/crate-ci/typos
-    rev: dictgen-v0.3.1
-    hooks:
-      - id: typos
-        args: []
-
   - repo: https://github.com/nbQA-dev/nbQA
     rev: 1.9.1
     hooks:
