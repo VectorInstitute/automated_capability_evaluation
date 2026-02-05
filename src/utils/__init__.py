@@ -16,5 +16,5 @@ from .quality_evaluation_utils import (
     compute_mdm,
     compute_mmd,
     compute_pad,
-    fit_umap_shared,
+    fit_umap,
 )

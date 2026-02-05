@@ -7,10 +7,10 @@ from typing import Any, Dict, List, Mapping, Optional, cast
 
 import hydra
 import numpy as np
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from src.generate_embeddings import EmbeddingGenerator, EmbeddingModelName
-from src.utils import (
+from src.utils.quality_evaluation_utils import (
     compute_benchmark_consistency,
     compute_benchmark_difficulty,
     compute_benchmark_novelty,
@@ -20,8 +20,7 @@ from src.utils import (
     compute_mdm,
     compute_mmd,
     compute_pad,
-    constants,
-    fit_umap_shared,
+    fit_umap,
 )
 from src.utils.data_utils import get_run_id
 from src.utils.diversity_metrics_dataloaders import (
@@ -274,13 +273,17 @@ def main(cfg: DictConfig) -> None:
     """Compute benchmark-level quality metrics from saved capability scores."""
     run_id = get_run_id(cfg)
 
-    scores_root_dir = cfg.quality_eval_cfg.scores_root_dir
+    # Synthetic benchmark source (scores + capabilities)
+    synthetic_cfg = cfg.quality_eval_cfg.synthetic_source
+    scores_root_dir = synthetic_cfg.get("scores_root_dir")
+    scores_subdir = synthetic_cfg.get("scores_subdir", "scores")
+
     if scores_root_dir:
         base_scores_dir = scores_root_dir
     else:
         base_scores_dir = os.path.join(
             constants.BASE_ARTIFACTS_DIR,
-            cfg.quality_eval_cfg.scores_subdir,
+            scores_subdir,
             run_id,
         )
         logger.info("Using fallback scores directory: %s", base_scores_dir)
@@ -301,19 +304,7 @@ def main(cfg: DictConfig) -> None:
     # For consistency: map model to list of accuracies per generation
     model_to_generation_accuracies: Dict[str, List[float]] = {}
 
-    # Get prior dataset names to exclude them from current dataset
-    prior_datasets = cfg.quality_eval_cfg.prior_datasets
-    prior_dataset_names = set()
-    for prior_path in prior_datasets:
-        # Extract the directory name from the path
-        prior_name = os.path.basename(os.path.normpath(prior_path))
-        prior_dataset_names.add(prior_name)
-
     for model_name in os.listdir(base_scores_dir):
-        # Skip if this is a prior dataset directory
-        if model_name in prior_dataset_names:
-            logger.debug("Skipping prior dataset directory: %s", model_name)
-            continue
         model_dir = os.path.join(base_scores_dir, model_name)
         if not os.path.isdir(model_dir):
             continue
@@ -392,16 +383,38 @@ def main(cfg: DictConfig) -> None:
         except ValueError as e:
             logger.warning("Could not compute consistency: %s", e)
 
-    # Compute novelty if prior datasets are provided
-    prior_datasets = cfg.quality_eval_cfg.prior_datasets
-    if prior_datasets:
+    # Compute novelty using score dirs derived from real_data_source.
+    novelty_score_dirs: List[str] = []
+    real_source_cfg = cfg.quality_eval_cfg.get("real_data_source")
+    real_source_configs: List[Mapping[str, Any]] = []
+    if real_source_cfg is not None:
+        cfg_container = OmegaConf.to_container(real_source_cfg, resolve=True)
+        if isinstance(cfg_container, list):
+            real_source_configs = cfg_container  # type: ignore[list-item]
+        elif isinstance(cfg_container, Mapping):
+            real_source_configs = [cfg_container]  # type: ignore[list-item]
+
+    # Use synthetic_source.scores_root_dir for deriving default score dirs
+    scores_root_dir = synthetic_cfg.get("scores_root_dir")
+    for src in real_source_configs:
+        scores_dir = src.get("scores_dir")
+        if not scores_dir:
+            src_name = src.get("name")
+            if scores_root_dir and src_name:
+                scores_dir = os.path.join(scores_root_dir, src_name)
+        if scores_dir:
+            novelty_score_dirs.append(str(scores_dir))
+
+    if novelty_score_dirs:
         try:
             logger.info("Loading prior datasets for novelty computation...")
             prior_datasets_accuracies: List[Dict[str, float]] = []
-            for prior_dir in prior_datasets:
+            prior_labels: List[str] = []
+            for prior_dir in novelty_score_dirs:
                 prior_acc = _load_avg_model_accuracies_from_dir(prior_dir)
                 if prior_acc:
                     prior_datasets_accuracies.append(prior_acc)
+                    prior_labels.append(os.path.basename(os.path.normpath(prior_dir)))
                     logger.info(
                         "Loaded prior dataset from %s: %d models",
                         prior_dir,
@@ -413,33 +426,44 @@ def main(cfg: DictConfig) -> None:
                     )
 
             if prior_datasets_accuracies:
-                novelty = compute_benchmark_novelty(
-                    model_to_accuracy,
-                    cast(List[Mapping[str, float]], prior_datasets_accuracies),
-                )
-                logger.info("Benchmark novelty: %.4f", novelty)
+                novelty_mode = str(
+                    cfg.quality_eval_cfg.get("novelty_mode", "combined")
+                ).lower()
+                if novelty_mode in ("combined", "both"):
+                    novelty = compute_benchmark_novelty(
+                        model_to_accuracy,
+                        cast(
+                            List[Mapping[str, float]], prior_datasets_accuracies
+                        ),
+                    )
+                    logger.info("Benchmark novelty (combined): %.4f", novelty)
+                if novelty_mode in ("per_dataset", "both"):
+                    for label, prior_acc in zip(
+                        prior_labels, prior_datasets_accuracies
+                    ):
+                        n_per = compute_benchmark_novelty(
+                            model_to_accuracy, [prior_acc]
+                        )
+                        logger.info(
+                            "Novelty[%s]: %.4f", label, n_per
+                        )
             else:
                 logger.warning(
-                    "No valid prior datasets found, skipping novelty computation."
+                    "No valid real data score dirs found (real_data_source with scores_dir or name), skipping novelty computation."
                 )
         except ValueError as e:
             logger.warning("Could not compute novelty: %s", e)
         except Exception as e:  # noqa: BLE001
             logger.warning("Error computing novelty: %s", e)
 
-    # Compute embedding-based metrics if capabilities directory is provided
-    capabilities_dir = cfg.quality_eval_cfg.capabilities_dir
+    # Compute embedding-based metrics if synthetic capabilities directory is provided
+    capabilities_dir = synthetic_cfg.get("capabilities_dir")
     if capabilities_dir:
         internal_diversity_metrics = cfg.quality_eval_cfg.internal_diversity_metrics
         comparison_metrics = cfg.quality_eval_cfg.comparison_metrics
         embedding_model = cfg.quality_eval_cfg.embedding_model
         embedding_backend = cfg.quality_eval_cfg.embedding_backend
         embed_dimensions = cfg.quality_eval_cfg.embedding_dimensions
-
-        # Get dataloader config if provided
-        synth_dataloader_config = cfg.quality_eval_cfg.synthetic_dataloader_config
-        if synth_dataloader_config:
-            synth_dataloader_config = dict(synth_dataloader_config)
 
         logger.info(
             "Computing embedding-based metrics for capabilities in %s", capabilities_dir
@@ -450,7 +474,7 @@ def main(cfg: DictConfig) -> None:
             capabilities_dir=capabilities_dir,
             embedding_model_name=embedding_model,
             embed_dimensions=embed_dimensions,
-            dataloader_config=synth_dataloader_config,
+            dataloader_config=None,
             embedding_backend=embedding_backend,
         )
 
@@ -458,58 +482,136 @@ def main(cfg: DictConfig) -> None:
             logger.warning("No embeddings generated, skipping diversity metrics")
         else:
             real_embeddings = None
-            # Check if real data directory/file is provided for comparison
-            real_data_dir = cfg.quality_eval_cfg.real_data_dir
-            real_dataloader_config = cfg.quality_eval_cfg.real_dataloader_config
+            # Real data sources for comparison metrics (PAD, MMD, KL)
+            real_mode = str(
+                cfg.quality_eval_cfg.get("real_comparison_mode", "pooled")
+            ).lower()
+            real_source_cfg = cfg.quality_eval_cfg.get("real_data_source")
 
-            # Real data: valid path or dataloader config (e.g. HuggingFace)
-            has_real_data = False
-            # Case 1: local path (capability/JSONL/CSV formats)
-            if (
-                real_data_dir
-                and (os.path.isdir(real_data_dir) or os.path.isfile(real_data_dir))
-                or real_dataloader_config
-                and real_dataloader_config.get("type") == "huggingface"
-            ):
-                has_real_data = True
+            # Normalize to a list of source configs: each with optional name, path, dataloader.
+            # real_data_source can be a single mapping or a list of mappings.
+            real_source_configs: List[Dict[str, Any]] = []
+            if real_source_cfg is None:
+                logger.info(
+                    "real_data_source is not set in config; skipping comparison metrics (PAD, MMD, KL)."
+                )
+            else:
+                cfg_container = OmegaConf.to_container(real_source_cfg, resolve=True)
+                if isinstance(cfg_container, list):
+                    raw_list: List[Any] = cfg_container
+                elif isinstance(cfg_container, Mapping):
+                    raw_list = [cfg_container]
+                else:
+                    raw_list = []
+                for i, src in enumerate(raw_list):
+                    src_dict = dict(src)
+                    src_dict.setdefault("name", f"real_{i}")
+                    real_source_configs.append(src_dict)
 
-            if has_real_data:
-                # Get real data dataloader config if provided
-                if real_dataloader_config:
-                    real_dataloader_config = dict(real_dataloader_config)
+            real_embeddings_list: List[np.ndarray] = []
+            real_names: List[str] = []
 
-                if real_data_dir:
-                    logger.info("Loading real data embeddings from %s", real_data_dir)
+            # Load embeddings for each real source
+            for src in real_source_configs:
+                name = src.get("name", "real")
+                real_data_path = src.get("path")
+                real_dataloader_cfg = src.get("dataloader")
+                if real_dataloader_cfg is not None and not isinstance(
+                    real_dataloader_cfg, dict
+                ):
+                    real_dataloader_cfg = dict(
+                        OmegaConf.to_container(real_dataloader_cfg, resolve=True)
+                    )
+
+                has_real_data = False
+                if real_data_path and (
+                    os.path.isdir(real_data_path) or os.path.isfile(real_data_path)
+                ):
+                    has_real_data = True
+                elif real_dataloader_cfg and real_dataloader_cfg.get(
+                    "type"
+                ) == "huggingface":
+                    has_real_data = True
+
+                if not has_real_data:
+                    logger.info(
+                        "Skipping real source %s: no valid path or dataloader (type=huggingface) provided",
+                        name,
+                    )
+                    continue
+
+                if real_dataloader_cfg is None:
+                    real_dataloader_cfg = {}
+
+                if real_data_path:
+                    logger.info("Loading real data embeddings from %s", real_data_path)
                 else:
                     logger.info(
-                        "Loading real data embeddings using dataloader config (no local path)"
+                        "Loading real data embeddings for %s using dataloader config (no local path)",
+                        name,
                     )
-                real_embeddings, _ = _load_capabilities_and_generate_embeddings(
-                    # HuggingFace: capabilities_dir unused, pass empty string
-                    capabilities_dir=real_data_dir or "",
+
+                emb_real, _ = _load_capabilities_and_generate_embeddings(
+                    capabilities_dir=real_data_path or "",
                     embedding_model_name=embedding_model,
                     embed_dimensions=embed_dimensions,
-                    dataloader_config=real_dataloader_config,
+                    dataloader_config=real_dataloader_cfg,
                     embedding_backend=embedding_backend,
                 )
+                if emb_real is None or len(emb_real) == 0:
+                    logger.warning(
+                        "No real data embeddings generated for source %s, skipping it",
+                        name,
+                    )
+                    continue
 
-                if len(real_embeddings) > 0:
-                    # Comparison metrics (need both synth and real)
-                    if "pad" in comparison_metrics:
-                        try:
+                real_embeddings_list.append(emb_real)
+                real_names.append(name)
+
+            if real_embeddings_list:
+                # Pooled real embeddings (used for KL + joint UMAP, and for PAD/MMD in 'pooled' mode)
+                real_embeddings = np.vstack(real_embeddings_list)
+
+                # Comparison metrics (need both synth and real)
+                if "pad" in comparison_metrics:
+                    try:
+                        if real_mode == "per_dataset" and len(real_embeddings_list) > 1:
+                            for name, emb_real in zip(real_names, real_embeddings_list):
+                                pad_score = compute_pad(
+                                    synth_embeddings,
+                                    emb_real,
+                                    classifier_name=cfg.quality_eval_cfg.pad_classifier,
+                                )
+                                logger.info("PAD[%s]: %.4f", name, pad_score)
+                        else:
                             pad_score = compute_pad(
                                 synth_embeddings,
                                 real_embeddings,
                                 classifier_name=cfg.quality_eval_cfg.pad_classifier,
                             )
-                            logger.info("PAD score: %.4f", pad_score)
-                        except Exception as e:  # noqa: BLE001
-                            logger.warning("Error computing PAD: %s", e)
+                            logger.info("PAD (pooled real): %.4f", pad_score)
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning("Error computing PAD: %s", e)
 
-                    if "mmd" in comparison_metrics:
-                        try:
-                            mmd_kernel = cfg.quality_eval_cfg.mmd_kernel
-                            mmd_degree = cfg.quality_eval_cfg.mmd_degree
+                if "mmd" in comparison_metrics:
+                    try:
+                        mmd_kernel = cfg.quality_eval_cfg.mmd_kernel
+                        mmd_degree = cfg.quality_eval_cfg.mmd_degree
+                        if real_mode == "per_dataset" and len(real_embeddings_list) > 1:
+                            for name, emb_real in zip(real_names, real_embeddings_list):
+                                mmd_score = compute_mmd(
+                                    synth_embeddings,
+                                    emb_real,
+                                    kernel=mmd_kernel,
+                                    degree=mmd_degree,
+                                )
+                                logger.info(
+                                    "MMD[%s] (%s kernel): %.4f",
+                                    name,
+                                    mmd_kernel,
+                                    mmd_score,
+                                )
+                        else:
                             mmd_score = compute_mmd(
                                 synth_embeddings,
                                 real_embeddings,
@@ -517,55 +619,49 @@ def main(cfg: DictConfig) -> None:
                                 degree=mmd_degree,
                             )
                             logger.info(
-                                "MMD score (%s kernel): %.4f", mmd_kernel, mmd_score
+                                "MMD (pooled real, %s kernel): %.4f",
+                                mmd_kernel,
+                                mmd_score,
                             )
-                        except Exception as e:  # noqa: BLE001
-                            logger.warning("Error computing MMD: %s", e)
-                else:
-                    logger.warning(
-                        "No real data embeddings generated, skipping comparison metrics"
-                    )
-            else:
-                logger.info(
-                    "No real_data_dir provided, skipping comparison metrics (require real data)"
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning("Error computing MMD: %s", e)
+            elif real_source_configs:
+                logger.warning(
+                    "No real data embeddings could be generated for any source. "
+                    "Check dataloader config (e.g. dataset_name, text_field) and embedding API/network."
                 )
+            # When real_source_configs is empty we already logged that real_data_source is not set
 
-            # Joint UMAP
+            # Joint UMAP (for entropy and/or KL in shared space)
+            has_real = (
+                real_embeddings is not None and len(real_embeddings) > 0
+            )
             umap_n_components = cfg.quality_eval_cfg.umap_n_components
             umap_n_neighbors = cfg.quality_eval_cfg.umap_n_neighbors
             umap_min_dist = cfg.quality_eval_cfg.umap_min_dist
             umap_metric = cfg.quality_eval_cfg.umap_metric
-            need_joint_umap = umap_n_components is not None and (
+            need_umap = umap_n_components is not None and (
                 "entropy" in internal_diversity_metrics
-                or (
-                    "kl_divergence" in comparison_metrics
-                    and real_embeddings is not None
-                    and len(real_embeddings) > 0
-                )
+                or ("kl_divergence" in comparison_metrics and has_real)
             )
             synth_reduced = None
             real_reduced = None
-            if need_joint_umap:
-                all_emb = [synth_embeddings]
-                if real_embeddings is not None and len(real_embeddings) > 0:
-                    all_emb.append(real_embeddings)
-                reduced_list = fit_umap_shared(
-                    all_emb,
+            if need_umap:
+                embeddings_to_reduce = [synth_embeddings]
+                if has_real:
+                    embeddings_to_reduce.append(real_embeddings)
+                reduced_list = fit_umap(
+                    embeddings_to_reduce,
                     umap_n_components,
                     n_neighbors=umap_n_neighbors,
                     min_dist=umap_min_dist,
                     metric=umap_metric,
                 )
                 synth_reduced = reduced_list[0]
-                if len(reduced_list) > 1:
-                    real_reduced = reduced_list[1]
+                real_reduced = reduced_list[1] if len(reduced_list) > 1 else None
 
             # KL divergence (joint UMAP so synth and real share a space)
-            if (
-                "kl_divergence" in comparison_metrics
-                and real_embeddings is not None
-                and len(real_embeddings) > 0
-            ):
+            if "kl_divergence" in comparison_metrics and has_real:
                 try:
                     kl_k = cfg.quality_eval_cfg.kl_k
                     kl_synth = (

@@ -2,22 +2,55 @@ prompt_cfg:
   sys_msg: Compute benchmark quality metrics from existing scores.
 
 quality_eval_cfg:
-  scores_root_dir: "/projects/DeepLesion/projects/automated_capability_evaluation/data/scores_sample"
-  scores_subdir: "scores"
-  prior_datasets:
-    - "/projects/DeepLesion/projects/automated_capability_evaluation/data/scores_sample/math-500"
+  # Synthetic benchmark source (scores + capabilities)
+  synthetic_source:
+    # Root directory containing per-model score subdirs for the synthetic benchmark
+    scores_root_dir: "/projects/DeepLesion/projects/automated_capability_evaluation/data/scores_sample"
+    # Optional subdirectory name when falling back to BASE_ARTIFACTS_DIR
+    scores_subdir: "scores"
+    # Capability directory for the synthetic benchmark
+    capabilities_dir: "/projects/aieng/public/ace/artifacts/negin_ace/taks/math/"
 
-  capabilities_dir: "/projects/aieng/public/ace/artifacts/negin_ace/taks/math/"
-  synthetic_dataloader_config: null  # Optional: custom dataloader for capabilities_dir (e.g. jsonl, csv, huggingface)
+  # Novelty: "combined" = one score from all real sources (linear regression on all);
+  # "per_dataset" = one novelty per prior (how novel vs each benchmark separately);
+  # "both" = report combined and per-dataset.
+  novelty_mode: "combined"  # "combined" | "per_dataset" | "both"
 
-  real_data_dir: null
+  # Source(s) of REAL data used for comparison metrics (PAD, MMD, KL).
+  # real_data_source can be:
+  # - a single mapping {path, dataloader, name}, OR
+  # - a list of such mappings when you have multiple real datasets.
+  #
+  # When multiple sources are provided, real_comparison_mode controls whether
+  # they are pooled together into one real distribution ("pooled") or compared
+  # pairwise against the synthetic data ("per_dataset") for PAD/MMD.
+  real_comparison_mode: "pooled"  # or "per_dataset"
 
-  real_dataloader_config:
-    type: "huggingface"
-    dataset_name: "HuggingFaceH4/MATH-500"
-    split: "test"
-    subset: null
-    text_field: "problem"
+  # Example: multiple real datasets (HuggingFace math benchmarks).
+  # Novelty uses score dirs from each source: set scores_dir explicitly, or
+  # we use scores_root_dir/<name> when name is set.
+  real_data_source:
+    - name: "MATH-500"
+      path: null
+      # Optional: explicit scores directory for novelty; otherwise uses
+      # scores_root_dir/name
+      scores_dir: null
+      dataloader:
+        type: "huggingface"
+        dataset_name: "HuggingFaceH4/MATH-500"
+        split: "test"
+        subset: null
+        text_field: "problem"
+
+    - name: "MATH-Hard"
+      path: null
+      scores_dir: null
+      dataloader:
+        type: "huggingface"
+        dataset_name: "lighteval/MATH-Hard"
+        split: "test"
+        subset: null
+        text_field: "problem"
 
   # embedding_backend: "openai" uses OpenAI embeddings, "huggingface" uses sentence-transformers
   embedding_backend: "openai"
@@ -53,6 +86,17 @@ quality_eval_cfg:
   umap_n_neighbors: 15  # Number of neighbors for UMAP
   umap_min_dist: 0.1  # Minimum distance for UMAP
   umap_metric: "cosine"  # Distance metric for UMAP
+
+  # Evaluation settings to use if we need to (re-)evaluate prior or real datasets.
+  # These mirror the subject_llm settings in src/cfg/run_cfg.yaml.
+  evaluation_cfg:
+    subject_llm:
+      name: "o1-mini"
+      provider: "openai"
+      generation_cfg:
+        temperature: 0.7
+        max_tokens: 2048
+        seed: 42
 
 exp_cfg:
   exp_id: "quality_evaluation"

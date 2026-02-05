@@ -486,7 +486,7 @@ def compute_mdm(
 # ===========================
 
 
-def fit_umap_shared(
+def fit_umap(
     embeddings_list: List[np.ndarray],
     n_components: int,
     n_neighbors: int = 15,
