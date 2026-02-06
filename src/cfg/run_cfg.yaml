@@ -47,6 +47,7 @@ capabilities_tag: null    # Stage 2 output tag (required for stage 3 standalone)
 tasks_tag: null           # Stage 3 output tag (required for stage 4 standalone)
 solution_tag: null        # Stage 4 output tag (required for stage 5 standalone)
 validation_tag: null      # Stage 5 output tag (required for eval pipeline)
+eval_tag: null            # Eval Stage 1 output tag (required for eval stage 2, optional for stage 1 resume)
 
 # Stage 1: Area generation
 areas_cfg:
