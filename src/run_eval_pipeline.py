@@ -12,6 +12,8 @@ Usage:
     # Run specific stage
     python -m src.run_eval_pipeline stage=0 validation_tag=_YYYYMMDD_HHMMSS
     python -m src.run_eval_pipeline stage=1 validation_tag=_YYYYMMDD_HHMMSS
+    python -m src.run_eval_pipeline stage=1 validation_tag=_YYYYMMDD_HHMMSS \
+        eval_tag=_YYYYMMDD_HHMMSS
     python -m src.run_eval_pipeline stage=2 eval_tag=_YYYYMMDD_HHMMSS
 """
 
@@ -36,6 +38,8 @@ def main(cfg: DictConfig) -> None:
     """Run the evaluation pipeline."""
     # Get stage to run (default: "all")
     stage = cfg.get("stage", "all")
+    if isinstance(stage, str) and stage.isdigit():
+        stage = int(stage)
 
     # Get tags from config
     validation_tag = cfg.get("validation_tag")
@@ -67,7 +71,7 @@ def main(cfg: DictConfig) -> None:
 
             # Stage 1: Evaluation Execution
             logger.info("Running Eval Stage 1: Evaluation Execution")
-            eval_tag = run_eval_stage1(cfg, validation_tag)
+            eval_tag = run_eval_stage1(cfg, validation_tag, eval_tag)
             logger.info("Eval Stage 1 complete. eval_tag=%s", eval_tag)
 
             # Stage 2: Score Aggregation
@@ -109,7 +113,7 @@ def main(cfg: DictConfig) -> None:
 
         try:
             # Stage 1 reads eval_config from Stage 0's output
-            eval_tag = run_eval_stage1(cfg, validation_tag)
+            eval_tag = run_eval_stage1(cfg, validation_tag, eval_tag)
             logger.info("Eval Stage 1 complete. eval_tag=%s", eval_tag)
         except ValueError as e:
             logger.error("Stage 1 failed: %s", e)

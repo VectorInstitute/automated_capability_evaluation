@@ -9,7 +9,7 @@ See: https://inspect.aisi.org.uk/
 import logging
 import math
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from inspect_ai.log import read_eval_log
 from omegaconf import DictConfig
@@ -26,40 +26,28 @@ logger = logging.getLogger(__name__)
 
 
 def _find_result_dirs(results_dir: Path, subject_llm: str) -> List[Path]:
-    """Find all result directories for a subject LLM.
-
-    Args:
-        results_dir: Path to results directory
-        subject_llm: Subject LLM name
-
-    Returns
-    -------
-        List of paths to capability result directories
-    """
+    """Return capability result directories for one subject model."""
     llm_results_dir = results_dir / subject_llm
     if not llm_results_dir.exists():
         return []
 
     # Find all directories with structure: <area_id>/<capability_id>/
     result_dirs = []
-    for area_dir in llm_results_dir.iterdir():
+    for area_dir in sorted(llm_results_dir.iterdir()):
         if area_dir.is_dir():
-            for cap_dir in area_dir.iterdir():
+            for cap_dir in sorted(area_dir.iterdir()):
                 if cap_dir.is_dir():
                     result_dirs.append(cap_dir)
     return result_dirs
 
 
+def _find_inspect_logs(result_dir: Path) -> List[Path]:
+    """Find Inspect JSON log files for a capability result directory."""
+    return sorted(result_dir.glob("*.json"))
+
+
 def _compute_stats(scores: List[float]) -> Dict[str, Any]:
-    """Compute mean and standard error from scores.
-
-    Args:
-        scores: List of score values (0.0 to 1.0)
-
-    Returns
-    -------
-        Dict with 'mean', 'std_err', 'num_tasks'
-    """
+    """Compute mean, standard error, and sample count."""
     if not scores:
         return {"mean": 0.0, "std_err": 0.0, "num_tasks": 0}
 
@@ -76,69 +64,107 @@ def _compute_stats(scores: List[float]) -> Dict[str, Any]:
     return {"mean": mean, "std_err": std_err, "num_tasks": n}
 
 
-def _parse_inspect_logs(result_dir: Path) -> Dict[str, Any]:
-    """Parse Inspect logs to extract scores.
+def _score_value_to_float(value: object) -> Optional[float]:
+    """Convert a score value to float when possible."""
+    if isinstance(value, (int, float)):
+        return float(value)
 
-    Args:
-        result_dir: Path to capability result directory
+    if isinstance(value, str):
+        upper = value.strip().upper()
+        if upper == "C":
+            return 1.0
+        if upper == "I":
+            return 0.0
+        try:
+            return float(value)
+        except ValueError:
+            return None
 
-    Returns
-    -------
-        Dict with 'mean', 'std_err', 'num_tasks'
-    """
-    # Find Inspect log files (they have .json extension)
-    log_files = list(result_dir.glob("*.json"))
+    return None
+
+
+def _extract_scores_from_log(log_file: Path) -> Dict[str, float]:
+    """Extract one score per sample ID from a single Inspect log file."""
+    scores: Dict[str, float] = {}
+    log = read_eval_log(str(log_file))
+
+    if not log.samples:
+        return scores
+
+    for sample in log.samples:
+        sample_id = str(getattr(sample, "id", ""))
+        if not sample_id or not sample.scores:
+            continue
+
+        # Count at most one score per sample to avoid duplicating across scorers.
+        for score_obj in sample.scores.values():
+            score_value = _score_value_to_float(getattr(score_obj, "value", None))
+            if score_value is not None:
+                scores[sample_id] = score_value
+                break
+
+    return scores
+
+
+def _parse_inspect_logs(
+    result_dir: Path, expected_task_ids: Set[str]
+) -> Dict[str, Any]:
+    """Parse logs and return stats for the best-matching retry log."""
+    # Find Inspect log files (.json)
+    log_files = _find_inspect_logs(result_dir)
 
     if not log_files:
         logger.warning("No log files found in %s", result_dir)
         return {"mean": 0.0, "std_err": 0.0, "num_tasks": 0}
 
-    scores = []
-
+    log_scores: List[Tuple[Path, List[float], Set[str]]] = []
     for log_file in log_files:
         try:
-            log = read_eval_log(str(log_file))
-
-            # Extract scores from samples
-            # In Inspect AI 0.3.159+, sample.scores is dict[str, Score] | None
-            if log.samples:
-                for sample in log.samples:
-                    if sample.scores:
-                        # Iterate over all scorers (usually just one)
-                        for _scorer_name, score_obj in sample.scores.items():
-                            if score_obj.value is not None:
-                                # Score value can be numeric or string
-                                score_val = score_obj.value
-                                if isinstance(score_val, (int, float)):
-                                    scores.append(float(score_val))
-                                elif score_val == "C":  # Correct
-                                    scores.append(1.0)
-                                elif score_val == "I":  # Incorrect
-                                    scores.append(0.0)
-
+            scored_by_id = _extract_scores_from_log(log_file)
+            scored_ids = set(scored_by_id.keys())
+            matched_scores = [
+                scored_by_id[task_id]
+                for task_id in expected_task_ids
+                if task_id in scored_by_id
+            ]
+            log_scores.append((log_file, matched_scores, scored_ids))
         except Exception as e:
             logger.warning("Failed to parse log %s: %s", log_file, e)
             continue
 
-    return _compute_stats(scores)
+    if not log_scores:
+        return {"mean": 0.0, "std_err": 0.0, "num_tasks": 0, "exact_match": False}
+
+    # If multiple logs exist, prefer exact task-id match, then best coverage.
+    # This avoids double-counting retries in the same capability directory.
+    selected_log, selected_scores, selected_ids = max(
+        log_scores,
+        key=lambda x: (
+            x[2] == expected_task_ids,
+            len(x[1]),
+            x[0].stat().st_mtime,
+            x[0].name,
+        ),
+    )
+
+    if len(log_scores) > 1:
+        logger.info(
+            "Multiple logs found in %s; selected %s with %d scored samples",
+            result_dir,
+            selected_log.name,
+            len(selected_scores),
+        )
+
+    stats = _compute_stats(selected_scores)
+    stats["exact_match"] = selected_ids == expected_task_ids
+    return stats
 
 
 def run_eval_stage2(
     cfg: DictConfig,
     eval_tag: str,
 ) -> str:
-    """Eval Stage 2: Score Aggregation.
-
-    Computes final capability scores from raw Inspect results.
-
-    Args:
-        cfg: Configuration object
-        eval_tag: Tag from Eval Stage 1
-
-    Returns
-    -------
-        The eval_tag (same as input, for chaining)
-    """
+    """Run Stage 2 score aggregation and return eval_tag."""
     # Derive paths from config
     exp_id = cfg.exp_cfg.exp_id
     output_base_dir = Path(cfg.global_cfg.output_dir)
@@ -163,9 +189,14 @@ def run_eval_stage2(
 
     # Load datasets for capability info
     dataset_map = {}  # (area_id, cap_id) -> EvalDataset
-    for dataset_path in datasets_dir.rglob("dataset.json"):
+    for dataset_path in sorted(datasets_dir.rglob("dataset.json")):
         dataset = load_eval_dataset(dataset_path)
         dataset_map[(dataset.area_id, dataset.capability_id)] = dataset
+
+    if not dataset_map:
+        raise ValueError(
+            f"No datasets found in {datasets_dir}. Run Eval Stage 0 first."
+        )
 
     num_llms_processed = 0
 
@@ -197,8 +228,28 @@ def run_eval_stage2(
                 )
                 continue
 
+            expected_task_ids = {str(task["id"]) for task in cap_dataset.tasks}
+
             # Parse Inspect logs
-            parsed = _parse_inspect_logs(result_dir)
+            parsed = _parse_inspect_logs(result_dir, expected_task_ids)
+
+            if parsed["num_tasks"] < cap_dataset.num_tasks:
+                logger.warning(
+                    "  Incomplete scoring for %s/%s with %s: %d/%d tasks scored",
+                    area_id,
+                    cap_id,
+                    llm_name,
+                    parsed["num_tasks"],
+                    cap_dataset.num_tasks,
+                )
+            elif not parsed.get("exact_match", False):
+                logger.warning(
+                    "  Task ID mismatch for %s/%s with %s "
+                    "(scored task IDs differ from dataset task IDs)",
+                    area_id,
+                    cap_id,
+                    llm_name,
+                )
 
             # Create CapabilityScore
             score = CapabilityScore(
@@ -211,6 +262,8 @@ def run_eval_stage2(
                 num_tasks=parsed["num_tasks"],
             )
             capability_scores.append(score)
+
+        capability_scores.sort(key=lambda s: (s.area_id, s.capability_id))
 
         # Save scores for this LLM
         if capability_scores:
