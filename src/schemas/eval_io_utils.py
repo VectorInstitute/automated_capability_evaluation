@@ -137,6 +137,6 @@ def get_eval_dir(experiment_dir: Path, eval_tag: str) -> Path:
 
     Returns
     -------
-        Path to eval directory
+        Path to eval Stage 1 results directory
     """
-    return experiment_dir / "eval" / eval_tag
+    return experiment_dir / "eval" / "results" / eval_tag
