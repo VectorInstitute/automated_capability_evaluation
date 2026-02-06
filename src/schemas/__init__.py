@@ -7,6 +7,23 @@ ensuring consistent input/output formats regardless of internal implementation.
 from src.schemas.area_schemas import Area
 from src.schemas.capability_schemas import Capability
 from src.schemas.domain_schemas import Domain
+from src.schemas.eval_io_utils import (
+    get_eval_dir,
+    get_experiment_dir,
+    load_capability_scores,
+    load_eval_config,
+    load_eval_dataset,
+    save_capability_scores,
+    save_eval_config,
+    save_eval_dataset,
+)
+
+# Evaluation pipeline schemas
+from src.schemas.eval_schemas import (
+    CapabilityScore,
+    EvalConfig,
+    EvalDataset,
+)
 from src.schemas.experiment_schemas import Experiment
 from src.schemas.io_utils import (
     load_areas,
@@ -46,7 +63,7 @@ __all__ = [
     "TaskSolution",
     # Validation schemas
     "ValidationResult",
-    # I/O functions - Save
+    # I/O functions - Save (Generation)
     "save_experiment",
     "save_domain",
     "save_areas",
@@ -54,7 +71,7 @@ __all__ = [
     "save_tasks",
     "save_solution",
     "save_validation",
-    # I/O functions - Load
+    # I/O functions - Load (Generation)
     "load_experiment",
     "load_domain",
     "load_areas",
@@ -62,4 +79,19 @@ __all__ = [
     "load_tasks",
     "load_solution",
     "load_validation",
+    # Evaluation schemas
+    "EvalConfig",
+    "EvalDataset",
+    "CapabilityScore",
+    # I/O functions - Save (Evaluation)
+    "save_eval_config",
+    "save_eval_dataset",
+    "save_capability_scores",
+    # I/O functions - Load (Evaluation)
+    "load_eval_config",
+    "load_eval_dataset",
+    "load_capability_scores",
+    # Helper functions
+    "get_experiment_dir",
+    "get_eval_dir",
 ]
