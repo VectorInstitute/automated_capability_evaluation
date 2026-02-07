@@ -11,14 +11,30 @@ quality_eval_cfg:
     # Capability directory for the synthetic benchmark
     capabilities_dir: "/projects/aieng/public/ace/artifacts/negin_ace/taks/math/"
 
+  # List of metrics to compute. Available metrics:
+  # - Benchmark metrics: "difficulty", "separability", "consistency"
+  # - Novelty: "novelty"
+  # - Internal diversity: "mdm", "entropy"
+  # - Comparison metrics: "pad", "mmd", "kl_divergence"
+  metrics_to_compute:
+    - "difficulty"
+    - "separability"
+    - "consistency"
+    # - "novelty"
+    - "mdm"
+    - "entropy"
+    - "pad"
+    - "mmd"
+    - "kl_divergence"
+
   # Novelty: "combined" = one score from all real sources (linear regression on all);
   # "per_dataset" = one novelty per prior (how novel vs each benchmark separately);
   # "both" = report combined and per-dataset.
   novelty_mode: "combined"  # "combined" | "per_dataset" | "both"
 
-  # Source(s) of REAL data used for comparison metrics (PAD, MMD, KL).
+  # Source(s) of REAL data used for comparison metrics (PAD, MMD, KL) and novelty.
   # real_data_source can be:
-  # - a single mapping {path, dataloader, name}, OR
+  # - a single mapping {path, dataloader, name, scores_dir}, OR
   # - a list of such mappings when you have multiple real datasets.
   #
   # When multiple sources are provided, real_comparison_mode controls whether
@@ -57,17 +73,6 @@ quality_eval_cfg:
   embedding_model: "text-embedding-3-large"
   # embedding_dimensions is ignored for HuggingFace models (uses model's native dimension)
   embedding_dimensions: 3072
-
-  # Internal diversity metrics (only need synthetic data)
-  internal_diversity_metrics:
-    - "mdm"      # Mean Distance to Medoid - measures internal coherence
-    - "entropy"  # Differential Entropy - measures diversity/uncertainty
-
-  # Comparison metrics (need both synthetic and real data)
-  comparison_metrics:
-    - "pad"           # Proxy-A-Distance - measures distribution similarity
-    - "mmd"           # Maximum Mean Discrepancy - measures distribution distance
-    - "kl_divergence" # KL Divergence - measures novelty (how different from real)
 
   pad_classifier: "LogisticRegression"  # Options: "LogisticRegression", "RandomForest", "MLP"
 
