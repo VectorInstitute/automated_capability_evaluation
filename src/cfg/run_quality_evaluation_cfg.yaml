@@ -2,13 +2,8 @@ prompt_cfg:
   sys_msg: Compute benchmark quality metrics from existing scores.
 
 quality_eval_cfg:
-  # Synthetic benchmark source (scores + capabilities)
-  synthetic_source:
-    # Root directory containing per-model score subdirs for the synthetic benchmark
+  new_data_source:
     scores_root_dir: "/projects/DeepLesion/projects/automated_capability_evaluation/data/scores_sample"
-    # Optional subdirectory name when falling back to BASE_ARTIFACTS_DIR
-    scores_subdir: "scores"
-    # Capability directory for the synthetic benchmark
     capabilities_dir: "/projects/aieng/public/ace/artifacts/negin_ace/taks/math/"
 
   # List of metrics to compute. Available metrics:
@@ -20,32 +15,24 @@ quality_eval_cfg:
     - "difficulty"
     - "separability"
     - "consistency"
-    # - "novelty"
+    - "novelty"
     - "mdm"
     - "entropy"
     - "pad"
     - "mmd"
     - "kl_divergence"
 
-  # Novelty: "combined" = one score from all real sources (linear regression on all);
-  # "per_dataset" = one novelty per prior (how novel vs each benchmark separately);
-  # "both" = report combined and per-dataset.
-  novelty_mode: "combined"  # "combined" | "per_dataset" | "both"
-
-  # Source(s) of REAL data used for comparison metrics (PAD, MMD, KL) and novelty.
-  # real_data_source can be:
+  # Source(s) of previous data used for comparison metrics (PAD, MMD, KL) and novelty.
+  # previous_data_sources can be:
   # - a single mapping {path, dataloader, name, scores_dir}, OR
   # - a list of such mappings when you have multiple real datasets.
-  #
-  # When multiple sources are provided, real_comparison_mode controls whether
-  # they are pooled together into one real distribution ("pooled") or compared
-  # pairwise against the synthetic data ("per_dataset") for PAD/MMD.
-  real_comparison_mode: "pooled"  # or "per_dataset"
+  # PAD and MMD are always reported per previous-data source.
+  # UMAP (for entropy/KL) is fit on all new + all previous data combined.
 
   # Example: multiple real datasets (HuggingFace math benchmarks).
   # Novelty uses score dirs from each source: set scores_dir explicitly, or
   # we use scores_root_dir/<name> when name is set.
-  real_data_source:
+  previous_data_sources:
     - name: "MATH-500"
       path: null
       # Optional: explicit scores directory for novelty; otherwise uses
