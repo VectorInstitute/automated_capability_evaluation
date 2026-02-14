@@ -56,7 +56,7 @@ def _validate_metric_requirements(cfg: DictConfig) -> None:
 
     Raises ValueError if any required data is missing.
     """
-    metrics_to_compute = cfg.quality_eval_cfg.get("metrics_to_compute", [])
+    metrics_to_compute = cfg.get("metrics_to_compute", [])
     if not metrics_to_compute:
         raise ValueError(
             "metrics_to_compute must be specified in config. "
@@ -64,8 +64,8 @@ def _validate_metric_requirements(cfg: DictConfig) -> None:
             "mdm, entropy, pad, mmd, kl_divergence"
         )
 
-    benchmark_source_cfg = cfg.quality_eval_cfg.new_data_source
-    reference_data_source_cfg = cfg.quality_eval_cfg.get("previous_data_sources")
+    benchmark_source_cfg = cfg.target_data
+    reference_data_source_cfg = cfg.get("reference_datasets")
 
     # Benchmark metrics (difficulty, separability, consistency) need scores
     benchmark_metrics = {"difficulty", "separability", "consistency"}
@@ -77,7 +77,7 @@ def _validate_metric_requirements(cfg: DictConfig) -> None:
                 "Benchmark metrics "
                 f"({benchmark_metrics.intersection(metrics_to_compute)}) "
                 "require 'scores_root_dir' to be set in "
-                "quality_eval_cfg.new_data_source. "
+                "target_data. "
                 "Please provide the path to the directory containing one "
                 "subdirectory per subject model."
             )
@@ -188,7 +188,7 @@ def _validate_metric_requirements(cfg: DictConfig) -> None:
         if reference_data_source_cfg is None:
             raise ValueError(
                 f"Comparison metrics ({comparison_metrics.intersection(metrics_to_compute)}) "
-                "require previous_data_sources to be configured"
+                "require reference_datasets to be configured"
             )
 
         # Validate each reference source has either path or dataloader
@@ -202,7 +202,7 @@ def _validate_metric_requirements(cfg: DictConfig) -> None:
         if not sources:
             raise ValueError(
                 f"Comparison metrics ({comparison_metrics.intersection(metrics_to_compute)}) "
-                "require at least one previous_data_sources entry"
+                "require at least one reference_datasets entry"
             )
 
         for i, src in enumerate(sources):
@@ -216,15 +216,15 @@ def _validate_metric_requirements(cfg: DictConfig) -> None:
 
             if not (has_path or has_dataloader):
                 raise ValueError(
-                    f"previous_data_sources[{i}] ({name}) must have either a valid 'path' "
+                    f"reference_datasets[{i}] ({name}) must have either a valid 'path' "
                     "(existing file/directory) or 'dataloader' with type='huggingface'"
                 )
 
-    # Novelty needs previous_data_sources with score directories (prior accuracies)
+    # Novelty needs reference_datasets with score directories (prior accuracies)
     if "novelty" in metrics_to_compute:
         if reference_data_source_cfg is None:
             raise ValueError(
-                "Novelty metric requires previous_data_sources (prior accuracies) to be configured"
+                "Novelty metric requires reference_datasets (prior accuracies) to be configured"
             )
 
         cfg_container = OmegaConf.to_container(reference_data_source_cfg, resolve=True)
@@ -236,7 +236,7 @@ def _validate_metric_requirements(cfg: DictConfig) -> None:
 
         if not sources:
             raise ValueError(
-                "Novelty metric requires at least one previous_data_sources entry (for prior accuracies)"
+                "Novelty metric requires at least one reference_datasets entry (for prior accuracies)"
             )
 
         scores_root_dir = benchmark_source_cfg.get("scores_root_dir")
@@ -520,12 +520,12 @@ def _load_benchmark_scores(
 
     Validation has already run.
     """
-    benchmark_source_cfg = cfg.quality_eval_cfg.new_data_source
+    benchmark_source_cfg = cfg.target_data
     scores_root_dir = benchmark_source_cfg.get("scores_root_dir")
 
     if not scores_root_dir:
         raise ValueError(
-            "scores_root_dir must be set in quality_eval_cfg.new_data_source "
+            "scores_root_dir must be set in target_data "
             "to load benchmark scores. It should point to a directory that "
             "contains one subdirectory per subject model."
         )
@@ -628,7 +628,7 @@ def _compute_novelty_metrics(
     if "novelty" not in metrics_to_compute:
         return
 
-    reference_data_source_cfg = cfg.quality_eval_cfg.get("previous_data_sources")
+    reference_data_source_cfg = cfg.get("reference_datasets")
     cfg_container = OmegaConf.to_container(reference_data_source_cfg, resolve=True)
     prior_source_configs = (
         cfg_container if isinstance(cfg_container, list) else [cfg_container]
@@ -680,11 +680,11 @@ def _compute_embedding_based_metrics(cfg: DictConfig, metrics_to_compute: set) -
     if not needs_embeddings:
         return
 
-    benchmark_source_cfg = cfg.quality_eval_cfg.new_data_source
+    benchmark_source_cfg = cfg.target_data
     capabilities_dir = benchmark_source_cfg.get("capabilities_dir")
-    embedding_model = cfg.quality_eval_cfg.embedding_model
-    embedding_backend = cfg.quality_eval_cfg.embedding_backend
-    embed_dimensions = cfg.quality_eval_cfg.embedding_dimensions
+    embedding_model = cfg.embedding_model
+    embedding_backend = cfg.embedding_backend
+    embed_dimensions = cfg.embedding_dimensions
 
     logger.info(
         "Computing embedding-based metrics for capabilities in %s", capabilities_dir
@@ -707,7 +707,7 @@ def _compute_embedding_based_metrics(cfg: DictConfig, metrics_to_compute: set) -
     reference_names: List[str] = []
 
     if comparison_metrics.intersection(metrics_to_compute):
-        reference_data_source_cfg = cfg.quality_eval_cfg.get("previous_data_sources")
+        reference_data_source_cfg = cfg.get("reference_datasets")
         cfg_container = OmegaConf.to_container(reference_data_source_cfg, resolve=True)
         raw_list = cfg_container if isinstance(cfg_container, list) else [cfg_container]
         reference_source_configs: List[Dict[str, Any]] = []
@@ -760,13 +760,13 @@ def _compute_embedding_based_metrics(cfg: DictConfig, metrics_to_compute: set) -
                     pad_score = compute_pad(
                         benchmark_embeddings,
                         ref_emb,
-                        classifier_name=cfg.quality_eval_cfg.pad_classifier,
+                        classifier_name=cfg.pad_classifier,
                     )
                     logger.info("PAD[%s]: %.4f", name, pad_score)
 
             if "mmd" in metrics_to_compute:
-                mmd_kernel = cfg.quality_eval_cfg.mmd_kernel
-                mmd_degree = cfg.quality_eval_cfg.mmd_degree
+                mmd_kernel = cfg.mmd_kernel
+                mmd_degree = cfg.mmd_degree
                 for name, ref_emb in zip(reference_names, reference_embeddings_list):
                     mmd_score = compute_mmd(
                         benchmark_embeddings,
@@ -782,10 +782,10 @@ def _compute_embedding_based_metrics(cfg: DictConfig, metrics_to_compute: set) -
                     )
 
     has_reference = reference_embeddings is not None and len(reference_embeddings) > 0
-    umap_n_components = cfg.quality_eval_cfg.umap_n_components
-    umap_n_neighbors = cfg.quality_eval_cfg.umap_n_neighbors
-    umap_min_dist = cfg.quality_eval_cfg.umap_min_dist
-    umap_metric = cfg.quality_eval_cfg.umap_metric
+    umap_n_components = cfg.umap_n_components
+    umap_n_neighbors = cfg.umap_n_neighbors
+    umap_min_dist = cfg.umap_min_dist
+    umap_metric = cfg.umap_metric
     need_umap = umap_n_components is not None and (
         "entropy" in metrics_to_compute
         or ("kl_divergence" in metrics_to_compute and has_reference)
@@ -808,7 +808,7 @@ def _compute_embedding_based_metrics(cfg: DictConfig, metrics_to_compute: set) -
         reference_reduced = reduced_list[1] if len(reduced_list) > 1 else None
 
     if "kl_divergence" in metrics_to_compute:
-        kl_k = cfg.quality_eval_cfg.kl_k
+        kl_k = cfg.kl_k
         if reference_reduced is not None:
             assert benchmark_reduced is not None
             kl_benchmark = benchmark_reduced
@@ -823,8 +823,8 @@ def _compute_embedding_based_metrics(cfg: DictConfig, metrics_to_compute: set) -
         logger.info("KL divergence score (k=%d)%s: %.4f", kl_k, umap_info, kl_score)
 
     if "mdm" in metrics_to_compute:
-        mdm_n_clusters = cfg.quality_eval_cfg.mdm_n_clusters
-        mdm_metric = cfg.quality_eval_cfg.mdm_metric
+        mdm_n_clusters = cfg.mdm_n_clusters
+        mdm_metric = cfg.mdm_metric
         mdm_score = compute_mdm(
             benchmark_embeddings,
             n_clusters=mdm_n_clusters,
@@ -838,7 +838,7 @@ def _compute_embedding_based_metrics(cfg: DictConfig, metrics_to_compute: set) -
         )
 
     if "entropy" in metrics_to_compute:
-        entropy_k = cfg.quality_eval_cfg.entropy_k
+        entropy_k = cfg.entropy_k
         entropy_emb = (
             benchmark_reduced if benchmark_reduced is not None else benchmark_embeddings
         )
@@ -859,8 +859,8 @@ def main(cfg: DictConfig) -> None:
     """Compute benchmark-level quality metrics from saved capability scores."""
     _validate_metric_requirements(cfg)
 
-    metrics_to_compute = set(cfg.quality_eval_cfg.metrics_to_compute)
-    benchmark_source_cfg = cfg.quality_eval_cfg.new_data_source
+    metrics_to_compute = set(cfg.metrics_to_compute)
+    benchmark_source_cfg = cfg.target_data
 
     model_to_accuracy, model_to_generation_accuracies = _load_benchmark_scores(cfg)
     _compute_benchmark_metrics(

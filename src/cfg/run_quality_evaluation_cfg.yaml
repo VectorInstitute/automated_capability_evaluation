@@ -1,94 +1,93 @@
 prompt_cfg:
   sys_msg: Compute benchmark quality metrics from existing scores.
 
-quality_eval_cfg:
-  new_data_source:
-    scores_root_dir: "/projects/DeepLesion/projects/automated_capability_evaluation/data/scores_sample"
-    capabilities_dir: "/projects/aieng/public/ace/artifacts/negin_ace/taks/math/"
+target_data:
+  scores_root_dir: "/projects/DeepLesion/projects/automated_capability_evaluation/data/scores_sample"
+  capabilities_dir: "/projects/aieng/public/ace/artifacts/negin_ace/taks/math/"
 
-  # List of metrics to compute. Available metrics:
-  # - Benchmark metrics: "difficulty", "separability", "consistency"
-  # - Novelty: "novelty"
-  # - Internal diversity: "mdm", "entropy"
-  # - Comparison metrics: "pad", "mmd", "kl_divergence"
-  metrics_to_compute:
-    - "difficulty"
-    - "separability"
-    - "consistency"
-    - "novelty"
-    - "mdm"
-    - "entropy"
-    - "pad"
-    - "mmd"
-    - "kl_divergence"
+# List of metrics to compute. Available metrics:
+# - Benchmark metrics: "difficulty", "separability", "consistency"
+# - Novelty: "novelty"
+# - Internal diversity: "mdm", "entropy"
+# - Comparison metrics: "pad", "mmd", "kl_divergence"
+metrics_to_compute:
+  - "difficulty"
+  - "separability"
+  - "consistency"
+  - "novelty"
+  - "mdm"
+  - "entropy"
+  - "pad"
+  - "mmd"
+  - "kl_divergence"
 
-  # Source(s) of previous data used for comparison metrics (PAD, MMD, KL) and novelty.
-  # previous_data_sources can be:
-  # - a single mapping {path, dataloader, name, scores_dir}, OR
-  # - a list of such mappings when you have multiple real datasets.
-  # PAD and MMD are always reported per previous-data source.
-  # UMAP (for entropy/KL) is fit on all new + all previous data combined.
+# Source(s) of previous data used for comparison metrics (PAD, MMD, KL) and novelty.
+# reference_datasets can be:
+# - a single mapping {path, dataloader, name, scores_dir}, OR
+# - a list of such mappings when you have multiple real datasets.
+# PAD and MMD are always reported per previous-data source.
+# UMAP (for entropy/KL) is fit on all new + all previous data combined.
 
-  # Example: multiple real datasets (HuggingFace math benchmarks).
-  # Novelty uses score dirs from each source: set scores_dir explicitly, or
-  # we use scores_root_dir/<name> when name is set.
-  previous_data_sources:
-    - name: "MATH-500"
-      path: null
-      # Optional: explicit scores directory for novelty; otherwise uses
-      # scores_root_dir/name
-      scores_dir: null
-      dataloader:
-        type: "huggingface"
-        dataset_name: "HuggingFaceH4/MATH-500"
-        split: "test"
-        subset: null
-        text_field: "problem"
+# Example: multiple real datasets (HuggingFace math benchmarks).
+# Novelty uses score dirs from each source: set scores_dir explicitly, or
+# we use scores_root_dir/<name> when name is set.
+reference_datasets:
+  - name: "MATH-500"
+    path: null
+    # Optional: explicit scores directory for novelty; otherwise uses
+    # scores_root_dir/name
+    scores_dir: null
+    dataloader:
+      type: "huggingface"
+      dataset_name: "HuggingFaceH4/MATH-500"
+      split: "test"
+      subset: null
+      text_field: "problem"
 
-    - name: "MATH-Hard"
-      path: null
-      scores_dir: null
-      dataloader:
-        type: "huggingface"
-        dataset_name: "lighteval/MATH-Hard"
-        split: "test"
-        subset: null
-        text_field: "problem"
+  - name: "MATH-Hard"
+    path: null
+    scores_dir: null
+    dataloader:
+      type: "huggingface"
+      dataset_name: "lighteval/MATH-Hard"
+      split: "test"
+      subset: null
+      text_field: "problem"
 
-  # embedding_backend: "openai" uses OpenAI embeddings, "huggingface" uses sentence-transformers
-  embedding_backend: "openai"
-  embedding_model: "text-embedding-3-large"
-  # embedding_dimensions is ignored for HuggingFace models (uses model's native dimension)
-  embedding_dimensions: 3072
+# embedding_backend: "openai" uses OpenAI embeddings, "huggingface" uses sentence-transformers
+embedding_backend: "openai"
+embedding_model: "text-embedding-3-large"
+# embedding_dimensions is ignored for HuggingFace models (uses model's native dimension)
+embedding_dimensions: 3072
 
-  pad_classifier: "LogisticRegression"  # Options: "LogisticRegression", "RandomForest", "MLP"
+pad_classifier: "LogisticRegression"  # Options: "LogisticRegression", "RandomForest", "MLP"
 
-  mmd_kernel: "polynomial"  # Options: "polynomial", "rbf", "laplacian", "linear", "sigmoid"
-  mmd_degree: 3
+mmd_kernel: "polynomial"  # Options: "polynomial", "rbf", "laplacian", "linear", "sigmoid"
+mmd_degree: 3
 
-  mdm_n_clusters: 5
-  mdm_metric: "euclidean"
+mdm_n_clusters: 5
+mdm_metric: "euclidean"
 
-  entropy_k: 4  # Number of nearest neighbors for differential entropy computation
+entropy_k: 4  # Number of nearest neighbors for differential entropy computation
 
-  kl_k: 4  # Number of nearest neighbors for KL divergence computation
+kl_k: 4  # Number of nearest neighbors for KL divergence computation
 
-  # Optional UMAP dimensionality reduction (like InfoSynth)
-  umap_n_components: 10  # Set to null to disable and use original embeddings
-  umap_n_neighbors: 15  # Number of neighbors for UMAP
-  umap_min_dist: 0.1  # Minimum distance for UMAP
-  umap_metric: "cosine"  # Distance metric for UMAP
+# Optional UMAP dimensionality reduction (like InfoSynth)
+umap_n_components: 10  # Set to null to disable and use original embeddings
+umap_n_neighbors: 15  # Number of neighbors for UMAP
+umap_min_dist: 0.1  # Minimum distance for UMAP
+umap_metric: "cosine"  # Distance metric for UMAP
 
-  # Evaluation settings to use if we need to (re-)evaluate prior or real datasets.
-  # These mirror the subject_llm settings in src/cfg/run_cfg.yaml.
-  evaluation_cfg:
-    subject_llm:
-      name: "o1-mini"
-      provider: "openai"
-      generation_cfg:
-        temperature: 0.7
-        max_tokens: 2048
-        seed: 42
+# Evaluation settings to use if we need to (re-)evaluate prior or real datasets.
+# These mirror the subject_llm settings in src/cfg/run_cfg.yaml.
+evaluation_cfg:
+  subject_llm:
+    name: "o1-mini"
+    provider: "openai"
+    generation_cfg:
+      temperature: 0.7
+      max_tokens: 2048
+      seed: 42
 
 exp_cfg:
   exp_id: "quality_evaluation"
