@@ -1,0 +1,18 @@
+defaults:
+  - _self_
+
+data_cfg:
+  scores_dir: data/scores_sample  # required; all **/*.json under this dir
+  per_capability: true  # true: fit per capability; false: one combined fit
+  # If set, task JSONs under this dir (**/tasks.json) are updated with IRT params and saved to output_dir/updated_tasks/
+  capabilities_dir: /projects/aieng/public/ace/artifacts/negin_ace/taks/math
+
+output_cfg:
+  output_dir: null  # required: directory to write irt_analysis.json (and updated_tasks/ if capabilities_dir set)
+  output_filename: irt_analysis.json  # required
+
+irt_cfg:
+  model_type: "3PL"  # 1PL, 2PL, or 3PL (required)
+  max_iterations: 1000
+  tolerance: 1.0e-6
+  quadrature_n: 41
