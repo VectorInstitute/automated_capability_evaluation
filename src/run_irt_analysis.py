@@ -1,15 +1,11 @@
-"""Run IRT analysis on evaluation results.
+"""Run IRT analysis on evaluation scores.
 
-Loads all **/*.json under data_cfg.scores_dir, extracts (model, question) responses,
-builds a response matrix, and fits 1PL/2PL/3PL IRT (girth). data_cfg.per_capability
-controls whether to fit one combined model (false) or one model per capability (true).
-Configuration: src/cfg/irt_cfg.yaml. Override from CLI, e.g.:
-  python src/run_irt_analysis.py data_cfg.scores_dir=/path/to/scores
+Loads **/*.json from data_cfg.scores_dir, builds a response matrix, fits 1PL/2PL/3PL (girth).
+Config: src/cfg/irt_cfg.yaml. Override from CLI, e.g. data_cfg.scores_dir=/path output_cfg.output_dir=/out.
 """
 
 import logging
 import os
-from datetime import datetime
 from typing import Any, Dict, List, Tuple
 
 import hydra
@@ -17,9 +13,8 @@ from omegaconf import DictConfig
 
 from src.schemas.irt_schemas import IRTAnalysis, IRTItemParameters
 from src.utils import constants
-from src.utils.data_utils import list_dir, write_json_file
+from src.utils.data_utils import write_json_file
 from src.utils.irt_utils import (
-    build_response_matrix_from_inspect_score_files,
     create_response_matrix_from_flat,
     discover_tasks_files,
     extract_question_responses,
@@ -30,76 +25,6 @@ from src.utils.irt_utils import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-def discover_model_score_files(
-    scores_dir: str,
-    domain: str,
-    capability_name: str,
-    model_names: List[str] | None = None,
-) -> List[Tuple[str, str]]:
-    """
-    Discover (model_name, score_json_path) for a capability.
-
-    Expects layout: scores_dir / model_name / domain / capability_name / *.json
-
-    Args
-    ----
-        scores_dir: Base directory containing model subdirs.
-        domain: Capability domain (e.g. "mathematics").
-        capability_name: Capability name (e.g. "number_theory_combinatorics").
-        model_names: If provided, only these models are used; otherwise
-            all subdirs of scores_dir are treated as model names.
-
-    Returns
-    -------
-        List of (model_name, json_path). Only includes models that have
-        at least one .json file in their capability folder.
-    """
-    if model_names is None:
-        try:
-            model_names = list_dir(scores_dir)
-        except (FileNotFoundError, NotADirectoryError) as e:
-            logger.error("Cannot list scores_dir %s: %s", scores_dir, e)
-            return []
-
-    result: List[Tuple[str, str]] = []
-    for model_name in model_names:
-        cap_dir = os.path.join(
-            scores_dir, model_name, domain, capability_name
-        )
-        if not os.path.isdir(cap_dir):
-            logger.debug(
-                "Skipping model %s: no directory %s",
-                model_name,
-                cap_dir,
-            )
-            continue
-        try:
-            files = [
-                f
-                for f in list_dir(cap_dir)
-                if f.endswith(".json")
-            ]
-        except Exception as e:
-            logger.warning(
-                "Skipping model %s: failed to list %s: %s",
-                model_name,
-                cap_dir,
-                e,
-            )
-            continue
-        if not files:
-            logger.debug(
-                "Skipping model %s: no .json in %s",
-                model_name,
-                cap_dir,
-            )
-            continue
-        # Use first JSON file (e.g. single eval run per model)
-        json_path = os.path.join(cap_dir, files[0])
-        result.append((model_name, json_path))
-    return result
 
 
 def _fit_and_build(
@@ -145,7 +70,7 @@ def _fit_and_build(
     )
 
 
-def run_irt_analysis_flat(
+def run_irt_analysis(
     scores_dir: str,
     model_type: str = "3PL",
     max_iterations: int = 1000,
@@ -158,8 +83,8 @@ def run_irt_analysis_flat(
     capabilities_dir: str | None = None,
 ) -> IRTAnalysis | Dict[str, IRTAnalysis]:
     """
-    Run IRT pipeline using flat loading: load all **/*.json under scores_dir,
-    extract (model, question) responses (custom_scorer C), build matrix, fit IRT.
+    Run IRT pipeline: load all **/*.json under scores_dir, extract (model, question)
+    responses (custom_scorer C), build matrix, fit IRT.
 
     Args
     ----
@@ -322,143 +247,58 @@ def run_irt_analysis_flat(
     return analysis
 
 
-def run_irt_analysis(
-    scores_dir: str,
-    domain: str,
-    capability_name: str,
-    model_names: List[str] | None = None,
-    model_type: str = "3PL",
-    max_iterations: int = 2000,
-    quadrature_n: int = 41,
-    tolerance: float = 1e-6,
-    output_dir: str | None = None,
-    output_filename: str = "irt_analysis.json",
-    dataset_id: str | None = None,
-) -> IRTAnalysis:
-    """
-    Run full IRT pipeline (per-capability): discover score files by domain/capability,
-    build matrix, fit IRT, return IRTAnalysis.
+def _require_config(cfg: DictConfig) -> None:
+    """Validate required config; raise ValueError if any required key is missing or null."""
+    missing: List[str] = []
 
-    Args
-    ----
-        scores_dir: Base directory for evaluation scores (layout: scores_dir/model/domain/capability/*.json).
-        domain: Capability domain.
-        capability_name: Capability name.
-        model_names: Optional list of model names; if None, discovered from scores_dir.
-        model_type: "1PL", "2PL", or "3PL".
-        max_iterations: MML max iterations.
-        quadrature_n: Quadrature points.
-        tolerance: Convergence tolerance (stored in evaluation_settings).
-        output_dir: If set, IRTAnalysis is saved here as output_filename.
-        output_filename: Output JSON filename.
-        dataset_id: Identifier for the dataset (default: capability_name).
+    data_cfg = cfg.get("data_cfg") or {}
+    if not data_cfg.get("scores_dir") or str(data_cfg.get("scores_dir", "")).strip().lower() in ("null", ""):
+        missing.append("data_cfg.scores_dir")
 
-    Returns
-    -------
-        IRTAnalysis instance with item parameters and context.
-    """
-    model_score_files = discover_model_score_files(
-        scores_dir=scores_dir,
-        domain=domain,
-        capability_name=capability_name,
-        model_names=model_names,
-    )
-    if not model_score_files:
-        raise FileNotFoundError(
-            f"No score files found for capability {capability_name} "
-            f"(domain={domain}) under {scores_dir}. "
-            "Ensure evaluation has been run for at least one model."
-        )
-
-    response_matrix, question_ids, names = (
-        build_response_matrix_from_inspect_score_files(model_score_files)
-    )
-    if not response_matrix or not question_ids or not names:
-        raise ValueError(
-            f"Response matrix is empty for {capability_name}. "
-            "Check that all model score files share at least one task id."
-        )
-
-    analysis = _fit_and_build(
-        response_matrix=response_matrix,
-        question_ids=question_ids,
-        model_names=names,
-        dataset_id=dataset_id or capability_name,
-        model_type=model_type,
-        max_iterations=max_iterations,
-        quadrature_n=quadrature_n,
-        tolerance=tolerance,
-    )
-    if output_dir:
-        os.makedirs(output_dir, exist_ok=True)
-        out_path = os.path.join(output_dir, output_filename)
-        write_json_file(out_path, analysis.to_dict())
-        logger.info("IRT analysis saved to %s", out_path)
-    return analysis
-
-
-def _resolve_output_dir(
-    cfg: DictConfig,
-    default_dataset_id: str,
-) -> str:
-    """Resolve output_dir from output_cfg.output_dir or output_dir; default to irt_results/<dataset_id>_<timestamp>."""
     output_cfg = cfg.get("output_cfg") or {}
-    out = output_cfg.get("output_dir") if output_cfg else None
-    if out is None:
-        out = cfg.get("output_dir")
-    if out is None or (isinstance(out, str) and out.lower() == "null"):
-        timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%SZ")
-        # Use local project directory instead of shared artifacts directory
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        return os.path.join(
-            project_root,
-            "irt_results",
-            f"{default_dataset_id}_{timestamp}",
-        )
-    return str(out)
+    if not output_cfg.get("output_dir") or str(output_cfg.get("output_dir", "")).strip().lower() == "null":
+        missing.append("output_cfg.output_dir")
+    if not output_cfg.get("output_filename") or str(output_cfg.get("output_filename", "")).strip() == "":
+        missing.append("output_cfg.output_filename")
 
-
-def _resolve_output_filename(cfg: DictConfig) -> str:
-    """Resolve output filename from output_cfg.output_filename or default irt_analysis.json."""
-    output_cfg = cfg.get("output_cfg") or {}
-    name = output_cfg.get("output_filename") if output_cfg else None
-    if name is None or (isinstance(name, str) and name.strip() == ""):
-        return "irt_analysis.json"
-    return str(name).strip()
-
-
-def _resolve_irt_params(cfg: DictConfig) -> tuple[str, int, float, int]:
-    """Return (model_type, max_iterations, tolerance, quadrature_n) from irt_cfg with top-level fallback."""
     irt = cfg.get("irt_cfg") or {}
-    model_type = str(irt.get("model_type") or cfg.get("model_type", "3PL"))
-    max_iterations = int(irt.get("max_iterations") or cfg.get("max_iterations", 2000))
-    tolerance = float(irt.get("tolerance", 1e-6))
-    quadrature_n = int(irt.get("quadrature_n") or cfg.get("quadrature_n", 41))
-    return model_type, max_iterations, tolerance, quadrature_n
+    if not irt.get("model_type") or str(irt.get("model_type", "")).strip() == "":
+        missing.append("irt_cfg.model_type")
+    if irt.get("max_iterations") is None:
+        missing.append("irt_cfg.max_iterations")
+    if irt.get("tolerance") is None:
+        missing.append("irt_cfg.tolerance")
+    if irt.get("quadrature_n") is None:
+        missing.append("irt_cfg.quadrature_n")
+
+    if missing:
+        raise ValueError(
+            "Missing required config (set in irt_cfg.yaml or override from CLI): " + ", ".join(missing)
+        )
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="irt_cfg")
 def main(cfg: DictConfig) -> None:
     """Run IRT analysis using config from cfg/irt_cfg.yaml (overridable via CLI)."""
-    logging.basicConfig(
-        level=logging.DEBUG if cfg.get("verbose", False) else logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
-    model_type, max_iterations, tolerance, quadrature_n = _resolve_irt_params(cfg)
-    output_filename = _resolve_output_filename(cfg)
+    _require_config(cfg)
 
     data_cfg = cfg.get("data_cfg") or {}
-    scores_dir = data_cfg.get("scores_dir") if data_cfg else None
-    if not scores_dir or str(scores_dir).strip().lower() in ("null", ""):
-        raise ValueError(
-            "data_cfg.scores_dir is required. Set it in irt_cfg.yaml or override from CLI, e.g. "
-            "python src/run_irt_analysis.py data_cfg.scores_dir=/path/to/scores"
-        )
-    scores_dir = str(scores_dir).strip()
-    dataset_id = cfg.get("dataset_id")
-    dataset_id = str(dataset_id) if dataset_id is not None else "flat"
-    output_dir = _resolve_output_dir(cfg, dataset_id)
+    output_cfg = cfg.get("output_cfg") or {}
+    irt = cfg.get("irt_cfg") or {}
+
+    scores_dir = str(data_cfg["scores_dir"]).strip()
+    output_dir = str(output_cfg["output_dir"]).strip()
+    output_filename = str(output_cfg["output_filename"]).strip()
+    model_type = str(irt["model_type"]).strip()
+    max_iterations = int(irt["max_iterations"])
+    tolerance = float(irt["tolerance"])
+    quadrature_n = int(irt["quadrature_n"])
+
+    dataset_id = data_cfg.get("dataset_id") or cfg.get("dataset_id")
+    dataset_id = str(dataset_id).strip() if dataset_id is not None and str(dataset_id).strip().lower() not in ("null", "") else None
+
     per_capability = bool(data_cfg.get("per_capability", False))
     capabilities_dir_val = data_cfg.get("capabilities_dir")
     capabilities_dir = (
@@ -468,7 +308,7 @@ def main(cfg: DictConfig) -> None:
         else None
     )
 
-    run_irt_analysis_flat(
+    run_irt_analysis(
         scores_dir=scores_dir,
         model_type=model_type,
         max_iterations=max_iterations,
@@ -476,7 +316,7 @@ def main(cfg: DictConfig) -> None:
         tolerance=tolerance,
         output_dir=output_dir,
         output_filename=output_filename,
-        dataset_id=dataset_id if dataset_id != "flat" else None,
+        dataset_id=dataset_id,
         per_capability=per_capability,
         capabilities_dir=capabilities_dir,
     )

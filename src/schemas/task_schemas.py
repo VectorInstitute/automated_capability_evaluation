@@ -27,6 +27,10 @@ class Task:
         None  # [{"label": "A", "solution": "..."}]
     )
     generation_metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
+    # IRT (Item Response Theory) parameters from 3PL fit (optional until analysis is run)
+    irt_difficulty: Optional[float] = None
+    irt_discrimination: Optional[float] = None
+    irt_guessing: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -42,6 +46,12 @@ class Task:
         }
         if self.generation_metadata:
             result["generation_metadata"] = self.generation_metadata
+        if self.irt_difficulty is not None:
+            result["irt_difficulty"] = self.irt_difficulty
+        if self.irt_discrimination is not None:
+            result["irt_discrimination"] = self.irt_discrimination
+        if self.irt_guessing is not None:
+            result["irt_guessing"] = self.irt_guessing
         return result
 
     @classmethod
@@ -58,4 +68,7 @@ class Task:
             choices=data.get("choices"),
             capability=capability,
             generation_metadata=data.get("generation_metadata", {}),
+            irt_difficulty=data.get("irt_difficulty"),
+            irt_discrimination=data.get("irt_discrimination"),
+            irt_guessing=data.get("irt_guessing"),
         )
