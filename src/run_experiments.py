@@ -64,13 +64,14 @@ class ExperimentRunner:
     
     def __init__(
         self,
-        model_name: str = "gemini-2.5-pro",
+        model_name: str = "gemini-3-flash-preview",
         num_rounds: int = 1,
         num_tasks: int = 15,
         condition: str = "both",
         output_dir: str = "experiment_results",
         enable_tool_selection: bool = True,
         tasks_file: str = "selected_tasks.json",
+        dataset_type: str = "math",
     ):
         """Initialize experiment runner.
         
@@ -82,6 +83,7 @@ class ExperimentRunner:
             output_dir: Directory for saving results
             enable_tool_selection: Whether to enable dynamic tool selection (default: True)
             tasks_file: Path to tasks JSON file (default: selected_tasks.json)
+            dataset_type: Type of dataset - 'math' or 'xfinbench' (default: math)
         """
         self.model_name = model_name
         self.num_rounds = num_rounds
@@ -89,6 +91,7 @@ class ExperimentRunner:
         self.condition = condition
         self.enable_tool_selection = enable_tool_selection
         self.tasks_file = Path(tasks_file)
+        self.dataset_type = dataset_type
         self.results_dir = Path(output_dir)
         self.results_dir.mkdir(parents=True, exist_ok=True)
         
@@ -125,25 +128,38 @@ class ExperimentRunner:
         
         selected_tasks = []
         
-        # If using a custom tasks file (not default), load all tasks as-is
-        if self.tasks_file != Path("selected_tasks.json"):
-            for capability_name, task_list in all_tasks.items():
-                for task in task_list:
-                    task_copy = task.copy()
-                    task_copy["capability_name"] = capability_name
-                    task_copy["area_name"] = "math"  # All tasks are math
-                    selected_tasks.append(task_copy)
-            log.info(f"Loaded {len(selected_tasks)} tasks from {self.tasks_file}")
+        # XFinBench dataset is a flat list, not grouped by capability
+        if self.dataset_type == "xfinbench":
+            # XFinBench tasks are already in the right format
+            tasks_to_load = all_tasks[:self.num_tasks] if isinstance(all_tasks, list) else all_tasks
+            for task in tasks_to_load:
+                task_copy = task.copy()
+                # Ensure required fields exist
+                if "area_name" not in task_copy:
+                    task_copy["area_name"] = "finance"
+                selected_tasks.append(task_copy)
+            log.info(f"Loaded {len(selected_tasks)} XFinBench tasks from {self.tasks_file}")
         else:
-            # For default file, apply num_tasks limit per capability
-            for capability_name, task_list in all_tasks.items():
-                # Take up to num_tasks from each capability
-                for task in task_list[:self.num_tasks]:
-                    task_copy = task.copy()
-                    task_copy["capability_name"] = capability_name
-                    task_copy["area_name"] = "math"  # All tasks are math
-                    selected_tasks.append(task_copy)
-            log.info(f"Loaded {len(selected_tasks)} tasks ({self.num_tasks} per capability)")
+            # Math dataset: grouped by capability
+            # If using a custom tasks file (not default), load all tasks as-is
+            if self.tasks_file != Path("selected_tasks.json"):
+                for capability_name, task_list in all_tasks.items():
+                    for task in task_list:
+                        task_copy = task.copy()
+                        task_copy["capability_name"] = capability_name
+                        task_copy["area_name"] = "math"  # All tasks are math
+                        selected_tasks.append(task_copy)
+                log.info(f"Loaded {len(selected_tasks)} tasks from {self.tasks_file}")
+            else:
+                # For default file, apply num_tasks limit per capability
+                for capability_name, task_list in all_tasks.items():
+                    # Take up to num_tasks from each capability
+                    for task in task_list[:self.num_tasks]:
+                        task_copy = task.copy()
+                        task_copy["capability_name"] = capability_name
+                        task_copy["area_name"] = "math"  # All tasks are math
+                        selected_tasks.append(task_copy)
+                log.info(f"Loaded {len(selected_tasks)} tasks ({self.num_tasks} per capability)")
         
         return selected_tasks
     
@@ -170,6 +186,7 @@ class ExperimentRunner:
             "condition": condition,
             "problem": task_data["problem"],
             "expected_answer": task_data["answer"],
+            "task_type": task_data.get("task_type"),  # For XFinBench
             "start_time": datetime.now().isoformat(),
             "status": "pending",
         }
@@ -228,13 +245,14 @@ class ExperimentRunner:
                 )
             else:
                 # Use ToolAssistedScientist with toolkit
-                # Create toolkits for scientists
+                # Create toolkits for scientists (RAG disabled - use parametric knowledge)
                 toolkit_a = ScientificToolKit(
                     model_client=get_model_client(
                         model_name=self.model_name,
                         seed=42,
                     ),
                     enable_tool_selection=self.enable_tool_selection,
+                    enable_rag=False,  # Use model's parametric knowledge instead of retrieval
                 )
                 
                 toolkit_b = ScientificToolKit(
@@ -243,6 +261,7 @@ class ExperimentRunner:
                         seed=42,
                     ),
                     enable_tool_selection=self.enable_tool_selection,
+                    enable_rag=False,  # Use model's parametric knowledge instead of retrieval
                 )
                 
                 await ToolAssistedScientist.register(
@@ -310,12 +329,25 @@ class ExperimentRunner:
                     "numerical_answer": solution_data.get("numerical_answer"),
                     "consensus_reached": solution_data.get("consensus_reached"),
                     "total_rounds": solution_data.get("total_rounds"),
-                    "success": self._verify_answer(
+                })
+                
+                # Verify answer (XFinBench-aware)
+                task_type = task_data.get("task_type")
+                if self.dataset_type == "xfinbench" and task_type:
+                    success = self._verify_xfinbench_answer(
+                        solution_data.get("numerical_answer"),
+                        task_data["answer"],
+                        task_type,
+                        code_executions
+                    )
+                else:
+                    success = self._verify_answer(
                         solution_data.get("numerical_answer"),
                         task_data["answer"],
                         code_executions=code_executions
-                    ),
-                })
+                    )
+                
+                result["success"] = success
             else:
                 result.update({
                     "status": "error",
@@ -448,6 +480,119 @@ class ExperimentRunner:
                                 return True
                     except Exception:
                         pass
+        
+        return False
+    
+    def _verify_xfinbench_answer(
+        self,
+        solution_answer: str,
+        expected_answer: Any,
+        task_type: str,
+        code_executions: List[Dict] = None
+    ) -> bool:
+        """Verify XFinBench answer based on task type.
+        
+        Args:
+            solution_answer: The answer from the consensus/solution
+            expected_answer: The expected correct answer
+            task_type: Type of task ('bool', 'mcq', 'calcu')
+            code_executions: Optional list of code execution results
+        
+        Returns:
+            True if answer matches, False otherwise
+        """
+        if expected_answer is None:
+            return False
+        
+        # Boolean tasks: simple 0/1 comparison
+        if task_type == "bool":
+            return self._verify_boolean_answer(solution_answer, expected_answer, code_executions)
+        
+        # MCQ tasks: extract choice letter
+        elif task_type == "mcq":
+            return self._verify_mcq_answer(solution_answer, expected_answer, code_executions)
+        
+        # Calculation tasks: numerical comparison
+        else:  # task_type == "calcu"
+            return self._verify_answer(solution_answer, expected_answer, code_executions)
+    
+    def _verify_boolean_answer(
+        self,
+        solution_answer: str,
+        expected_answer: Any,
+        code_executions: List[Dict] = None
+    ) -> bool:
+        """Verify boolean (True/False or 0/1) answer."""
+        if solution_answer is None:
+            return False
+        
+        # Normalize to 0/1
+        def normalize_bool(val):
+            if val is None:
+                return None
+            val_str = str(val).strip().lower()
+            if val_str in ['true', '1', '1.0', 'yes']:
+                return 1
+            elif val_str in ['false', '0', '0.0', 'no']:
+                return 0
+            return None
+        
+        sol_bool = normalize_bool(solution_answer)
+        exp_bool = normalize_bool(expected_answer)
+        
+        if sol_bool is not None and exp_bool is not None:
+            if sol_bool == exp_bool:
+                return True
+        
+        # Try code executions
+        if code_executions:
+            for exec_info in code_executions:
+                code_answer = exec_info.get("numerical_answer") or exec_info.get("code_output", "")
+                code_bool = normalize_bool(code_answer)
+                if code_bool is not None and code_bool == exp_bool:
+                    log.info(f"  ✓ Boolean answer verified using code output")
+                    return True
+        
+        return False
+    
+    def _verify_mcq_answer(
+        self,
+        solution_answer: str,
+        expected_answer: str,
+        code_executions: List[Dict] = None
+    ) -> bool:
+        """Verify multiple choice answer (extract choice letter)."""
+        if solution_answer is None or expected_answer is None:
+            return False
+        
+        import re
+        
+        def extract_choice(text):
+            """Extract choice letter (A, B, C, D, etc.) from text."""
+            if not text:
+                return None
+            text_str = str(text).strip().upper()
+            # Look for standalone letter or letter with period/parenthesis
+            match = re.search(r'\b([A-Z])\b', text_str)
+            if match:
+                return match.group(1)
+            return None
+        
+        sol_choice = extract_choice(solution_answer)
+        exp_choice = extract_choice(expected_answer)
+        
+        if sol_choice and exp_choice:
+            if sol_choice == exp_choice:
+                return True
+        
+        # Try code executions
+        if code_executions:
+            for exec_info in code_executions:
+                code_answer = exec_info.get("numerical_answer") or exec_info.get("code_output", "")
+                code_choice = extract_choice(code_answer)
+                if code_choice and code_choice == exp_choice:
+                    log.info(f"  ✓ MCQ answer verified using code output")
+                    return True
         
         return False
     
@@ -616,13 +761,13 @@ Examples:
   python run_experiments.py --num-tasks 3
   
   # Custom configuration
-  python run_experiments.py --model gemini-2.5-pro --rounds 2 --num-tasks 10 --output my_results
+  python run_experiments.py --model gemini-3-flash-preview --rounds 2 --num-tasks 10 --output my_results
         """
     )
     parser.add_argument(
         "--model",
-        default="gemini-2.5-pro",
-        help="LLM model to use (default: gemini-2.5-pro)"
+        default="gemini-3-flash-preview",
+        help="LLM model to use (default: gemini-3-flash-preview)"
     )
     parser.add_argument(
         "--rounds",
@@ -664,6 +809,12 @@ Examples:
         default=False,
         help="Disable dynamic tool selection (use all tools by default)"
     )
+    parser.add_argument(
+        "--dataset-type",
+        choices=["math", "xfinbench"],
+        default="math",
+        help="Type of dataset to evaluate (default: math)"
+    )
     
     args = parser.parse_args()
     
@@ -678,6 +829,7 @@ Examples:
         output_dir=args.output,
         enable_tool_selection=enable_tool_selection,
         tasks_file=args.tasks_file,
+        dataset_type=args.dataset_type,
     )
     await runner.run_experiment()
 

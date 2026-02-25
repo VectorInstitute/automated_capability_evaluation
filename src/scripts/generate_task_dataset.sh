@@ -4,10 +4,6 @@
 
 set -e  # Exit on error
 
-echo "=========================================================================="
-echo "Task Classification and Dataset Generation Workflow"
-echo "=========================================================================="
-
 # Default values
 MATH_DIR="math"
 NUM_TASKS=50
