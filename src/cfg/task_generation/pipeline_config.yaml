@@ -1,0 +1,25 @@
+pipeline:
+  # Experiment identifier - used to name output folders - required by runner
+  experiment_id: "ag_ext_src"
+  output_base_dir: "src/task_generation/agentic_outputs"         # folder where outputs are written
+
+  # Chapter corpus root (relative to repo root)
+  # runner expects: <book_chapter_dir>/**.txt
+  book_chapter_dir: "init_math_book_chapter_text_files"
+
+  # Blueprints file (relative to cfg/)
+  blueprints_file: "blueprints_test.json"
+
+  # Loop constraints
+  max_retries: 3
+
+  # Default tasks per combo (can be overridden by each combo's "num_tasks" in blueprints.json)
+  num_tasks_per_combo: 5
+
+  # Resumability (optional)
+  # If set, must match "_YYYYMMDD_HHMMSS" and runner will skip outputs that already exist under that tag
+  resume_tag: null
+
+  # Optional flags (runner currently doesn't use these, but safe to keep for future)
+  stop_on_fail: false
+  save_intermediate: false

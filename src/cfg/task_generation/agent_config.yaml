@@ -1,0 +1,72 @@
+# cfg/agentic_config.yaml
+
+defaults:
+  temperature: 0
+  top_p: 0.95
+  timeout: 120
+  cache_seed: 42
+
+models:
+  openai_gpt:
+    api_type: "openai"
+    model: "gpt-5.2-chat-latest"
+    api_key: "${OPENAI_API_KEY}"
+
+  local_vllm:
+    api_type: "openai"
+    model: "Qwen3-32B"
+    base_url: "http://0.0.0.0:8000/v1"
+    api_key: "${VLLM_API_KEY}"
+
+agents:
+  designer:
+    model: "gemini_pro"
+    model_config:
+      config_list:
+        - api_type: "google"
+          model: "gemini-3-pro-preview"
+          api_key: "${GOOGLE_API_KEY}"
+      temperature: 0
+      top_p: 0.95
+      timeout: 120
+      cache_seed: 42
+  
+  # designer:
+  #   model: "local_vllm"
+  #   model_config:
+  #     config_list:
+  #       - api_type: "openai"
+  #         model: "Qwen3-32B"
+  #         base_url: "http://0.0.0.0:8000/v1"
+  #         api_key: "${VLLM_API_KEY}"
+  #         context_window: 16384
+  
+  # verifier:
+  #   model: "local_vllm"
+  #   model_config:
+  #     config_list:
+  #       - api_type: "openai"
+  #         model: "Qwen3-32B"
+  #         base_url: "http://0.0.0.0:8000/v1"
+  #         api_key: "${VLLM_API_KEY}"
+  #         context_window: 16384
+
+  verifier:
+    model: "openai_gpt"
+    model_config:
+      config_list:
+        - api_type: "openai"
+          model: "gpt-5.2-chat-latest"
+          api_key: "${OPENAI_API_KEY}"
+      temperature: 0
+      top_p: 0.95
+      timeout: 120
+      cache_seed: 42
+
+dedup:
+  enabled: true
+  embedding_model: "text-embedding-3-small"
+  threshold: 0.90
+  keep_policy: "first"           # or "prefer_longer"
+  cache_embeddings: true
+  save_discarded: true
