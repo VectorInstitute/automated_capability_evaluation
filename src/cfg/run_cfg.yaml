@@ -67,6 +67,7 @@ embedding_cfg:
 
 # Stage 3: Task generation
 task_generation_cfg:
+  mode: base
   tasks_per_blueprint: 1
   min_subtopics: 1
   max_subtopics: 1

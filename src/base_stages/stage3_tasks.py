@@ -5,6 +5,7 @@ The correct answer is NOT determined here — that happens in Stage 4.
 """
 
 import logging
+from importlib import import_module
 from pathlib import Path
 from typing import Optional
 
@@ -49,6 +50,7 @@ def run_stage3(
     """
     experiment_id = cfg.exp_cfg.exp_id
     output_base_dir = Path(cfg.global_cfg.output_dir)
+    task_gen_mode = str(cfg.task_generation_cfg.get("mode", "base")).strip().lower()
 
     # Determine tasks tag (resume or new)
     is_resume = tasks_tag is not None
@@ -57,6 +59,23 @@ def run_stage3(
     else:
         tasks_tag = timestamp_tag()
         logger.info(f"Starting new Stage 3 with tasks_tag: {tasks_tag}")
+
+    if task_gen_mode == "agentic":
+        logger.info("Stage 3 mode: agentic")
+        runner_mod = import_module("src.task_generation.runner")
+        run_from_stage3 = getattr(runner_mod, "run_from_stage3")
+        return run_from_stage3(
+            experiment_id=experiment_id,
+            output_base_dir=output_base_dir,
+            capabilities_tag=capabilities_tag,
+            tasks_tag=tasks_tag,
+        )
+
+    if task_gen_mode != "base":
+        raise ValueError(
+            f"Invalid task_generation_cfg.mode={task_gen_mode}. "
+            "Expected one of: base, agentic"
+        )
 
     # Initialize scientist LLM client using task_generation config
     scientist_llm_gen_cfg = dict(cfg.scientist_llm.generation_cfg.task_generation)
