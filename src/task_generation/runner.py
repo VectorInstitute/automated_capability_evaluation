@@ -106,7 +106,7 @@ def check_tag(s: str) -> bool:
 
 def create_diff_blueprint_combo(difficulty: str, blooms: str) -> str:
     """
-    Create a slug from difficulty and blooms level.
+    Create a combination slug from difficulty and blooms level.
 
     Args:
         difficulty: Difficulty string.

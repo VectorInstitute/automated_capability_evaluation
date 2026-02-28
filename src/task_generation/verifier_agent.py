@@ -134,6 +134,10 @@ class VerifierAgent(AssistantAgent):
 
         Args:
             candidate_question: The candidate problem to process.
+            chapter_excerpts: Relevant excerpts from the chapter.
+            chapter_knowledge_text: Structured knowledge about the chapter.
+            solution_trace: The step-by-step solution trace for the candidate question.
+            solution_full: The full solution for the candidate question.
 
         Returns
         -------

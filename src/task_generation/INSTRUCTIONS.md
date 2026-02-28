@@ -74,7 +74,7 @@ Controls:
 
 ## 5) How To Run
 
-### A) Run agentic pipeline directly
+### A) Run agentic task generation pipeline directly
 
 From repo root:
 

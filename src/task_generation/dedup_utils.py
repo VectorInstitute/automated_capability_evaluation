@@ -178,8 +178,7 @@ def deduplicate_tasks_for_chapter(
     batch_size: int = 128,
 ) -> Tuple[List[Task], List[Task], Dict[str, Any]]:
     """
-    Create chapter-level dedup based on cosine similarity between embeddings of:
-    (task_statement + correct_answer_text).
+    Create chapter-level dedup based on cosine similarity between embeddings of QA pair.
 
     Args:
         tasks (List[Task]): List of tasks to deduplicate.
@@ -196,7 +195,7 @@ def deduplicate_tasks_for_chapter(
             - kept tasks
             - discarded tasks
             - deduplication report
-    """  # noqa: D205
+    """
     if not tasks:
         report = {
             "chapter_id": chapter_id,

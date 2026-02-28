@@ -124,14 +124,8 @@ class DesignerAgent(AssistantAgent):
         Now includes `chapter_knowledge_text` (structured summary) in the prompt.
 
         Args:
-            domain: The subject domain (e.g., "calculus", "linear algebra").
             chapter_excerpts: Relevant excerpts from the chapter.
-            chapter_knowledge_text: Structured knowledge about the chapter .
-            difficulty: Desired difficulty level (e.g., "easy", "medium", "hard").
-            blooms_level: Desired Bloom's taxonomy level.
-            task_blueprint: The blueprint describing the type of task to generate.
-            chapter_id: Optional identifier for the chapter (for context).
-            chapter_relpath: Optional relative path to the chapter source (for context).
+            chapter_knowledge_text: Structured knowledge about the chapter.
             previous_questions: List of previously generated questions for the chapter.
 
         Returns

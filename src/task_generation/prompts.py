@@ -12,7 +12,7 @@ SYSTEM_TASK_GENERATION_PROMPT_EXTRA_INST = """
 - Do NOT generate questions that could be solved using the same mental steps as any prior question.
 """
 
-# SYSTEM Prompt for extracting structured knowledge from chapter excerpts.
+# SYSTEM Prompt for extracting structured knowledge from chapters.
 SYSTEM_CHAPTER_KNOWLEDGE_SUMMARY_PROMPT = """
 You are extracting detailed structured knowledge from a textbook chapter excerpt.
 

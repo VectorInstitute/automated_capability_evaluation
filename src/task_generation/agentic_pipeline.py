@@ -17,6 +17,7 @@ from src.task_generation.verifier_agent import VerifierAgent
 logger = logging.getLogger(__name__)
 
 def _qa_pair_text(t: Task) -> str:
+    """Create QA pair for anti-duplication checks."""
     q = (t.task_statement or "").strip()
     meta = t.generation_metadata or {}
     ca = str(meta.get("correct_answer") or "").strip()

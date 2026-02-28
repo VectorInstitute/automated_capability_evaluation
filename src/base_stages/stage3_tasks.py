@@ -59,7 +59,7 @@ def run_stage3(
     else:
         tasks_tag = timestamp_tag()
         logger.info(f"Starting new Stage 3 with tasks_tag: {tasks_tag}")
-
+    # If agentic mode, delegate to runner module which will call back into this module.
     if task_gen_mode == "agentic":
         logger.info("Stage 3 mode: agentic")
         runner_mod = import_module("src.task_generation.runner")
