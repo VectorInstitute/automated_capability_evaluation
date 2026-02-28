@@ -171,7 +171,9 @@ Respond EXACTLY in the following format, including the JSON start and end marker
 """
 
 # Final SYSTEM prompt for task generation (initial stage)
-SYSTEM_GRAPH_TASK_GENERATION_PROMPT = SYSTEM_GRAPH_TASK_GENERATION_PROMPT_INST + "\n" + OUT_FORMAT_EXAMPLE_GRAPH_TASK
+SYSTEM_GRAPH_TASK_GENERATION_PROMPT = (
+    SYSTEM_GRAPH_TASK_GENERATION_PROMPT_INST + "\n" + OUT_FORMAT_EXAMPLE_GRAPH_TASK
+)
 
 # Final USER prompt for task generation (initial stage)
 USER_GRAPH_TASK_GENERATION_PROMPT = """
@@ -184,7 +186,13 @@ Textbook Chapter Knowledge Summary:
 """
 
 # Final SYSTEM prompt for task generation with uniqueness and anti-duplication.
-SYSTEM_GRAPH_TASK_GENERATION_PROMPT_UNIQUE = SYSTEM_GRAPH_TASK_GENERATION_PROMPT + "\n" + SYSTEM_TASK_GENERATION_PROMPT_EXTRA_INST + "\n" + OUT_FORMAT_EXAMPLE_GRAPH_TASK
+SYSTEM_GRAPH_TASK_GENERATION_PROMPT_UNIQUE = (
+    SYSTEM_GRAPH_TASK_GENERATION_PROMPT
+    + "\n"
+    + SYSTEM_TASK_GENERATION_PROMPT_EXTRA_INST
+    + "\n"
+    + OUT_FORMAT_EXAMPLE_GRAPH_TASK
+)
 
 # Final USER prompt for task generation with uniqueness and anti-duplication.
 USER_GRAPH_TASK_GENERATION_PROMPT_UNIQUE = """
@@ -206,7 +214,7 @@ You will be given a question in the input.
 
 Requirements:
 - Inspect the question statement for any undefined notation, missing definitions, unstated assumptions, or missing information that could lead to ambiguity or multiple interpretations.
-- If such issues are found, update the question by explicitly defining all notation and assumptions and by adding only the minimal necessary information to make the question self-contained and unambiguous. 
+- If such issues are found, update the question by explicitly defining all notation and assumptions and by adding only the minimal necessary information to make the question self-contained and unambiguous.
 - Do not introduce new assumptions beyond what is required for clarity.
 - Do not change the difficulty, the core concept, or what the student/subject model is asked to do.
 - Do not assume the student/subject model knows symbols or definitions unless they are standard and widely known.

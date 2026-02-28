@@ -1,4 +1,5 @@
 """Script to run the task generation pipeline over a corpus of book chapters."""
+
 import asyncio
 import json
 import logging
@@ -274,9 +275,11 @@ async def run_pipeline(
         if configured_num_tasks is not None
         else combinations[0].get("num_tasks", default_num_tasks_per_combo)
     )
-    capability_source_mode = str(
-        pipeline_cfg["pipeline"].get("capability_source_mode", "placeholder")
-    ).strip().lower()
+    capability_source_mode = (
+        str(pipeline_cfg["pipeline"].get("capability_source_mode", "placeholder"))
+        .strip()
+        .lower()
+    )
     if capability_source_mode not in {"placeholder", "from_stage2"}:
         raise ValueError(
             "capability_source_mode must be one of: placeholder, from_stage2. "
@@ -307,7 +310,9 @@ async def run_pipeline(
             logger.error(f"No chapter .txt files found under: {chapter_root_dir}")
             return out_tag
 
-        logger.info(f"Found {len(chapter_files)} chapter files under {chapter_root_dir}")
+        logger.info(
+            f"Found {len(chapter_files)} chapter files under {chapter_root_dir}"
+        )
         logger.info(f"Found {len(combinations)} blueprint combinations")
         logger.info(f"Capability source mode: {capability_source_mode}")
         logger.info(f"num_tasks per capability/chapter: {num_tasks}")
@@ -370,11 +375,16 @@ async def run_pipeline(
 
             # ---- chapter knowledge extraction (ONCE per chapter) ----
             designer = make_designer_agent()
-            chapter_knowledge_obj, _chapter_knowledge_prompt = await designer.summarize_chapter_knowledge(
+            (
+                chapter_knowledge_obj,
+                _chapter_knowledge_prompt,
+            ) = await designer.summarize_chapter_knowledge(
                 chapter_excerpts=context_text
             )
             if not isinstance(chapter_knowledge_obj, dict):
-                logger.warning("Chapter knowledge summary not dict; using raw text block.")
+                logger.warning(
+                    "Chapter knowledge summary not dict; using raw text block."
+                )
             chapter_knowledge_text = (
                 json.dumps(chapter_knowledge_obj, indent=2, ensure_ascii=False)
                 if isinstance(chapter_knowledge_obj, dict)
@@ -395,15 +405,16 @@ async def run_pipeline(
                 str(combinations[0].get("difficulty", "")).strip().split("-")[0].strip()
             )
             blooms_level = (
-                str(combinations[0].get("blooms_level", "")).strip().split("-")[0].strip()
+                str(combinations[0].get("blooms_level", ""))
+                .strip()
+                .split("-")[0]
+                .strip()
             )
             blueprint = combinations[0].get("blueprint", "")
 
             diff_bpt_combo = create_diff_blueprint_combo(difficulty, blooms_level)
 
-            logger.info(
-                f"Generating tasks for {chapter_id} with tasks (n={num_tasks})"
-            )
+            logger.info(f"Generating tasks for {chapter_id} with tasks (n={num_tasks})")
 
             tasks: Optional[List[Task]] = await run_task_generation_loop(
                 designer_factory=make_designer_agent,

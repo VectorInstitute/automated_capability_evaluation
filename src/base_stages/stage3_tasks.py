@@ -63,7 +63,7 @@ def run_stage3(
     if task_gen_mode == "agentic":
         logger.info("Stage 3 mode: agentic")
         runner_mod = import_module("src.task_generation.runner")
-        run_from_stage3 = getattr(runner_mod, "run_from_stage3")
+        run_from_stage3 = runner_mod.run_from_stage3
         return run_from_stage3(
             experiment_id=experiment_id,
             output_base_dir=output_base_dir,

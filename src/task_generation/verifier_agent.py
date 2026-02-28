@@ -1,4 +1,5 @@
 """Source file for the verifier agent used in task verification."""
+
 import json
 import logging
 import re
@@ -120,14 +121,13 @@ class VerifierAgent(AssistantAgent):
         text = self._extract_message(result.messages)
         return self._extract_verification_report(text)
 
-
     async def check_and_revise_mcq_option(
         self,
         candidate_question: str,
         chapter_excerpts: str,
         chapter_knowledge_text: str,
         solution_trace: Dict[str, Any],
-        solution_full: Dict[str, Any]
+        solution_full: Dict[str, Any],
     ) -> Tuple[Union[Dict[str, Any], str], str]:
         """
         Check the correctness of a candidate question.
@@ -154,7 +154,6 @@ class VerifierAgent(AssistantAgent):
         result = await self.run(task=task)
         text = self._extract_message(result.messages)
         return self._extract_mcq_payload(text), task
-
 
     def _extract_message(self, messages: Sequence[Any]) -> str:
         """
@@ -183,7 +182,7 @@ class VerifierAgent(AssistantAgent):
         def _loads_with_repair(candidate: str) -> Optional[Any]:
             try:
                 return json.loads(candidate)
-            except json.JSONDecodeError as e:
+            except json.JSONDecodeError as e:  # noqa: F841
                 repaired = _escape_invalid_json_backslashes(candidate)
                 if repaired != candidate:
                     try:
@@ -208,9 +207,7 @@ class VerifierAgent(AssistantAgent):
 
         start, end = content.find("{"), content.rfind("}")
         if start != -1 and end != -1 and end > start:
-            obj = _loads_with_repair(
-                _strip_agent_terminator(content[start : end + 1])
-            )
+            obj = _loads_with_repair(_strip_agent_terminator(content[start : end + 1]))
             if obj is not None:
                 return obj
 

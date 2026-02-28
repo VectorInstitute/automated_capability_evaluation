@@ -1,4 +1,5 @@
 """Source file for the designer agent used in task generation and revision."""
+
 import json
 import logging
 import re
@@ -155,7 +156,6 @@ class DesignerAgent(AssistantAgent):
         text = self._extract_message(result.messages)
         return self._extract_message_content(text), task
 
-
     async def summarize_chapter_knowledge(
         self,
         chapter_excerpts: str,
@@ -170,11 +170,16 @@ class DesignerAgent(AssistantAgent):
         -------
             A tuple containing the summarized chapter knowledge and the prompt used.
         """
-        task = SYSTEM_CHAPTER_KNOWLEDGE_SUMMARY_PROMPT + "\n\n" + USER_CHAPTER_KNOWLEDGE_SUMMARY_PROMPT.format(chapter_excerpts=chapter_excerpts)
+        task = (
+            SYSTEM_CHAPTER_KNOWLEDGE_SUMMARY_PROMPT
+            + "\n\n"
+            + USER_CHAPTER_KNOWLEDGE_SUMMARY_PROMPT.format(
+                chapter_excerpts=chapter_excerpts
+            )
+        )
         result = await self.run(task=task)
         text = self._extract_message(result.messages)
         return self._extract_message_content(text), task
-
 
     async def include_clarification_info(
         self, candidate_question: str
@@ -256,7 +261,6 @@ class DesignerAgent(AssistantAgent):
         text = self._extract_message(result.messages)
         return self._extract_message_content(text), task
 
-
     async def fix_mcq_with_trace(
         self,
         previous_candidate_output: str,
@@ -293,7 +297,6 @@ class DesignerAgent(AssistantAgent):
         result = await self.run(task=task)
         text = self._extract_message(result.messages)
         return self._extract_message_content(text)
-
 
     async def fix_json_format_only(
         self,
@@ -389,7 +392,7 @@ class DesignerAgent(AssistantAgent):
                 if isinstance(parsed_content, dict):
                     return parsed_content
             except json.JSONDecodeError as e:
-                # Retry once after escaping invalid backslashes (common with LaTeX in JSON strings).
+                # Retry once after escaping invalid backslashes (for LaTeX formula).
                 repaired = _escape_invalid_json_backslashes(content)
                 if repaired != content:
                     try:

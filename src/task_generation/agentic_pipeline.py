@@ -1,4 +1,5 @@
 """Source file for the agentic pipeline to generate and verify tasks."""
+
 import json
 import logging
 import re
@@ -16,6 +17,7 @@ from src.task_generation.verifier_agent import VerifierAgent
 
 logger = logging.getLogger(__name__)
 
+
 def _qa_pair_text(t: Task) -> str:
     """Create QA pair for anti-duplication checks."""
     q = (t.task_statement or "").strip()
@@ -23,7 +25,7 @@ def _qa_pair_text(t: Task) -> str:
     ca = str(meta.get("correct_answer") or "").strip()
 
     ans_text = ""
-    for ch in (t.choices or []):
+    for ch in t.choices or []:
         if str(ch.get("label", "")).strip() == ca:
             ans_text = str(ch.get("solution", "")).strip()
             break
@@ -40,7 +42,9 @@ def _is_passing(report: Dict[str, Any]) -> bool:
     return False
 
 
-def _split_parts(one_obj: Union[Dict[str, Any], str]) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+def _split_parts(
+    one_obj: Union[Dict[str, Any], str],
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     """
     Split the question dict into three parts.
 
@@ -65,7 +69,11 @@ def _split_parts(one_obj: Union[Dict[str, Any], str]) -> Tuple[Dict[str, Any], D
     solution_part: Dict[str, Any] = {}
 
     # ---- extract trace ----
-    sg = q_obj.pop("solution_graph", None) or q_obj.pop("reasoning_graph", None) or q_obj.pop("graph", None)
+    sg = (
+        q_obj.pop("solution_graph", None)
+        or q_obj.pop("reasoning_graph", None)
+        or q_obj.pop("graph", None)
+    )
     if sg is not None:
         trace_part["solution_graph"] = sg
 
@@ -74,7 +82,11 @@ def _split_parts(one_obj: Union[Dict[str, Any], str]) -> Tuple[Dict[str, Any], D
         trace_part["solution_steps"] = ss
 
     # ---- extract full solution ----
-    cs = q_obj.pop("complete_solution", None) or q_obj.pop("solution", None) or q_obj.pop("explanation", None)
+    cs = (
+        q_obj.pop("complete_solution", None)
+        or q_obj.pop("solution", None)
+        or q_obj.pop("explanation", None)
+    )
     if cs is not None:
         solution_part["complete_solution"] = cs
 
@@ -85,7 +97,8 @@ def is_qcore_dict(x: Any) -> bool:
     """Check if the given object conforms to the expected qcore dict structure."""
     return (
         isinstance(x, dict)
-        and isinstance(x.get("question"), str) and x["question"].strip()
+        and isinstance(x.get("question"), str)
+        and x["question"].strip()
         and isinstance(x.get("options"), dict)
         and isinstance(x.get("correct_answer"), str)
     )
@@ -104,6 +117,7 @@ def _looks_like_verification_report(x: Any) -> bool:
         "question_evaluation",
     }
     return len(report_keys.intersection(x.keys())) >= 2
+
 
 def _wrap_qcore(obj: Union[Dict[str, Any], str]) -> Dict[str, Any]:
     """
@@ -189,6 +203,7 @@ def _save_checkpoint_snapshot(
         return
     save_tasks(passed_tasks, checkpoint_metadata, checkpoint_path)
 
+
 def _pack_to_schema(
     content: Union[Dict[str, Any], List[Any], str],
     solution_trace: Optional[Dict[str, Any]],
@@ -255,10 +270,16 @@ def _pack_to_schema(
     if solution_trace is not None:
         # Expected shape: {"solution_graph": ..., "solution_steps": ...}
         if isinstance(solution_trace, dict):
-            if "solution_graph" in solution_trace and solution_trace["solution_graph"] is not None:
+            if (
+                "solution_graph" in solution_trace
+                and solution_trace["solution_graph"] is not None
+            ):
                 trace_meta["solution_graph"] = solution_trace["solution_graph"]
             # accept both names, just in case
-            if "solution_steps" in solution_trace and solution_trace["solution_steps"] is not None:
+            if (
+                "solution_steps" in solution_trace
+                and solution_trace["solution_steps"] is not None
+            ):
                 trace_meta["solution_steps"] = solution_trace["solution_steps"]
             elif "steps" in solution_trace and solution_trace["steps"] is not None:
                 trace_meta["solution_steps"] = solution_trace["steps"]
@@ -270,11 +291,17 @@ def _pack_to_schema(
     if solution_full is not None:
         # Expected shape: {"complete_solution": ...}
         if isinstance(solution_full, dict):
-            if "complete_solution" in solution_full and solution_full["complete_solution"] is not None:
+            if (
+                "complete_solution" in solution_full
+                and solution_full["complete_solution"] is not None
+            ):
                 solution_meta["complete_solution"] = solution_full["complete_solution"]
             elif "solution" in solution_full and solution_full["solution"] is not None:
                 solution_meta["complete_solution"] = solution_full["solution"]
-            elif "explanation" in solution_full and solution_full["explanation"] is not None:
+            elif (
+                "explanation" in solution_full
+                and solution_full["explanation"] is not None
+            ):
                 solution_meta["complete_solution"] = solution_full["explanation"]
         else:
             # If someone passed a raw solution string/object directly
@@ -302,18 +329,39 @@ def _pack_to_schema(
 
             if isinstance(options, dict):
                 order = ["A", "B", "C", "D", "E"]
-                labels = [k for k in order if k in options] + [k for k in options.keys() if k not in order]
-                choices = [{"label": str(k), "solution": str(options[k])} for k in labels]
+                labels = [k for k in order if k in options] + [
+                    k
+                    for k in options.keys()  # noqa: SIM118
+                    if k not in order  # noqa: SIM118
+                ]
+                choices = [
+                    {"label": str(k), "solution": str(options[k])} for k in labels
+                ]
             elif isinstance(options, list):
-                if options and isinstance(options[0], dict) and "label" in options[0] and "solution" in options[0]:
-                    choices = [{"label": str(o["label"]), "solution": str(o["solution"])} for o in options]
+                if (
+                    options
+                    and isinstance(options[0], dict)
+                    and "label" in options[0]
+                    and "solution" in options[0]
+                ):
+                    choices = [
+                        {"label": str(o["label"]), "solution": str(o["solution"])}
+                        for o in options
+                    ]
                 else:
                     labels = ["A", "B", "C", "D", "E"]
-                    choices = [{"label": labels[i] if i < 5 else str(i), "solution": str(o)} for i, o in enumerate(options)]
+                    choices = [
+                        {"label": labels[i] if i < 5 else str(i), "solution": str(o)}
+                        for i, o in enumerate(options)
+                    ]
             else:
                 choices = None
 
-            extra_fields = {k: v for k, v in item.items() if k not in {"question", "task", "options", "correct_answer"}}
+            extra_fields = {
+                k: v
+                for k, v in item.items()
+                if k not in {"question", "task", "options", "correct_answer"}
+            }
 
             if not task_statement:
                 task_statement = json.dumps(item, ensure_ascii=False)
@@ -411,22 +459,21 @@ async def run_task_generation_loop(
     designer_factory: Callable[[], DesignerAgent],
     verifier_factory: Callable[[], VerifierAgent],
     capability: Capability,
-    domain: str, #TODO: remove domain from args if not needed in prompts
+    domain: str,  # TODO: remove domain from args if not needed in prompts
     context_text: str,
     chapter_knowledge_text: str,
-    blueprint: str, # TODO: remove blueprint from args if not needed in prompts (or replace with more specific fields)
+    blueprint: str,  # TODO: remove blueprint from args if not needed in prompts (or replace with more specific fields)
     previous_questions: List[str],
     capability_source_mode: str = "placeholder",
     max_retries: int = 5,
-    difficulty: str = "Easy", #TODO: remove structured difficulty schema or enum
-    blooms_level: str = "Remember", #TODO: remove structured blooms_level schema or enum
+    difficulty: str = "Easy",  # TODO: remove structured difficulty schema or enum
+    blooms_level: str = "Remember",  # TODO: remove structured blooms_level schema or enum
     num_tasks: int = 100,
     chapter_id: Optional[str] = None,
     chapter_relpath: Optional[str] = None,
     blueprint_key: Optional[str] = None,
     chapter_q_start: int = 0,
     verification_log: Optional[List[Dict[str, Any]]] = None,
-
     checkpoint_path: Optional[Path] = None,
     checkpoint_every: int = 10,
     checkpoint_metadata: Optional[PipelineMetadata] = None,
@@ -475,7 +522,9 @@ async def run_task_generation_loop(
 
     generation_attempts = 0
     max_generation_attempts = max(10, num_tasks * 3)
-    logger.info(f"[{task_batch_id}] Will attempt up to {max_generation_attempts} generations to get {num_tasks} passing tasks.")
+    logger.info(
+        f"[{task_batch_id}] Will attempt up to {max_generation_attempts} generations to get {num_tasks} passing tasks."
+    )
 
     # ---- Resume from checkpoint if enabled ----
     if resume_from_checkpoint and checkpoint_path and checkpoint_path.exists():
@@ -498,12 +547,14 @@ async def run_task_generation_loop(
                 f"from {checkpoint_path}"
             )
 
-    while len(passed_tasks) < num_tasks and generation_attempts < max_generation_attempts:
+    while (
+        len(passed_tasks) < num_tasks and generation_attempts < max_generation_attempts
+    ):
         i = len(passed_tasks)
         generation_attempts += 1
 
         logger.info(
-            f"[{task_batch_id}] Q{i+1}/{num_tasks}: generation attempt {generation_attempts}/{max_generation_attempts}"
+            f"[{task_batch_id}] Q{i + 1}/{num_tasks}: generation attempt {generation_attempts}/{max_generation_attempts}"
         )
 
         # --- Step 1: INITIAL GENERATION ---
@@ -519,7 +570,7 @@ async def run_task_generation_loop(
         if isinstance(one_obj, str):
             preview = (one_obj[:200] + "…") if len(one_obj) > 200 else one_obj
             logger.warning(
-                f"[{task_batch_id}] Q{i+1} generator returned non-JSON; retrying Step 1 once. Preview={preview!r}"
+                f"[{task_batch_id}] Q{i + 1} generator returned non-JSON; retrying Step 1 once. Preview={preview!r}"
             )
 
             # Try one more time with schema reminder prompt if response is non-dict.
@@ -533,13 +584,15 @@ async def run_task_generation_loop(
             if isinstance(one_obj, str):
                 preview = (one_obj[:200] + "…") if len(one_obj) > 200 else one_obj
                 logger.warning(
-                    f"[{task_batch_id}] Q{i+1} generator retry still non-JSON; skipping. Preview={preview!r}"
+                    f"[{task_batch_id}] Q{i + 1} generator retry still non-JSON; skipping. Preview={preview!r}"
                 )
                 continue
             one_prompt = one_prompt_retry
 
         if not str(one_obj.get("question") or "").strip():
-            logger.warning(f"[{task_batch_id}] Q{i+1} missing 'question' after Step 1; skipping.")
+            logger.warning(
+                f"[{task_batch_id}] Q{i + 1} missing 'question' after Step 1; skipping."
+            )
             continue
 
         # one_obj is the single-question dict from generation
@@ -549,25 +602,34 @@ async def run_task_generation_loop(
         current_qcore: Union[Dict[str, Any], List[Any], str] = _wrap_qcore(q_obj)
         last_prompt_text_i = one_prompt
 
-        logger.info(f"[{task_batch_id}] Q{i+1}/{num_tasks}: starting per-question pipeline")
+        logger.info(
+            f"[{task_batch_id}] Q{i + 1}/{num_tasks}: starting per-question pipeline"
+        )
 
         # Per-question retries (verification-driven repair loop)
         for attempt in range(max_retries + 1):
-            logger.info(f"[{task_batch_id}] Q{i+1}/{num_tasks} Attempt {attempt+1}/{max_retries+1}")
-
+            logger.info(
+                f"[{task_batch_id}] Q{i + 1}/{num_tasks} Attempt {attempt + 1}/{max_retries + 1}"
+            )
 
             # --- Step 2: INCLUDE NOTATION DEFINITIONS / CLARIFICATIONS ---
-            logger.info(f"[{task_batch_id}] Q{i+1} Step 2: Including clarification info...")
+            logger.info(
+                f"[{task_batch_id}] Q{i + 1} Step 2: Including clarification info..."
+            )
 
             designer = designer_factory()
             current_qcore_as_str = _ensure_json_string(current_qcore)
-            clarified_qcore, clarification_prompt = await designer.include_clarification_info(candidate_question=current_qcore_as_str)
+            (
+                clarified_qcore,
+                clarification_prompt,
+            ) = await designer.include_clarification_info(
+                candidate_question=current_qcore_as_str
+            )
 
             if not is_qcore_dict(clarified_qcore):
                 # Retry once with explicit schema reminder + error
                 retry_prompt = (
-                    current_qcore_as_str
-                    + "\n\n[SCHEMA REMINDER]\n"
+                    current_qcore_as_str + "\n\n[SCHEMA REMINDER]\n"
                     "Return ONLY a single JSON object.\n"
                     'Keys: "question" (string), "options" (object A-E strings), "correct_answer" (A-E).\n'
                     "Do not drop or rename keys.\n\n"
@@ -578,27 +640,37 @@ async def run_task_generation_loop(
                     '  "correct_answer": "<one of: A|B|C|D|E>"\n'
                     "}\n"
                 )
-                clarified_qcore, _ = await designer.include_clarification_info(candidate_question=retry_prompt)
+                clarified_qcore, _ = await designer.include_clarification_info(
+                    candidate_question=retry_prompt
+                )
 
             if is_qcore_dict(clarified_qcore):
                 current_qcore = clarified_qcore
             else:
                 # If still bad, skip this attempt (don’t poison state)
-                logger.warning(f"[{task_batch_id}] clarification failed twice; skipping attempt.")
+                logger.warning(
+                    f"[{task_batch_id}] clarification failed twice; skipping attempt."
+                )
                 break
 
             logger.debug(f"[{task_batch_id}] Clarification content: {clarified_qcore}")
-            logger.debug(f"[{task_batch_id}] Clarification prompt: {clarification_prompt}")
-
+            logger.debug(
+                f"[{task_batch_id}] Clarification prompt: {clarification_prompt}"
+            )
 
             # --- Step 3: VERIFY CORRECTNESS / MCQ INTEGRITY ---
-            logger.info(f"[{task_batch_id}] Q{i+1} Step 3: Verifying MCQ integrity...")
+            logger.info(
+                f"[{task_batch_id}] Q{i + 1} Step 3: Verifying MCQ integrity..."
+            )
 
             verifier = verifier_factory()
             integrity_input_str = _ensure_json_string(current_qcore)
             qcore_before_integrity = current_qcore
 
-            mcq_fixed_full, mcq_fixed_full_prompt = await verifier.check_and_revise_mcq_option(
+            (
+                mcq_fixed_full,
+                mcq_fixed_full_prompt,
+            ) = await verifier.check_and_revise_mcq_option(
                 candidate_question=integrity_input_str,
                 chapter_excerpts=context_text,
                 chapter_knowledge_text=chapter_knowledge_text,
@@ -615,7 +687,9 @@ async def run_task_generation_loop(
                 mcq_fixed_full_obj = None
 
             if isinstance(mcq_fixed_full_obj, dict):
-                q_obj_step3, trace_part_step3, solution_part_step3 = _split_parts(mcq_fixed_full_obj)
+                q_obj_step3, trace_part_step3, solution_part_step3 = _split_parts(
+                    mcq_fixed_full_obj
+                )
                 candidate_qcore = _wrap_qcore(q_obj_step3)
                 if is_qcore_dict(candidate_qcore):
                     current_qcore = candidate_qcore
@@ -623,69 +697,86 @@ async def run_task_generation_loop(
                     solution_part = solution_part_step3 or solution_part
                 else:
                     logger.warning(
-                        f"[{task_batch_id}] Q{i+1} Step 3 produced non-MCQ payload; keeping prior candidate."
+                        f"[{task_batch_id}] Q{i + 1} Step 3 produced non-MCQ payload; keeping prior candidate."
                     )
                     current_qcore = qcore_before_integrity
             else:
                 logger.warning(
-                    f"[{task_batch_id}] Q{i+1} Step 3 produced non-MCQ payload; keeping prior candidate."
+                    f"[{task_batch_id}] Q{i + 1} Step 3 produced non-MCQ payload; keeping prior candidate."
                 )
                 current_qcore = qcore_before_integrity
 
             logger.debug(f"[{task_batch_id}] MCQ-integrity content: {mcq_fixed_full}")
-            logger.debug(f"[{task_batch_id}] MCQ-integrity prompt: {mcq_fixed_full_prompt}")
-
+            logger.debug(
+                f"[{task_batch_id}] MCQ-integrity prompt: {mcq_fixed_full_prompt}"
+            )
 
             # --- Step 4: REMOVE REDUNDANT INFO ---
-            logger.info(f"[{task_batch_id}] Q{i+1} Step 4: Removing redundant info...")
+            logger.info(
+                f"[{task_batch_id}] Q{i + 1} Step 4: Removing redundant info..."
+            )
 
             designer = designer_factory()
             mcq_integrity_as_str = _ensure_json_string(current_qcore)
-            no_redundant_content, no_redundant_prompt = await designer.remove_redundant_info(
+            (
+                no_redundant_content,
+                no_redundant_prompt,
+            ) = await designer.remove_redundant_info(
                 candidate_question=mcq_integrity_as_str,
             )
-            if is_qcore_dict(no_redundant_content) and not _looks_like_verification_report(no_redundant_content):
+            if is_qcore_dict(
+                no_redundant_content
+            ) and not _looks_like_verification_report(no_redundant_content):
                 current_qcore = no_redundant_content
             else:
                 logger.warning(
-                    f"[{task_batch_id}] Q{i+1} Step 4 produced invalid payload; keeping prior candidate."
+                    f"[{task_batch_id}] Q{i + 1} Step 4 produced invalid payload; keeping prior candidate."
                 )
 
-            logger.debug(f"[{task_batch_id}] No-redundant content: {no_redundant_content}")
-            logger.debug(f"[{task_batch_id}] No-redundant prompt: {no_redundant_prompt}")
-
+            logger.debug(
+                f"[{task_batch_id}] No-redundant content: {no_redundant_content}"
+            )
+            logger.debug(
+                f"[{task_batch_id}] No-redundant prompt: {no_redundant_prompt}"
+            )
 
             # --- Step 5: REMOVE SOURCE REFERENCES ---
-            logger.info(f"[{task_batch_id}] Q{i+1} Step 5: Removing source references...")
+            logger.info(
+                f"[{task_batch_id}] Q{i + 1} Step 5: Removing source references..."
+            )
 
             designer = designer_factory()
             no_redundant_content_as_str = _ensure_json_string(current_qcore)
             no_source_content, no_source_prompt = await designer.remove_references(
                 candidate_question=no_redundant_content_as_str,
             )
-            if is_qcore_dict(no_source_content) and not _looks_like_verification_report(no_source_content):
+            if is_qcore_dict(no_source_content) and not _looks_like_verification_report(
+                no_source_content
+            ):
                 current_qcore = no_source_content
             else:
                 logger.warning(
-                    f"[{task_batch_id}] Q{i+1} Step 5 produced invalid payload; keeping prior candidate."
+                    f"[{task_batch_id}] Q{i + 1} Step 5 produced invalid payload; keeping prior candidate."
                 )
 
             logger.debug(f"[{task_batch_id}] No-source content: {no_source_content}")
             logger.debug(f"[{task_batch_id}] No-source prompt: {no_source_prompt}")
 
             # --- Step 6: Check Soundness ---
-            logger.info(f"[{task_batch_id}] Q{i+1} Step 6: Checking soundness...")
+            logger.info(f"[{task_batch_id}] Q{i + 1} Step 6: Checking soundness...")
 
             designer = designer_factory()
             no_source_content_as_str = _ensure_json_string(current_qcore)
             clean_content, soundness_prompt = await designer.check_soundness(
                 candidate_question=no_source_content_as_str,
             )
-            if is_qcore_dict(clean_content) and not _looks_like_verification_report(clean_content):
+            if is_qcore_dict(clean_content) and not _looks_like_verification_report(
+                clean_content
+            ):
                 current_qcore = clean_content
             else:
                 logger.warning(
-                    f"[{task_batch_id}] Q{i+1} Step 6 produced invalid payload; keeping prior candidate."
+                    f"[{task_batch_id}] Q{i + 1} Step 6 produced invalid payload; keeping prior candidate."
                 )
                 clean_content = current_qcore
 
@@ -693,14 +784,16 @@ async def run_task_generation_loop(
             logger.debug(f"[{task_batch_id}] Soundness prompt: {soundness_prompt}")
 
             # --- Step 7: FINAL VERIFICATION (MCQ INTEGRITY, JSON FORMAT CHECK) ---
-            logger.info(f"[{task_batch_id}] Q{i+1} Step 7: Verifying...")
+            logger.info(f"[{task_batch_id}] Q{i + 1} Step 7: Verifying...")
 
             verifier = verifier_factory()
             verification_report = await verifier.verify_task(
                 candidate_output=clean_content,
             )
 
-            if is_qcore_dict(clean_content) and not _looks_like_verification_report(clean_content):
+            if is_qcore_dict(clean_content) and not _looks_like_verification_report(
+                clean_content
+            ):
                 current_qcore = clean_content
             # Log verification summary
             if verification_log is not None:
@@ -716,17 +809,29 @@ async def run_task_generation_loop(
                         "blooms_level": blooms_level,
                         "question_index_in_batch": task_seq,
                         "summary": {
-                            "overall_verdict": verification_report.get("overall_verdict"),
-                            "json_format_valid": verification_report.get("json_format_valid"),
+                            "overall_verdict": verification_report.get(
+                                "overall_verdict"
+                            ),
+                            "json_format_valid": verification_report.get(
+                                "json_format_valid"
+                            ),
                             "mcq_integrity": verification_report.get("mcq_integrity"),
-                            "clarity_well_posed": verification_report.get("clarity_well_posed"),
-                            "constraint_compliance": verification_report.get("constraint_compliance"),
+                            "clarity_well_posed": verification_report.get(
+                                "clarity_well_posed"
+                            ),
+                            "constraint_compliance": verification_report.get(
+                                "constraint_compliance"
+                            ),
                         },
                     }
                 )
 
-            logger.info(f"[{task_batch_id}] Q{i+1} Verification report: {verification_report}")
-            logger.debug(f"[{task_batch_id}] Clean content for verification: {clean_content}")
+            logger.info(
+                f"[{task_batch_id}] Q{i + 1} Verification report: {verification_report}"
+            )
+            logger.debug(
+                f"[{task_batch_id}] Clean content for verification: {clean_content}"
+            )
 
             # Save if passed, else loop to Step 8 for fixes and retries
             if _is_passing(verification_report):
@@ -749,8 +854,15 @@ async def run_task_generation_loop(
                 passed_tasks.extend(one)
 
                 # ---- checkpoint snapshot (save_tasks schema) ----
-                if checkpoint_every > 0 and checkpoint_path and checkpoint_metadata and len(passed_tasks) % checkpoint_every == 0:
-                    _save_checkpoint_snapshot(passed_tasks, checkpoint_path, checkpoint_metadata)
+                if (
+                    checkpoint_every > 0
+                    and checkpoint_path
+                    and checkpoint_metadata
+                    and len(passed_tasks) % checkpoint_every == 0
+                ):
+                    _save_checkpoint_snapshot(
+                        passed_tasks, checkpoint_path, checkpoint_metadata
+                    )
                     logger.info(
                         f"[{task_batch_id}] Checkpoint saved → {checkpoint_path} (passed={len(passed_tasks)})"
                     )
@@ -762,19 +874,39 @@ async def run_task_generation_loop(
 
                 task_seq += 1
                 logger.info(
-                    f"[{task_batch_id}] Q{i+1} PASSED (prev_questions={len(previous_questions)})"
+                    f"[{task_batch_id}] Q{i + 1} PASSED (prev_questions={len(previous_questions)})"
                 )
                 break
 
             # --- Step 8: FIX ISSUES IF NOT PASSED (upto max retries) ---
             if attempt < max_retries:
-                logger.info(f"[{task_batch_id}] Q{i+1} Step 8: fix_bug (attempt {attempt+1})")
+                logger.info(
+                    f"[{task_batch_id}] Q{i + 1} Step 8: fix_bug (attempt {attempt + 1})"
+                )
                 feedback_str = _format_feedback(verification_report)
                 designer = designer_factory()
-                json_bad = str(verification_report.get("json_format_valid", "")).strip().lower() == "no"
-                mcq_ok = str(verification_report.get("mcq_integrity", "")).strip().lower() == "yes"
-                clarity_ok = str(verification_report.get("clarity_well_posed", "")).strip().lower() == "yes"
-                constraint_ok = str(verification_report.get("constraint_compliance", "")).strip().lower() == "yes"
+                json_bad = (
+                    str(verification_report.get("json_format_valid", ""))
+                    .strip()
+                    .lower()
+                    == "no"
+                )
+                mcq_ok = (
+                    str(verification_report.get("mcq_integrity", "")).strip().lower()
+                    == "yes"
+                )
+                clarity_ok = (
+                    str(verification_report.get("clarity_well_posed", ""))
+                    .strip()
+                    .lower()
+                    == "yes"
+                )
+                constraint_ok = (
+                    str(verification_report.get("constraint_compliance", ""))
+                    .strip()
+                    .lower()
+                    == "yes"
+                )
 
                 json_only_case = json_bad and mcq_ok and clarity_ok and constraint_ok
 
@@ -797,17 +929,21 @@ async def run_task_generation_loop(
                         previous_questions=previous_questions,
                     )
 
-                if is_qcore_dict(revised_content) and not _looks_like_verification_report(revised_content):
+                if is_qcore_dict(
+                    revised_content
+                ) and not _looks_like_verification_report(revised_content):
                     current_qcore = revised_content
                 else:
                     logger.warning(
-                        f"[{task_batch_id}] Q{i+1} Step 8 produced invalid payload; keeping prior candidate."
+                        f"[{task_batch_id}] Q{i + 1} Step 8 produced invalid payload; keeping prior candidate."
                     )
-                last_prompt_text_i = f"{last_prompt_text_i}\n\n[REVISION FEEDBACK]\n{feedback_str}"
+                last_prompt_text_i = (
+                    f"{last_prompt_text_i}\n\n[REVISION FEEDBACK]\n{feedback_str}"
+                )
 
         else:
             logger.warning(
-                f"[{task_batch_id}] Q{i+1} FAILED after {max_retries+1} attempts; skipping."
+                f"[{task_batch_id}] Q{i + 1} FAILED after {max_retries + 1} attempts; skipping."
             )
             continue
 
