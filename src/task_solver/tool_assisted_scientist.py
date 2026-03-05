@@ -71,6 +71,38 @@ class ToolAssistedScientist(RoutedAgent):
         self._langfuse_client = langfuse_client
         self._toolkit = toolkit
 
+    def _extract_numerical_from_code_output(self, code_output: str) -> str:
+        """Extract the final numerical answer from code output.
+        
+        Looks for the last number printed in the code output, preferring
+        numbers that appear after labels like "answer:", "result:", "price:", etc.
+        """
+        if not code_output or code_output.startswith("ERROR"):
+            return "null"
+        
+        import re
+        
+        # First, try to find numbers after common result labels
+        result_patterns = [
+            r'(?:answer|result|final|price|spread|years?|maturity|value|solution)\s*[:=]\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)',
+            r'(?:answer|result|final|price|spread|years?|maturity|value|solution)\s*\(\s*[ns]\s*\)\s*:\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)',
+        ]
+        
+        for pattern in result_patterns:
+            matches = re.findall(pattern, code_output, re.IGNORECASE)
+            if matches:
+                # Use the last match (most specific/final result)
+                return matches[-1]
+        
+        # Fallback: Find all numbers and return the last one
+        numbers = re.findall(r'-?\d+\.?\d*(?:[eE][+-]?\d+)?', code_output)
+        
+        if numbers:
+            # Return the last number found
+            return numbers[-1]
+        
+        return "null"
+    
     def _extract_solution_components(
         self, response: str
     ) -> tuple[str, str | None, str | None, str, str]:
@@ -261,6 +293,18 @@ class ToolAssistedScientist(RoutedAgent):
                         code_output[:500],
                         "-" * 60,
                     )
+                    
+                    # Extract numerical answer from code output instead of using model's approximation
+                    extracted_numerical = self._extract_numerical_from_code_output(code_output)
+                    if extracted_numerical != "null":
+                        log.info(
+                            "Scientist %s: Overriding numerical_answer (was: %s, now: %s from code output)",
+                            self._scientist_id,
+                            numerical_answer,
+                            extracted_numerical
+                        )
+                        numerical_answer = extracted_numerical
+                    
                     return thought, code, code_output, final_answer, numerical_answer
 
                 # Code execution failed

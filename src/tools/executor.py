@@ -60,6 +60,13 @@ class PythonExecutor:
                 'fractions',
                 'decimal',
                 'cmath',
+                'datetime',
+                'numpy_financial',
+                'py_vollib',
+                'pypfopt',
+                'empyrical',
+                'arch',
+                'statsmodels',
             ]
         
         self._allowed_imports = set(allowed_imports)

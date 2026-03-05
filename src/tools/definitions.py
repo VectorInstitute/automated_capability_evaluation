@@ -119,19 +119,120 @@ CMATH_CONFIG = LibraryConfig(
     use_cases=["Complex number operations"]
 )
 
+# Financial Library Configurations
+NUMPY_FINANCIAL_CONFIG = LibraryConfig(
+    name="numpy_financial",
+    import_name="numpy_financial as npf",
+    description="Financial functions for time value of money calculations (NPV, IRR, PMT, PV, FV, etc.).",
+    docs_path=None,
+    common_functions=[
+        "npf.npv", "npf.irr", "npf.pmt", "npf.pv", "npf.fv",
+        "npf.nper", "npf.rate", "npf.ppmt", "npf.ipmt"
+    ],
+    use_cases=[
+        "Time Value of Money",
+        "Net Present Value calculations",
+        "Internal Rate of Return",
+        "Loan payment calculations"
+    ]
+)
+
+PY_VOLLIB_GEN_CONFIG = LibraryConfig(
+    name="py_vollib_gen",
+    import_name="py_vollib",
+    description="Options pricing and Greeks using Black-Scholes model.",
+    docs_path=None,
+    common_functions=[
+        "py_vollib.black_scholes.black_scholes",
+        "py_vollib.black_scholes.implied_volatility",
+        "py_vollib.black_scholes.greeks"
+    ],
+    use_cases=[
+        "Options pricing",
+        "Implied volatility calculation",
+        "Greeks computation (delta, gamma, theta, vega, rho)"
+    ]
+)
+
+PYPORTFOLIOOPT_CONFIG = LibraryConfig(
+    name="PyPortfolioOpt",
+    import_name="pypfopt",
+    description="Portfolio optimization and asset allocation library.",
+    docs_path=None,
+    common_functions=[
+        "pypfopt.expected_returns.mean_historical_return",
+        "pypfopt.risk_models.CovarianceShrinkage",
+        "pypfopt.efficient_frontier.EfficientFrontier",
+        "pypfopt.objective_functions.sharpe_ratio"
+    ],
+    use_cases=[
+        "Portfolio optimization",
+        "Risk-return analysis",
+        "Asset allocation",
+        "Efficient frontier computation"
+    ]
+)
+
+EMPYRICAL_CONFIG = LibraryConfig(
+    name="empyrical",
+    import_name="empyrical",
+    description="Performance statistics and risk metrics for financial analysis.",
+    docs_path=None,
+    common_functions=[
+        "empyrical.sharpe_ratio", "empyrical.sortino_ratio",
+        "empyrical.max_drawdown", "empyrical.annual_return",
+        "empyrical.alpha_beta", "empyrical.beta"
+    ],
+    use_cases=[
+        "Performance metrics",
+        "Risk analysis",
+        "Sharpe and Sortino ratios",
+        "Drawdown analysis"
+    ]
+)
+
+ARCH_CONFIG = LibraryConfig(
+    name="arch",
+    import_name="arch",
+    description="Volatility modeling and time series analysis.",
+    docs_path=None,
+    common_functions=[
+        "arch.univariate.GARCH",
+        "arch.univariate.EGARCH",
+        "arch.univariate.ConstantMean",
+        "arch.univariate.HARX"
+    ],
+    use_cases=[
+        "GARCH/EGARCH volatility modeling",
+        "Time series forecasting",
+        "Conditional variance estimation"
+    ]
+)
+
 # The Tool Definition
 PYTHON_SCIENTIFIC_TOOL = ToolDefinition(
     tool_id="python_code_execution",
     name="Python Code Execution",
-    description="Execute Python code with SymPy, NumPy, SciPy for symbolic math, numerical computing, and scientific analysis.",
-    libraries=[SYMPY_CONFIG, NUMPY_CONFIG, SCIPY_CONFIG, MATH_CONFIG, FRACTIONS_CONFIG, DECIMAL_CONFIG, CMATH_CONFIG],
-    allowed_imports=["sympy", "numpy", "scipy", "math", "fractions", "decimal", "cmath"],
+    description="Execute Python code with math, scientific, and financial computing libraries including SymPy, NumPy, SciPy, numpy_financial, py_vollib, PyPortfolioOpt, empyrical, and arch.",
+    libraries=[
+        SYMPY_CONFIG, NUMPY_CONFIG, SCIPY_CONFIG, MATH_CONFIG, FRACTIONS_CONFIG, DECIMAL_CONFIG, CMATH_CONFIG,
+        NUMPY_FINANCIAL_CONFIG, PY_VOLLIB_GEN_CONFIG, PYPORTFOLIOOPT_CONFIG, EMPYRICAL_CONFIG, ARCH_CONFIG
+    ],
+    allowed_imports=[
+        "sympy", "numpy", "scipy", "math", "fractions", "decimal", "cmath", "datetime",
+        "numpy_financial", "py_vollib", "pypfopt", "empyrical", "arch", "statsmodels"
+    ],
     use_cases=[
         "Solving differential equations",
         "Matrix operations and linear algebra",
         "Numerical integration",
         "Symbolic manipulation",
-        "Optimization problems"
+        "Optimization problems",
+        "Time Value of Money calculations (NPV, IRR, XNPV, XIRR)",
+        "Options pricing and Greeks",
+        "Portfolio optimization",
+        "Performance metrics and risk analysis",
+        "Volatility modeling (GARCH/EGARCH)"
     ],
     metadata={"timeout": 30}
 )

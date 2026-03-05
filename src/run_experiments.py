@@ -45,6 +45,7 @@ from src.task_solver.scientist import TaskSolverScientist
 from src.task_solver.tool_assisted_scientist import ToolAssistedScientist
 from src.tools.toolkit import ScientificToolKit
 from src.utils.model_client_utils import get_model_client
+from autogen_core.models import SystemMessage, UserMessage
 
 
 # Configure logging
@@ -69,7 +70,7 @@ class ExperimentRunner:
         num_tasks: int = 15,
         condition: str = "both",
         output_dir: str = "experiment_results",
-        enable_tool_selection: bool = True,
+        enable_tool_selection: bool = False,
         tasks_file: str = "selected_tasks.json",
         dataset_type: str = "math",
     ):
@@ -199,7 +200,7 @@ class ExperimentRunner:
             output_dir = self.results_dir / condition / task_data["capability_name"]
             output_dir.mkdir(parents=True, exist_ok=True)
             
-            # Register moderator
+            # Register moderator (single solver - no debate/consensus)
             await TaskSolverModerator.register(
                 runtime,
                 "TaskSolverModerator",
@@ -208,14 +209,14 @@ class ExperimentRunner:
                         model_name=self.model_name,
                         seed=42,
                     ),
-                    num_solvers=2,
-                    max_rounds=self.num_rounds,
+                    num_solvers=1,  # Single scientist - no multi-agent debate
+                    max_rounds=1,  # Single round - direct solve
                     output_dir=output_dir,
                     langfuse_client=self.langfuse_client,
                 ),
             )
             
-            # Register scientist agents based on condition
+            # Register scientist agent based on condition (single scientist - no debate)
             if condition == "baseline":
                 # Use regular TaskSolverScientist
                 await TaskSolverScientist.register(
@@ -230,37 +231,14 @@ class ExperimentRunner:
                         langfuse_client=self.langfuse_client,
                     ),
                 )
-                
-                await TaskSolverScientist.register(
-                    runtime,
-                    "TaskSolverScientistB",
-                    lambda: TaskSolverScientist(
-                        model_client=get_model_client(
-                            model_name=self.model_name,
-                            seed=42,
-                        ),
-                        scientist_id="B",
-                        langfuse_client=self.langfuse_client,
-                    ),
-                )
             else:
-                # Use ToolAssistedScientist with toolkit
-                # Create toolkits for scientists (RAG disabled - use parametric knowledge)
-                toolkit_a = ScientificToolKit(
+                # Use ToolAssistedScientist with toolkit (no tool selection - direct code execution)
+                toolkit = ScientificToolKit(
                     model_client=get_model_client(
                         model_name=self.model_name,
                         seed=42,
                     ),
-                    enable_tool_selection=self.enable_tool_selection,
-                    enable_rag=False,  # Use model's parametric knowledge instead of retrieval
-                )
-                
-                toolkit_b = ScientificToolKit(
-                    model_client=get_model_client(
-                        model_name=self.model_name,
-                        seed=42,
-                    ),
-                    enable_tool_selection=self.enable_tool_selection,
+                    enable_tool_selection=self.enable_tool_selection,  # False by default - skip tool selection
                     enable_rag=False,  # Use model's parametric knowledge instead of retrieval
                 )
                 
@@ -274,21 +252,7 @@ class ExperimentRunner:
                         ),
                         scientist_id="A",
                         langfuse_client=self.langfuse_client,
-                        toolkit=toolkit_a,
-                    ),
-                )
-                
-                await ToolAssistedScientist.register(
-                    runtime,
-                    "TaskSolverScientistB",
-                    lambda: ToolAssistedScientist(
-                        model_client=get_model_client(
-                            model_name=self.model_name,
-                            seed=42,
-                        ),
-                        scientist_id="B",
-                        langfuse_client=self.langfuse_client,
-                        toolkit=toolkit_b,
+                        toolkit=toolkit,
                     ),
                 )
             
@@ -321,6 +285,11 @@ class ExperimentRunner:
                         solution_data.get("all_solutions", [])
                     )
                     result["code_executions"] = code_executions
+                    # Track if ANY code was executed successfully (no "ERROR:" in output)
+                    result["code_execution_success"] = any(
+                        c.get("has_code") and not str(c.get("code_output", "")).startswith("ERROR:")
+                        for c in code_executions
+                    )
                 
                 result.update({
                     "status": "completed",
@@ -334,20 +303,29 @@ class ExperimentRunner:
                 # Verify answer (XFinBench-aware)
                 task_type = task_data.get("task_type")
                 if self.dataset_type == "xfinbench" and task_type:
-                    success = self._verify_xfinbench_answer(
+                    verification_dict = await self._verify_xfinbench_answer(
                         solution_data.get("numerical_answer"),
                         task_data["answer"],
                         task_type,
                         code_executions
                     )
+                    result.update(verification_dict)
+                    # Success is determined by LLM judge
+                    result["success"] = verification_dict.get("llm_judge", False)
                 else:
-                    success = self._verify_answer(
-                        solution_data.get("numerical_answer"),
-                        task_data["answer"],
-                        code_executions=code_executions
-                    )
-                
-                result["success"] = success
+                    # For non-XFinBench datasets, use LLM judge too
+                    try:
+                        llm_judge_result = await self._verify_with_llm_judge(
+                            solution_data.get("numerical_answer"),
+                            task_data["answer"],
+                            code_executions
+                        )
+                        result["success"] = llm_judge_result
+                        result["llm_judge"] = llm_judge_result
+                    except Exception as e:
+                        log.warning(f"LLM judge verification failed: {e}")
+                        result["success"] = False
+                        result["llm_judge"] = False
             else:
                 result.update({
                     "status": "error",
@@ -483,38 +461,39 @@ class ExperimentRunner:
         
         return False
     
-    def _verify_xfinbench_answer(
+    async def _verify_xfinbench_answer(
         self,
         solution_answer: str,
         expected_answer: Any,
         task_type: str,
         code_executions: List[Dict] = None
-    ) -> bool:
-        """Verify XFinBench answer based on task type.
+    ) -> Dict[str, bool]:
+        """Verify XFinBench answer using LLM-as-a-judge only.
         
         Args:
-            solution_answer: The answer from the consensus/solution
+            solution_answer: The answer from the solution
             expected_answer: The expected correct answer
             task_type: Type of task ('bool', 'mcq', 'calcu')
             code_executions: Optional list of code execution results
         
         Returns:
-            True if answer matches, False otherwise
+            Dictionary with 'llm_judge' success flag
         """
+        results = {"llm_judge": False}
         if expected_answer is None:
-            return False
+            return results
         
-        # Boolean tasks: simple 0/1 comparison
-        if task_type == "bool":
-            return self._verify_boolean_answer(solution_answer, expected_answer, code_executions)
+        # For all task types, use LLM judge for verification
+        # This is strict on computation precision but forgiving on formatting
+        try:
+            results["llm_judge"] = await self._verify_with_llm_judge(
+                solution_answer, expected_answer, code_executions
+            )
+        except Exception as e:
+            log.warning(f"LLM judge verification failed: {e}")
+            results["llm_judge"] = False
         
-        # MCQ tasks: extract choice letter
-        elif task_type == "mcq":
-            return self._verify_mcq_answer(solution_answer, expected_answer, code_executions)
-        
-        # Calculation tasks: numerical comparison
-        else:  # task_type == "calcu"
-            return self._verify_answer(solution_answer, expected_answer, code_executions)
+        return results
     
     def _verify_boolean_answer(
         self,
@@ -596,53 +575,146 @@ class ExperimentRunner:
         
         return False
     
-    def _verify_single_answer(self, solution_answer: str, expected_answer: str) -> bool:
-        """Verify a single answer against the expected answer."""
+    async def _verify_with_llm_judge(
+        self,
+        solution_answer: str,
+        expected_answer: Any,
+        code_executions: List[Dict] = None
+    ) -> bool:
+        """Use LLM-as-a-Judge to verify answer with strict computational precision but forgiving formatting.
+        
+        This judge is designed to reward tool-use by:
+        - Being ruthlessly strict on mathematical precision (penalizes rounding errors)
+        - Being completely forgiving on superficial formatting (ignores $, %, commas)
+        
+        Args:
+            solution_answer: The answer from the consensus/solution
+            expected_answer: The expected correct answer
+            code_executions: Optional list of code execution results
+        
+        Returns:
+            True if LLM judge deems the answer mathematically exact
+        """
         if solution_answer is None or expected_answer is None:
             return False
         
-        # First try direct string match (fastest)
+        # Prepare the judgment prompt
+        judge_prompt = f"""You are an expert financial auditor grading an AI's mathematical execution. Your goal is to determine if the AI produced the mathematically exact final answer.
+
+In corporate finance and derivatives pricing, precision is paramount. Your grading criteria must strictly reward exact computation and penalize manual estimation.
+
+The exact expected answer is: {expected_answer}
+The AI's prediction is: {solution_answer}
+
+GRADING RULES:
+1. STRICT COMPUTATION: You must PENALIZE answers that suffer from intermediate rounding errors, accumulated floating-point drift, or arithmetic approximations. For example:
+   - 1023654.52 vs expected 1023654.55 → FALSE (precision error)
+   - 1.259 vs expected 1.2592 → FALSE (truncation/rounding error)
+   
+2. FORGIVE FORMATTING & UNITS: You must IGNORE superficial formatting differences and equivalent unit representations:
+   - Formatting: "$1.41", "1.41", "1.4100" are all identical
+   - Percentage ↔ Decimal: "15.58%" = "0.1558" (divide %) = "15.58" (plain number)
+   - IMPORTANT: "0.012591" (decimal) = "1.2591" (percentage) when multiplied by 100
+   - Basis Points: "125.91" bps = "1.2591" percent (divide bps by 100)
+   - Trailing precision: "16.028544" ≈ "16.0" if they round to the same value
+   
+3. ROUNDING TOLERANCE: If the prediction has extra decimal places but rounds to the expected answer, accept it:
+   - 102.129 vs expected 102.13 → TRUE (rounds to 102.13)
+   - 16.0285 vs expected 16.0 → TRUE (rounds to 16)
+   - 1.2591 vs expected 1.2592 → TRUE (difference is 0.0001, negligible)
+
+CONVERSION PRIORITY: Try these conversions before rejecting:
+   a) If prediction is small (< 0.1) and expected is larger: multiply prediction by 100 (decimal → percentage)
+   b) If prediction is in hundreds and expected is small: divide prediction by 100 (bps → percentage)
+   c) Check if values match after conversion
+
+Based on these rules, did the AI predict the exact correct number (accounting for unit conversions and rounding)?
+
+Output ONLY the word "TRUE" or "FALSE". Do not provide any other explanation."""
+        
+        try:
+            # Use lightweight model for judging (gemini-3-flash-preview)
+            judge_client = get_model_client("gemini-3-flash-preview")
+            
+            response = await judge_client.create([
+                SystemMessage(content="You are a precise numerical evaluator."),
+                UserMessage(content=judge_prompt, source="user")
+            ])
+            
+            judgment = response.content.strip().upper()
+            
+            if "TRUE" in judgment:
+                return True
+            elif "FALSE" in judgment:
+                return False
+            else:
+                log.warning(f"Unexpected LLM judge response: {judgment}")
+                return False
+                
+        except Exception as e:
+            log.error(f"LLM judge error: {e}")
+            return False
+    
+    def _verify_single_answer(self, solution_answer: str, expected_answer: str, relaxed: bool = False) -> bool:
+        """Verify a single answer using XFinBench standards.
+        
+        Args:
+            solution_answer: The answer to verify
+            expected_answer: The expected correct answer
+            relaxed: If True, use 5% relative error tolerance; if False, use strict tolerance
+        
+        Returns:
+            True if answer matches according to the specified tolerance
+        """
+        if solution_answer is None or expected_answer is None:
+            return False
+        
         sol = str(solution_answer).strip().lower()
         exp = str(expected_answer).strip().lower()
         
+        # Exact match
         if sol == exp:
             return True
         
-        # Try robust numerical comparison with normalization
         try:
             sol_nums = self._normalize_answer(solution_answer)
             exp_nums = self._normalize_answer(expected_answer)
             
-            if not sol_nums or not exp_nums:
+            if not sol_nums or not exp_nums or len(sol_nums) != len(exp_nums):
                 return False
             
-            if len(sol_nums) != len(exp_nums):
-                return False
-            
-            # Compare with tolerance
-            return all(abs(s - e) < 1e-6 for s, e in zip(sol_nums, exp_nums))
-            
-        except Exception as e:
-            log.debug(f"Error during answer normalization: {e}")
-            # Fall back to old method
-            try:
-                # Handle list/vector comparisons
-                if "[" in sol and "[" in exp:
-                    sol_list = eval(sol) if isinstance(sol, str) else sol
-                    exp_list = eval(exp) if isinstance(exp, str) else exp
-                    if isinstance(sol_list, list) and isinstance(exp_list, list):
-                        if len(sol_list) != len(exp_list):
-                            return False
-                        return all(abs(float(s) - float(e)) < 1e-6 for s, e in zip(sol_list, exp_list))
+            for s, e in zip(sol_nums, exp_nums):
+                diff = abs(s - e)
                 
-                # Simple float comparison
-                sol_num = float(sol)
-                exp_num = float(exp)
-                return abs(sol_num - exp_num) < 1e-6
-            except (ValueError, TypeError, SyntaxError):
-                pass
-        
-        return False
+                # Strict: Must be virtually exact
+                if not relaxed:
+                    if diff > 1e-6:
+                        return False
+                else:
+                    # 1. Absolute tolerance (crucial for expected == 0)
+                    if diff < 1e-4 or (e == 0 and diff < 1e-9):
+                        continue
+                    
+                    # 2. XFinBench standard: 5% relative error
+                    if e != 0 and diff / abs(e) <= 0.05:
+                        continue
+                    
+                    # 3. Unit scaling checks (BP, %, decimals, Thousands, Millions)
+                    scaled_match = False
+                    for factor in [10, 100, 1000, 10000, 1000000]:
+                        if abs(s * factor - e) < 1e-4 or abs(s - e * factor) < 1e-4:
+                            scaled_match = True
+                            break
+                        if e != 0 and (abs(s * factor - e) / abs(e) <= 0.05 or abs(s - e * factor) / abs(e) <= 0.05):
+                            scaled_match = True
+                            break
+                    
+                    if scaled_match:
+                        continue
+                    return False
+            return True
+        except Exception:
+            return False
     
     def _extract_code_executions(self, all_solutions: List[Dict]) -> List[Dict]:
         """Extract code execution information and outputs from solutions."""
@@ -714,10 +786,7 @@ class ExperimentRunner:
         self.langfuse_client.flush()
     
     def _print_summary(self):
-        """Print experiment summary."""
-        log.info("\n" + "="*70)
-    def _print_summary(self):
-        """Print experiment summary."""
+        """Print experiment summary with both strict and relaxed metrics for XFinBench."""
         log.info("\n" + "="*70)
         log.info("EXPERIMENT SUMMARY")
         log.info("="*70)
@@ -728,17 +797,31 @@ class ExperimentRunner:
                 
             results = self.results[condition]
             completed = [r for r in results if r["status"] == "completed"]
-            successful = [r for r in completed if r.get("success", False)]
             
             log.info(f"\n{condition.upper().replace('_', ' ')}:")
             log.info(f"  Total tasks: {len(results)}")
             log.info(f"  Completed: {len(completed)}")
-            log.info(f"  Successful: {len(successful)}")
             
             if completed:
+                # LLM Judge metrics only
+                successful = [r for r in completed if r.get("success", False)]
+                log.info(f"  Successful: {len(successful)}")
+                
                 success_rate = len(successful) / len(completed) * 100
+                log.info(f"  Success rate (LLM Judge - precision-strict, format-forgiving): {success_rate:.1f}%")
+                
+                # Code execution success for tool_assisted
+                if condition == "tool_assisted":
+                    code_success_count = sum(
+                        1 for r in completed 
+                        if r.get("code_executions") and any(
+                            c.get("has_code") and not str(c.get("code_output", "")).startswith("ERROR:")
+                            for c in r.get("code_executions", [])
+                        )
+                    )
+                    log.info(f"  Code execution success: {code_success_count}/{len(completed)}")
+                
                 avg_time = sum(r["execution_time"] for r in completed) / len(completed)
-                log.info(f"  Success rate: {success_rate:.1f}%")
                 log.info(f"  Average time: {avg_time:.2f}s")
         
         log.info("\n" + "="*70)
@@ -800,14 +883,7 @@ Examples:
     parser.add_argument(
         "--enable-tool-selection",
         action="store_true",
-        default=True,
-        help="Enable dynamic tool selection (default: True)"
-    )
-    parser.add_argument(
-        "--disable-tool-selection",
-        action="store_true",
-        default=False,
-        help="Disable dynamic tool selection (use all tools by default)"
+        help="Enable dynamic tool selection (disabled by default)"
     )
     parser.add_argument(
         "--dataset-type",
@@ -818,8 +894,8 @@ Examples:
     
     args = parser.parse_args()
     
-    # Handle tool selection flag
-    enable_tool_selection = args.enable_tool_selection and not args.disable_tool_selection
+    # Tool selection is disabled by default, enable only if flag is present
+    enable_tool_selection = args.enable_tool_selection
     
     runner = ExperimentRunner(
         model_name=args.model,

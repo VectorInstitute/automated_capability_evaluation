@@ -94,7 +94,12 @@ class ScientificToolKit:
         
         # Setup code executor (always available)
         self.executor = PythonExecutor(
-            allowed_imports=["numpy", "scipy", "sympy", "math", "fractions", "decimal"]
+            allowed_imports=[
+                "numpy", "scipy", "sympy", "math", "fractions", "decimal", "cmath",
+                "datetime", "statsmodels",
+                # Financial libraries
+                "numpy_financial", "py_vollib", "pypfopt", "empyrical", "arch"
+            ]
         )
         
         log.info(
@@ -123,6 +128,16 @@ class ScientificToolKit:
             - documentation: str (full module context or parametric note)
             - reasoning: str
         """
+        # If tool selection is disabled, skip the entire selection process
+        if not self.enable_tool_selection:
+            log.info("Tool selection disabled - skipping module selection step")
+            return {
+                "needs_tools": True,
+                "selected_modules": [],
+                "documentation": "All libraries available. Use parametric knowledge to write code.",
+                "reasoning": "Tool selection disabled - direct code execution mode"
+            }
+        
         # 1. Get Library Overview
         if self.enable_rag and self.doc_retriever:
             # High precision: exact list of files on disk

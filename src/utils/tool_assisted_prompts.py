@@ -54,13 +54,69 @@ import numpy as np
 # SciPy - Scientific Computing
 from scipy import integrate, optimize, linalg
 from scipy.integrate import odeint, solve_ivp, quad, dblquad
-# Use: integrate.quad, optimize.fsolve, linalg.lu, linalg.qr, linalg.svd, etc.
+from scipy.stats import norm  # for statistical distributions
+# Use: integrate.quad, optimize.fsolve, linalg.lu, linalg.qr, linalg.svd, scipy.stats.norm, etc.
 
 # Standard Math
 import math
 from fractions import Fraction
 from decimal import Decimal
+from datetime import datetime, timedelta
+
+# Financial Computing Libraries
+import numpy_financial as npf
+# Use: npf.npv(rate, cashflows), npf.irr(cashflows), npf.pmt(rate, nper, pv), npf.pv(rate, nper, pmt), npf.fv(rate, nper, pmt, pv)
+
+import empyrical
+# Use: empyrical.sharpe_ratio(returns, risk_free), empyrical.sortino_ratio(returns), empyrical.max_drawdown(returns)
+
+import pypfopt
+# Use: pypfopt.efficient_frontier.EfficientFrontier, pypfopt.expected_returns, pypfopt.risk_models
+
+import py_vollib.black_scholes as bs
+from py_vollib.black_scholes.greeks.analytical import delta, gamma, theta, vega
+# Use: bs.black_scholes(flag, S, K, t, r, sigma), delta(flag, S, K, t, r, sigma)
+# Note: flag is 'c' for call, 'p' for put
+
+from arch import arch_model
+from arch.univariate import HARX
+# Use for volatility modeling (GARCH/EGARCH/HARX):
+# Example: model = arch_model(returns, vol='GARCH', p=1, q=1)
+#          fitted = model.fit()
+# IMPORTANT: For multi-step forecasts (horizon > 1), use method='simulation':
+#          forecast = fitted.forecast(horizon=5, method='simulation')
+# For simulation: fitted.simulate(params=fitted.params, nobs=100)
+# where fitted.params is already a numpy array (not a dict!)
 ```
+
+**Few-Shot Examples for Financial Libraries:**
+
+Example using numpy_financial (NPV/IRR):
+{{
+    "thought": "To calculate NPV, I'll use numpy_financial which provides the npv function that takes a discount rate and cash flows.",
+    "code": "import numpy_financial as npf\\ncashflows = [-1000, 200, 300, 400, 500]\\nrate = 0.10\\nresult = npf.npv(rate, cashflows)\\nprint('NPV:', result)",
+    "code_output": null,
+    "final_answer": "The Net Present Value is approximately $213.62",
+    "numerical_answer": 213.62
+}}
+
+Example using arch (GARCH modeling with forecasting):
+{{
+    "thought": "To fit a GARCH(1,1) model and generate multi-step forecasts, I'll use arch_model and specify method='simulation' for horizon > 1.",
+    "code": "import numpy as np\\nfrom arch import arch_model\\nnp.random.seed(42)\\nreturns = np.random.randn(100) * 0.01\\nmodel = arch_model(returns, vol='GARCH', p=1, q=1)\\nfitted = model.fit(disp='off')\\nprint('Fitted parameters:')\\nprint(fitted.params)\\nforecasts = fitted.forecast(horizon=5, method='simulation')\\nprint('5-step forecast variance:')\\nprint(forecasts.variance.iloc[-1])",
+    "code_output": null,
+    "final_answer": "The GARCH(1,1) model has been fitted and 5-step ahead variance forecasts generated using simulation method.",
+    "numerical_answer": null
+}}
+
+Example using arch (HARX model for HAR volatility):
+{{
+    "thought": "For HAR (Heterogeneous AutoRegressive) volatility modeling, I'll use arch.univariate.HARX which is built into the arch package.",
+    "code": "import numpy as np\\nfrom arch.univariate import HARX\\nnp.random.seed(42)\\nreturns = np.random.randn(100) * 0.01\\nmodel = HARX(returns)\\nfitted = model.fit(disp='off')\\nprint('HARX parameters:')\\nprint(fitted.params)",
+    "code_output": null,
+    "final_answer": "The HARX model has been fitted to the returns data.",
+    "numerical_answer": null
+}}
 
 IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. Do not include any prefixes or prose. The JSON should be directly parseable.
 
@@ -153,6 +209,21 @@ import numpy as np
 # SciPy - Scientific Computing
 from scipy import integrate, optimize, linalg
 from scipy.integrate import odeint, solve_ivp, quad, dblquad
+from scipy.stats import norm
+# Use: integrate.quad, optimize.fsolve, linalg.lu, linalg.qr, linalg.svd, scipy.stats.norm
+
+# Financial Computing Libraries
+import numpy_financial as npf
+# Use: npf.npv(rate, cashflows), npf.irr(cashflows), npf.pmt(rate, nper, pv)
+
+import empyrical
+import pypfopt
+import py_vollib.black_scholes as bs
+from py_vollib.black_scholes.greeks.analytical import delta, gamma, theta, vega
+
+from arch import arch_model
+# For GARCH: model = arch_model(returns, vol='GARCH', p=1, q=1); fitted = model.fit()
+# For simulation: fitted.simulate(params=fitted.params, nobs=100) - params is already a numpy array!
 ```
 
 IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. Do not include any prefixes or prose. The JSON should be directly parseable.
