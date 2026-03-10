@@ -9,7 +9,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 
 log = logging.getLogger("tools.docs")
@@ -130,9 +130,13 @@ class ScientificDocRetriever:
                 )
 
                 for dl in definitions:
+                    # Type narrowing: ensure dl is a Tag
+                    if not isinstance(dl, Tag):
+                        continue
+
                     # 1. Get the signature (dt)
                     dt = dl.find("dt")
-                    if not dt:
+                    if not dt or not isinstance(dt, Tag):
                         continue
 
                     # CLEANUP: Remove ¶, [source], and extra whitespace
@@ -150,9 +154,9 @@ class ScientificDocRetriever:
                     # 2. Get the description (dd) - First sentence only, max 120 chars
                     desc_text = ""
                     dd = dl.find("dd")
-                    if dd:
+                    if dd and isinstance(dd, Tag):
                         p = dd.find("p")
-                        if p:
+                        if p and isinstance(p, Tag):
                             raw_desc = " ".join(p.get_text().split())
                             # Split by period to get first sentence, or cap at 120 chars
                             if "." in raw_desc:
@@ -176,8 +180,10 @@ class ScientificDocRetriever:
                     ) or "sympy" in str(path):
                         methods = dl.find_all("dl", class_="method")
                         for method in methods:
+                            if not isinstance(method, Tag):
+                                continue
                             m_dt = method.find("dt")
-                            if m_dt:
+                            if m_dt and isinstance(m_dt, Tag):
                                 m_sig_raw = (
                                     m_dt.get_text()
                                     .replace("¶", "")
