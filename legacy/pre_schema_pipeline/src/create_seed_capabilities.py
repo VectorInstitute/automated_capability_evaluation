@@ -11,8 +11,9 @@ from typing import Any, Dict, List
 import hydra
 from omegaconf import DictConfig
 
-from capability import CapabilitySeedDataset
-from utils import constants, templates
+from legacy.src.capability import CapabilitySeedDataset
+from legacy.src.utils import templates
+from src.utils import constants
 
 
 logger = logging.getLogger(__name__)

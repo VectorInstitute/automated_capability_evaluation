@@ -1,91 +1,14 @@
-"""Utility functions for capability management, loading, filtering, and scoring."""
+"""Pipeline-facing capability filtering utilities."""
 
 import logging
-import os
 from typing import Any, List, Tuple
 
 import torch
 
-from src.capability import Capability
-from src.generate_embeddings import filter_embeddings
-from src.utils import constants
+from src.utils.embedding_utils import filter_embeddings
 
 
 logger = logging.getLogger(__name__)
-
-
-def get_previous_capabilities(
-    capability_dir: str,
-    capability_area: str | None = None,
-    **kwargs: Any,
-) -> List[Capability]:
-    """
-    Get the previously generated capabilities for the specified domain.
-
-    These are included in the input prompt to generate new capabilities.
-
-    Args
-    ----
-        capability_dir (str): The directory containing the generated capabilities.
-        capability_area (str | None): The capability area to filter by.
-        **kwargs (Any): Additional keyword arguments.
-
-    Returns
-    -------
-        List[Capability]: A list of capabilities.
-    """
-    prev_capabilities = []
-    for capability_path in os.listdir(capability_dir):
-        capability = Capability(
-            capability_dir=os.path.join(capability_dir, capability_path),
-            score_dir_suffix=kwargs.get("score_dir_suffix"),
-        )
-        if capability_area is not None and capability.area != capability_area:
-            continue
-        prev_capabilities.append(capability)
-    return prev_capabilities
-
-
-def filter_capabilities(
-    capabilities: List[Capability],
-    embedding_model_name: str,
-    similarity_threshold: float,
-) -> List[Capability]:
-    """Filter capabilities based embedding similarity.
-
-    Calls filter_embeddings that eliminates all closely similar
-    capability embeddings (neighbors) while minimizing the number of
-    removed capabilities.
-
-    Args
-    ----
-        capabilities (List[Capability]): The list of capabilities.
-        embedding_model_name (str): The name of the OpenAI embedding model used for
-            generating the embeddings.
-        similarity_threshold (float): The threshold for cosine similarity
-                        above which capabilities are considered duplicates.
-
-    Returns
-    -------
-        List[Capability]: The list of remaining capabilities.
-    """
-    embeddings = [
-        capability.get_embedding(embedding_model_name) for capability in capabilities
-    ]
-    remaining_indices = filter_embeddings(embeddings, similarity_threshold)
-    # Update state of filtered capabilities
-    filtered_out_capabilities = []
-    for capability in (
-        cap for i, cap in enumerate(capabilities) if i not in remaining_indices
-    ):
-        capability.set_state(
-            constants.C_STATE_FILTERED_OUT_STR,
-        )
-        filtered_out_capabilities.append(capability)
-    logger.info(
-        f"Filtered out {len(filtered_out_capabilities)} capabilities:\n{filtered_out_capabilities}"
-    )
-    return [capabilities[i] for i in remaining_indices]
 
 
 def filter_schema_capabilities_by_embeddings(

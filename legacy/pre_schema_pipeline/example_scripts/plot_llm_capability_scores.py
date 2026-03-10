@@ -5,15 +5,15 @@ import hydra
 from omegaconf import DictConfig
 from tqdm import tqdm
 
+from legacy.src.utils.capability_discovery_utils import (
+    select_complete_capabilities,
+)
+from legacy.utils.legacy_capability_management_utils import (
+    get_previous_capabilities,
+)
 from legacy.utils.legacy_data_utils import get_run_id
 from legacy.utils.legacy_visualization_utils import (
     plot_capability_scores_spider_and_bar_chart,
-)
-from src.utils.capability_discovery_utils import (
-    select_complete_capabilities,
-)
-from src.utils.capability_management_utils import (
-    get_previous_capabilities,
 )
 
 

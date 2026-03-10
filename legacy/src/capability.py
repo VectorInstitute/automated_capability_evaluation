@@ -15,20 +15,21 @@ from typing import Any, Dict, List, Tuple
 import torch
 from langsmith import tracing_context
 
-from src.model import Model
-from src.utils import constants, prompts, templates
-from src.utils.capability_utils import (
+from legacy.src.model import Model
+from legacy.src.utils import prompts, templates
+from legacy.src.utils.capability_utils import (
     parse_python_class_str,
     read_score_inspect_json,
 )
+from legacy.src.utils.inspect_eval_utils import (
+    parse_submission,
+)
+from src.utils import constants
 from src.utils.data_utils import (
     list_dir,
     load_data,
     path_exists,
     transfer_inspect_log_to_gcp,
-)
-from src.utils.inspect_eval_utils import (
-    parse_submission,
 )
 
 

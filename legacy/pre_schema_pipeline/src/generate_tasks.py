@@ -8,10 +8,11 @@ from typing import Any, Dict, List, Tuple
 from langsmith import tracing_context
 from tenacity import Retrying, stop_after_attempt
 
-from src.capability import Capability, CapabilityState
-from src.model import Model
-from src.utils import constants, prompts
-from src.utils.capability_utils import extract_and_parse_response
+from legacy.src.capability import Capability, CapabilityState
+from legacy.src.model import Model
+from legacy.src.utils import prompts
+from legacy.src.utils.capability_utils import extract_and_parse_response
+from src.utils import constants
 
 
 logger = logging.getLogger(__name__)

@@ -4,7 +4,7 @@ This directory stores archived implementations that are no longer part of the ac
 
 ## Contents
 
-- `legacy/src/` and `legacy/tests/`: Legacy LBO code from the earlier paper-era codebase.
+- `legacy/src/`: Legacy LBO code from the earlier paper-era codebase.
 - `legacy/pre_schema_pipeline/`: Archived pre-standardization scripts and examples.
 
 ## LBO Compatibility Note

@@ -9,29 +9,30 @@ import hydra
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from legacy.utils.legacy_data_utils import get_run_id
-from src.generate_tasks import (
+from legacy.pre_schema_pipeline.src.generate_tasks import (
     generate_tasks_using_llm,
 )
-from src.lbo import calculate_lbo_error, fit_lbo, select_capabilities_using_lbo
-from src.model import Model
-from src.utils import constants, prompts
-from src.utils.capability_discovery_utils import (
+from legacy.src.lbo import calculate_lbo_error, fit_lbo, select_capabilities_using_lbo
+from legacy.src.model import Model
+from legacy.src.utils import prompts
+from legacy.src.utils.capability_discovery_utils import (
     capability_satisfies_criterion,
     knn_based_capability_discovery,
     score_based_capability_discovery,
     select_complete_capabilities,
 )
-from src.utils.capability_management_utils import (
+from legacy.src.utils.lbo_utils import get_lbo_train_set
+from legacy.utils.legacy_capability_management_utils import (
     get_previous_capabilities,
 )
-from src.utils.data_utils import check_cfg
-from src.utils.embedding_utils import (
+from legacy.utils.legacy_data_utils import get_run_id
+from legacy.utils.legacy_embedding_utils import (
     apply_dimensionality_reduction,
     apply_dimensionality_reduction_to_test_capabilities,
     generate_and_set_capabilities_embeddings,
 )
-from src.utils.lbo_utils import get_lbo_train_set
+from src.utils import constants
+from src.utils.data_utils import check_cfg
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")

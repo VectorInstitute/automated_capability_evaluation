@@ -2,9 +2,9 @@
 
 ## Scope
 
-Cleanup of obsolete or unused code/tests with a conservative policy:
+Cleanup of obsolete or unused code/tests:
 - Remove code that is confirmed dead.
-- Archive code that may still be useful for reference.
+- Archive code that may still be useful for reference under `legacy/`.
 
 ## Decision Summary
 
@@ -45,22 +45,38 @@ Reason: generated outputs should not be versioned.
 Removed:
 - `tests/src/visualizations/*.pdf`
 
+### Deleted (Legacy Tests)
+
+Reason: team confirmed legacy tests are no longer needed.
+
+Removed:
+- `legacy/tests/`
+- legacy-oriented tests and fixtures previously moved out of `tests/src/`:
+  - `test_capability_class.py`
+  - `test_capability_embedding.py`
+  - `test_dim_reduction_and_visualization.py`
+  - `test_embedding_and_filtering.py`
+  - `test_model_class.py`
+  - `capabilities_t2/`
+  - `seed_capabilities/`
+  - `seed_capabilities_scores/`
+  - `resources/manual_capabilities.json`
+
 ### Updated
 
 - `README.md`: removed active references to deleted/archived pipelines; documented active evaluation entrypoint and legacy locations.
 - `legacy/README.md`: updated legacy index to match current retained legacy folders.
 - `example_scripts/README.md`: points to archived plotting script.
 - `src/schemas/GENERATION_PIPELINE_SCHEMAS.md`: updated stale config path reference.
-- `tests/src/test_dim_reduction_and_visualization.py`: now writes plots to `tmp_path` and asserts file creation, removing dependency on committed PDFs.
 
-## Team Clarifications Needed Before Additional Cleanup
+## Clarifications Resolved
 
-1. Should we also archive the remaining capability-centric stack (`src/capability.py`, `src/model.py`, `src/utils/capability_*`, related tests/examples), or keep it as supported functionality?
-2. Should legacy Python tests under `legacy/tests/` remain in-repo as reference, or be removed from the default code tree entirely?
-3. Do you want `legacy/` excluded from future lint/format/test runs, or kept as lint-clean reference code?
+1. Agentic pipeline is fully removed and not retained in legacy.
+2. Legacy tests are fully removed.
+3. Legacy-only capability stack is retained under `legacy/` while active pipeline keeps only the currently used utility surface.
 
 ## Notes for PR Description
 
 - Include two explicit lists:
-  - "Deleted": agentic pipeline files + generated test PDF artifacts.
-  - "Archived to legacy": pre-schema scripts moved to `legacy/pre_schema_pipeline/`.
+  - "Deleted": agentic pipeline files + legacy tests + generated artifacts.
+  - "Archived to legacy": pre-schema scripts and legacy-only capability modules.

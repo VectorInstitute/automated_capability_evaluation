@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import hydra
 from omegaconf import DictConfig
 
-from src.model import Model
+from wikipedia.model import Model
 from wikipedia.prompts import (
     SYSTEM_PROMPT_MATH_TAXONOMIST,
     get_area_categorization_prompt,
