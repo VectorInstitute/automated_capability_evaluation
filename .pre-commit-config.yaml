@@ -44,14 +44,14 @@ repos:
     - id: doctest
       name: doctest
       entry: python3 -m doctest -o NORMALIZE_WHITESPACE
-      files: "^automated_capability_evaluation/"
+      files: "^(src|legacy|tests|example_scripts|wikipedia)/.*\\.py$"
       language: system
 
   - repo: local
     hooks:
     - id: pytest
       name: pytest
-      entry: python3 -m pytest -m "not integration_test"
+      entry: python3 -m pytest
       language: system
       pass_filenames: false
       always_run: true
@@ -65,5 +65,4 @@ ci:
     autoupdate_branch: ''
     autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
     autoupdate_schedule: weekly
-    skip: [pytest,doctest,mypy]
     submodules: false

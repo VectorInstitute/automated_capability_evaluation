@@ -9,11 +9,11 @@ import hydra
 import numpy as np
 from omegaconf import DictConfig
 
-from src.utils import constants
-from src.utils.capability_management_utils import get_previous_capabilities
-from src.utils.capability_utils import (
+from legacy.src.utils.capability_utils import (
     read_score_inspect_json,
 )
+from legacy.utils import legacy_constants as constants
+from legacy.utils.legacy_capability_management_utils import get_previous_capabilities
 
 
 def generate_latex_table(

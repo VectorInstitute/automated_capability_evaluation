@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from omegaconf import DictConfig
 
-from src.utils import constants
+from legacy.utils import legacy_constants as constants
 
 
 logger = logging.getLogger(__name__)

@@ -17,12 +17,10 @@ from autogen_core.models import (
 from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
+from src.utils import constants
 
-MAX_TOKENS = 1024 * 30
 
 logger = logging.getLogger(__name__)
-
-GEMINI_STUDIO_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 
 def get_standard_model_client(
@@ -33,6 +31,7 @@ def get_standard_model_client(
 ) -> ChatCompletionClient:
     """Build a plain client for use with `async_call_model`."""
     n = model_name.lower()
+    kwargs.setdefault("max_tokens", constants.DEFAULT_MAX_TOKENS)
 
     # OpenAI GPT / o-series models
     if n.startswith(("gpt-", "o1-", "o3-", "gpt-5", "o4-")):
@@ -78,7 +77,7 @@ def get_standard_model_client(
 
         return OpenAIChatCompletionClient(
             model=model_name,
-            base_url=GEMINI_STUDIO_BASE,
+            base_url=constants.GEMINI_STUDIO_BASE_URL,
             api_key=api_key,
             model_info=model_info,
             **kwargs,
