@@ -5,6 +5,7 @@ import logging
 import os
 import subprocess
 import time
+from enum import Enum
 from typing import Any, Dict, List, Tuple
 
 from langchain_anthropic import ChatAnthropic
@@ -14,16 +15,27 @@ from langsmith import traceable
 from pydantic import SecretStr
 from ratelimit import limits, sleep_and_retry
 
-from src.utils import constants
-
 
 RATE_LIMIT = {
     "calls": int(os.environ.get("RATE_LIMIT_CALLS", "5")),
     "period": int(os.environ.get("RATE_LIMIT_PERIOD", "60")),
 }
 
+VEC_INF_LOG_DIR = os.environ.get("VEC_INF_LOG_DIR", "/tmp")
+
 
 logger = logging.getLogger(__name__)
+
+
+class VecInfStatus(Enum):
+    """Enum class for vector inference status."""
+
+    PENDING = "PENDING"
+    LAUNCHING = "LAUNCHING"
+    READY = "READY"
+    FAILED = "FAILED"
+    SHUTDOWN = "SHUTDOWN"
+    UNAVAILABLE = "UNAVAILABLE"
 
 
 class Model:
@@ -247,7 +259,7 @@ def get_local_model_url(model_name: str, **kwargs: Any) -> str:
     slurm_job_id = launch_out["slurm_job_id"]
 
     # Wait for the model to be ready
-    vec_inf_status = constants.VecInfStatus
+    vec_inf_status = VecInfStatus
     status_command = ["vec-inf", "status", slurm_job_id, "--json-mode"]
     status = vec_inf_status.PENDING.value
     while status in [vec_inf_status.PENDING.value, vec_inf_status.LAUNCHING.value]:
@@ -307,7 +319,7 @@ def _run_command(
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         raise RuntimeError(f"Failed to launch local model server: {stderr.strip()}")
-    if model_status and constants.VEC_INF_LOG_DIR not in stdout:
+    if model_status and VEC_INF_LOG_DIR not in stdout:
         # Extract model status string and replace with
         # appropriate string which can be parsed
         str_to_replace = (

@@ -14,7 +14,7 @@ from langsmith import traceable
 from pydantic import SecretStr
 from ratelimit import limits, sleep_and_retry
 
-from src.utils import constants
+from legacy.utils import legacy_constants as constants
 
 
 RATE_LIMIT = {

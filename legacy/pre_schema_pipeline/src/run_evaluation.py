@@ -10,11 +10,11 @@ from legacy.src.model import Model
 from legacy.src.utils.capability_discovery_utils import (
     select_complete_capabilities,
 )
+from legacy.utils import legacy_constants as constants
 from legacy.utils.legacy_capability_management_utils import (
     get_previous_capabilities,
 )
 from legacy.utils.legacy_data_utils import get_run_id
-from src.utils import constants
 from src.utils.data_utils import check_cfg
 
 

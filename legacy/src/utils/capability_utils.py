@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 from inspect_ai.scorer import CORRECT
 
-from src.utils import constants
+from legacy.utils import legacy_constants as constants
 from src.utils.data_utils import read_json_file
 
 

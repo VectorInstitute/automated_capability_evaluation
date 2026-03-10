@@ -13,7 +13,7 @@ from omegaconf import DictConfig
 
 from legacy.src.capability import CapabilitySeedDataset
 from legacy.src.utils import templates
-from src.utils import constants
+from legacy.utils import legacy_constants as constants
 
 
 logger = logging.getLogger(__name__)

@@ -15,6 +15,7 @@ from legacy.src.utils.capability_discovery_utils import (
     select_complete_capabilities,
 )
 from legacy.src.utils.lbo_utils import get_lbo_train_set
+from legacy.utils import legacy_constants as constants
 from legacy.utils.legacy_capability_management_utils import (
     get_previous_capabilities,
 )
@@ -23,7 +24,6 @@ from legacy.utils.legacy_embedding_utils import (
     apply_dimensionality_reduction,
     generate_and_set_capabilities_embeddings,
 )
-from src.utils import constants
 from src.utils.data_utils import check_cfg
 
 

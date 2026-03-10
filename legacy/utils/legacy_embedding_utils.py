@@ -4,7 +4,7 @@ from typing import List
 
 from legacy.src.capability import Capability
 from legacy.src.dimensionality_reduction import DimensionalityReductionMethod
-from src.utils import constants
+from legacy.utils import legacy_constants as constants
 from src.utils.embedding_utils import EmbeddingGenerator, EmbeddingModelName
 
 

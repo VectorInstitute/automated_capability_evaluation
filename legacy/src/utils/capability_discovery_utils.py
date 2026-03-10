@@ -15,7 +15,7 @@ from legacy.src.capability import Capability
 from legacy.src.model import Model
 from legacy.src.utils import prompts
 from legacy.src.utils.capability_utils import extract_and_parse_response
-from src.utils import constants
+from legacy.utils import legacy_constants as constants
 
 
 logger = logging.getLogger(__name__)

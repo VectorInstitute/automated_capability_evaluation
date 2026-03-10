@@ -5,7 +5,7 @@ import os
 from typing import Any, List
 
 from legacy.src.capability import Capability
-from src.utils import constants
+from legacy.utils import legacy_constants as constants
 from src.utils.embedding_utils import filter_embeddings
 
 

@@ -12,8 +12,8 @@ from omegaconf import DictConfig
 from legacy.src.utils.capability_utils import (
     read_score_inspect_json,
 )
+from legacy.utils import legacy_constants as constants
 from legacy.utils.legacy_capability_management_utils import get_previous_capabilities
-from src.utils import constants
 
 
 def generate_latex_table(
