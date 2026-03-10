@@ -1,4 +1,4 @@
-"""
+r"""
 Tests for the JSON utility functions related to LaTeX backslash handling.
 
 This module contains tests specifically for the changes made to handle LaTeX
@@ -8,7 +8,8 @@ expressions with backslashes in JSON strings. The main changes were:
 - parse_llm_json_response: Fallback mechanism for "Invalid escape" errors
 
 The tests verify that:
-- LaTeX expressions with backslashes (e.g., \\(, \\), \\[, \\], \\to, \\lim) are properly escaped
+- LaTeX expressions with backslashes are properly escaped
+  (e.g., \\(, \\), \\[, \\], \\to, \\lim)
 - Valid JSON escape sequences (e.g., \\n, \\t, \\", \\\\) are preserved
 - The fallback mechanism correctly handles invalid escape errors
 """
@@ -45,7 +46,7 @@ class TestFixCommonJsonErrorsLaTeX:
         assert "[" in parsed["thought"] or "\\[" in parsed["thought"]
 
     def test_latex_commands_escaped(self):
-        """Test that LaTeX commands like \\to, \\lim are properly escaped."""
+        r"""Test that LaTeX commands like \to, \lim are properly escaped."""
         content = '{"thought": "As x \\to 0, we have \\lim f(x)"}'
         result = fix_common_json_errors(content)
         # Should escape \to and \lim

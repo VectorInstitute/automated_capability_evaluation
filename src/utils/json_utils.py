@@ -45,9 +45,11 @@ def fix_common_json_errors(content: str) -> str:
     content = re.sub(r':\s*=\s*"', ':"', content)
     content = re.sub(r'(\w+):\s*"', r'"\1":"', content)
 
-    # Fix LaTeX backslashes: escape backslashes that are not part of valid JSON escape sequences
+    # Fix LaTeX backslashes: escape backslashes that are not part of
+    # valid JSON escape sequences
     # Valid JSON escapes: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
-    # LaTeX uses \(, \), \[, \], \epsilon, \delta, etc. which need to be escaped as \\(, \\), etc.
+    # LaTeX uses \(, \), \[, \], \epsilon, \delta, etc.
+    # which need to be escaped as \\(, \\), etc.
 
     # Process the content character by character to properly handle string boundaries
     result = []
@@ -67,7 +69,8 @@ def fix_common_json_errors(content: str) -> str:
                 backslash_count += 1
                 j -= 1
 
-            # If odd number of backslashes, the quote is escaped (part of string content)
+            # If odd number of backslashes, the quote is escaped
+            # (part of string content)
             if backslash_count % 2 == 1:
                 result.append(char)
                 i += 1
@@ -85,7 +88,8 @@ def fix_common_json_errors(content: str) -> str:
                 next_char = content[i + 1]
                 # Check for valid JSON escape sequences
                 # For single-character escapes: ", \, /, b, f, n, r, t
-                # We need to ensure they're not part of a longer sequence (e.g., \to should not match \t)
+                # We need to ensure they're not part of a longer sequence
+                # (e.g., \to should not match \t)
                 if next_char in '"\\/':
                     # Always valid single-char escapes
                     result.append(char)
@@ -103,7 +107,8 @@ def fix_common_json_errors(content: str) -> str:
                         result.append(next_char)
                         i += 2
                         continue
-                    # Otherwise it's part of a longer sequence (e.g., \to, \lim) - escape it
+                    # Otherwise it's part of a longer sequence
+                    # (e.g., \to, \lim) - escape it
                     result.append("\\\\")
                     result.append(next_char)
                     i += 2
@@ -119,7 +124,8 @@ def fix_common_json_errors(content: str) -> str:
                         i += 6
                         continue
 
-                # Invalid escape sequence (like LaTeX \(, \), \[, \], \epsilon, \to, etc.)
+                # Invalid escape sequence
+                # (like LaTeX \(, \), \[, \], \epsilon, \to, etc.)
                 # Double-escape the backslash
                 result.append("\\\\")
                 result.append(next_char)
@@ -163,12 +169,14 @@ def parse_llm_json_response(raw_content: Union[str, Any]) -> Dict[str, Any]:
             try:
                 log.warning("Attempting to fix LaTeX backslash escape issues")
                 # Apply more aggressive LaTeX backslash fixing
-                # Escape all backslashes in string values that aren't valid JSON escapes
+                # Escape all backslashes in string values that aren't
+                # valid JSON escapes
                 fixed_content = cleaned_content
 
                 # Use regex to find and fix invalid escapes in string values
-                # This pattern finds backslashes in string values and escapes invalid ones
-                def fix_escapes_in_string(match):
+                # This pattern finds backslashes in string values
+                # and escapes invalid ones
+                def fix_escapes_in_string(match: re.Match[str]) -> str:
                     """Fix escapes within a JSON string value."""
                     string_content = match.group(1)
                     # Escape backslashes not followed by valid JSON escape chars

@@ -1,6 +1,7 @@
 """Python code executor with restricted imports."""
 
 import ast
+import contextlib
 import sys
 import traceback
 from dataclasses import dataclass, field
@@ -28,7 +29,7 @@ class CodeExecutionResult:
 
 
 class PythonExecutor:
-    """Execute Python code with restricted imports for safe execution."
+    """Execute Python code with restricted imports for safe execution.
 
     Attributes
     ----------
@@ -208,10 +209,8 @@ class PythonExecutor:
 
         # Pre-import allowed modules to make them available
         for module_name in self._allowed_imports:
-            try:
+            with contextlib.suppress(ImportError):
                 restricted_globals[module_name] = __import__(module_name)
-            except ImportError:
-                pass  # Module not available in environment
 
         # Capture stdout
         old_stdout = sys.stdout
@@ -245,7 +244,7 @@ class PythonExecutor:
 def execute_python_code(
     code: str, allowed_imports: Optional[List[str]] = None, timeout: int = 30
 ) -> Dict[str, Any]:
-    """Convenience function to execute Python code.
+    """Execute Python code.
 
     Parameters
     ----------

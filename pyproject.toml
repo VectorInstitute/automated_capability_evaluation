@@ -44,6 +44,7 @@ dependencies = [
     "PyPortfolioOpt>=1.5.0",
     "empyrical-reloaded>=0.5.9",
     "arch>=6.0.0",
+    "numpy-financial>=1.0.0",
 ]
 
 [project.urls]
@@ -62,6 +63,7 @@ test = [
     "pytest-cov>=3.0.0",
     "pytest-env>=1.1.5",
     "pytest-mock>=3.10.0",
+    "pytest-asyncio>=0.23.0",
     "codecov>=2.1.13",
     "mypy>=1.15.0",
     "ruff>=0.11.4,<0.12.0",
@@ -180,6 +182,8 @@ filterwarnings = [
 ]
 # Exclude legacy tests (imports are broken after code was moved)
 norecursedirs = ["legacy"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage]
     [tool.coverage.run]

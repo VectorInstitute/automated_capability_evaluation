@@ -62,30 +62,31 @@ PARAMETRIC_OVERVIEW = """
 class ScientificToolKit:
     """Unified toolkit for scientific computing with Python.
 
-    Supports two modes:
-    - RAG mode (enable_rag=True): Retrieves full documentation from HTML files
-    - Parametric mode (enable_rag=False): Uses model's built-in knowledge for fast tagging
+    Primary mode (Parametric): Uses model's built-in knowledge for fast code generation.
+    Tool selection is disabled by default for direct code execution.
+
+    Note: RAG mode (enable_rag=True) is experimental/WIP and not fully functional.
     """
 
     def __init__(
         self,
         model_client: ChatCompletionClient,
         docs_path: Path = Path("materials"),
-        enable_tool_selection: bool = True,
-        enable_rag: bool = True,
+        enable_tool_selection: bool = False,
+        enable_rag: bool = False,
     ):
         """Initialize toolkit.
 
         Parameters
         ----------
         model_client : ChatCompletionClient
-            LLM for tool selection prompts.
+            LLM for tool selection prompts (only used if enable_tool_selection=True).
         docs_path : Path
-            Path to documentation files.
+            Path to documentation files (only used if enable_rag=True).
         enable_tool_selection : bool
-            If False, skips tool necessity check (always uses tools).
+            If True, uses LLM to detect tool necessity. Default: False
         enable_rag : bool
-            If False, skips HTML parsing and uses parametric knowledge (fast, for generation).
+            If True, retrieves HTML documentation. Default: False.
         """
         self.model_client = model_client
         self.enable_tool_selection = enable_tool_selection
@@ -124,8 +125,8 @@ class ScientificToolKit:
     async def prepare_tools(self, problem_text: str) -> Dict[str, Any]:
         """Analyze problem and prepare tool context.
 
-        RAG mode: Retrieves full documentation from HTML files.
-        Parametric mode: Uses model's built-in knowledge (fast, for tagging).
+        Default (Parametric mode): Uses model's built-in knowledge.
+        Experimental (RAG mode): Retrieves documentation from HTML files.
 
         Parameters
         ----------

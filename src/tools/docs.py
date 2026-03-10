@@ -17,21 +17,20 @@ log = logging.getLogger("tools.docs")
 
 class ScientificDocRetriever:
     """
-    Parses local HTML documentation directories to build a structured index
-    of Libraries -> Modules -> Functions.
+    Parse local HTML documentation directories.
+
+    Build a structured index of Libraries -> Modules -> Functions.
     """
 
     def __init__(self, docs_base_path: Path):
         self.docs_path = docs_base_path
-        # Schema: index[library][module] = [list_of_function_names]
         self._index: Dict[str, Dict[str, List[str]]] = {}
-        # Schema: file_map[library.module.function] = Path(file.html)
         self._file_map: Dict[str, Path] = {}
 
         self._build_index()
 
-    def _build_index(self):
-        """Deterministically builds index based on 'reference/generated' file patterns."""
+    def _build_index(self) -> None:
+        """Build index based on 'reference/generated' file patterns."""
         # 1. Index NumPy and SciPy (Pattern: pkg.submodule.function.html)
         for lib in ["numpy", "scipy"]:
             # Find versioned directory (e.g., numpy-html-1.17.0)
@@ -85,7 +84,7 @@ class ScientificDocRetriever:
                 log.info(f"Indexed sympy: {len(self._index['sympy'])} modules")
 
     def get_library_overview(self) -> str:
-        """Returns a high-level summary of available libraries and their modules."""
+        """Return a high-level summary of available modules."""
         overview = []
         for lib, modules in self._index.items():
             overview.append(f"### {lib.upper()}")
@@ -96,7 +95,8 @@ class ScientificDocRetriever:
 
     def get_full_module_context(self, library: str, module: str) -> str:
         """
-        Retrieves signatures for ALL functions in a module.
+        Retrieve signatures for ALL functions in a module.
+
         Intended for high-context models (Gemini Flash).
         """
         if library not in self._index or module not in self._index[library]:
@@ -117,7 +117,7 @@ class ScientificDocRetriever:
         return "\n\n".join(context_blocks)
 
     def _extract_signature_from_html(self, path: Path) -> str:
-        """Parses HTML to extract signature + brief description (Optimized for Tokens)."""
+        """Extract signature and brief description from HTML."""
         try:
             with open(path, "r", encoding="utf-8") as f:
                 soup = BeautifulSoup(f.read(), "html.parser")
@@ -170,7 +170,10 @@ class ScientificDocRetriever:
 
                     # 3. SYMPY/CLASS HANDLING: Look for methods inside
                     # Only do this if it's a class definition
-                    if "class" in dl.get("class", []) or "sympy" in str(path):
+                    class_attr = dl.get("class")
+                    if (
+                        isinstance(class_attr, list) and "class" in class_attr
+                    ) or "sympy" in str(path):
                         methods = dl.find_all("dl", class_="method")
                         for method in methods:
                             m_dt = method.find("dt")
@@ -189,19 +192,12 @@ class ScientificDocRetriever:
                                 if method_name.startswith("_"):
                                     continue
 
-                                # Optional: Skip simple properties to save space?
-                                # if "property" in str(method): continue
-
                                 extracted_content.append(
                                     f"  . {method_name}(...): Method"
                                 )
-                                # Note: We purposefully omit method descriptions to save tokens
-                                # relying on the method name being descriptive enough.
-
-                if extracted_content:
-                    return "\n".join(extracted_content)
+                            # Note: We omit method descriptions to save tokens,
+                            # relying on the method name being descriptive.
 
         except Exception:
-            # log.warning(f"Error parsing {path}: {e}")
             pass
         return ""

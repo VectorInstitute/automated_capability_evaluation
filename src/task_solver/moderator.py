@@ -24,6 +24,7 @@ from src.task_solver.messages import (
     AgentRevisionRequest,
     AgentSolution,
     FinalSolution,
+    SolutionUnion,
     Task,
     TaskSolutionRequest,
     ToolAssistedAgentSolution,
@@ -81,8 +82,8 @@ class TaskSolverModerator(RoutedAgent):
         self._langfuse_client = langfuse_client
 
         # Track solutions by task_id and round
-        # Type hint omitted to avoid Union serialization issues with autogen_core
-        self._solutions_buffer = {}  # Dict[int, List[AgentSolution | ToolAssistedAgentSolution]]
+        # Now properly typed with discriminator fields in solution classes
+        self._solutions_buffer: dict[int, list[SolutionUnion]] = {}
         self._current_round = 0
         self._final_solutions: FinalSolution
         self._tasks: Task  # Store original tasks for consensus checking
@@ -113,9 +114,13 @@ class TaskSolverModerator(RoutedAgent):
             raise
 
     def _check_simple_consensus(
-        self, solutions: List[AgentSolution]
+        self, solutions: list[SolutionUnion]
     ) -> tuple[bool, str, str]:
-        """Check consensus; if all agents have the same final answer."""
+        """Check consensus; if all agents have the same final answer.
+
+        Works with both AgentSolution and ToolAssistedAgentSolution since
+        both have final_answer and numerical_answer fields.
+        """
         if not solutions or len(solutions) < self._num_solvers:
             return False, "", "null"
 

@@ -1,7 +1,7 @@
 """Message types for task solving debate system."""
 
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Union
 
 
 @dataclass
@@ -37,6 +37,7 @@ class AgentSolution:
     round_number: int
     capability_name: str
     area_name: str
+    solution_type: str = "standard"  # Discriminator for Union serialization
 
     def to_dict(self) -> Dict[str, str]:
         """Convert to dictionary."""
@@ -68,6 +69,7 @@ class ToolAssistedAgentSolution:
     round_number: int
     capability_name: str
     area_name: str
+    solution_type: str = "tool_assisted"  # Discriminator for Union serialization
     code: str = ""
     code_output: str = ""
 
@@ -110,6 +112,10 @@ class ConsensusCheck:
     task_id: str
     solutions: List[Dict[str, str]]
     round_number: int
+
+
+# Type alias for solutions that can appear in the debate
+SolutionUnion = Union[AgentSolution, ToolAssistedAgentSolution]
 
 
 @dataclass

@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 import traceback
 
 from autogen_core import (
@@ -13,6 +14,7 @@ from autogen_core import (
 )
 from autogen_core.models import (
     ChatCompletionClient,
+    LLMMessage,
     SystemMessage,
     UserMessage,
 )
@@ -71,16 +73,19 @@ class ToolAssistedScientist(RoutedAgent):
         self._langfuse_client = langfuse_client
         self._toolkit = toolkit
 
-    def _extract_numerical_from_code_output(self, code_output: str) -> str:
+    def _extract_numerical_from_code_output(self, code_output: str) -> str | None:
         """Extract the final numerical answer from code output.
 
         Looks for the last number printed in the code output, preferring
         numbers that appear after labels like "answer:", "result:", "price:", etc.
+
+        Returns
+        -------
+        str | None
+            The extracted numerical value as a string, or None if no number found.
         """
         if not code_output or code_output.startswith("ERROR"):
-            return "null"
-
-        import re
+            return None
 
         # First, try to find numbers after common result labels
         result_patterns = [
@@ -92,14 +97,14 @@ class ToolAssistedScientist(RoutedAgent):
             matches = re.findall(pattern, code_output, re.IGNORECASE)
             if matches:
                 # Use the last match (most specific/final result)
-                return matches[-1]
+                return str(matches[-1])
 
         # Fallback: Find all numbers and return the last one
         numbers = re.findall(r"-?\d+\.?\d*(?:[eE][+-]?\d+)?", code_output)
 
         if numbers:
             # Return the last number found
-            return numbers[-1]
+            return str(numbers[-1])
 
         return "null"
 
@@ -221,8 +226,8 @@ class ToolAssistedScientist(RoutedAgent):
 
     async def _generate_solution_with_code_execution(
         self, system_message: SystemMessage, user_message: UserMessage
-    ) -> tuple[str, str | None, str | None, str, str]:
-        """Generate solution using two-stage architecture:
+    ) -> tuple[str, str, str, str, str]:
+        """Generate solution using two-stage architecture.
 
         Stage 1: Code Generation
             - Model generates thought + code
@@ -241,7 +246,7 @@ class ToolAssistedScientist(RoutedAgent):
         # =================================================================
         # STAGE 1: CODE GENERATION AND EXECUTION
         # =================================================================
-        conversation_history = [system_message, user_message]
+        conversation_history: list[LLMMessage] = [system_message, user_message]
         last_error: Exception | None = None
 
         thought = ""
@@ -370,7 +375,7 @@ class ToolAssistedScientist(RoutedAgent):
                     execution_result.error,
                 )
 
-                # If we've exhausted code execution attempts, proceed to Stage 2 with error
+                # proceed to Stage 2 with error if code still invalid
                 if total_exec_attempts >= MAX_CODE_EXECUTION_ATTEMPTS:
                     log.error(
                         "Scientist %s: Max code execution attempts (%d) exhausted, proceeding to Stage 2 with error",
@@ -474,9 +479,12 @@ Return your corrected solution in the same JSON format {{thought, code}}."""
         )
 
         # Build Stage 2 prompt with code output and original problem
+        content_str = (
+            user_message.content if isinstance(user_message.content, str) else ""
+        )
         original_problem = (
-            user_message.content.split("PROBLEM: ")[1].split("\n")[0]
-            if "PROBLEM: " in user_message.content
+            content_str.split("PROBLEM: ")[1].split("\n")[0]
+            if "PROBLEM: " in content_str
             else "the problem"
         )
 
@@ -535,11 +543,12 @@ Return your corrected solution in the same JSON format {{thought, code}}."""
         )
 
         # Fallback: extract numerical from code output if possible
-        numerical_answer = (
+        extracted = (
             self._extract_numerical_from_code_output(code_output)
             if code_output
-            else "null"
+            else None
         )
+        numerical_answer = extracted if extracted is not None else "null"
         final_answer = code_output if code_output else "Unable to generate final answer"
 
         return thought, code, code_output, final_answer, numerical_answer
@@ -556,7 +565,7 @@ Return your corrected solution in the same JSON format {{thought, code}}."""
         4. Repeating until code succeeds or max attempts exhausted
         5. Returning final solution components
         """
-        conversation_history = [system_message, user_message]
+        conversation_history: list[LLMMessage] = [system_message, user_message]
         last_error: Exception | None = None
 
         # Track final components from last valid parse
@@ -653,8 +662,9 @@ Return your corrected solution in the same JSON format {{thought, code}}."""
                 # Clean up common code issues before execution
                 # Sometimes LLM generates code with literal \n that should be newlines
                 if "\\n" in code:
-                    # Replace literal \n with actual newlines (but be careful with string escapes)
+                    # Replace literal \n with actual newlines
                     # This is a heuristic fix for common JSON escaping issues
+                    # TODO: Investigate why current json parsing doesn't handle this.
                     code = code.replace("\\n", "\n")
                     log.debug(
                         "Scientist %s: Applied \\n replacement to clean up code",
@@ -704,11 +714,12 @@ Return your corrected solution in the same JSON format {{thought, code}}."""
                         "-" * 60,
                     )
 
-                    # Extract numerical answer from code output instead of using model's approximation
+                    # Extract numerical answer from code output
+                    # instead of using model's approximation
                     extracted_numerical = self._extract_numerical_from_code_output(
                         code_output
                     )
-                    if extracted_numerical != "null":
+                    if extracted_numerical is not None:
                         log.info(
                             "Scientist %s: Overriding numerical_answer (was: %s, now: %s from code output)",
                             self._scientist_id,
@@ -924,8 +935,8 @@ Return your corrected solution in the same JSON format with fixed code."""
                     round_number=message.round_number,
                     capability_name=message.capability_name,
                     area_name=message.area_name,
-                    code=code,
-                    code_output=code_output,
+                    code=code if code is not None else "",
+                    code_output=code_output if code_output is not None else "",
                 )
 
                 # Debug log after creating solution
@@ -1025,8 +1036,8 @@ Return your corrected solution in the same JSON format with fixed code."""
                     round_number=message.round_number,
                     capability_name=message.capability_name,
                     area_name=message.area_name,
-                    code=code,
-                    code_output=code_output,
+                    code=code if code is not None else "",
+                    code_output=code_output if code_output is not None else "",
                 )
 
                 await self.publish_message(solution, topic_id=DefaultTopicId())
