@@ -132,7 +132,7 @@ for task in dataset['tasks']:
     cap_name = task.get('capability_name', 'unknown')
     if cap_name not in tasks_by_capability:
         tasks_by_capability[cap_name] = []
-    
+
     tasks_by_capability[cap_name].append({
         'task_id': task.get('task_id', task.get('dataset_metadata', {}).get('dataset_id', '')),
         'problem': task.get('problem', ''),

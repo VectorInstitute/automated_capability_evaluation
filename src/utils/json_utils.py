@@ -56,31 +56,31 @@ def fix_common_json_errors(content: str) -> str:
 
     while i < len(content):
         char = content[i]
-        
+
         # Track when we enter/exit string values
         if char == '"':
             # Check if this quote is escaped by counting backslashes before it
             # An escaped quote has an odd number of backslashes before it
             backslash_count = 0
             j = i - 1
-            while j >= 0 and content[j] == '\\':
+            while j >= 0 and content[j] == "\\":
                 backslash_count += 1
                 j -= 1
-            
+
             # If odd number of backslashes, the quote is escaped (part of string content)
             if backslash_count % 2 == 1:
                 result.append(char)
                 i += 1
                 continue
-            
+
             # This is a real quote - toggle string state
             in_string = not in_string
             result.append(char)
             i += 1
             continue
-        
+
         # Handle backslashes inside string values
-        if char == '\\' and in_string:
+        if char == "\\" and in_string:
             if i + 1 < len(content):
                 next_char = content[i + 1]
                 # Check for valid JSON escape sequences
@@ -92,24 +92,26 @@ def fix_common_json_errors(content: str) -> str:
                     result.append(next_char)
                     i += 2
                     continue
-                elif next_char in 'bfnrt':
+                if next_char in "bfnrt":
                     # Check if this is a complete escape (not part of longer sequence)
                     # Valid if followed by non-alphanumeric or end of string
-                    if i + 2 >= len(content) or not (content[i + 2].isalnum() or content[i + 2] == '_'):
+                    if i + 2 >= len(content) or not (
+                        content[i + 2].isalnum() or content[i + 2] == "_"
+                    ):
                         # Complete escape sequence (e.g., \t, \n, \r, \b, \f)
                         result.append(char)
                         result.append(next_char)
                         i += 2
                         continue
                     # Otherwise it's part of a longer sequence (e.g., \to, \lim) - escape it
-                    result.append('\\\\')
+                    result.append("\\\\")
                     result.append(next_char)
                     i += 2
                     continue
-                elif next_char == 'u' and i + 5 < len(content):
+                if next_char == "u" and i + 5 < len(content):
                     # Check for \uXXXX pattern
-                    hex_part = content[i + 2:i + 6]
-                    if all(c in '0123456789abcdefABCDEF' for c in hex_part):
+                    hex_part = content[i + 2 : i + 6]
+                    if all(c in "0123456789abcdefABCDEF" for c in hex_part):
                         # Valid \uXXXX escape
                         result.append(char)
                         result.append(next_char)
@@ -119,21 +121,20 @@ def fix_common_json_errors(content: str) -> str:
 
                 # Invalid escape sequence (like LaTeX \(, \), \[, \], \epsilon, \to, etc.)
                 # Double-escape the backslash
-                result.append('\\\\')
+                result.append("\\\\")
                 result.append(next_char)
                 i += 2
                 continue
-            else:
-                # Backslash at end of content - escape it
-                result.append('\\\\')
-                i += 1
-                continue
-        
+            # Backslash at end of content - escape it
+            result.append("\\\\")
+            i += 1
+            continue
+
         # Regular character
         result.append(char)
         i += 1
 
-    content = ''.join(result)
+    content = "".join(result)
 
     return re.sub(r",(\s*[}\]])", r"\1", content)
 
@@ -171,13 +172,17 @@ def parse_llm_json_response(raw_content: Union[str, Any]) -> Dict[str, Any]:
                     """Fix escapes within a JSON string value."""
                     string_content = match.group(1)
                     # Escape backslashes not followed by valid JSON escape chars
-                    fixed = re.sub(r'\\(?!["\\/bfnrtu]|u[0-9a-fA-F]{4})', r'\\\\', string_content)
+                    fixed = re.sub(
+                        r'\\(?!["\\/bfnrtu]|u[0-9a-fA-F]{4})', r"\\\\", string_content
+                    )
                     return f'"{fixed}"'
-                
+
                 # Find string values and fix them
                 # Pattern: "([^"\\]|\\.)*" - matches JSON string values
-                fixed_content = re.sub(r'"((?:[^"\\]|\\.)*)"', fix_escapes_in_string, fixed_content)
-                
+                fixed_content = re.sub(
+                    r'"((?:[^"\\]|\\.)*)"', fix_escapes_in_string, fixed_content
+                )
+
                 result = json.loads(fixed_content)
                 log.info("Successfully fixed LaTeX backslash issues")
                 return result if isinstance(result, dict) else {}

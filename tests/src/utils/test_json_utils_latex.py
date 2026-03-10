@@ -15,8 +15,6 @@ The tests verify that:
 
 import json
 
-import pytest
-
 from src.utils.json_utils import (
     fix_common_json_errors,
     parse_llm_json_response,
@@ -31,7 +29,7 @@ class TestFixCommonJsonErrorsLaTeX:
         content = '{"thought": "The equation \\(x + y\\) is important"}'
         result = fix_common_json_errors(content)
         # Should double-escape: \\( becomes \\\\(
-        assert '\\\\(x + y\\\\)' in result or '\\\\(' in result
+        assert "\\\\(x + y\\\\)" in result or "\\\\(" in result
         # Verify it can be parsed
         parsed = json.loads(result)
         assert "(" in parsed["thought"] or "\\(" in parsed["thought"]
@@ -41,7 +39,7 @@ class TestFixCommonJsonErrorsLaTeX:
         content = '{"thought": "The equation \\[x + y = z\\] is important"}'
         result = fix_common_json_errors(content)
         # Should double-escape: \\[ becomes \\\\[
-        assert '\\\\[' in result or '\\[' in result
+        assert "\\\\[" in result or "\\[" in result
         # Verify it can be parsed
         parsed = json.loads(result)
         assert "[" in parsed["thought"] or "\\[" in parsed["thought"]
@@ -51,7 +49,7 @@ class TestFixCommonJsonErrorsLaTeX:
         content = '{"thought": "As x \\to 0, we have \\lim f(x)"}'
         result = fix_common_json_errors(content)
         # Should escape \to and \lim
-        assert '\\to' in result or '\\\\to' in result
+        assert "\\to" in result or "\\\\to" in result
         # Verify it can be parsed
         parsed = json.loads(result)
         assert "to" in parsed["thought"] or "\\to" in parsed["thought"]
@@ -62,8 +60,8 @@ class TestFixCommonJsonErrorsLaTeX:
         content = r'{"text": "Line 1\nLine 2\tTabbed"}'
         result = fix_common_json_errors(content)
         # Valid escapes should remain (as single backslash sequences)
-        assert r'\n' in result or '\n' in result
-        assert r'\t' in result or '\t' in result
+        assert r"\n" in result or "\n" in result
+        assert r"\t" in result or "\t" in result
         # Verify it can be parsed and produces actual newline/tab characters
         parsed = json.loads(result)
         assert "\n" in parsed["text"] or "\\n" in parsed["text"]
@@ -84,7 +82,7 @@ class TestFixCommonJsonErrorsLaTeX:
         content = '{"path": "C:\\\\Users\\\\file.txt"}'
         result = fix_common_json_errors(content)
         # Escaped backslashes should remain
-        assert '\\\\' in result
+        assert "\\\\" in result
         # Verify it can be parsed
         parsed = json.loads(result)
         assert "\\" in parsed["path"]
@@ -103,7 +101,7 @@ class TestFixCommonJsonErrorsLaTeX:
         content = r'{"text": "Valid\nNewline and invalid\to LaTeX"}'
         result = fix_common_json_errors(content)
         # Valid escape should remain, invalid should be escaped
-        assert r'\n' in result or '\n' in result
+        assert r"\n" in result or "\n" in result
         # Verify it can be parsed
         parsed = json.loads(result)
         # Should contain newline character or escaped newline

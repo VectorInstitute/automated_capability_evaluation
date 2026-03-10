@@ -20,13 +20,13 @@ from langfuse import Langfuse
 
 from src.task_solver.messages import (
     AgentRevisionRequest,
-    AgentSolution,
     TaskSolutionRequest,
     ToolAssistedAgentSolution,
 )
 from src.tools.toolkit import ScientificToolKit
 from src.utils.json_utils import parse_llm_json_response
 from src.utils.tool_assisted_prompts import (
+    TOOL_ASSISTED_ANSWER_FORMATTING_PROMPT,
     TOOL_ASSISTED_ROUND_1_PROMPT,
     TOOL_ASSISTED_SUBSEQUENT_ROUNDS_PROMPT,
     TOOL_ASSISTED_SYSTEM_MESSAGE,
@@ -73,36 +73,101 @@ class ToolAssistedScientist(RoutedAgent):
 
     def _extract_numerical_from_code_output(self, code_output: str) -> str:
         """Extract the final numerical answer from code output.
-        
+
         Looks for the last number printed in the code output, preferring
         numbers that appear after labels like "answer:", "result:", "price:", etc.
         """
         if not code_output or code_output.startswith("ERROR"):
             return "null"
-        
+
         import re
-        
+
         # First, try to find numbers after common result labels
         result_patterns = [
-            r'(?:answer|result|final|price|spread|years?|maturity|value|solution)\s*[:=]\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)',
-            r'(?:answer|result|final|price|spread|years?|maturity|value|solution)\s*\(\s*[ns]\s*\)\s*:\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)',
+            r"(?:answer|result|final|price|spread|years?|maturity|value|solution)\s*[:=]\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)",
+            r"(?:answer|result|final|price|spread|years?|maturity|value|solution)\s*\(\s*[ns]\s*\)\s*:\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)",
         ]
-        
+
         for pattern in result_patterns:
             matches = re.findall(pattern, code_output, re.IGNORECASE)
             if matches:
                 # Use the last match (most specific/final result)
                 return matches[-1]
-        
+
         # Fallback: Find all numbers and return the last one
-        numbers = re.findall(r'-?\d+\.?\d*(?:[eE][+-]?\d+)?', code_output)
-        
+        numbers = re.findall(r"-?\d+\.?\d*(?:[eE][+-]?\d+)?", code_output)
+
         if numbers:
             # Return the last number found
             return numbers[-1]
-        
+
         return "null"
-    
+
+    def _extract_code_generation_response(self, response: str) -> tuple[str, str]:
+        """Extract thought and code from Stage 1 response.
+
+        Returns
+        -------
+            (thought, code): Thought process and Python code
+        """
+        try:
+            parsed = parse_llm_json_response(response)
+            thought_raw = parsed.get("thought", response.strip())
+            code = parsed.get("code")
+
+            thought = (
+                json.dumps(thought_raw, ensure_ascii=False)
+                if isinstance(thought_raw, (dict, list))
+                else str(thought_raw).strip()
+            )
+
+            # Handle code field
+            if code is not None and code != "null":
+                code = str(code).strip()
+                log.debug("Code (first 200 chars): %s", code[:200])
+            else:
+                code = ""
+
+            return thought, code
+
+        except Exception as e:
+            msg = f"Failed to parse Stage 1 (code generation) response: {e} \n Response: {response}"
+            log.error(msg)
+            log.error(traceback.format_exc())
+            raise
+
+    def _extract_answer_formatting_response(self, response: str) -> tuple[str, str]:
+        """Extract final_answer and numerical_answer from Stage 2 response.
+
+        Returns
+        -------
+            (final_answer, numerical_answer): Formatted answer and numerical value
+        """
+        try:
+            parsed = parse_llm_json_response(response)
+            final_answer_raw = parsed.get("final_answer", "No clear answer provided")
+            numerical_answer = parsed.get("numerical_answer")
+
+            final_answer = (
+                json.dumps(final_answer_raw, ensure_ascii=False, indent=2)
+                if isinstance(final_answer_raw, (dict, list))
+                else str(final_answer_raw).strip()
+            )
+
+            # Handle numerical_answer
+            if numerical_answer is not None:
+                numerical_answer = str(numerical_answer)
+            else:
+                numerical_answer = "null"
+
+            return final_answer, numerical_answer
+
+        except Exception as e:
+            msg = f"Failed to parse Stage 2 (answer formatting) response: {e} \n Response: {response}"
+            log.error(msg)
+            log.error(traceback.format_exc())
+            raise
+
     def _extract_solution_components(
         self, response: str
     ) -> tuple[str, str | None, str | None, str, str]:
@@ -157,6 +222,331 @@ class ToolAssistedScientist(RoutedAgent):
     async def _generate_solution_with_code_execution(
         self, system_message: SystemMessage, user_message: UserMessage
     ) -> tuple[str, str | None, str | None, str, str]:
+        """Generate solution using two-stage architecture:
+
+        Stage 1: Code Generation
+            - Model generates thought + code
+            - Code is executed to get output
+            - If execution fails, provide feedback and retry
+
+        Stage 2: Answer Formatting
+            - Model sees code output
+            - Formats final_answer and numerical_answer appropriately
+            - Handles bool/MCQ/numerical question types correctly
+
+        Returns
+        -------
+            (thought, code, code_output, final_answer, numerical_answer)
+        """
+        # =================================================================
+        # STAGE 1: CODE GENERATION AND EXECUTION
+        # =================================================================
+        conversation_history = [system_message, user_message]
+        last_error: Exception | None = None
+
+        thought = ""
+        code = ""
+        code_output = ""
+
+        # Track total code execution attempts across all model responses
+        total_exec_attempts = 0
+
+        for model_attempt in range(1, MAX_MODEL_ATTEMPTS + 1):
+            try:
+                # Get Stage 1 response (thought + code only)
+                log.debug(
+                    "Scientist %s: Stage 1 LLM attempt %d/%d (code generation)",
+                    self._scientist_id,
+                    model_attempt,
+                    MAX_MODEL_ATTEMPTS,
+                )
+                response = await self._model_client.create(
+                    conversation_history,
+                    json_output=True,
+                )
+            except Exception as exc:  # pragma: no cover
+                last_error = exc
+                log.warning(
+                    "Tool-assisted scientist %s failed to get Stage 1 response on attempt %d: %s",
+                    self._scientist_id,
+                    model_attempt,
+                    exc,
+                )
+                continue
+
+            response_content = str(getattr(response, "content", "") or "").strip()
+            if not response_content:
+                last_error = ValueError("Empty response content")
+                log.warning(
+                    "Tool-assisted scientist %s received empty Stage 1 response on attempt %d",
+                    self._scientist_id,
+                    model_attempt,
+                )
+                continue
+
+            log.debug(
+                "Scientist %s: Received Stage 1 response (first 200 chars): %s",
+                self._scientist_id,
+                response_content[:200],
+            )
+
+            try:
+                # Parse Stage 1 response
+                thought, code = self._extract_code_generation_response(response_content)
+
+                # If no code, proceed to Stage 2 with empty output
+                if not code:
+                    log.info(
+                        "Scientist %s: No code generated, proceeding to Stage 2 for direct answer",
+                        self._scientist_id,
+                    )
+                    code_output = ""
+                    break
+
+                # Code is present - attempt execution
+                log.info(
+                    "Scientist %s: Code detected, starting execution",
+                    self._scientist_id,
+                )
+
+                # Clean up common code issues
+                if "\\n" in code:
+                    code = code.replace("\\n", "\n")
+                    log.debug(
+                        "Scientist %s: Applied \\n replacement to clean up code",
+                        self._scientist_id,
+                    )
+
+                log.debug(
+                    "Scientist %s: Generated code:\n%s\n%s\n%s",
+                    self._scientist_id,
+                    "-" * 60,
+                    code,
+                    "-" * 60,
+                )
+
+                # Increment total execution attempts
+                total_exec_attempts += 1
+                log.info(
+                    "Scientist %s: Code execution attempt %d/%d",
+                    self._scientist_id,
+                    total_exec_attempts,
+                    MAX_CODE_EXECUTION_ATTEMPTS,
+                )
+
+                execution_result = self._toolkit.execute_code(code)
+                execution_result = type(
+                    "obj",
+                    (object,),
+                    {
+                        "success": execution_result["success"],
+                        "output": execution_result["output"],
+                        "error": execution_result.get("error"),
+                    },
+                )()
+
+                if execution_result.success:
+                    code_output = execution_result.output
+                    log.info(
+                        "Scientist %s: Code execution successful", self._scientist_id
+                    )
+                    log.debug(
+                        "Scientist %s: Code output:\n%s\n%s\n%s",
+                        self._scientist_id,
+                        "-" * 60,
+                        code_output[:500],
+                        "-" * 60,
+                    )
+                    # Success - break out of Stage 1 loop and proceed to Stage 2
+                    break
+
+                # Code execution failed
+                code_output = f"ERROR: {execution_result.error}"
+                log.warning(
+                    "Scientist %s: Code execution failed (attempt %d/%d): %s",
+                    self._scientist_id,
+                    total_exec_attempts,
+                    MAX_CODE_EXECUTION_ATTEMPTS,
+                    execution_result.error,
+                )
+
+                # If we've exhausted code execution attempts, proceed to Stage 2 with error
+                if total_exec_attempts >= MAX_CODE_EXECUTION_ATTEMPTS:
+                    log.error(
+                        "Scientist %s: Max code execution attempts (%d) exhausted, proceeding to Stage 2 with error",
+                        self._scientist_id,
+                        MAX_CODE_EXECUTION_ATTEMPTS,
+                    )
+                    break
+
+                # Provide feedback to LLM for another attempt
+                log.info(
+                    "Scientist %s: Providing error feedback to LLM for code correction",
+                    self._scientist_id,
+                )
+
+                error_msg = str(execution_result.error)
+                hints = []
+
+                if (
+                    "unterminated string" in error_msg.lower()
+                    or "eol while scanning" in error_msg.lower()
+                ):
+                    hints.append(
+                        "- Use triple-quoted strings for multi-line output: print('''text''')"
+                    )
+                    hints.append(
+                        "- Avoid backslashes in strings; use raw strings r'' if needed"
+                    )
+                    hints.append(
+                        "- For print statements, use separate print() calls instead of \\n in strings"
+                    )
+                elif "syntaxerror" in error_msg.lower():
+                    hints.append(
+                        "- Review Python syntax, especially quotes, parentheses, and indentation"
+                    )
+                    hints.append("- Check for unmatched brackets or quotes")
+                elif "nameerror" in error_msg.lower():
+                    hints.append("- Ensure all imports are at the top of the code")
+                    hints.append("- Check that all variables are defined before use")
+                elif (
+                    "importerror" in error_msg.lower()
+                    or "modulenotfounderror" in error_msg.lower()
+                ):
+                    hints.append(
+                        "- Only use approved libraries: sympy, numpy, scipy, math, fractions, decimal"
+                    )
+
+                hints_text = (
+                    "\n".join(hints)
+                    if hints
+                    else "- Carefully review the error message above"
+                )
+
+                feedback_prompt = f"""Your previous code execution failed with the following error:
+
+ERROR: {execution_result.error}
+
+Failed code:
+```python
+{code}
+```
+
+ACTIONABLE FIXES:
+{hints_text}
+
+IMPORTANT: When writing code in JSON:
+- Use simple print() statements on separate lines
+- Avoid LaTeX notation in code comments or strings
+- Use triple-quoted strings for multi-line output: print('''result''')
+- Keep code focused on numerical computation only
+
+Return your corrected solution in the same JSON format {{thought, code}}."""
+
+                feedback_message = UserMessage(content=feedback_prompt, source="user")
+                conversation_history.append(feedback_message)
+                # Continue to next model attempt for corrected code
+
+            except Exception as exc:
+                last_error = exc
+                log.warning(
+                    "Tool-assisted scientist %s failed to parse Stage 1 response on attempt %d: %s",
+                    self._scientist_id,
+                    model_attempt,
+                    exc,
+                )
+                log.debug("Full exception: %s", traceback.format_exc())
+                continue
+
+        # Check if Stage 1 succeeded
+        if not thought:
+            raise RuntimeError(
+                f"Tool-assisted scientist {self._scientist_id} could not generate code "
+                f"after {MAX_MODEL_ATTEMPTS} attempts"
+            ) from last_error
+
+        # =================================================================
+        # STAGE 2: ANSWER FORMATTING
+        # =================================================================
+        log.info(
+            "Scientist %s: Stage 1 complete. Proceeding to Stage 2 (answer formatting)",
+            self._scientist_id,
+        )
+
+        # Build Stage 2 prompt with code output and original problem
+        original_problem = (
+            user_message.content.split("PROBLEM: ")[1].split("\n")[0]
+            if "PROBLEM: " in user_message.content
+            else "the problem"
+        )
+
+        stage2_prompt = TOOL_ASSISTED_ANSWER_FORMATTING_PROMPT.format(
+            code_output=code_output if code_output else "No code was executed.",
+            problem_text=original_problem,
+        )
+
+        stage2_message = UserMessage(content=stage2_prompt, source="user")
+
+        for attempt in range(1, MAX_MODEL_ATTEMPTS + 1):
+            try:
+                log.debug(
+                    "Scientist %s: Stage 2 LLM attempt %d/%d (answer formatting)",
+                    self._scientist_id,
+                    attempt,
+                    MAX_MODEL_ATTEMPTS,
+                )
+                response = await self._model_client.create(
+                    [system_message, stage2_message],
+                    json_output=True,
+                )
+
+                response_content = str(getattr(response, "content", "") or "").strip()
+                if not response_content:
+                    log.warning("Empty Stage 2 response on attempt %d", attempt)
+                    continue
+
+                # Parse Stage 2 response
+                final_answer, numerical_answer = (
+                    self._extract_answer_formatting_response(response_content)
+                )
+
+                log.info(
+                    "Scientist %s: Stage 2 complete. Two-stage solution generated successfully.",
+                    self._scientist_id,
+                )
+
+                return thought, code, code_output, final_answer, numerical_answer
+
+            except Exception as exc:
+                log.warning(
+                    "Tool-assisted scientist %s failed Stage 2 attempt %d: %s",
+                    self._scientist_id,
+                    attempt,
+                    exc,
+                )
+                last_error = exc
+                continue
+
+        # Stage 2 failed - use fallback
+        log.error(
+            "Scientist %s: Stage 2 failed after %d attempts, using fallback",
+            self._scientist_id,
+            MAX_MODEL_ATTEMPTS,
+        )
+
+        # Fallback: extract numerical from code output if possible
+        numerical_answer = (
+            self._extract_numerical_from_code_output(code_output)
+            if code_output
+            else "null"
+        )
+        final_answer = code_output if code_output else "Unable to generate final answer"
+
+        return thought, code, code_output, final_answer, numerical_answer
+
+    async def _generate_solution_with_code_execution_legacy(
+        self, system_message: SystemMessage, user_message: UserMessage
+    ) -> tuple[str, str | None, str | None, str, str]:
         """Generate solution with iterative code execution feedback.
 
         This method handles the iterative process of:
@@ -168,10 +558,10 @@ class ToolAssistedScientist(RoutedAgent):
         """
         conversation_history = [system_message, user_message]
         last_error: Exception | None = None
-        
+
         # Track final components from last valid parse
         last_valid_components = None
-        
+
         # Track total code execution attempts across all model responses
         total_exec_attempts = 0
 
@@ -223,7 +613,13 @@ class ToolAssistedScientist(RoutedAgent):
                 thought, code, code_output, final_answer, numerical_answer = (
                     self._extract_solution_components(response_content)
                 )
-                last_valid_components = (thought, code, code_output, final_answer, numerical_answer)
+                last_valid_components = (
+                    thought,
+                    code,
+                    code_output,
+                    final_answer,
+                    numerical_answer,
+                )
 
                 # Log the extracted code to see if parsing is correct
                 if code:
@@ -232,7 +628,13 @@ class ToolAssistedScientist(RoutedAgent):
                         self._scientist_id,
                         repr(code[:200]),
                     )
-                last_valid_components = (thought, code, code_output, final_answer, numerical_answer)
+                last_valid_components = (
+                    thought,
+                    code,
+                    code_output,
+                    final_answer,
+                    numerical_answer,
+                )
 
                 # If no code (empty string), we're done
                 if not code:
@@ -247,18 +649,18 @@ class ToolAssistedScientist(RoutedAgent):
                     "Scientist %s: Code detected, starting execution loop",
                     self._scientist_id,
                 )
-                
+
                 # Clean up common code issues before execution
                 # Sometimes LLM generates code with literal \n that should be newlines
-                if '\\n' in code:
+                if "\\n" in code:
                     # Replace literal \n with actual newlines (but be careful with string escapes)
                     # This is a heuristic fix for common JSON escaping issues
-                    code = code.replace('\\n', '\n')
+                    code = code.replace("\\n", "\n")
                     log.debug(
                         "Scientist %s: Applied \\n replacement to clean up code",
                         self._scientist_id,
                     )
-                
+
                 log.debug(
                     "Scientist %s: Generated code:\n%s\n%s\n%s",
                     self._scientist_id,
@@ -275,10 +677,18 @@ class ToolAssistedScientist(RoutedAgent):
                     total_exec_attempts,
                     MAX_CODE_EXECUTION_ATTEMPTS,
                 )
-                
+
                 execution_result = self._toolkit.execute_code(code)
                 # Convert dict to object-like access
-                execution_result = type('obj', (object,), {'success': execution_result['success'], 'output': execution_result['output'], 'error': execution_result.get('error')})()
+                execution_result = type(
+                    "obj",
+                    (object,),
+                    {
+                        "success": execution_result["success"],
+                        "output": execution_result["output"],
+                        "error": execution_result.get("error"),
+                    },
+                )()
 
                 if execution_result.success:
                     code_output = execution_result.output
@@ -293,18 +703,20 @@ class ToolAssistedScientist(RoutedAgent):
                         code_output[:500],
                         "-" * 60,
                     )
-                    
+
                     # Extract numerical answer from code output instead of using model's approximation
-                    extracted_numerical = self._extract_numerical_from_code_output(code_output)
+                    extracted_numerical = self._extract_numerical_from_code_output(
+                        code_output
+                    )
                     if extracted_numerical != "null":
                         log.info(
                             "Scientist %s: Overriding numerical_answer (was: %s, now: %s from code output)",
                             self._scientist_id,
                             numerical_answer,
-                            extracted_numerical
+                            extracted_numerical,
                         )
                         numerical_answer = extracted_numerical
-                    
+
                     return thought, code, code_output, final_answer, numerical_answer
 
                 # Code execution failed
@@ -338,26 +750,46 @@ class ToolAssistedScientist(RoutedAgent):
                     "Scientist %s: Providing error feedback to LLM for code correction",
                     self._scientist_id,
                 )
-                
+
                 # Construct enhanced error feedback with actionable hints
                 error_msg = str(execution_result.error)
                 hints = []
-                
-                if "unterminated string" in error_msg.lower() or "eol while scanning" in error_msg.lower():
-                    hints.append("- Use triple-quoted strings for multi-line output: print('''text''')")
-                    hints.append("- Avoid backslashes in strings; use raw strings r'' if needed")
-                    hints.append("- For print statements, use separate print() calls instead of \\n in strings")
+
+                if (
+                    "unterminated string" in error_msg.lower()
+                    or "eol while scanning" in error_msg.lower()
+                ):
+                    hints.append(
+                        "- Use triple-quoted strings for multi-line output: print('''text''')"
+                    )
+                    hints.append(
+                        "- Avoid backslashes in strings; use raw strings r'' if needed"
+                    )
+                    hints.append(
+                        "- For print statements, use separate print() calls instead of \\n in strings"
+                    )
                 elif "syntaxerror" in error_msg.lower():
-                    hints.append("- Review Python syntax, especially quotes, parentheses, and indentation")
+                    hints.append(
+                        "- Review Python syntax, especially quotes, parentheses, and indentation"
+                    )
                     hints.append("- Check for unmatched brackets or quotes")
                 elif "nameerror" in error_msg.lower():
                     hints.append("- Ensure all imports are at the top of the code")
                     hints.append("- Check that all variables are defined before use")
-                elif "importerror" in error_msg.lower() or "modulenotfounderror" in error_msg.lower():
-                    hints.append("- Only use approved libraries: sympy, numpy, scipy, math, fractions, decimal")
-                
-                hints_text = "\n".join(hints) if hints else "- Carefully review the error message above"
-                
+                elif (
+                    "importerror" in error_msg.lower()
+                    or "modulenotfounderror" in error_msg.lower()
+                ):
+                    hints.append(
+                        "- Only use approved libraries: sympy, numpy, scipy, math, fractions, decimal"
+                    )
+
+                hints_text = (
+                    "\n".join(hints)
+                    if hints
+                    else "- Carefully review the error message above"
+                )
+
                 feedback_prompt = f"""Your previous code execution failed with the following error:
 
 ERROR: {execution_result.error}
@@ -378,12 +810,9 @@ IMPORTANT: When writing code in JSON:
 
 Return your corrected solution in the same JSON format with fixed code."""
 
-                feedback_message = UserMessage(
-                    content=feedback_prompt,
-                    source="user"
-                )
+                feedback_message = UserMessage(content=feedback_prompt, source="user")
                 conversation_history.append(feedback_message)
-                
+
                 # Continue to next model attempt for corrected code
 
             except Exception as exc:
@@ -441,7 +870,7 @@ Return your corrected solution in the same JSON format with fixed code."""
                 # Step 1: Prepare tool context for problem
                 log.info(f"Scientist {self._scientist_id}: Preparing tool context")
                 tool_context = await self._toolkit.prepare_tools(message.problem)
-                
+
                 span.update(
                     metadata={
                         "tool_selection_needs_tools": tool_context.get("needs_tools"),
@@ -449,14 +878,13 @@ Return your corrected solution in the same JSON format with fixed code."""
                         "selected_tools": tool_context.get("selected_libraries", []),
                     }
                 )
-                
+
                 # Step 2: Format tool context for prompt
                 tool_context_str = self._toolkit.format_tool_context(tool_context)
-                
-                # Step 3: Create prompt with tool context
+
+                # Step 3: Format prompt
                 prompt = TOOL_ASSISTED_ROUND_1_PROMPT.format(
-                    problem_text=message.problem,
-                    tool_context=tool_context_str
+                    problem_text=message.problem, tool_context=tool_context_str
                 )
 
                 system_message = SystemMessage(content=TOOL_ASSISTED_SYSTEM_MESSAGE)
@@ -517,7 +945,8 @@ Return your corrected solution in the same JSON format with fixed code."""
                             f"solution for task {message.task_id}"
                         ),
                         "code_executed": bool(code),
-                        "code_success": code_output and not code_output.startswith("ERROR:"),
+                        "code_success": code_output
+                        and not code_output.startswith("ERROR:"),
                     }
                 )
 
@@ -568,6 +997,7 @@ Return your corrected solution in the same JSON format with fixed code."""
                     ]
                 )
 
+                # Format prompt
                 prompt = TOOL_ASSISTED_SUBSEQUENT_ROUNDS_PROMPT.format(
                     other_solutions=other_solutions_text,
                     problem_text=message.problem,
@@ -608,7 +1038,8 @@ Return your corrected solution in the same JSON format with fixed code."""
                             f"revision for task {message.task_id}"
                         ),
                         "code_executed": bool(code),
-                        "code_success": code_output and not code_output.startswith("ERROR:"),
+                        "code_success": code_output
+                        and not code_output.startswith("ERROR:"),
                     }
                 )
 

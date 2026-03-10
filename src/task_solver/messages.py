@@ -1,7 +1,7 @@
 """Message types for task solving debate system."""
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 
 @dataclass
@@ -55,7 +55,7 @@ class AgentSolution:
 @dataclass
 class ToolAssistedAgentSolution:
     """Solution proposed by a tool-assisted agent with code execution details.
-    
+
     Note: code and code_output use empty string as default instead of None
     to avoid Union type issues with autogen_core serialization.
     """

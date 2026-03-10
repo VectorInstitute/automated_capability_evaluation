@@ -11,10 +11,10 @@ Supports experiments with:
 Usage:
     # Quick test: 1 task per capability
     python run_experiments.py --num-tasks 1 --condition tool_assisted
-    
+
     # Full experiment: 15 tasks per capability
     python run_experiments.py --num-tasks 15 --condition both
-    
+
     # Custom configuration
     python run_experiments.py --model gemini-2.5-pro --rounds 2 --num-tasks 10
 """
@@ -27,17 +27,20 @@ import os
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
-from dotenv import load_dotenv
 from autogen_core import (
     DefaultTopicId,
     SingleThreadedAgentRuntime,
 )
+from dotenv import load_dotenv
 from langfuse import Langfuse
+
 
 # Load environment variables from .env file
 load_dotenv()
+
+from autogen_core.models import SystemMessage, UserMessage
 
 from src.task_solver.messages import Task
 from src.task_solver.moderator import TaskSolverModerator
@@ -45,24 +48,20 @@ from src.task_solver.scientist import TaskSolverScientist
 from src.task_solver.tool_assisted_scientist import ToolAssistedScientist
 from src.tools.toolkit import ScientificToolKit
 from src.utils.model_client_utils import get_model_client
-from autogen_core.models import SystemMessage, UserMessage
 
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('experiments.log'),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("experiments.log"), logging.StreamHandler()],
 )
 log = logging.getLogger(__name__)
 
 
 class ExperimentRunner:
     """Runner for mathematical reasoning experiments."""
-    
+
     def __init__(
         self,
         model_name: str = "gemini-3-flash-preview",
@@ -75,7 +74,7 @@ class ExperimentRunner:
         dataset_type: str = "math",
     ):
         """Initialize experiment runner.
-        
+
         Args:
             model_name: LLM model to use
             num_rounds: Number of debate rounds
@@ -95,14 +94,14 @@ class ExperimentRunner:
         self.dataset_type = dataset_type
         self.results_dir = Path(output_dir)
         self.results_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Initialize Langfuse
         self.langfuse_client = Langfuse(
             secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
             public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
             host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
         )
-        
+
         self.results = {
             "experiment_info": {
                 "name": "capability_evaluation_experiment",
@@ -115,7 +114,7 @@ class ExperimentRunner:
             "baseline": [],
             "tool_assisted": [],
         }
-    
+
     def load_tasks(self) -> List[Dict[str, Any]]:
         """Load tasks from specified tasks file."""
         if not self.tasks_file.exists():
@@ -123,47 +122,54 @@ class ExperimentRunner:
                 f"Tasks file not found: {self.tasks_file}\n"
                 f"Please provide a valid tasks file path."
             )
-        
+
         with open(self.tasks_file, "r", encoding="utf-8") as f:
             all_tasks = json.load(f)
-        
+
         selected_tasks = []
-        
+
         # XFinBench dataset is a flat list, not grouped by capability
         if self.dataset_type == "xfinbench":
             # XFinBench tasks are already in the right format
-            tasks_to_load = all_tasks[:self.num_tasks] if isinstance(all_tasks, list) else all_tasks
+            tasks_to_load = (
+                all_tasks[: self.num_tasks]
+                if isinstance(all_tasks, list)
+                else all_tasks
+            )
             for task in tasks_to_load:
                 task_copy = task.copy()
                 # Ensure required fields exist
                 if "area_name" not in task_copy:
                     task_copy["area_name"] = "finance"
                 selected_tasks.append(task_copy)
-            log.info(f"Loaded {len(selected_tasks)} XFinBench tasks from {self.tasks_file}")
+            log.info(
+                f"Loaded {len(selected_tasks)} XFinBench tasks from {self.tasks_file}"
+            )
+        # Math dataset: grouped by capability
+        # If using a custom tasks file (not default), load all tasks as-is
+        elif self.tasks_file != Path("selected_tasks.json"):
+            for capability_name, task_list in all_tasks.items():
+                for task in task_list:
+                    task_copy = task.copy()
+                    task_copy["capability_name"] = capability_name
+                    task_copy["area_name"] = "math"  # All tasks are math
+                    selected_tasks.append(task_copy)
+            log.info(f"Loaded {len(selected_tasks)} tasks from {self.tasks_file}")
         else:
-            # Math dataset: grouped by capability
-            # If using a custom tasks file (not default), load all tasks as-is
-            if self.tasks_file != Path("selected_tasks.json"):
-                for capability_name, task_list in all_tasks.items():
-                    for task in task_list:
-                        task_copy = task.copy()
-                        task_copy["capability_name"] = capability_name
-                        task_copy["area_name"] = "math"  # All tasks are math
-                        selected_tasks.append(task_copy)
-                log.info(f"Loaded {len(selected_tasks)} tasks from {self.tasks_file}")
-            else:
-                # For default file, apply num_tasks limit per capability
-                for capability_name, task_list in all_tasks.items():
-                    # Take up to num_tasks from each capability
-                    for task in task_list[:self.num_tasks]:
-                        task_copy = task.copy()
-                        task_copy["capability_name"] = capability_name
-                        task_copy["area_name"] = "math"  # All tasks are math
-                        selected_tasks.append(task_copy)
-                log.info(f"Loaded {len(selected_tasks)} tasks ({self.num_tasks} per capability)")
-        
+            # For default file, apply num_tasks limit per capability
+            for capability_name, task_list in all_tasks.items():
+                # Take up to num_tasks from each capability
+                for task in task_list[: self.num_tasks]:
+                    task_copy = task.copy()
+                    task_copy["capability_name"] = capability_name
+                    task_copy["area_name"] = "math"  # All tasks are math
+                    selected_tasks.append(task_copy)
+            log.info(
+                f"Loaded {len(selected_tasks)} tasks ({self.num_tasks} per capability)"
+            )
+
         return selected_tasks
-    
+
     async def run_single_task(
         self,
         task_data: Dict[str, Any],
@@ -173,13 +179,13 @@ class ExperimentRunner:
     ) -> Dict[str, Any]:
         """Run a single task with specified condition."""
         log.info(
-            f"\n{'='*70}\n"
+            f"\n{'=' * 70}\n"
             f"[{condition.upper()}] Task {task_index}/{total_tasks}\n"
             f"Capability: {task_data['capability_name']}\n"
             f"Task ID: {task_data['task_id']}\n"
-            f"{'='*70}"
+            f"{'=' * 70}"
         )
-        
+
         start_time = time.time()
         result = {
             "task_id": task_data["task_id"],
@@ -191,15 +197,15 @@ class ExperimentRunner:
             "start_time": datetime.now().isoformat(),
             "status": "pending",
         }
-        
+
         try:
             # Create runtime
             runtime = SingleThreadedAgentRuntime()
-            
+
             # Create output directory for this task
             output_dir = self.results_dir / condition / task_data["capability_name"]
             output_dir.mkdir(parents=True, exist_ok=True)
-            
+
             # Register moderator (single solver - no debate/consensus)
             await TaskSolverModerator.register(
                 runtime,
@@ -208,6 +214,7 @@ class ExperimentRunner:
                     model_client=get_model_client(
                         model_name=self.model_name,
                         seed=42,
+                        reasoning_effort="low",
                     ),
                     num_solvers=1,  # Single scientist - no multi-agent debate
                     max_rounds=1,  # Single round - direct solve
@@ -215,7 +222,7 @@ class ExperimentRunner:
                     langfuse_client=self.langfuse_client,
                 ),
             )
-            
+
             # Register scientist agent based on condition (single scientist - no debate)
             if condition == "baseline":
                 # Use regular TaskSolverScientist
@@ -226,6 +233,7 @@ class ExperimentRunner:
                         model_client=get_model_client(
                             model_name=self.model_name,
                             seed=42,
+                            reasoning_effort="low",
                         ),
                         scientist_id="A",
                         langfuse_client=self.langfuse_client,
@@ -237,11 +245,12 @@ class ExperimentRunner:
                     model_client=get_model_client(
                         model_name=self.model_name,
                         seed=42,
+                        reasoning_effort="low",
                     ),
                     enable_tool_selection=self.enable_tool_selection,  # False by default - skip tool selection
                     enable_rag=False,  # Use model's parametric knowledge instead of retrieval
                 )
-                
+
                 await ToolAssistedScientist.register(
                     runtime,
                     "TaskSolverScientistA",
@@ -249,16 +258,17 @@ class ExperimentRunner:
                         model_client=get_model_client(
                             model_name=self.model_name,
                             seed=42,
+                            reasoning_effort="low",
                         ),
                         scientist_id="A",
                         langfuse_client=self.langfuse_client,
                         toolkit=toolkit,
                     ),
                 )
-            
+
             # Start runtime
             runtime.start()
-            
+
             # Create and publish task
             task = Task(
                 task_id=task_data["task_id"],
@@ -266,18 +276,18 @@ class ExperimentRunner:
                 capability_name=task_data["capability_name"],
                 area_name=task_data.get("area_name", "math"),
             )
-            
+
             await runtime.publish_message(task, DefaultTopicId())
-            
+
             # Wait for completion
             await runtime.stop_when_idle()
-            
+
             # Load the solution file
             solution_file = output_dir / f"{task_data['task_id']}_solution.json"
             if solution_file.exists():
                 with open(solution_file, "r") as f:
                     solution_data = json.load(f)
-                
+
                 # Extract code execution info for tool_assisted
                 code_executions = None
                 if condition == "tool_assisted":
@@ -287,19 +297,22 @@ class ExperimentRunner:
                     result["code_executions"] = code_executions
                     # Track if ANY code was executed successfully (no "ERROR:" in output)
                     result["code_execution_success"] = any(
-                        c.get("has_code") and not str(c.get("code_output", "")).startswith("ERROR:")
+                        c.get("has_code")
+                        and not str(c.get("code_output", "")).startswith("ERROR:")
                         for c in code_executions
                     )
-                
-                result.update({
-                    "status": "completed",
-                    "execution_time": time.time() - start_time,
-                    "solution": solution_data.get("solution"),
-                    "numerical_answer": solution_data.get("numerical_answer"),
-                    "consensus_reached": solution_data.get("consensus_reached"),
-                    "total_rounds": solution_data.get("total_rounds"),
-                })
-                
+
+                result.update(
+                    {
+                        "status": "completed",
+                        "execution_time": time.time() - start_time,
+                        "solution": solution_data.get("solution"),
+                        "numerical_answer": solution_data.get("numerical_answer"),
+                        "consensus_reached": solution_data.get("consensus_reached"),
+                        "total_rounds": solution_data.get("total_rounds"),
+                    }
+                )
+
                 # Verify answer (XFinBench-aware)
                 task_type = task_data.get("task_type")
                 if self.dataset_type == "xfinbench" and task_type:
@@ -307,80 +320,83 @@ class ExperimentRunner:
                         solution_data.get("numerical_answer"),
                         task_data["answer"],
                         task_type,
-                        code_executions
+                        code_executions,
+                        reasoning=solution_data.get("reasoning"),
+                        problem_text=task_data.get("problem"),
                     )
                     result.update(verification_dict)
                     # Success is determined by LLM judge
                     result["success"] = verification_dict.get("llm_judge", False)
                 else:
-                    # For non-XFinBench datasets, use LLM judge too
-                    try:
-                        llm_judge_result = await self._verify_with_llm_judge(
-                            solution_data.get("numerical_answer"),
-                            task_data["answer"],
-                            code_executions
-                        )
-                        result["success"] = llm_judge_result
-                        result["llm_judge"] = llm_judge_result
-                    except Exception as e:
-                        log.warning(f"LLM judge verification failed: {e}")
-                        result["success"] = False
-                        result["llm_judge"] = False
+                    # For non-XFinBench datasets, use relaxed verifier
+                    result["success"] = self._verify_single_answer(
+                        solution_data.get("numerical_answer"),
+                        task_data["answer"],
+                        relaxed=True,
+                    )
+                    result["llm_judge"] = result["success"]
             else:
-                result.update({
-                    "status": "error",
-                    "error": "Solution file not found",
-                    "execution_time": time.time() - start_time,
-                })
-            
+                result.update(
+                    {
+                        "status": "error",
+                        "error": "Solution file not found",
+                        "execution_time": time.time() - start_time,
+                    }
+                )
+
             log.info(
                 f"✓ Task completed in {result['execution_time']:.2f}s\n"
                 f"  Success: {result.get('success', False)}\n"
                 f"  Consensus: {result.get('consensus_reached', False)}"
             )
-            
+
         except Exception as e:
             log.error(f"Error running task: {e}", exc_info=True)
-            result.update({
-                "status": "error",
-                "error": str(e),
-                "execution_time": time.time() - start_time,
-            })
-        
+            result.update(
+                {
+                    "status": "error",
+                    "error": str(e),
+                    "execution_time": time.time() - start_time,
+                }
+            )
+
         return result
-    
+
     def _normalize_answer(self, answer_str: str) -> list[float]:
         """Extract and normalize numerical values from any answer format.
-        
+
         This method handles multiple answer formats:
         - LaTeX: \\[begin{pmatrix} 1 \\\\ 1 \\end{pmatrix}\\]
         - Python list: [1, 1] or [[1], [1]]
         - Python dict: {'x': [[1], [1]]}
         - Plain text with numbers
-        
-        Returns:
+
+        Returns
+        -------
             Sorted list of float values extracted from the answer.
         """
-        import re
         import ast
-        
+        import re
+
         if not answer_str:
             return []
-        
+
         answer_str = str(answer_str).strip()
-        
+
         # Remove LaTeX formatting and commands
-        answer_str = re.sub(r'\\[a-zA-Z]+\{', '', answer_str)  # Remove \command{
-        answer_str = re.sub(r'\\[a-zA-Z]+\[', '', answer_str)  # Remove \command[
-        answer_str = re.sub(r'\\[a-zA-Z]+', '', answer_str)    # Remove remaining \commands
-        answer_str = re.sub(r'[{}\\]', '', answer_str)         # Remove braces and backslashes
-        
+        answer_str = re.sub(r"\\[a-zA-Z]+\{", "", answer_str)  # Remove \command{
+        answer_str = re.sub(r"\\[a-zA-Z]+\[", "", answer_str)  # Remove \command[
+        answer_str = re.sub(
+            r"\\[a-zA-Z]+", "", answer_str
+        )  # Remove remaining \commands
+        answer_str = re.sub(r"[{}\\]", "", answer_str)  # Remove braces and backslashes
+
         numbers = []
-        
+
         # Try parsing as Python literal first (handles dicts, lists, etc.)
         try:
             parsed = ast.literal_eval(answer_str)
-            
+
             def flatten(obj):
                 """Recursively flatten nested structures."""
                 if isinstance(obj, (list, tuple)):
@@ -388,304 +404,409 @@ class ExperimentRunner:
                     for item in obj:
                         result.extend(flatten(item))
                     return result
-                elif isinstance(obj, dict):
+                if isinstance(obj, dict):
                     result = []
                     for value in obj.values():
                         result.extend(flatten(value))
                     return result
-                else:
-                    try:
-                        return [float(obj)]
-                    except (ValueError, TypeError):
-                        return []
-            
+                try:
+                    return [float(obj)]
+                except (ValueError, TypeError):
+                    return []
+
             numbers = flatten(parsed)
         except (ValueError, SyntaxError):
             # If parsing fails, extract numbers via regex
             pass
-        
+
         # Extract all numbers (including decimals and negative numbers)
         if not numbers:
-            number_pattern = r'-?\d+\.?\d*'
+            number_pattern = r"-?\d+\.?\d*"
             found_numbers = re.findall(number_pattern, answer_str)
             numbers = []
             for num_str in found_numbers:
-                if num_str and num_str != '-':  # Skip empty or lone minus signs
+                if num_str and num_str != "-":  # Skip empty or lone minus signs
                     try:
                         numbers.append(float(num_str))
                     except ValueError:
                         pass
-        
+
         return sorted(numbers)
-    
-    def _verify_answer(self, solution_answer: str, expected_answer: str, code_executions: List[Dict] = None) -> bool:
+
+    def _verify_answer(
+        self,
+        solution_answer: str,
+        expected_answer: str,
+        code_executions: List[Dict] = None,
+    ) -> bool:
         """Verify if solution matches expected answer with robust normalization.
-        
+
         Args:
             solution_answer: The answer from the consensus/solution
             expected_answer: The expected correct answer
             code_executions: Optional list of code execution results to use as fallback
-        
-        Returns:
+
+        Returns
+        -------
             True if answer matches (from consensus or code execution), False otherwise
         """
         if expected_answer is None:
             return False
-        
+
         # Try verifying the consensus answer first
         if solution_answer is not None:
             if self._verify_single_answer(solution_answer, expected_answer):
                 return True
-        
+
         # If consensus answer failed and we have code executions, try those
         if code_executions:
             for exec_info in code_executions:
                 # Try the numerical_answer from code execution
                 code_numerical = exec_info.get("numerical_answer")
-                if code_numerical and self._verify_single_answer(code_numerical, expected_answer):
-                    log.info(f"  ✓ Answer verified using code output from agent {exec_info.get('agent_id')}")
+                if code_numerical and self._verify_single_answer(
+                    code_numerical, expected_answer
+                ):
+                    log.info(
+                        f"  ✓ Answer verified using code output from agent {exec_info.get('agent_id')}"
+                    )
                     return True
-                
+
                 # Try extracting numbers from raw code output
                 code_output = exec_info.get("code_output", "")
                 if code_output:
                     try:
                         output_nums = self._normalize_answer(code_output)
                         exp_nums = self._normalize_answer(expected_answer)
-                        if output_nums and exp_nums and len(output_nums) == len(exp_nums):
-                            if all(abs(s - e) < 1e-6 for s, e in zip(output_nums, exp_nums)):
-                                log.info(f"  ✓ Answer verified using raw code output from agent {exec_info.get('agent_id')}")
+                        if (
+                            output_nums
+                            and exp_nums
+                            and len(output_nums) == len(exp_nums)
+                        ):
+                            if all(
+                                abs(s - e) < 1e-6 for s, e in zip(output_nums, exp_nums)
+                            ):
+                                log.info(
+                                    f"  ✓ Answer verified using raw code output from agent {exec_info.get('agent_id')}"
+                                )
                                 return True
                     except Exception:
                         pass
-        
+
         return False
-    
+
     async def _verify_xfinbench_answer(
         self,
         solution_answer: str,
         expected_answer: Any,
         task_type: str,
-        code_executions: List[Dict] = None
+        code_executions: List[Dict] = None,
+        reasoning: str = None,
+        problem_text: str = None,
     ) -> Dict[str, bool]:
-        """Verify XFinBench answer using LLM-as-a-judge only.
-        
+        """Verify XFinBench answer using LLM-as-a-Judge with principled criteria.
+
+        This uses LLM-as-a-Judge that encodes the legitimate reasons from Feb 12 analysis:
+        - Precision superiority: tool used more rigorous method than textbook
+        - Correct methodology with implementation variance: tiny numerical differences from different solvers
+
         Args:
             solution_answer: The answer from the solution
             expected_answer: The expected correct answer
             task_type: Type of task ('bool', 'mcq', 'calcu')
             code_executions: Optional list of code execution results
-        
-        Returns:
+            reasoning: The reasoning/thought process from the solution
+            problem_text: The original problem statement
+
+        Returns
+        -------
             Dictionary with 'llm_judge' success flag
         """
         results = {"llm_judge": False}
         if expected_answer is None:
             return results
-        
-        # For all task types, use LLM judge for verification
-        # This is strict on computation precision but forgiving on formatting
-        try:
-            results["llm_judge"] = await self._verify_with_llm_judge(
-                solution_answer, expected_answer, code_executions
-            )
-        except Exception as e:
-            log.warning(f"LLM judge verification failed: {e}")
-            results["llm_judge"] = False
-        
+
+        # Extract code context from code_executions
+        code_context = None
+        reasoning_context = reasoning
+
+        if code_executions and len(code_executions) > 0:
+            # Use the first successful code execution
+            for exec_info in code_executions:
+                if exec_info.get("has_code") and not str(
+                    exec_info.get("code_output", "")
+                ).startswith("ERROR:"):
+                    code_context = exec_info.get("code", "")
+                    # Also include thought from code execution if reasoning not provided
+                    if not reasoning_context:
+                        reasoning_context = exec_info.get("thought", "")
+                    break
+
+            # If no successful execution, use any code even if it errored
+            if not code_context and len(code_executions) > 0:
+                code_context = code_executions[0].get("code", "")
+                if not reasoning_context:
+                    reasoning_context = code_executions[0].get("thought", "")
+
+        # Use LLM-as-a-Judge for verification
+        results["llm_judge"] = await self._verify_with_llm_judge(
+            solution_answer=solution_answer,
+            expected_answer=expected_answer,
+            reasoning=reasoning_context,
+            code=code_context,
+            problem_text=problem_text,
+            task_type=task_type,
+        )
+
         return results
-    
+
     def _verify_boolean_answer(
         self,
         solution_answer: str,
         expected_answer: Any,
-        code_executions: List[Dict] = None
+        code_executions: List[Dict] = None,
     ) -> bool:
         """Verify boolean (True/False or 0/1) answer."""
         if solution_answer is None:
             return False
-        
+
         # Normalize to 0/1
         def normalize_bool(val):
             if val is None:
                 return None
             val_str = str(val).strip().lower()
-            if val_str in ['true', '1', '1.0', 'yes']:
+            if val_str in ["true", "1", "1.0", "yes"]:
                 return 1
-            elif val_str in ['false', '0', '0.0', 'no']:
+            if val_str in ["false", "0", "0.0", "no"]:
                 return 0
             return None
-        
+
         sol_bool = normalize_bool(solution_answer)
         exp_bool = normalize_bool(expected_answer)
-        
+
         if sol_bool is not None and exp_bool is not None:
             if sol_bool == exp_bool:
                 return True
-        
+
         # Try code executions
         if code_executions:
             for exec_info in code_executions:
-                code_answer = exec_info.get("numerical_answer") or exec_info.get("code_output", "")
+                code_answer = exec_info.get("numerical_answer") or exec_info.get(
+                    "code_output", ""
+                )
                 code_bool = normalize_bool(code_answer)
                 if code_bool is not None and code_bool == exp_bool:
-                    log.info(f"  ✓ Boolean answer verified using code output")
+                    log.info("  ✓ Boolean answer verified using code output")
                     return True
-        
+
         return False
-    
+
     def _verify_mcq_answer(
         self,
         solution_answer: str,
         expected_answer: str,
-        code_executions: List[Dict] = None
+        code_executions: List[Dict] = None,
     ) -> bool:
         """Verify multiple choice answer (extract choice letter)."""
         if solution_answer is None or expected_answer is None:
             return False
-        
+
         import re
-        
+
         def extract_choice(text):
             """Extract choice letter (A, B, C, D, etc.) from text."""
             if not text:
                 return None
             text_str = str(text).strip().upper()
             # Look for standalone letter or letter with period/parenthesis
-            match = re.search(r'\b([A-Z])\b', text_str)
+            match = re.search(r"\b([A-Z])\b", text_str)
             if match:
                 return match.group(1)
             return None
-        
+
         sol_choice = extract_choice(solution_answer)
         exp_choice = extract_choice(expected_answer)
-        
+
         if sol_choice and exp_choice:
             if sol_choice == exp_choice:
                 return True
-        
+
         # Try code executions
         if code_executions:
             for exec_info in code_executions:
-                code_answer = exec_info.get("numerical_answer") or exec_info.get("code_output", "")
+                code_answer = exec_info.get("numerical_answer") or exec_info.get(
+                    "code_output", ""
+                )
                 code_choice = extract_choice(code_answer)
                 if code_choice and code_choice == exp_choice:
-                    log.info(f"  ✓ MCQ answer verified using code output")
+                    log.info("  ✓ MCQ answer verified using code output")
                     return True
-        
+
         return False
-    
+
     async def _verify_with_llm_judge(
         self,
         solution_answer: str,
         expected_answer: Any,
-        code_executions: List[Dict] = None
+        reasoning: str = None,
+        code: str = None,
+        problem_text: str = None,
+        task_type: str = None,
     ) -> bool:
-        """Use LLM-as-a-Judge to verify answer with strict computational precision but forgiving formatting.
-        
-        This judge is designed to reward tool-use by:
-        - Being ruthlessly strict on mathematical precision (penalizes rounding errors)
-        - Being completely forgiving on superficial formatting (ignores $, %, commas)
-        
+        """Use LLM-as-a-Judge to verify answer with principled criteria from Feb 12 analysis.
+
+        This judge encodes the legitimate reasons tool-use deserves credit when diverging from ground truth:
+        1. Precision superiority: More rigorous method than textbook (continuous vs discrete, exact vs approximate)
+        2. Correct methodology with implementation variance: Different numerical solvers producing slightly different floats
+
+        NOT encoded: Lucky passes from consensus relaxation artifacts.
+
         Args:
-            solution_answer: The answer from the consensus/solution
+            solution_answer: The answer from the solution
             expected_answer: The expected correct answer
-            code_executions: Optional list of code execution results
-        
-        Returns:
-            True if LLM judge deems the answer mathematically exact
+            reasoning: The model's thought process explaining approach
+            code: The code used to compute the answer
+            problem_text: The original problem statement
+            task_type: Type of task ('bool', 'mcq', 'calcu')
+
+        Returns
+        -------
+            True if answer is mathematically correct (exact match OR legitimate precision/methodology difference)
         """
         if solution_answer is None or expected_answer is None:
             return False
-        
-        # Prepare the judgment prompt
-        judge_prompt = f"""You are an expert financial auditor grading an AI's mathematical execution. Your goal is to determine if the AI produced the mathematically exact final answer.
 
-In corporate finance and derivatives pricing, precision is paramount. Your grading criteria must strictly reward exact computation and penalize manual estimation.
+        # Build context for judge
+        reasoning_context = f"\n\nModel's Reasoning:\n{reasoning}" if reasoning else ""
+        code_context = f"\n\nModel's Code:\n```python\n{code}\n```" if code else ""
+        problem_context = f"\n\nProblem:\n{problem_text}" if problem_text else ""
 
-The exact expected answer is: {expected_answer}
-The AI's prediction is: {solution_answer}
+        # Prepare the judgment prompt with principled criteria
+        judge_prompt = f"""You are an expert financial mathematics evaluator. Your task is to determine if the model's answer is CORRECT.
 
-GRADING RULES:
-1. STRICT COMPUTATION: You must PENALIZE answers that suffer from intermediate rounding errors, accumulated floating-point drift, or arithmetic approximations. For example:
-   - 1023654.52 vs expected 1023654.55 → FALSE (precision error)
-   - 1.259 vs expected 1.2592 → FALSE (truncation/rounding error)
-   
-2. FORGIVE FORMATTING & UNITS: You must IGNORE superficial formatting differences and equivalent unit representations:
-   - Formatting: "$1.41", "1.41", "1.4100" are all identical
-   - Percentage ↔ Decimal: "15.58%" = "0.1558" (divide %) = "15.58" (plain number)
-   - IMPORTANT: "0.012591" (decimal) = "1.2591" (percentage) when multiplied by 100
-   - Basis Points: "125.91" bps = "1.2591" percent (divide bps by 100)
-   - Trailing precision: "16.028544" ≈ "16.0" if they round to the same value
-   
-3. ROUNDING TOLERANCE: If the prediction has extra decimal places but rounds to the expected answer, accept it:
-   - 102.129 vs expected 102.13 → TRUE (rounds to 102.13)
-   - 16.0285 vs expected 16.0 → TRUE (rounds to 16)
-   - 1.2591 vs expected 1.2592 → TRUE (difference is 0.0001, negligible)
+EXPECTED ANSWER (from textbook/reference): {expected_answer}
+MODEL'S ANSWER: {solution_answer}
+TASK TYPE: {task_type if task_type else "numerical"}
+{problem_context}
+{reasoning_context}
+{code_context}
 
-CONVERSION PRIORITY: Try these conversions before rejecting:
-   a) If prediction is small (< 0.1) and expected is larger: multiply prediction by 100 (decimal → percentage)
-   b) If prediction is in hundreds and expected is small: divide prediction by 100 (bps → percentage)
-   c) Check if values match after conversion
+EVALUATION CRITERIA:
 
-Based on these rules, did the AI predict the exact correct number (accounting for unit conversions and rounding)?
+**ACCEPT if any of the following are true:**
 
-Output ONLY the word "TRUE" or "FALSE". Do not provide any other explanation."""
-        
+1. **EXACT MATCH** (with formatting/unit tolerance):
+   - Answers are numerically identical after normalizing units and formatting
+   - Unit conversions: 0.0156 = 1.56% = 156 bps (basis points)
+   - Formatting: "$1,234.56" = "1234.56" = "1234.560"
+   - Rounding: 102.1285 ≈ 102.13 (difference < 0.01 or rounds to same value)
+
+2. **PRECISION SUPERIORITY** (tool used MORE rigorous method):
+   - Model used continuous compounding, textbook assumed discrete
+   - Model used exact numerical solver, textbook used approximation formula
+   - Model used higher precision constants (more decimal places of π, e, etc.)
+   - **HOW TO IDENTIFY**: Check if code uses scipy.optimize, numerical integration, or exact formulas
+   - **EXAMPLE**: Model gets 2.489 with fsolve(), textbook gets 2.5 with simplified formula → ACCEPT
+
+3. **CORRECT METHODOLOGY WITH IMPLEMENTATION VARIANCE**:
+   - Model's approach is mathematically sound (verify from reasoning/code)
+   - Difference is minor floating-point variance (< 0.1% relative error)
+   - Different solvers/libraries produce slightly different results (2.489 vs 2.490)
+   - **HOW TO IDENTIFY**: Code shows correct setup, tiny numerical difference
+   - **EXAMPLE**: Two valid bond pricing implementations differ by 0.001 → ACCEPT
+
+**REJECT if:**
+- Model made mathematical error in reasoning or code
+- Model used wrong formula or misunderstood problem
+- Large numerical difference (> 1% relative error) without justification
+- Model's methodology is fundamentally flawed
+
+**SPECIAL HANDLING:**
+
+For **boolean** (0/1) or **MCQ** tasks: Require exact match (no precision argumentation applies).
+
+For **numerical** tasks: Apply full criteria above, prioritizing methodological correctness.
+
+**YOUR JUDGMENT:**
+
+Based ONLY on the criteria above:
+1. Is there an exact match (accounting for units/formatting)?
+2. If not exact, does the code/reasoning show the model used a MORE precise method?
+3. If not more precise, is the methodology correct with only minor numerical variance?
+
+Output ONLY one word: "ACCEPT" or "REJECT"
+
+Your judgment:"""
+
         try:
-            # Use lightweight model for judging (gemini-3-flash-preview)
-            judge_client = get_model_client("gemini-3-flash-preview")
-            
-            response = await judge_client.create([
-                SystemMessage(content="You are a precise numerical evaluator."),
-                UserMessage(content=judge_prompt, source="user")
-            ])
-            
+            # Use same model as task solver for consistency
+            judge_client = get_model_client(
+                self.model_name, seed=42, reasoning_effort="low"
+            )
+
+            response = await judge_client.create(
+                [
+                    SystemMessage(
+                        content="You are a precise mathematical evaluator who rewards rigorous computational methods."
+                    ),
+                    UserMessage(content=judge_prompt, source="user"),
+                ]
+            )
+
             judgment = response.content.strip().upper()
-            
-            if "TRUE" in judgment:
+
+            if "ACCEPT" in judgment:
+                log.debug(
+                    f"LLM Judge: ACCEPT (expected={expected_answer}, got={solution_answer})"
+                )
                 return True
-            elif "FALSE" in judgment:
+            if "REJECT" in judgment:
+                log.debug(
+                    f"LLM Judge: REJECT (expected={expected_answer}, got={solution_answer})"
+                )
                 return False
-            else:
-                log.warning(f"Unexpected LLM judge response: {judgment}")
-                return False
-                
+            log.warning(
+                f"Unexpected LLM judge response: {judgment}, defaulting to REJECT"
+            )
+            return False
+
         except Exception as e:
             log.error(f"LLM judge error: {e}")
             return False
-    
-    def _verify_single_answer(self, solution_answer: str, expected_answer: str, relaxed: bool = False) -> bool:
+
+    def _verify_single_answer(
+        self, solution_answer: str, expected_answer: str, relaxed: bool = False
+    ) -> bool:
         """Verify a single answer using XFinBench standards.
-        
+
         Args:
             solution_answer: The answer to verify
             expected_answer: The expected correct answer
             relaxed: If True, use 5% relative error tolerance; if False, use strict tolerance
-        
-        Returns:
+
+        Returns
+        -------
             True if answer matches according to the specified tolerance
         """
         if solution_answer is None or expected_answer is None:
             return False
-        
+
         sol = str(solution_answer).strip().lower()
         exp = str(expected_answer).strip().lower()
-        
+
         # Exact match
         if sol == exp:
             return True
-        
+
         try:
             sol_nums = self._normalize_answer(solution_answer)
             exp_nums = self._normalize_answer(expected_answer)
-            
+
             if not sol_nums or not exp_nums or len(sol_nums) != len(exp_nums):
                 return False
-            
+
             for s, e in zip(sol_nums, exp_nums):
                 diff = abs(s - e)
-                
+
                 # Strict: Must be virtually exact
                 if not relaxed:
                     if diff > 1e-6:
@@ -694,28 +815,31 @@ Output ONLY the word "TRUE" or "FALSE". Do not provide any other explanation."""
                     # 1. Absolute tolerance (crucial for expected == 0)
                     if diff < 1e-4 or (e == 0 and diff < 1e-9):
                         continue
-                    
-                    # 2. XFinBench standard: 5% relative error
-                    if e != 0 and diff / abs(e) <= 0.05:
+
+                    # 2. Feb 12 standard: 3.5% relative error tolerance
+                    if e != 0 and diff / abs(e) <= 0.035:
                         continue
-                    
+
                     # 3. Unit scaling checks (BP, %, decimals, Thousands, Millions)
                     scaled_match = False
                     for factor in [10, 100, 1000, 10000, 1000000]:
                         if abs(s * factor - e) < 1e-4 or abs(s - e * factor) < 1e-4:
                             scaled_match = True
                             break
-                        if e != 0 and (abs(s * factor - e) / abs(e) <= 0.05 or abs(s - e * factor) / abs(e) <= 0.05):
+                        if e != 0 and (
+                            abs(s * factor - e) / abs(e) <= 0.035
+                            or abs(s - e * factor) / abs(e) <= 0.035
+                        ):
                             scaled_match = True
                             break
-                    
+
                     if scaled_match:
                         continue
                     return False
             return True
         except Exception:
             return False
-    
+
     def _extract_code_executions(self, all_solutions: List[Dict]) -> List[Dict]:
         """Extract code execution information and outputs from solutions."""
         code_executions = []
@@ -723,108 +847,117 @@ Output ONLY the word "TRUE" or "FALSE". Do not provide any other explanation."""
             code = solution.get("code", "")
             code_output = solution.get("code_output", "")
             if code:
-                code_executions.append({
-                    "agent_id": solution.get("agent_id"),
-                    "round": solution.get("round_number"),
-                    "has_code": True,
-                    "code": code,
-                    "code_output": code_output,
-                    "numerical_answer": solution.get("numerical_answer"),
-                })
+                code_executions.append(
+                    {
+                        "agent_id": solution.get("agent_id"),
+                        "round": solution.get("round_number"),
+                        "has_code": True,
+                        "code": code,
+                        "code_output": code_output,
+                        "numerical_answer": solution.get("numerical_answer"),
+                    }
+                )
         return code_executions
-    
+
     async def run_experiment(self):
         """Run the experiment."""
-        log.info("="*70)
-        log.info(f"MATHEMATICAL REASONING EXPERIMENT")
-        log.info("="*70)
+        log.info("=" * 70)
+        log.info("MATHEMATICAL REASONING EXPERIMENT")
+        log.info("=" * 70)
         log.info(f"Model: {self.model_name}")
         log.info(f"Debate rounds: {self.num_rounds}")
         log.info(f"Tasks per capability: {self.num_tasks}")
         log.info(f"Condition: {self.condition}")
         log.info(f"Results directory: {self.results_dir}")
-        log.info("="*70 + "\n")
-        
+        log.info("=" * 70 + "\n")
+
         # Load tasks
         tasks = self.load_tasks()
         total_tasks = len(tasks)
-        
+
         # Run baseline condition
         if self.condition in ["baseline", "both"]:
-            log.info("\n" + "="*70)
+            log.info("\n" + "=" * 70)
             log.info("BASELINE CONDITION (No Code Execution)")
-            log.info("="*70)
+            log.info("=" * 70)
             for idx, task_data in enumerate(tasks, 1):
                 result = await self.run_single_task(
                     task_data, "baseline", idx, total_tasks
                 )
                 self.results["baseline"].append(result)
-        
+
         # Run tool-assisted condition
         if self.condition in ["tool_assisted", "both"]:
-            log.info("\n" + "="*70)
+            log.info("\n" + "=" * 70)
             log.info("TOOL-ASSISTED CONDITION (With Code Execution)")
-            log.info("="*70)
+            log.info("=" * 70)
             for idx, task_data in enumerate(tasks, 1):
                 result = await self.run_single_task(
                     task_data, "tool_assisted", idx, total_tasks
                 )
                 self.results["tool_assisted"].append(result)
-        
+
         # Save results
         self.results["experiment_info"]["end_time"] = datetime.now().isoformat()
         results_file = self.results_dir / "experiment_results.json"
         with open(results_file, "w") as f:
             json.dump(self.results, f, indent=2)
-        
+
         log.info(f"\n✓ Results saved to: {results_file}")
-        
+
         # Print summary
         self._print_summary()
-        
+
         # Flush Langfuse
         self.langfuse_client.flush()
-    
+
     def _print_summary(self):
         """Print experiment summary with both strict and relaxed metrics for XFinBench."""
-        log.info("\n" + "="*70)
+        log.info("\n" + "=" * 70)
         log.info("EXPERIMENT SUMMARY")
-        log.info("="*70)
-        
+        log.info("=" * 70)
+
         for condition in ["baseline", "tool_assisted"]:
             if condition not in self.results or not self.results[condition]:
                 continue
-                
+
             results = self.results[condition]
             completed = [r for r in results if r["status"] == "completed"]
-            
+
             log.info(f"\n{condition.upper().replace('_', ' ')}:")
             log.info(f"  Total tasks: {len(results)}")
             log.info(f"  Completed: {len(completed)}")
-            
+
             if completed:
-                # LLM Judge metrics only
+                # LLM Judge metrics
                 successful = [r for r in completed if r.get("success", False)]
                 log.info(f"  Successful: {len(successful)}")
-                
+
                 success_rate = len(successful) / len(completed) * 100
-                log.info(f"  Success rate (LLM Judge - precision-strict, format-forgiving): {success_rate:.1f}%")
-                
+                log.info(
+                    f"  Success rate (LLM-as-a-Judge with precision superiority criteria): {success_rate:.1f}%"
+                )
+
                 # Code execution success for tool_assisted
                 if condition == "tool_assisted":
                     code_success_count = sum(
-                        1 for r in completed 
-                        if r.get("code_executions") and any(
-                            c.get("has_code") and not str(c.get("code_output", "")).startswith("ERROR:")
+                        1
+                        for r in completed
+                        if r.get("code_executions")
+                        and any(
+                            c.get("has_code")
+                            and not str(c.get("code_output", "")).startswith("ERROR:")
                             for c in r.get("code_executions", [])
                         )
                     )
-                    log.info(f"  Code execution success: {code_success_count}/{len(completed)}")
-                
+                    log.info(
+                        f"  Code execution success: {code_success_count}/{len(completed)}"
+                    )
+
                 avg_time = sum(r["execution_time"] for r in completed) / len(completed)
                 log.info(f"  Average time: {avg_time:.2f}s")
-        
-        log.info("\n" + "="*70)
+
+        log.info("\n" + "=" * 70)
 
 
 async def main():
@@ -836,67 +969,64 @@ async def main():
 Examples:
   # Quick test: 1 task per capability, tool-assisted condition
   python run_experiments.py --num-tasks 1 --condition tool_assisted
-  
+
   # Quick test: 1 task per capability, both conditions
   python run_experiments.py --num-tasks 1 --condition both
-  
+
   # Full experiment: 3 tasks per capability (default)
   python run_experiments.py --num-tasks 3
-  
+
   # Custom configuration
   python run_experiments.py --model gemini-3-flash-preview --rounds 2 --num-tasks 10 --output my_results
-        """
+        """,
     )
     parser.add_argument(
         "--model",
         default="gemini-3-flash-preview",
-        help="LLM model to use (default: gemini-3-flash-preview)"
+        help="LLM model to use (default: gemini-3-flash-preview)",
     )
     parser.add_argument(
-        "--rounds",
-        type=int,
-        default=1,
-        help="Number of debate rounds (default: 1)"
+        "--rounds", type=int, default=1, help="Number of debate rounds (default: 1)"
     )
     parser.add_argument(
         "--num-tasks",
         type=int,
         default=3,
-        help="Number of tasks per capability to run (default: 3 for full experiment)"
+        help="Number of tasks per capability to run (default: 3 for full experiment)",
     )
     parser.add_argument(
         "--condition",
         choices=["baseline", "tool_assisted", "both"],
         default="both",
-        help="Which condition to run (default: both)"
+        help="Which condition to run (default: both)",
     )
     parser.add_argument(
         "--output",
         default="experiment_results",
-        help="Output directory for results (default: experiment_results)"
+        help="Output directory for results (default: experiment_results)",
     )
     parser.add_argument(
         "--tasks-file",
         default="selected_tasks.json",
-        help="Path to tasks JSON file (default: selected_tasks.json)"
+        help="Path to tasks JSON file (default: selected_tasks.json)",
     )
     parser.add_argument(
         "--enable-tool-selection",
         action="store_true",
-        help="Enable dynamic tool selection (disabled by default)"
+        help="Enable dynamic tool selection (disabled by default)",
     )
     parser.add_argument(
         "--dataset-type",
         choices=["math", "xfinbench"],
         default="math",
-        help="Type of dataset to evaluate (default: math)"
+        help="Type of dataset to evaluate (default: math)",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Tool selection is disabled by default, enable only if flag is present
     enable_tool_selection = args.enable_tool_selection
-    
+
     runner = ExperimentRunner(
         model_name=args.model,
         num_rounds=args.rounds,

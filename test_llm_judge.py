@@ -3,13 +3,19 @@
 
 import asyncio
 import sys
-sys.path.insert(0, 'src')
+
+
+sys.path.insert(0, "src")
 
 from dotenv import load_dotenv
+
+
 load_dotenv()
 
-from utils.model_client_utils import get_model_client
 from autogen_core.models import SystemMessage, UserMessage
+
+from utils.model_client_utils import get_model_client
+
 
 async def test_llm_judge(expected, prediction, should_pass):
     """Test a single case"""
@@ -27,26 +33,31 @@ GRADING RULES:
 Based on these rules, did the AI predict the exact correct number?
 
 Output ONLY the word "TRUE" or "FALSE". Do not provide any other explanation."""
-    
+
     client = get_model_client("gemini-3-flash-preview")
-    response = await client.create([
-        SystemMessage(content="You are a precise numerical evaluator."),
-        UserMessage(content=judge_prompt, source="user")
-    ])
-    
+    response = await client.create(
+        [
+            SystemMessage(content="You are a precise numerical evaluator."),
+            UserMessage(content=judge_prompt, source="user"),
+        ]
+    )
+
     judgment = response.content.strip().upper()
     result = "TRUE" in judgment
-    
+
     status = "✓ PASS" if result == should_pass else "✗ FAIL"
-    print(f"{status}: Expected={expected}, Prediction={prediction}, Judge={judgment} (expected {should_pass})")
+    print(
+        f"{status}: Expected={expected}, Prediction={prediction}, Judge={judgment} (expected {should_pass})"
+    )
     return result == should_pass
+
 
 async def main():
     """Run test cases"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Testing LLM-as-a-Judge Verifier")
-    print("="*70 + "\n")
-    
+    print("=" * 70 + "\n")
+
     test_cases = [
         # (expected, prediction, should_pass, description)
         ("1.41", "$1.41", True, "Formatting: $ symbol"),
@@ -58,18 +69,19 @@ async def main():
         ("5000", "$5,000", True, "Formatting: commas"),
         ("0.05", "5%", True, "Formatting: percentage"),
     ]
-    
+
     results = []
     for expected, prediction, should_pass, description in test_cases:
         print(f"\nTest: {description}")
         result = await test_llm_judge(expected, prediction, should_pass)
         results.append(result)
-    
-    print("\n" + "="*70)
+
+    print("\n" + "=" * 70)
     print(f"Results: {sum(results)}/{len(results)} tests passed")
-    print("="*70 + "\n")
-    
+    print("=" * 70 + "\n")
+
     return all(results)
+
 
 if __name__ == "__main__":
     success = asyncio.run(main())

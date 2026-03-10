@@ -6,13 +6,14 @@ Structure-aware RAG implementation for scientific computing.
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from autogen_core.models import ChatCompletionClient, SystemMessage, UserMessage
 
 from src.tools.docs import ScientificDocRetriever
 from src.tools.executor import PythonExecutor
 from src.utils.json_utils import parse_llm_json_response
+
 
 log = logging.getLogger("tools.toolkit")
 
@@ -57,14 +58,15 @@ PARAMETRIC_OVERVIEW = """
 # Main Toolkit Class
 # ==============================================================================
 
+
 class ScientificToolKit:
     """Unified toolkit for scientific computing with Python.
-    
+
     Supports two modes:
     - RAG mode (enable_rag=True): Retrieves full documentation from HTML files
     - Parametric mode (enable_rag=False): Uses model's built-in knowledge for fast tagging
     """
-    
+
     def __init__(
         self,
         model_client: ChatCompletionClient,
@@ -73,7 +75,7 @@ class ScientificToolKit:
         enable_rag: bool = True,
     ):
         """Initialize toolkit.
-        
+
         Parameters
         ----------
         model_client : ChatCompletionClient
@@ -88,37 +90,48 @@ class ScientificToolKit:
         self.model_client = model_client
         self.enable_tool_selection = enable_tool_selection
         self.enable_rag = enable_rag
-        
+
         # Only initialize the heavy retriever if RAG is enabled
         self.doc_retriever = ScientificDocRetriever(docs_path) if enable_rag else None
-        
+
         # Setup code executor (always available)
         self.executor = PythonExecutor(
             allowed_imports=[
-                "numpy", "scipy", "sympy", "math", "fractions", "decimal", "cmath",
-                "datetime", "statsmodels",
+                "numpy",
+                "scipy",
+                "sympy",
+                "math",
+                "fractions",
+                "decimal",
+                "cmath",
+                "datetime",
+                "statsmodels",
                 # Financial libraries
-                "numpy_financial", "py_vollib", "pypfopt", "empyrical", "arch"
+                "numpy_financial",
+                "py_vollib",
+                "pypfopt",
+                "empyrical",
+                "arch",
             ]
         )
-        
+
         log.info(
             f"Initialized ScientificToolKit - "
             f"Selection: {'enabled' if enable_tool_selection else 'disabled'}, "
             f"RAG: {'enabled' if enable_rag else 'disabled (parametric)'}"
         )
-    
+
     async def prepare_tools(self, problem_text: str) -> Dict[str, Any]:
         """Analyze problem and prepare tool context.
-        
+
         RAG mode: Retrieves full documentation from HTML files.
         Parametric mode: Uses model's built-in knowledge (fast, for tagging).
-        
+
         Parameters
         ----------
         problem_text : str
             Problem statement to analyze.
-            
+
         Returns
         -------
         Dict[str, Any]
@@ -135,9 +148,9 @@ class ScientificToolKit:
                 "needs_tools": True,
                 "selected_modules": [],
                 "documentation": "All libraries available. Use parametric knowledge to write code.",
-                "reasoning": "Tool selection disabled - direct code execution mode"
+                "reasoning": "Tool selection disabled - direct code execution mode",
             }
-        
+
         # 1. Get Library Overview
         if self.enable_rag and self.doc_retriever:
             # High precision: exact list of files on disk
@@ -145,42 +158,47 @@ class ScientificToolKit:
         else:
             # High speed: generic description of capabilities
             overview = PARAMETRIC_OVERVIEW
-        
+
         # 2. Module Selection via LLM (Same for both modes)
         response = await self.model_client.create(
             [
                 SystemMessage(content="You are an expert scientific programmer."),
                 UserMessage(
                     content=TOOL_SELECTION_PROMPT.format(
-                        problem_text=problem_text,
-                        tools_description=overview
+                        problem_text=problem_text, tools_description=overview
                     ),
-                    source="user"
-                )
+                    source="user",
+                ),
             ],
-            json_output=True
+            json_output=True,
         )
-        
+
         selection = parse_llm_json_response(response.content)
-        
+
         # 3. Check Necessity (if enabled)
-        necessity = str(selection.get("tool_necessity", "false")).lower() in ("true", "1", "yes")
-        
+        necessity = str(selection.get("tool_necessity", "false")).lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+
         if self.enable_tool_selection and not necessity:
             log.info("Tool necessity check: No tools needed")
             return {
                 "needs_tools": False,
                 "selected_modules": [],
                 "documentation": "",
-                "reasoning": selection.get("reasoning", "No computational tools required")
+                "reasoning": selection.get(
+                    "reasoning", "No computational tools required"
+                ),
             }
-        
+
         # 4. Context Construction
         doc_context = []
         selected_modules = selection.get("selected_modules", [])
-        
+
         log.info(f"Selected modules: {selected_modules}")
-        
+
         # BRANCH: Only fetch HTML content if RAG is enabled
         if self.enable_rag and self.doc_retriever:
             for item in selected_modules:
@@ -192,27 +210,29 @@ class ScientificToolKit:
                     doc_context.append(module_docs)
         else:
             # Parametric Mode: Add a lightweight reminder instead of full docs
-            doc_context.append("Tool selection based on parametric knowledge. Write code assuming standard library versions.")
-        
+            doc_context.append(
+                "Tool selection based on parametric knowledge. Write code assuming standard library versions."
+            )
+
         full_documentation = "\n\n".join(doc_context)
-        
+
         log.info(f"Generated documentation context: {len(full_documentation)} chars")
-        
+
         return {
             "needs_tools": True,
             "selected_modules": selected_modules,
             "documentation": full_documentation,
-            "reasoning": selection.get("reasoning", "Computational tools selected")
+            "reasoning": selection.get("reasoning", "Computational tools selected"),
         }
-    
+
     def execute_code(self, code: str) -> Dict[str, Any]:
         """Execute Python code using the executor.
-        
+
         Parameters
         ----------
         code : str
             Python code to execute.
-            
+
         Returns
         -------
         Dict[str, Any]
@@ -220,15 +240,15 @@ class ScientificToolKit:
         """
         result = self.executor.execute(code)
         return result.to_dict()
-    
+
     def format_tool_context(self, tool_context: Dict[str, Any]) -> str:
         """Format tool context for inclusion in scientist prompt.
-        
+
         Parameters
         ----------
         tool_context : Dict[str, Any]
             Result from prepare_tools().
-            
+
         Returns
         -------
         str
@@ -236,13 +256,13 @@ class ScientificToolKit:
         """
         if not tool_context["needs_tools"]:
             return f"Note: {tool_context['reasoning']}"
-        
+
         parts = [
             "**AVAILABLE TOOLS:**",
             f"Reasoning: {tool_context['reasoning']}",
             "",
             "**MODULE DOCUMENTATION:**",
-            tool_context["documentation"]
+            tool_context["documentation"],
         ]
-        
+
         return "\n".join(parts)

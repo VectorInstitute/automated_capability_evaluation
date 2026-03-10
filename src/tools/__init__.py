@@ -12,13 +12,13 @@ Core Components:
 Usage:
 ------
     from src.tools.toolkit import ScientificToolKit
-    
+
     # Create toolkit
     toolkit = ScientificToolKit(
         model_client=my_client,
         enable_tool_selection=True
     )
-    
+
     # Use in scientist
     scientist = ToolAssistedScientist(..., toolkit=toolkit)
 """
@@ -27,6 +27,7 @@ from src.tools.definitions import PYTHON_SCIENTIFIC_TOOL, LibraryConfig, ToolDef
 from src.tools.docs import ScientificDocRetriever
 from src.tools.executor import CodeExecutionResult, PythonExecutor
 from src.tools.toolkit import ScientificToolKit
+
 
 __all__ = [
     "ScientificToolKit",

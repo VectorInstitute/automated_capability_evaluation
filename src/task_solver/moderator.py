@@ -4,7 +4,7 @@ import json
 import logging
 import traceback
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List
 
 from autogen_core import (
     DefaultTopicId,
@@ -241,7 +241,7 @@ class TaskSolverModerator(RoutedAgent):
         self, message: ToolAssistedAgentSolution, ctx: MessageContext
     ) -> None:
         """Handle solution from a tool-assisted agent.
-        
+
         Tool-assisted solutions include code and code_output fields that need
         to be preserved in the final solution files.
         """
@@ -299,9 +299,7 @@ class TaskSolverModerator(RoutedAgent):
                     await self._check_consensus_and_proceed(task_id, ctx)
 
             except Exception as e:
-                error_msg = (
-                    f"Error handling tool-assisted solution from agent {message.agent_id}: {str(e)}"
-                )
+                error_msg = f"Error handling tool-assisted solution from agent {message.agent_id}: {str(e)}"
                 log.error(error_msg)
                 log.error(traceback.format_exc())
                 span.update(metadata={"error": error_msg})

@@ -4,180 +4,218 @@
 # TOOL-ASSISTED TASK SOLVING PROMPTS
 # =============================================================================
 
-TOOL_ASSISTED_SYSTEM_MESSAGE = """You are an expert problem solver with access to Python code execution capabilities. You can use the following libraries to assist in solving mathematical problems:
+TOOL_ASSISTED_SYSTEM_MESSAGE = """You are an expert problem solver with access to Python code execution capabilities. You can use the following libraries to assist in solving mathematical and financial problems:
 
 **Available Libraries:**
 - **SymPy**: For symbolic mathematics (symbolic integration, differentiation, equation solving, etc.)
 - **NumPy**: For numerical computations (arrays, linear algebra, numerical methods)
 - **SciPy**: For scientific computing (numerical integration, optimization, ODE solving)
 - **Math/Fractions/Decimal**: Standard Python mathematical libraries
+- **Financial Libraries**: numpy_financial, py_vollib, pypfopt, empyrical, arch (for finance-specific computations)
+
+Always use the SIMPLEST tool that solves the problem correctly:
+1. If basic arithmetic works → use standard Python operators
+2. If you need standard math functions → use math library
+3. If you need arrays/matrices → use NumPy
+4. If you need symbolic manipulation → use SymPy
+5. ONLY use financial libraries (numpy_financial, py_vollib, etc.) when the problem EXPLICITLY involves:
+   - Time value of money calculations (NPV, IRR, annuities)
+   - Option pricing models (Black-Scholes, Greeks)
+   - Portfolio optimization or risk metrics
+   - Bond pricing with yield curves
 
 **When to Use Code:**
-- To verify analytical solutions programmatically
-- To perform complex symbolic manipulations
-- To compute numerical results with high precision
-- To check edge cases and special conditions
-- To solve problems that are computationally intensive
+- For complex calculations that benefit from computational tools
+- When the problem requires numerical precision
+- For problems involving symbolic manipulation or calculus
 
-**Best Practices:**
-- Always explain your mathematical reasoning first
-- Use code to verify or compute, not as a substitute for understanding
-- Show intermediate steps in your code with print statements
-- Verify that code outputs match your analytical reasoning"""
+**Response Format:**
+You will respond in two stages:
+1. First, generate code to solve the problem
+2. After seeing the code output, format the final answer appropriately
 
-TOOL_ASSISTED_ROUND_1_PROMPT = """Can you solve the following problem? You have access to Python code execution with SymPy, NumPy, and SciPy.
+This ensures you can properly format answers for different question types (boolean, multiple choice, or numerical)."""
 
-PROBLEM: {problem_text}
+# =============================================================================
+# STAGE 1: CODE GENERATION PROMPT
+# =============================================================================
+
+TOOL_ASSISTED_CODE_GENERATION_PROMPT = """PROBLEM: {problem_text}
 
 {tool_context}
 
-**Instructions:**
-1. First, explain your mathematical approach and reasoning
-2. If helpful, write Python code to verify your solution or perform computations
-3. Use the code output to inform or verify your final answer
-4. Provide a clear final answer
+**CRITICAL - SIMPLICITY PRINCIPLE:**
+Use the simplest approach that correctly solves the problem. Do NOT use specialized libraries unless the problem explicitly requires them:
+- For basic arithmetic (percentages, ratios, simple formulas): Use Python operators or math library
+- For algebra/calculus: Use SymPy
+- For numerical arrays/linear algebra: Use NumPy
+- For statistical calculations: Use SciPy
+- For financial derivatives pricing (options, swaps): Use py_vollib or numpy_financial ONLY if the problem explicitly involves these instruments
 
-**Code Execution Format:**
-If you want to execute code, include it in your response. The code will be executed and the output will be provided back to you.
+**Stage 1 Instructions - Generate Code:**
+1. Analyze the problem and identify the simplest appropriate approach
+2. Write Python code to solve the problem
+3. Make sure your code prints the key results clearly
+
+DO NOT provide final_answer or numerical_answer yet - you will do that in Stage 2 after seeing the code output.
 
 **Available Tools:**
 ```python
-# SymPy - Symbolic Mathematics
-from sympy import symbols, Function, Eq, dsolve, diff, integrate, simplify, solve, limit, series, sqrt, exp, log, sin, cos, tan, pi, E, I, oo
-from sympy import Matrix, eye, zeros, ones, det, eigenvals, eigenvects
-from sympy.abc import x, y, z, t, a, b, c, n
-
-# NumPy - Numerical Computing
-import numpy as np
-# Use: np.array, np.linalg.eig, np.linalg.det, np.linalg.inv, np.linalg.solve, etc.
-
-# SciPy - Scientific Computing
-from scipy import integrate, optimize, linalg
-from scipy.integrate import odeint, solve_ivp, quad, dblquad
-from scipy.stats import norm  # for statistical distributions
-# Use: integrate.quad, optimize.fsolve, linalg.lu, linalg.qr, linalg.svd, scipy.stats.norm, etc.
-
-# Standard Math
+# Standard Math (USE FIRST for basic calculations)
 import math
 from fractions import Fraction
 from decimal import Decimal
 from datetime import datetime, timedelta
 
-# Financial Computing Libraries
+# SymPy - Symbolic Mathematics (for algebra/calculus)
+from sympy import symbols, Function, Eq, dsolve, diff, integrate, simplify, solve, limit, series, sqrt, exp, log, sin, cos, tan, pi, E, I, oo
+from sympy import Matrix, eye, zeros, ones, det, eigenvals, eigenvects
+from sympy.abc import x, y, z, t, a, b, c, n
+
+# NumPy - Numerical Computing (for arrays/linear algebra)
+import numpy as np
+# Use: np.array, np.linalg.eig, np.linalg.det, np.linalg.inv, np.linalg.solve, etc.
+
+# SciPy - Scientific Computing (for optimization/integration)
+from scipy import integrate, optimize, linalg
+from scipy.integrate import odeint, solve_ivp, quad, dblquad
+from scipy.stats import norm
+# Use: integrate.quad, optimize.fsolve, scipy.stats.norm, etc.
+
+# Financial Computing Libraries (USE ONLY for derivative pricing problems)
 import numpy_financial as npf
-# Use: npf.npv(rate, cashflows), npf.irr(cashflows), npf.pmt(rate, nper, pv), npf.pv(rate, nper, pmt), npf.fv(rate, nper, pmt, pv)
-
-import empyrical
-# Use: empyrical.sharpe_ratio(returns, risk_free), empyrical.sortino_ratio(returns), empyrical.max_drawdown(returns)
-
-import pypfopt
-# Use: pypfopt.efficient_frontier.EfficientFrontier, pypfopt.expected_returns, pypfopt.risk_models
+# Use ONLY for: Time value of money with given formulas (NPV, IRR, PMT)
+# Example: npf.npv(rate, cashflows), npf.irr(cashflows)
 
 import py_vollib.black_scholes as bs
 from py_vollib.black_scholes.greeks.analytical import delta, gamma, theta, vega
-# Use: bs.black_scholes(flag, S, K, t, r, sigma), delta(flag, S, K, t, r, sigma)
-# Note: flag is 'c' for call, 'p' for put
+# Use ONLY for: Black-Scholes option pricing (calls/puts with volatility)
+# Example: bs.black_scholes('c', S, K, t, r, sigma)
 
 from arch import arch_model
 from arch.univariate import HARX
-# Use for volatility modeling (GARCH/EGARCH/HARX):
-# Example: model = arch_model(returns, vol='GARCH', p=1, q=1)
-#          fitted = model.fit()
-# IMPORTANT: For multi-step forecasts (horizon > 1), use method='simulation':
-#          forecast = fitted.forecast(horizon=5, method='simulation')
-# For simulation: fitted.simulate(params=fitted.params, nobs=100)
-# where fitted.params is already a numpy array (not a dict!)
+# Use ONLY for: GARCH/volatility modeling problems
+# For multi-step forecasts: use method='simulation'
+
+import statsmodels.api as sm
+# Use ONLY for: Regression, time series analysis
 ```
 
-**Few-Shot Examples for Financial Libraries:**
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks.
 
-Example using numpy_financial (NPV/IRR):
+CRITICAL: Escape all backslashes in code with double backslashes (\\\\).
+
+**Stage 1 Response Format (thought + code only):**
 {{
-    "thought": "To calculate NPV, I'll use numpy_financial which provides the npv function that takes a discount rate and cash flows.",
-    "code": "import numpy_financial as npf\\ncashflows = [-1000, 200, 300, 400, 500]\\nrate = 0.10\\nresult = npf.npv(rate, cashflows)\\nprint('NPV:', result)",
-    "code_output": null,
-    "final_answer": "The Net Present Value is approximately $213.62",
-    "numerical_answer": 213.62
+    "thought": "Your detailed reasoning about the approach",
+    "code": "Python code to solve the problem"
 }}
 
-Example using arch (GARCH modeling with forecasting):
+Respond with valid JSON only."""
+
+# =============================================================================
+# STAGE 2: ANSWER FORMATTING PROMPT
+# =============================================================================
+
+TOOL_ASSISTED_ANSWER_FORMATTING_PROMPT = """Your code has been executed. Here is the output:
+
+```
+{code_output}
+```
+
+**Stage 2 Instructions - Format Final Answer:**
+Based on the code output above, provide the final answer in the format appropriate for this question type:
+- For **boolean questions**: Answer with Yes/No, True/False, or 1/0 as appropriate
+- For **multiple choice questions**: Provide the letter (A/B/C/D) and/or the full text of the correct option
+- For **numerical questions**: Provide the number with appropriate units and context
+
+**Question:** {problem_text}
+
+**Response Format:**
 {{
-    "thought": "To fit a GARCH(1,1) model and generate multi-step forecasts, I'll use arch_model and specify method='simulation' for horizon > 1.",
-    "code": "import numpy as np\\nfrom arch import arch_model\\nnp.random.seed(42)\\nreturns = np.random.randn(100) * 0.01\\nmodel = arch_model(returns, vol='GARCH', p=1, q=1)\\nfitted = model.fit(disp='off')\\nprint('Fitted parameters:')\\nprint(fitted.params)\\nforecasts = fitted.forecast(horizon=5, method='simulation')\\nprint('5-step forecast variance:')\\nprint(forecasts.variance.iloc[-1])",
-    "code_output": null,
-    "final_answer": "The GARCH(1,1) model has been fitted and 5-step ahead variance forecasts generated using simulation method.",
-    "numerical_answer": null
+    "final_answer": "Your complete answer formatted appropriately for the question type",
+    "numerical_answer": "The final numerical result if applicable, otherwise null"
 }}
 
-Example using arch (HARX model for HAR volatility):
+IMPORTANT: Return raw JSON only. Do not wrap in markdown code blocks.
+
+Respond with valid JSON only."""
+
+# =============================================================================
+# LEGACY PROMPTS (kept for backward compatibility with subsequent rounds)
+# =============================================================================
+
+TOOL_ASSISTED_ROUND_1_PROMPT_LEGACY = """PROBLEM: {problem_text}
+
+{tool_context}
+
+**CRITICAL - SIMPLICITY PRINCIPLE:**
+Use the simplest approach that correctly solves the problem. Do NOT use specialized libraries unless the problem explicitly requires them:
+- For basic arithmetic (percentages, ratios, simple formulas): Use Python operators or math library
+- For algebra/calculus: Use SymPy
+- For numerical arrays/linear algebra: Use NumPy
+- For statistical calculations: Use SciPy
+- For financial derivatives pricing (options, swaps): Use py_vollib or numpy_financial ONLY if the problem explicitly involves these instruments
+
+**Instructions:**
+1. Explain your mathematical reasoning and approach
+2. Write Python code using the SIMPLEST appropriate tools
+3. Use the code output to inform your final answer
+4. Provide a clear final numerical answer
+
+**Available Tools:**
+```python
+# Standard Math (USE FIRST for basic calculations)
+import math
+from fractions import Fraction
+from decimal import Decimal
+from datetime import datetime, timedelta
+
+# SymPy - Symbolic Mathematics (for algebra/calculus)
+from sympy import symbols, Function, Eq, dsolve, diff, integrate, simplify, solve, limit, series, sqrt, exp, log, sin, cos, tan, pi, E, I, oo
+from sympy import Matrix, eye, zeros, ones, det, eigenvals, eigenvects
+from sympy.abc import x, y, z, t, a, b, c, n
+
+# NumPy - Numerical Computing (for arrays/linear algebra)
+import numpy as np
+# Use: np.array, np.linalg.eig, np.linalg.det, np.linalg.inv, np.linalg.solve, etc.
+
+# SciPy - Scientific Computing (for optimization/integration)
+from scipy import integrate, optimize, linalg
+from scipy.integrate import odeint, solve_ivp, quad, dblquad
+from scipy.stats import norm
+# Use: integrate.quad, optimize.fsolve, scipy.stats.norm, etc.
+
+# Financial Computing Libraries (USE ONLY for derivative pricing problems)
+import numpy_financial as npf
+# Use ONLY for: Time value of money with given formulas (NPV, IRR, PMT)
+# Example: npf.npv(rate, cashflows), npf.irr(cashflows)
+
+import py_vollib.black_scholes as bs
+from py_vollib.black_scholes.greeks.analytical import delta, gamma, theta, vega
+# Use ONLY for: Black-Scholes option pricing (calls/puts with volatility)
+# Example: bs.black_scholes('c', S, K, t, r, sigma)
+
+from arch import arch_model
+from arch.univariate import HARX
+# Use ONLY for: GARCH/volatility modeling problems
+# For multi-step forecasts: use method='simulation'
+
+import statsmodels.api as sm
+# Use ONLY for: Regression, time series analysis
+```
+
+IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting.
+
+CRITICAL: You MUST escape all backslashes in LaTeX expressions within JSON strings. Use double backslashes (\\\\).
+
+Provide your solution in JSON format:
 {{
-    "thought": "For HAR (Heterogeneous AutoRegressive) volatility modeling, I'll use arch.univariate.HARX which is built into the arch package.",
-    "code": "import numpy as np\\nfrom arch.univariate import HARX\\nnp.random.seed(42)\\nreturns = np.random.randn(100) * 0.01\\nmodel = HARX(returns)\\nfitted = model.fit(disp='off')\\nprint('HARX parameters:')\\nprint(fitted.params)",
+    "thought": "Your detailed mathematical reasoning. Identify which tool is most appropriate and why.",
+    "code": "Python code using simplest appropriate tools",
     "code_output": null,
-    "final_answer": "The HARX model has been fitted to the returns data.",
-    "numerical_answer": null
-}}
-
-IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. Do not include any prefixes or prose. The JSON should be directly parseable.
-
-CRITICAL: You MUST escape all backslashes in LaTeX expressions within JSON strings. Use double backslashes (\\\\) for single backslashes (\\). This is crucial for valid JSON parsing. For example:
-- Write \\\\(x^2\\\\) instead of \\(x^2\\)
-- Write \\\\[equation\\\\] instead of \\[equation\\]
-- Write \\\\times instead of \\times
-- For any newlines within a string value, use `\\n` instead of an actual newline.
-
-**IMPORTANT - Separating Code from Documentation:**
-- Your "code" field should contain ONLY executable Python code
-- DO NOT include LaTeX in Python code or comments unless properly escaped as raw strings
-- Keep LaTeX explanations in "thought" and "final_answer" fields, NOT in code
-- If you need to print mathematical expressions from code, use sympy's printing functions or just print the Python representation
-
-**CRITICAL - Code Field Format:**
-When providing Python code in the JSON "code" field, write it as a single-line string with \\n for line breaks.
-AVOID using print statements with \\n inside strings - just use simple print statements on separate lines instead.
-
-**CODE GENERATION BEST PRACTICES:**
-1. **Use triple-quoted strings** for multi-line output: print('''output''')
-2. **Separate print statements** instead of embedding \\n in strings
-3. **NO LaTeX in code** - Keep LaTeX only in "thought" and "final_answer" fields
-4. **Simple, focused code** - Only numerical computation, no decorative output
-5. **All imports at top** - Import before using any library
-6. **Test mentally** - Walk through the code logic before including it
-
-**Example of CORRECT code:**
-"code": "import numpy as np\\nA = np.array([[1, 1], [1, -1]])\\nb = np.array([2, 0])\\nQ, R = np.linalg.qr(A)\\nx = np.linalg.solve(R, Q.T @ b)\\nprint('Solution:')\\nprint(x)"
-
-**Example of INCORRECT code:**
-"code": "# Solving \\\\(Ax = b\\\\)\\nA = np.array([[1, 1], [1, -1]])"  <- BAD! LaTeX in comments causes syntax errors
-
-**Example of BETTER output formatting:**
-"code": "result = [1, 1]\\nprint('x =', result)"  <- GOOD! Simple and clear
-
-Provide your solution in JSON format with the following structure:
-{{
-    "thought": "Your detailed mathematical reasoning and approach. ENSURE ALL BACKSLASHES IN LATEX ARE ESCAPED WITH DOUBLE BACKSLASHES (\\\\).",
-    "code": "Python code to execute (if applicable, otherwise null). NO LATEX IN CODE!",
-    "code_output": "Will be filled in after code execution (leave as null)",
-    "final_answer": "Your complete answer informed by reasoning and computation",
+    "final_answer": "Your complete answer",
     "numerical_answer": "The final numerical result (if applicable, otherwise null)"
-}}
-
-Example with code:
-{{
-    "thought": "This is a first-order ODE. I'll solve it analytically using separation of variables, then verify with SymPy.",
-    "code": "from sympy import *\\nx = symbols('x')\\ny = Function('y')\\node = Eq(y(x).diff(x), x*y(x))\\nsolution = dsolve(ode, y(x))\\nprint('General solution:', solution)\\nprint('Verification:', simplify(solution.lhs - solution.rhs))",
-    "code_output": null,
-    "final_answer": "The solution is y = C*exp(x^2/2)",
-    "numerical_answer": null
-}}
-
-Example without code:
-{{
-    "thought": "This is a simple algebraic equation. I can solve it directly: 2x + 3 = 11, so 2x = 8, therefore x = 4.",
-    "code": null,
-    "code_output": null,
-    "final_answer": "x = 4",
-    "numerical_answer": 4
 }}
 
 Respond with valid JSON only."""
@@ -186,65 +224,50 @@ TOOL_ASSISTED_SUBSEQUENT_ROUNDS_PROMPT = """These are the reasoning and solution
 
 {other_solutions}
 
-Using the solutions from other agents as additional information, can you provide your answer to the problem? You have access to Python code execution with SymPy, NumPy, and SciPy.
+Using the solutions from other agents as additional information, can you provide your answer to the problem?
 
 The original problem is: {problem_text}
 
+**CRITICAL - SIMPLICITY PRINCIPLE:**
+Use the simplest approach that correctly solves the problem. Review other agents' approaches - if they used complex libraries unnecessarily, prefer the simpler solution.
+
 **Instructions:**
-1. Review the other agents' approaches and identify strengths/weaknesses
-2. Explain your mathematical reasoning, considering the other solutions
-3. If helpful, use Python code to verify or compute
-4. Provide your final answer, which may agree with, disagree with, or synthesize the other solutions
+1. Classify the problem type and identify the simplest correct approach
+2. Review other agents' solutions - identify which tools they used and whether they were appropriate
+3. Provide your solution using the simplest effective approach
+4. Your answer may agree with, disagree with, or synthesize the other solutions
 
 **Available Tools:**
 ```python
-# SymPy - Symbolic Mathematics
-from sympy import symbols, Function, Eq, dsolve, diff, integrate, simplify, solve, limit, series, sqrt, exp, log, sin, cos, tan, pi, E, I, oo
-from sympy import Matrix, eye, zeros, ones, det, eigenvals, eigenvects
-from sympy.abc import x, y, z, t, a, b, c, n
+# Standard Math (USE FIRST for basic calculations)
+import math
+from fractions import Fraction
+from decimal import Decimal
 
-# NumPy - Numerical Computing
+# SymPy (for algebra/calculus)
+from sympy import symbols, solve, simplify, diff, integrate
+
+# NumPy (for arrays/linear algebra)
 import numpy as np
 
-# SciPy - Scientific Computing
-from scipy import integrate, optimize, linalg
-from scipy.integrate import odeint, solve_ivp, quad, dblquad
-from scipy.stats import norm
-# Use: integrate.quad, optimize.fsolve, linalg.lu, linalg.qr, linalg.svd, scipy.stats.norm
+# SciPy (for optimization/integration)
+from scipy import optimize, integrate, stats
 
-# Financial Computing Libraries
+# Financial Libraries (USE ONLY for derivative pricing)
 import numpy_financial as npf
-# Use: npf.npv(rate, cashflows), npf.irr(cashflows), npf.pmt(rate, nper, pv)
-
-import empyrical
-import pypfopt
 import py_vollib.black_scholes as bs
-from py_vollib.black_scholes.greeks.analytical import delta, gamma, theta, vega
-
 from arch import arch_model
-# For GARCH: model = arch_model(returns, vol='GARCH', p=1, q=1); fitted = model.fit()
-# For simulation: fitted.simulate(params=fitted.params, nobs=100) - params is already a numpy array!
 ```
 
-IMPORTANT: Return your response as raw JSON only. Do not wrap it in markdown code blocks or add any formatting. Do not include any prefixes or prose. The JSON should be directly parseable.
+IMPORTANT: Return your response as raw JSON only. Use the simplicity principle - prefer basic Python over specialized libraries unless truly needed.
 
-CRITICAL: You MUST escape all backslashes in LaTeX expressions within JSON strings. Use double backslashes (\\\\) for single backslashes (\\). This is crucial for valid JSON parsing. For example:
-- Write \\\\(x^2\\\\) instead of \\(x^2\\)
-- Write \\\\[equation\\\\] instead of \\[equation\\]
-- Write \\\\times instead of \\times
-- For any newlines within a string value, use `\\n` instead of an actual newline.
-
-**IMPORTANT - Separating Code from Documentation:**
-- Your "code" field should contain ONLY executable Python code
-- DO NOT include LaTeX in Python code or comments unless properly escaped as raw strings
-- Keep LaTeX explanations in "thought" and "final_answer" fields, NOT in code
-- If you need to print mathematical expressions from code, use sympy's printing functions
+CRITICAL: Escape all backslashes in LaTeX with double backslashes (\\\\).
 
 Provide your solution in JSON format:
 {{
-    "thought": "Your reasoning considering other agents' solutions. ENSURE ALL BACKSLASHES IN LATEX ARE ESCAPED WITH DOUBLE BACKSLASHES (\\\\).",
-    "code": "Python code to execute (if applicable, otherwise null). NO LATEX IN CODE!",
-    "code_output": "Will be filled in after code execution (leave as null)",
+    "thought": "Your detailed reasoning. Review what other agents tried and choose the simplest effective approach.",
+    "code": "Python code using simplest appropriate tools",
+    "code_output": null,
     "final_answer": "Your complete answer",
     "numerical_answer": "The final numerical result (if applicable, otherwise null)"
 }}
@@ -389,3 +412,10 @@ euler = exp(I * theta)
 print("\\ne^(iθ) =", euler)
 print("Expanded:", expand(euler, complex=True))
 """
+
+# =============================================================================
+# BACKWARD COMPATIBILITY ALIAS
+# =============================================================================
+# For existing code that imports TOOL_ASSISTED_ROUND_1_PROMPT
+# This now uses the new two-stage architecture (Code Generation -> Answer Formatting)
+TOOL_ASSISTED_ROUND_1_PROMPT = TOOL_ASSISTED_CODE_GENERATION_PROMPT

@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 @dataclass
 class LibraryConfig:
     """Configuration for a library/module."""
+
     name: str
     import_name: str
     description: str
@@ -21,6 +22,7 @@ class LibraryConfig:
 @dataclass
 class ToolDefinition:
     """Complete definition of a tool."""
+
     tool_id: str
     name: str
     description: str
@@ -37,15 +39,28 @@ NUMPY_CONFIG = LibraryConfig(
     description="Fundamental package for numerical computing. Arrays, matrices, and mathematical functions.",
     docs_path="numpy-html-1.17.0",
     common_functions=[
-        "np.array", "np.linspace", "np.zeros", "np.ones", "np.eye",
-        "np.linalg.eig", "np.linalg.det", "np.linalg.inv", "np.linalg.solve",
-        "np.dot", "np.cross", "np.sin", "np.cos", "np.exp", "np.log", "np.sqrt"
+        "np.array",
+        "np.linspace",
+        "np.zeros",
+        "np.ones",
+        "np.eye",
+        "np.linalg.eig",
+        "np.linalg.det",
+        "np.linalg.inv",
+        "np.linalg.solve",
+        "np.dot",
+        "np.cross",
+        "np.sin",
+        "np.cos",
+        "np.exp",
+        "np.log",
+        "np.sqrt",
     ],
     use_cases=[
         "Array operations and linear algebra",
         "Matrix computations",
-        "Statistical computations"
-    ]
+        "Statistical computations",
+    ],
 )
 
 SCIPY_CONFIG = LibraryConfig(
@@ -54,16 +69,22 @@ SCIPY_CONFIG = LibraryConfig(
     description="Scientific computing library. Integration, optimization, linear algebra, statistics.",
     docs_path="scipy-html-1.17.0",
     common_functions=[
-        "scipy.integrate.quad", "scipy.integrate.odeint", "scipy.integrate.solve_ivp",
-        "scipy.optimize.minimize", "scipy.optimize.fsolve",
-        "scipy.linalg.lu", "scipy.linalg.qr", "scipy.linalg.svd",
-        "scipy.stats.norm", "scipy.interpolate.interp1d"
+        "scipy.integrate.quad",
+        "scipy.integrate.odeint",
+        "scipy.integrate.solve_ivp",
+        "scipy.optimize.minimize",
+        "scipy.optimize.fsolve",
+        "scipy.linalg.lu",
+        "scipy.linalg.qr",
+        "scipy.linalg.svd",
+        "scipy.stats.norm",
+        "scipy.interpolate.interp1d",
     ],
     use_cases=[
         "Numerical integration",
         "Optimization and root finding",
-        "Advanced linear algebra"
-    ]
+        "Advanced linear algebra",
+    ],
 )
 
 SYMPY_CONFIG = LibraryConfig(
@@ -72,15 +93,24 @@ SYMPY_CONFIG = LibraryConfig(
     description="Symbolic mathematics library. Algebraic manipulation, calculus, equation solving.",
     docs_path="sympy-docs-html-1.14.0",
     common_functions=[
-        "sympy.symbols", "sympy.simplify", "sympy.expand", "sympy.factor",
-        "sympy.diff", "sympy.integrate", "sympy.solve", "sympy.dsolve",
-        "sympy.Matrix", "sympy.sin", "sympy.cos", "sympy.pi"
+        "sympy.symbols",
+        "sympy.simplify",
+        "sympy.expand",
+        "sympy.factor",
+        "sympy.diff",
+        "sympy.integrate",
+        "sympy.solve",
+        "sympy.dsolve",
+        "sympy.Matrix",
+        "sympy.sin",
+        "sympy.cos",
+        "sympy.pi",
     ],
     use_cases=[
         "Symbolic differentiation and integration",
         "Solving equations",
-        "Symbolic simplification"
-    ]
+        "Symbolic simplification",
+    ],
 )
 
 MATH_CONFIG = LibraryConfig(
@@ -88,8 +118,15 @@ MATH_CONFIG = LibraryConfig(
     import_name="math",
     description="Python's standard math library.",
     docs_path=None,
-    common_functions=["math.sin", "math.cos", "math.sqrt", "math.exp", "math.log", "math.pi"],
-    use_cases=["Basic mathematical operations"]
+    common_functions=[
+        "math.sin",
+        "math.cos",
+        "math.sqrt",
+        "math.exp",
+        "math.log",
+        "math.pi",
+    ],
+    use_cases=["Basic mathematical operations"],
 )
 
 FRACTIONS_CONFIG = LibraryConfig(
@@ -98,7 +135,7 @@ FRACTIONS_CONFIG = LibraryConfig(
     description="Rational number arithmetic.",
     docs_path=None,
     common_functions=["Fraction"],
-    use_cases=["Exact rational arithmetic"]
+    use_cases=["Exact rational arithmetic"],
 )
 
 DECIMAL_CONFIG = LibraryConfig(
@@ -107,7 +144,7 @@ DECIMAL_CONFIG = LibraryConfig(
     description="High-precision decimal arithmetic.",
     docs_path=None,
     common_functions=["Decimal"],
-    use_cases=["High-precision calculations"]
+    use_cases=["High-precision calculations"],
 )
 
 CMATH_CONFIG = LibraryConfig(
@@ -116,7 +153,7 @@ CMATH_CONFIG = LibraryConfig(
     description="Complex number operations.",
     docs_path=None,
     common_functions=["cmath.sqrt", "cmath.exp", "cmath.log"],
-    use_cases=["Complex number operations"]
+    use_cases=["Complex number operations"],
 )
 
 # Financial Library Configurations
@@ -126,15 +163,22 @@ NUMPY_FINANCIAL_CONFIG = LibraryConfig(
     description="Financial functions for time value of money calculations (NPV, IRR, PMT, PV, FV, etc.).",
     docs_path=None,
     common_functions=[
-        "npf.npv", "npf.irr", "npf.pmt", "npf.pv", "npf.fv",
-        "npf.nper", "npf.rate", "npf.ppmt", "npf.ipmt"
+        "npf.npv",
+        "npf.irr",
+        "npf.pmt",
+        "npf.pv",
+        "npf.fv",
+        "npf.nper",
+        "npf.rate",
+        "npf.ppmt",
+        "npf.ipmt",
     ],
     use_cases=[
         "Time Value of Money",
         "Net Present Value calculations",
         "Internal Rate of Return",
-        "Loan payment calculations"
-    ]
+        "Loan payment calculations",
+    ],
 )
 
 PY_VOLLIB_GEN_CONFIG = LibraryConfig(
@@ -145,13 +189,13 @@ PY_VOLLIB_GEN_CONFIG = LibraryConfig(
     common_functions=[
         "py_vollib.black_scholes.black_scholes",
         "py_vollib.black_scholes.implied_volatility",
-        "py_vollib.black_scholes.greeks"
+        "py_vollib.black_scholes.greeks",
     ],
     use_cases=[
         "Options pricing",
         "Implied volatility calculation",
-        "Greeks computation (delta, gamma, theta, vega, rho)"
-    ]
+        "Greeks computation (delta, gamma, theta, vega, rho)",
+    ],
 )
 
 PYPORTFOLIOOPT_CONFIG = LibraryConfig(
@@ -163,14 +207,14 @@ PYPORTFOLIOOPT_CONFIG = LibraryConfig(
         "pypfopt.expected_returns.mean_historical_return",
         "pypfopt.risk_models.CovarianceShrinkage",
         "pypfopt.efficient_frontier.EfficientFrontier",
-        "pypfopt.objective_functions.sharpe_ratio"
+        "pypfopt.objective_functions.sharpe_ratio",
     ],
     use_cases=[
         "Portfolio optimization",
         "Risk-return analysis",
         "Asset allocation",
-        "Efficient frontier computation"
-    ]
+        "Efficient frontier computation",
+    ],
 )
 
 EMPYRICAL_CONFIG = LibraryConfig(
@@ -179,16 +223,19 @@ EMPYRICAL_CONFIG = LibraryConfig(
     description="Performance statistics and risk metrics for financial analysis.",
     docs_path=None,
     common_functions=[
-        "empyrical.sharpe_ratio", "empyrical.sortino_ratio",
-        "empyrical.max_drawdown", "empyrical.annual_return",
-        "empyrical.alpha_beta", "empyrical.beta"
+        "empyrical.sharpe_ratio",
+        "empyrical.sortino_ratio",
+        "empyrical.max_drawdown",
+        "empyrical.annual_return",
+        "empyrical.alpha_beta",
+        "empyrical.beta",
     ],
     use_cases=[
         "Performance metrics",
         "Risk analysis",
         "Sharpe and Sortino ratios",
-        "Drawdown analysis"
-    ]
+        "Drawdown analysis",
+    ],
 )
 
 ARCH_CONFIG = LibraryConfig(
@@ -200,13 +247,13 @@ ARCH_CONFIG = LibraryConfig(
         "arch.univariate.GARCH",
         "arch.univariate.EGARCH",
         "arch.univariate.ConstantMean",
-        "arch.univariate.HARX"
+        "arch.univariate.HARX",
     ],
     use_cases=[
         "GARCH/EGARCH volatility modeling",
         "Time series forecasting",
-        "Conditional variance estimation"
-    ]
+        "Conditional variance estimation",
+    ],
 )
 
 # The Tool Definition
@@ -215,12 +262,34 @@ PYTHON_SCIENTIFIC_TOOL = ToolDefinition(
     name="Python Code Execution",
     description="Execute Python code with math, scientific, and financial computing libraries including SymPy, NumPy, SciPy, numpy_financial, py_vollib, PyPortfolioOpt, empyrical, and arch.",
     libraries=[
-        SYMPY_CONFIG, NUMPY_CONFIG, SCIPY_CONFIG, MATH_CONFIG, FRACTIONS_CONFIG, DECIMAL_CONFIG, CMATH_CONFIG,
-        NUMPY_FINANCIAL_CONFIG, PY_VOLLIB_GEN_CONFIG, PYPORTFOLIOOPT_CONFIG, EMPYRICAL_CONFIG, ARCH_CONFIG
+        SYMPY_CONFIG,
+        NUMPY_CONFIG,
+        SCIPY_CONFIG,
+        MATH_CONFIG,
+        FRACTIONS_CONFIG,
+        DECIMAL_CONFIG,
+        CMATH_CONFIG,
+        NUMPY_FINANCIAL_CONFIG,
+        PY_VOLLIB_GEN_CONFIG,
+        PYPORTFOLIOOPT_CONFIG,
+        EMPYRICAL_CONFIG,
+        ARCH_CONFIG,
     ],
     allowed_imports=[
-        "sympy", "numpy", "scipy", "math", "fractions", "decimal", "cmath", "datetime",
-        "numpy_financial", "py_vollib", "pypfopt", "empyrical", "arch", "statsmodels"
+        "sympy",
+        "numpy",
+        "scipy",
+        "math",
+        "fractions",
+        "decimal",
+        "cmath",
+        "datetime",
+        "numpy_financial",
+        "py_vollib",
+        "pypfopt",
+        "empyrical",
+        "arch",
+        "statsmodels",
     ],
     use_cases=[
         "Solving differential equations",
@@ -232,7 +301,7 @@ PYTHON_SCIENTIFIC_TOOL = ToolDefinition(
         "Options pricing and Greeks",
         "Portfolio optimization",
         "Performance metrics and risk analysis",
-        "Volatility modeling (GARCH/EGARCH)"
+        "Volatility modeling (GARCH/EGARCH)",
     ],
-    metadata={"timeout": 30}
+    metadata={"timeout": 30},
 )
