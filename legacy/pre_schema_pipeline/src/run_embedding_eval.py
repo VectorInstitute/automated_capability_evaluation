@@ -10,6 +10,7 @@ from omegaconf import DictConfig
 from scipy import stats
 from tqdm import tqdm
 
+from legacy.utils.legacy_data_utils import get_run_id
 from src.lbo import calculate_lbo_error, fit_lbo
 from src.utils import constants
 from src.utils.capability_discovery_utils import (
@@ -18,7 +19,7 @@ from src.utils.capability_discovery_utils import (
 from src.utils.capability_management_utils import (
     get_previous_capabilities,
 )
-from src.utils.data_utils import check_cfg, get_run_id
+from src.utils.data_utils import check_cfg
 from src.utils.embedding_utils import (
     apply_dimensionality_reduction,
     generate_and_set_capabilities_embeddings,

@@ -76,32 +76,6 @@ def read_json_file(file_path: str) -> Any:
         return json.load(file)
 
 
-def write_json_file(file_path: str, data: Dict[Any, Any]) -> None:
-    """
-    Write a dictionary to a JSON file.
-
-    This function handles both GCP bucket paths and local file system paths.
-
-    Args
-    ----
-        file_path (str): The path to the JSON file. If it starts with 'gs://',
-            it is treated as a GCP bucket path.
-        data (Dict[Any, Any]): The dictionary to write to the JSON file.
-    """
-    if file_path.startswith("gs://"):
-        # Write to GCP bucket
-        client = storage.Client()
-        bucket_name, blob_name = file_path[5:].split("/", 1)
-        bucket = client.bucket(bucket_name)
-        blob = bucket.blob(blob_name)
-        blob.upload_from_string(json.dumps(data, indent=4))
-    else:
-        # Write to local file system
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        with open(file_path, "w", encoding="utf-8") as file:
-            json.dump(data, file, indent=4)
-
-
 def list_dir(path: str) -> list[str]:
     """
     List the contents of a directory.
@@ -266,25 +240,3 @@ def check_cfg(cfg: DictConfig, logger: logging.Logger) -> None:
     additional_c = cfg.capabilities_cfg.num_gen_capabilities_per_run - rem_c
     if rem_c != 0:
         logger.warning(f"{additional_c} additional capabilities might be generated.")
-
-
-def get_run_id(cfg: DictConfig) -> str:
-    """
-    Generate a unique run ID based on the configuration.
-
-    Args
-    ----
-        cfg (DictConfig): The provided configuration.
-
-    Returns
-    -------
-        str: The generated run ID.
-    """
-    if cfg.exp_cfg.exp_id:
-        run_id = str(cfg.exp_cfg.exp_id)
-    else:
-        run_id = f"{cfg.scientist_llm.name}_C{cfg.capabilities_cfg.num_capabilities}_R{cfg.capabilities_cfg.num_gen_capabilities_per_run}"
-        if cfg.get("areas_cfg", {}).get("num_areas"):
-            run_id += f"_A{cfg.areas_cfg.num_areas}"
-        run_id += f"_T{cfg.capabilities_cfg.num_gen_tasks_per_capability}"
-    return run_id

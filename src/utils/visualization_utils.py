@@ -1,68 +1,14 @@
 """Visualization utilities for capability analysis and plotting."""
 
-from typing import Any, Dict, List
+from typing import List
 
-import numpy as np
 import torch
 
 from src.capability import Capability
 from src.generate_embeddings import (
     hierarchical_2d_visualization,
     save_embedding_heatmap,
-    visualize_llm_scores_area_grouped_bar_chart,
-    visualize_llm_scores_spider_chart,
 )
-
-
-def plot_capability_scores_spider_and_bar_chart(
-    capabilities: List[Capability],
-    subject_llm_names: List[str],
-    save_dir: str,
-    plot_name: str,
-    plot_spider_chart: bool = True,
-    plot_grouped_bars: bool = True,
-) -> None:
-    """Plot capability scores using a spider chart.
-
-    Args
-    ----
-        capabilities (List[Capability]): The list of capabilities.
-        subject_llm_names (List[str]): The names of the subject LLMs.
-        save_dir (str): The directory to save the plot.
-        plot_name (str): The name of the plot to save.
-        plot_spider_chart (bool): Whether to plot a spider chart.
-        plot_grouped_bars (bool): Whether to plot grouped bars.
-
-    """
-    # Group capabilities by area
-    llm_scores_by_area: Dict[str, Dict[str, List[float]]] = {}
-    # example: {"area1": {"llm1": [score1, score2], "llm2": [score3, score4]}} # noqa
-    for capability in capabilities:
-        if capability.area not in llm_scores_by_area:
-            llm_scores_by_area[capability.area] = {}
-        for llm_name in subject_llm_names:
-            if llm_name not in llm_scores_by_area[capability.area]:
-                llm_scores_by_area[capability.area][llm_name] = []
-            # Append the score for the capability
-            llm_scores_by_area[capability.area][llm_name].append(
-                capability.scores[llm_name]["mean"]
-            )
-    # Take the average of the scores for each area
-    # Example: {"area1": {"llm1": (mean1,std1), "llm2": (mean2,std2)}} # noqa
-    avg_llm_scores_by_area: Dict[str, Dict[str, Any]] = {}
-    for area, llm_scores in llm_scores_by_area.items():
-        avg_llm_scores_by_area[area] = {}
-        for llm_name, scores in llm_scores.items():
-            avg_llm_scores_by_area[area][llm_name] = (np.mean(scores), np.std(scores))
-
-    if plot_spider_chart:
-        visualize_llm_scores_spider_chart(
-            avg_llm_scores_by_area, save_dir, f"{plot_name}_spider_chart"
-        )
-    if plot_grouped_bars:
-        visualize_llm_scores_area_grouped_bar_chart(
-            avg_llm_scores_by_area, save_dir, f"{plot_name}_bar_chart"
-        )
 
 
 def plot_hierarchical_capability_2d_embeddings(

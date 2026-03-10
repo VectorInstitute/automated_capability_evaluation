@@ -8,7 +8,8 @@ import hydra
 import numpy as np
 from omegaconf import DictConfig
 
-from utils.data_utils import copy_file, list_dir, read_json_file, write_json_file
+from legacy.utils.legacy_data_utils import write_json_file
+from src.utils.data_utils import copy_file, list_dir, read_json_file
 
 
 logger = logging.getLogger(__name__)

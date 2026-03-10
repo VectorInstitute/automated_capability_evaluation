@@ -6,6 +6,7 @@ import os
 import hydra
 from omegaconf import DictConfig
 
+from legacy.utils.legacy_data_utils import get_run_id
 from src.model import Model
 from src.utils import constants
 from src.utils.capability_discovery_utils import (
@@ -14,7 +15,7 @@ from src.utils.capability_discovery_utils import (
 from src.utils.capability_management_utils import (
     get_previous_capabilities,
 )
-from src.utils.data_utils import check_cfg, get_run_id
+from src.utils.data_utils import check_cfg
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")

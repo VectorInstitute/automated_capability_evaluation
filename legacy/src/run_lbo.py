@@ -9,6 +9,7 @@ import hydra
 from omegaconf import DictConfig
 from tqdm import tqdm
 
+from legacy.utils.legacy_data_utils import get_run_id
 from src.generate_tasks import (
     generate_tasks_using_llm,
 )
@@ -24,7 +25,7 @@ from src.utils.capability_discovery_utils import (
 from src.utils.capability_management_utils import (
     get_previous_capabilities,
 )
-from src.utils.data_utils import check_cfg, get_run_id
+from src.utils.data_utils import check_cfg
 from src.utils.embedding_utils import (
     apply_dimensionality_reduction,
     apply_dimensionality_reduction_to_test_capabilities,
