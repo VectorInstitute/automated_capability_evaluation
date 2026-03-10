@@ -21,7 +21,7 @@ from omegaconf import DictConfig
 from src.capability_generation.messages import Area
 from src.capability_generation.moderator import CapabilityModerator
 from src.capability_generation.scientist import CapabilityScientist
-from src.utils.model_client_utils import get_model_client
+from src.utils.model_client_utils import get_standard_model_client
 
 
 log = logging.getLogger("agentic_cap_gen.generator")
@@ -58,7 +58,7 @@ async def generate_capabilities_for_area(
                 runtime,
                 "CapabilityScientistA",
                 lambda: CapabilityScientist(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.scientist_a.model_name,
                         seed=cfg.agents.scientist_a.seed,
                     ),
@@ -71,7 +71,7 @@ async def generate_capabilities_for_area(
                 runtime,
                 "CapabilityScientistB",
                 lambda: CapabilityScientist(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.scientist_b.model_name,
                         seed=cfg.agents.scientist_b.seed,
                     ),
@@ -84,7 +84,7 @@ async def generate_capabilities_for_area(
                 runtime,
                 "CapabilityModerator",
                 lambda: CapabilityModerator(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.moderator.model_name,
                         seed=cfg.agents.moderator.seed,
                     ),

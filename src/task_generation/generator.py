@@ -21,7 +21,7 @@ from omegaconf import DictConfig
 from src.task_generation.messages import Capability
 from src.task_generation.moderator import TaskModerator
 from src.task_generation.scientist import TaskScientist
-from src.utils.model_client_utils import get_model_client
+from src.utils.model_client_utils import get_standard_model_client
 
 
 log = logging.getLogger("agentic_task_gen.generator")
@@ -60,7 +60,7 @@ async def generate_tasks_for_capability(
                 runtime,
                 "TaskScientistA",
                 lambda: TaskScientist(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.scientist_a.model_name,
                         seed=cfg.agents.scientist_a.seed,
                     ),
@@ -74,7 +74,7 @@ async def generate_tasks_for_capability(
                 runtime,
                 "TaskScientistB",
                 lambda: TaskScientist(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.scientist_b.model_name,
                         seed=cfg.agents.scientist_b.seed,
                     ),
@@ -89,7 +89,7 @@ async def generate_tasks_for_capability(
                 runtime,
                 "TaskModerator",
                 lambda: TaskModerator(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.moderator.model_name,
                         seed=cfg.agents.moderator.seed,
                     ),

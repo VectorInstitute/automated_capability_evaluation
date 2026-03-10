@@ -50,12 +50,59 @@ gcloud auth application-default login
 
 2. Modify `src/cfg/run_cfg.yaml`, if required.
 
-### Capability Generation using the scientist LLM
+### Base Pipeline
 
-Generates capability names and descriptions in the first step. In the second step, for each capability, it generates tasks, solves them, and verifies the solutions.
+The base (non-agentic) pipeline consists of multiple stages that can be run sequentially or individually:
+
+- **Stage 0**: Experiment and domain setup
+- **Stage 1**: Area generation
+- **Stage 2**: Capability generation and filtering
+- **Stage 3**: Task generation (questions with options)
+- **Stage 4**: Solution generation (determine correct answers)
+- **Stage 5**: Task validation
+
+#### Run All Stages
 
 ```bash
-python -m src.run_capability_generation
+python -m src.run_base_pipeline stage=all
+```
+
+#### Run Individual Stages
+
+```bash
+# Stage 0: Setup
+python -m src.run_base_pipeline stage=0
+
+# Stage 1: Generate areas
+python -m src.run_base_pipeline stage=1
+
+# Stage 2: Generate capabilities (requires areas_tag from Stage 1)
+python -m src.run_base_pipeline stage=2 areas_tag=_YYYYMMDD_HHMMSS
+
+# Stage 3: Generate tasks (requires capabilities_tag from Stage 2)
+python -m src.run_base_pipeline stage=3 capabilities_tag=_YYYYMMDD_HHMMSS
+
+# Stage 4: Generate solutions (requires tasks_tag from Stage 3)
+python -m src.run_base_pipeline stage=4 tasks_tag=_YYYYMMDD_HHMMSS
+
+# Stage 5: Validate tasks (requires solution_tag from Stage 4)
+python -m src.run_base_pipeline stage=5 solution_tag=_YYYYMMDD_HHMMSS
+```
+
+#### Resume from Existing Runs
+
+```bash
+# Resume Stage 2 from existing capabilities_tag
+python -m src.run_base_pipeline stage=2 areas_tag=_YYYYMMDD_HHMMSS capabilities_tag=_YYYYMMDD_HHMMSS
+
+# Resume Stage 3 from existing tasks_tag
+python -m src.run_base_pipeline stage=3 capabilities_tag=_YYYYMMDD_HHMMSS tasks_tag=_YYYYMMDD_HHMMSS
+
+# Resume Stage 4 from existing solution_tag
+python -m src.run_base_pipeline stage=4 tasks_tag=_YYYYMMDD_HHMMSS solution_tag=_YYYYMMDD_HHMMSS
+
+# Resume Stage 5 from existing validation_tag
+python -m src.run_base_pipeline stage=5 solution_tag=_YYYYMMDD_HHMMSS validation_tag=_YYYYMMDD_HHMMSS
 ```
 
 ### Evaluation of subject LLM on generated capabilities
@@ -222,3 +269,18 @@ Configure `wikipedia/cfg/static_vs_generated.yaml`:
 cd wikipedia
 python static_vs_generated.py
 ```
+
+
+## Development Guidelines
+
+When implementing new features or modifying existing pipeline stages:
+
+1. **Follow Schema Guidelines**: All data objects must use the schema classes defined in `src/schemas/`:
+   - Use `Domain`, `Area`, `Capability`, `Task`, `TaskSolution`, `ValidationResult` objects
+   - Load/save using schema IO functions from `src/schemas/io_utils.py` (e.g., `load_solution()`, `save_validation()`)
+   - See `src/schemas/GENERATION_PIPELINE_SCHEMAS.md` for detailed schema documentation
+
+2. **Use Model Call Utilities**: All LLM interactions must use the standardized model client utilities:
+   - Import from `src.utils.model_client_utils`
+   - Use `get_standard_model_client()` to initialize clients
+   - Use `async_call_model()` with appropriate `ModelCallMode` (e.g., `JSON_PARSE`, `TEXT`)

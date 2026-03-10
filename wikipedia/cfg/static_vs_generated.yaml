@@ -2,13 +2,13 @@
 data_cfg:
   # Path to the generated capabilities directory containing capabilities
   generated_dir: /projects/DeepLesion/projects/automated_capability_evaluation/artifacts/capabilities_gpt-claude-math/math
-  
+
   # Dataset selection
   # Supported dataset_name values: "gsm8k", "math"
   dataset_name: gsm8k
   # For gsm8k: path to combined JSONL; For math: root directory with JSON files (recursive)
   dataset_path: /projects/DeepLesion/projects/automated_capability_evaluation/static_datasets/math/gsm8k-main/test.jsonl
-  
+
   # Path to the existing Wikipedia categorization results file (not used in generated mode)
   wikipedia_dir: /projects/DeepLesion/projects/automated_capability_evaluation/wikipedia/pages
 
@@ -37,4 +37,3 @@ processing_cfg:
 
 defaults:
   - _self_
-

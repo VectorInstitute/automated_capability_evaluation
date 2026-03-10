@@ -20,7 +20,7 @@ from omegaconf import DictConfig
 from src.task_solver.messages import Task
 from src.task_solver.moderator import TaskSolverModerator
 from src.task_solver.scientist import TaskSolverScientist
-from src.utils.model_client_utils import get_model_client
+from src.utils.model_client_utils import get_standard_model_client
 
 
 log = logging.getLogger("task_solver.generator")
@@ -61,7 +61,7 @@ async def solve_task(
                 runtime,
                 "TaskSolverModerator",
                 lambda: TaskSolverModerator(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.moderator.model_name,
                         seed=cfg.agents.moderator.get("seed"),
                     ),
@@ -77,7 +77,7 @@ async def solve_task(
                 runtime,
                 "TaskSolverScientistA",
                 lambda: TaskSolverScientist(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.scientist_a.model_name,
                         seed=cfg.agents.scientist_a.get("seed"),
                     ),
@@ -90,7 +90,7 @@ async def solve_task(
                 runtime,
                 "TaskSolverScientistB",
                 lambda: TaskSolverScientist(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.scientist_b.model_name,
                         seed=cfg.agents.scientist_b.get("seed"),
                     ),
