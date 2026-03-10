@@ -19,12 +19,11 @@ from legacy.utils import legacy_constants as constants
 from legacy.utils.legacy_capability_management_utils import (
     get_previous_capabilities,
 )
-from legacy.utils.legacy_data_utils import get_run_id
+from legacy.utils.legacy_data_utils import check_cfg, get_run_id
 from legacy.utils.legacy_embedding_utils import (
     apply_dimensionality_reduction,
     generate_and_set_capabilities_embeddings,
 )
-from src.utils.data_utils import check_cfg
 
 
 @hydra.main(version_base=None, config_path="cfg", config_name="run_cfg")

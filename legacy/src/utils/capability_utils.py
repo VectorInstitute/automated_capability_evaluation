@@ -13,7 +13,7 @@ import numpy as np
 from inspect_ai.scorer import CORRECT
 
 from legacy.utils import legacy_constants as constants
-from src.utils.data_utils import read_json_file
+from legacy.utils.legacy_data_utils import read_json_file
 
 
 CAPABILITY_SCORER_MAP = {

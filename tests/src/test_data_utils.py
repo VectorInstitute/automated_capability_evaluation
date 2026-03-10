@@ -11,7 +11,11 @@ Functions:
 
 import os
 
-from src.utils.data_utils import copy_file, load_data, transfer_inspect_log_to_gcp
+from legacy.utils.legacy_data_utils import (
+    copy_file,
+    load_data,
+    transfer_inspect_log_to_gcp,
+)
 
 
 def test_load_data():
@@ -50,7 +54,7 @@ def test_copy_file_within_gcp(mocker):
     dest = "gs://dest-bucket/dest-file.txt"
 
     # Mock the GCP storage client and its methods
-    mock_client = mocker.patch("src.utils.data_utils.storage.Client")
+    mock_client = mocker.patch("legacy.utils.legacy_data_utils.storage.Client")
     mock_src_bucket = mocker.Mock()
     mock_dest_bucket = mocker.Mock()
     mock_src_blob = mocker.Mock()
@@ -82,7 +86,7 @@ def test_copy_file_local_to_gcp(mocker, tmp_path):
         src.write_text("test content")
 
         # Mock the GCP storage client and its methods
-        mock_client = mocker.patch("src.utils.data_utils.storage.Client")
+        mock_client = mocker.patch("legacy.utils.legacy_data_utils.storage.Client")
         mock_bucket = mocker.Mock()
         mock_blob = mocker.Mock()
 
@@ -136,7 +140,7 @@ def test_transfer_inspect_log_to_gcp_success(mocker, tmp_path):
 
     try:
         # Mock the copy_file function
-        mock_copy_file = mocker.patch("src.utils.data_utils.copy_file")
+        mock_copy_file = mocker.patch("legacy.utils.legacy_data_utils.copy_file")
 
         # Call the function
         transfer_inspect_log_to_gcp(str(src_dir), gcp_dir)

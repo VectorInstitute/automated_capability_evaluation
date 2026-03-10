@@ -25,7 +25,7 @@ from legacy.src.utils.inspect_eval_utils import (
     parse_submission,
 )
 from legacy.utils import legacy_constants as constants
-from src.utils.data_utils import (
+from legacy.utils.legacy_data_utils import (
     list_dir,
     load_data,
     path_exists,
