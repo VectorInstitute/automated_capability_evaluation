@@ -11,8 +11,7 @@ Functions:
 
 import os
 
-from src.utils import load_data
-from src.utils.data_utils import copy_file, transfer_inspect_log_to_gcp
+from src.utils.data_utils import copy_file, load_data, transfer_inspect_log_to_gcp
 
 
 def test_load_data():
