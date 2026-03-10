@@ -676,6 +676,7 @@ def format_verification_prompt(
     option_b: str,
     option_c: str,
     option_d: str,
+    correct_answer: str,
 ) -> tuple[str, str]:
     """Format verification prompts."""
     user_prompt = VERIFICATION_USER_PROMPT_TEMPLATE.format(

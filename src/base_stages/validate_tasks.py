@@ -81,6 +81,7 @@ def validate_tasks(
                 option_b=choices.get("B", ""),
                 option_c=choices.get("C", ""),
                 option_d=choices.get("D", ""),
+                correct_answer=task_solution.solution,
             )
 
             response = asyncio.run(
