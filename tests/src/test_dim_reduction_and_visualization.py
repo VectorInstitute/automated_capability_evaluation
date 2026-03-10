@@ -1,5 +1,6 @@
 import json  # noqa: D100
 import os
+from pathlib import Path
 from typing import List
 
 import pytest  # noqa: D100
@@ -115,6 +116,7 @@ def call_visualize(
     reduced_embedding_name: str,
     plot_name: str,
     show_point_ids: bool,
+    save_dir: Path,
 ) -> None:
     """
     Call the visualization function and check if the plot is saved.
@@ -124,27 +126,25 @@ def call_visualize(
     the plot and save it.
 
     """
-    test_dir = os.path.dirname(os.path.abspath(__file__))
-    save_dir = os.path.join(test_dir, "visualizations")
-    os.makedirs(save_dir, exist_ok=True)
-    plot_dir = os.path.join(save_dir, f"{plot_name}.pdf")
-    if os.path.isfile(plot_dir):
-        assert True
-    else:
-        try:
-            plot_hierarchical_capability_2d_embeddings(
-                capabilities=mock_capabilities,
-                dim_reduction_method=reduced_embedding_name,
-                plot_name=plot_name,
-                save_dir=save_dir,
-                show_point_ids=show_point_ids,
-            )
-        except Exception as e:
-            pytest.fail(f"Visualization failed with error: {e}")
+    save_dir.mkdir(parents=True, exist_ok=True)
+    plot_path = save_dir / f"{plot_name}.pdf"
+    try:
+        plot_hierarchical_capability_2d_embeddings(
+            capabilities=mock_capabilities,
+            dim_reduction_method=reduced_embedding_name,
+            plot_name=plot_name,
+            save_dir=str(save_dir),
+            show_point_ids=show_point_ids,
+        )
+    except Exception as e:
+        pytest.fail(f"Visualization failed with error: {e}")
+
+    assert plot_path.exists()
 
 
 def test_tsne_reduce_and_visualize_name_embeddings(
     mock_capabilities: List[Capability],
+    tmp_path: Path,
 ) -> None:
     """Apply dimensionality reduction to name embeddings and visualize them."""
     apply_dimensionality_reduction(
@@ -161,11 +161,13 @@ def test_tsne_reduce_and_visualize_name_embeddings(
         reduced_embedding_name="t-sne",
         plot_name="tsne_name_embedding_plot",
         show_point_ids=False,
+        save_dir=tmp_path,
     )
 
 
 def test_tsne_reduce_and_visualize_name_description_embeddings(
     mock_capabilities: List[Capability],
+    tmp_path: Path,
 ) -> None:
     """Reduce and visualize name_description embeddings."""
     apply_dimensionality_reduction(
@@ -182,11 +184,13 @@ def test_tsne_reduce_and_visualize_name_description_embeddings(
         reduced_embedding_name="t-sne",
         plot_name="tsne_name_description_embedding_plot",
         show_point_ids=True,
+        save_dir=tmp_path,
     )
 
 
 def test_normalized_tsne_reduce_and_visualize_name_description_embeddings(
     mock_capabilities: List[Capability],
+    tmp_path: Path,
 ) -> None:
     """Reduce and visualize name_description embeddings."""
     apply_dimensionality_reduction(
@@ -203,11 +207,13 @@ def test_normalized_tsne_reduce_and_visualize_name_description_embeddings(
         reduced_embedding_name="t-sne",
         plot_name="normalized_tsne_name_description_embedding_plot",
         show_point_ids=True,
+        save_dir=tmp_path,
     )
 
 
 def test_tsne_reduce_and_visualize_json_embeddings(
     mock_capabilities: List[Capability],
+    tmp_path: Path,
 ) -> None:
     """Reduce and visualize JSON representation embeddings."""
     apply_dimensionality_reduction(
@@ -224,34 +230,36 @@ def test_tsne_reduce_and_visualize_json_embeddings(
         reduced_embedding_name="t-sne",
         plot_name="tsne_json_embedding_plot",
         show_point_ids=False,
+        save_dir=tmp_path,
     )
 
 
 def test_generate_capability_heatmap(
     mock_capabilities: List[Capability],
+    tmp_path: Path,
 ) -> None:
     """Visualize name_description openai embedding heatmap."""
     plot_name = "heatmap_plot"
-    test_dir = os.path.dirname(os.path.abspath(__file__))
-    save_dir = os.path.join(test_dir, "visualizations")
-    os.makedirs(save_dir, exist_ok=True)
-    plot_dir = os.path.join(save_dir, f"{plot_name}.pdf")
-    if os.path.isfile(plot_dir):
-        assert True
-    else:
-        try:
-            generate_capability_heatmap(
-                capabilities=mock_capabilities,
-                embedding_model_name="name_description_embedding",
-                plot_name=plot_name,
-                save_dir=save_dir,
-                add_squares=True,
-            )
-        except Exception as e:
-            pytest.fail(f"Visualization failed with error: {e}")
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    plot_path = tmp_path / f"{plot_name}.pdf"
+    try:
+        generate_capability_heatmap(
+            capabilities=mock_capabilities,
+            embedding_model_name="name_description_embedding",
+            plot_name=plot_name,
+            save_dir=str(tmp_path),
+            add_squares=True,
+        )
+    except Exception as e:
+        pytest.fail(f"Visualization failed with error: {e}")
+
+    assert plot_path.exists()
 
 
-def test_pca_test_train(mock_capabilities: List[Capability]) -> None:
+def test_pca_test_train(
+    mock_capabilities: List[Capability],
+    tmp_path: Path,
+) -> None:
     """Test PCA dimensionality reduction and visualization."""
     # Test that PCA transformation is deterministic by ensuring the same embeddings
     # produce identical reduced embeddings when transformed multiple times with
@@ -282,4 +290,5 @@ def test_pca_test_train(mock_capabilities: List[Capability]) -> None:
         reduced_embedding_name="pca",
         plot_name="pca_name_description_embedding_plot",
         show_point_ids=True,
+        save_dir=tmp_path,
     )
