@@ -1,11 +1,49 @@
 """Legacy embedding and dimensionality-reduction helpers."""
 
+from enum import Enum
 from typing import List
+
+import torch
+from langchain_openai import OpenAIEmbeddings
 
 from legacy.src.capability import Capability
 from legacy.src.dimensionality_reduction import DimensionalityReductionMethod
 from legacy.utils import legacy_constants as constants
-from src.utils.embedding_utils import EmbeddingGenerator, EmbeddingModelName
+
+
+class EmbeddingModelName(Enum):
+    """Enum for OpenAI embedding model names."""
+
+    text_embedding_3_small = "text-embedding-3-small"
+    text_embedding_3_large = "text-embedding-3-large"
+
+
+class EmbeddingGenerator:
+    """A class to generate embeddings using OpenAI's embedding model."""
+
+    def __init__(
+        self,
+        model_name: EmbeddingModelName,
+        embed_dimensions: int,
+    ):
+        self.embedding_model = self._load_embedding_model(model_name, embed_dimensions)
+        self.embedding_model_name = model_name
+        self.embed_dimensions = embed_dimensions
+
+    def _load_embedding_model(
+        self,
+        model_name: EmbeddingModelName,
+        dimensions: int,
+    ) -> OpenAIEmbeddings:
+        return OpenAIEmbeddings(model=model_name, dimensions=dimensions)  # type: ignore
+
+    def generate_embeddings(
+        self,
+        texts: list[str],
+    ) -> List[torch.Tensor]:
+        """Generate embeddings for a list of representation strings."""
+        output_float_list = self.embedding_model.embed_documents(texts)
+        return [torch.tensor(vec) for vec in output_float_list]
 
 
 def apply_dimensionality_reduction(

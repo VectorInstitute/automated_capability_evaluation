@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from legacy.src.capability import Capability
-from src.utils.embedding_utils import (
+from legacy.utils.legacy_embedding_visualization_utils import (
     hierarchical_2d_visualization,
     save_embedding_heatmap,
     visualize_llm_scores_area_grouped_bar_chart,
