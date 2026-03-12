@@ -4,28 +4,38 @@ import asyncio
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_core.models import ChatCompletionClient
 from dotenv import load_dotenv
 
-from src.schemas.area_schemas import Area
-from src.schemas.capability_schemas import Capability
-from src.schemas.domain_schemas import Domain
-from src.schemas.io_utils import save_tasks
-from src.schemas.metadata_schemas import PipelineMetadata
 from src.schemas.task_schemas import Task
 from src.task_generation.agentic_pipeline import run_task_generation_loop
+from src.task_generation.capability_context_resolver import (
+    GenerationUnit,
+    load_capability_chapter_mapping,
+    load_stage2_capability_artifacts,
+    prepare_generation_units,
+)
 from src.task_generation.dedup_utils import (
     assign_chapter_level_task_ids,
     deduplicate_tasks_for_chapter,
     mark_discarded_metadata,
 )
 from src.task_generation.designer_agent import DesignerAgent
+from src.task_generation.output_writer import (
+    build_checkpoint_path,
+    build_pipeline_metadata,
+    build_task_output_path,
+    save_task_outputs,
+    write_dedup_report,
+    write_verification_stats,
+)
 from src.task_generation.verifier_agent import VerifierAgent
+from src.utils.model_client_utils import get_standard_model_client
 
 
 load_dotenv()
@@ -124,44 +134,6 @@ def create_diff_blueprint_combo(difficulty: str, blooms: str) -> str:
     return f"{_clean(difficulty)}_{_clean(blooms)}"
 
 
-def get_book_name_from_relpath(chapter_relpath: str) -> str:
-    """
-    Assumes chapter_relpath looks like: <book_name>/<chapter_file>.txt.
-
-    Args:
-        chapter_relpath: The chapter relative path.
-
-    Returns
-    -------
-        The book name extracted from the relative path.
-    """
-    parts = chapter_relpath.split("/")
-    return parts[0] if parts else "unknown_book"
-
-
-def build_placeholder_capability(
-    *, chapter_id: str, chapter_index: int, domain_name: str
-) -> Capability:
-    """Schema-valid placeholder capability until Stage-2 capabilities are wired."""
-    domain = Domain(
-        domain_name=domain_name or "unknown_domain",
-        domain_id="domain_000",
-        domain_description="Placeholder domain for task-generation runner",
-    )
-    area = Area(
-        area_name=f"placeholder_area_{chapter_id}",
-        area_id=f"area_{chapter_index:03d}",
-        domain=domain,
-        area_description="Placeholder area for task-generation runner",
-    )
-    return Capability(
-        capability_name=f"placeholder_capability_{chapter_id}",
-        capability_id="cap_000",
-        area=area,
-        capability_description="Placeholder capability for task-generation runner",
-    )
-
-
 def load_runner_configs(config_path: Path) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Load runner agent and pipeline configs."""
     agent_cfg = load_yaml_config(config_path / "agent_config.yaml")
@@ -188,7 +160,7 @@ def load_blueprints(blueprints_path: Path) -> Tuple[List[Dict[str, Any]], str]:
 
 def init_model_clients(
     agent_cfg: Dict[str, Any],
-) -> Tuple[OpenAIChatCompletionClient, OpenAIChatCompletionClient]:
+) -> Tuple[ChatCompletionClient, ChatCompletionClient]:
     """Initialize designer/verifier model clients."""
     designer_model_cfg = agent_cfg["agents"]["designer"]["model_config"]["config_list"][
         0
@@ -196,29 +168,24 @@ def init_model_clients(
     verifier_model_cfg = agent_cfg["agents"]["verifier"]["model_config"]["config_list"][
         0
     ]
+    designer_agent_cfg = agent_cfg["agents"]["designer"]["model_config"]
+    verifier_agent_cfg = agent_cfg["agents"]["verifier"]["model_config"]
 
-    designer_client = OpenAIChatCompletionClient(
-        model=designer_model_cfg["model"],
-        api_key=designer_model_cfg["api_key"],
-        model_info={
-            "family": "openai",
-            "vision": False,
-            "function_calling": False,
-            "json_output": False,
-            "structured_output": False,
-        },
+    designer_client = get_standard_model_client(
+        designer_model_cfg["model"],
+        seed=designer_agent_cfg.get("cache_seed"),
+        temperature=designer_agent_cfg.get("temperature"),
+        top_p=designer_agent_cfg.get("top_p"),
+        timeout=designer_agent_cfg.get("timeout"),
+        api_key=designer_model_cfg.get("api_key"),
     )
 
-    verifier_client = OpenAIChatCompletionClient(
-        model=verifier_model_cfg["model"],
-        api_key=verifier_model_cfg["api_key"],
-        model_info={
-            "family": "openai",
-            "vision": False,
-            "function_calling": False,
-            "json_output": False,
-            "structured_output": False,
-        },
+    verifier_client = get_standard_model_client(
+        verifier_model_cfg["model"],
+        seed=verifier_agent_cfg.get("cache_seed"),
+        temperature=verifier_agent_cfg.get("temperature"),
+        timeout=verifier_agent_cfg.get("timeout"),
+        api_key=verifier_model_cfg.get("api_key"),
     )
 
     logger.info(f"Designer Agent loaded with config: {designer_model_cfg}")
@@ -270,11 +237,14 @@ async def run_pipeline(
         pipeline_cfg["pipeline"].get("num_tasks_per_combo", 5)
     )
     configured_num_tasks = pipeline_cfg["pipeline"].get("num_tasks")
-    num_tasks = int(
+    seed_num_tasks = int(
         configured_num_tasks
         if configured_num_tasks is not None
         else combinations[0].get("num_tasks", default_num_tasks_per_combo)
     )
+    hardening_rounds = int(pipeline_cfg["pipeline"].get("hardening_rounds", 5))
+    hardening_rounds = max(hardening_rounds, 1)
+    num_tasks = seed_num_tasks * hardening_rounds
     capability_source_mode = (
         str(pipeline_cfg["pipeline"].get("capability_source_mode", "placeholder"))
         .strip()
@@ -285,22 +255,24 @@ async def run_pipeline(
             "capability_source_mode must be one of: placeholder, from_stage2. "
             f"Got: {capability_source_mode}"
         )
-    if capability_source_mode == "from_stage2":
-        raise NotImplementedError(
-            "capability_source_mode=from_stage2 is not wired yet. "
-            "Use capability_source_mode=placeholder for now."
-        )
+    checkpoint_cfg = pipeline_cfg["pipeline"].get("checkpoint", {}) or {}
+    checkpoint_enabled = bool(checkpoint_cfg.get("enabled", True))
+    checkpoint_resume = bool(checkpoint_cfg.get("resume_from_checkpoint", True))
+    checkpoint_every = int(checkpoint_cfg.get("every", 2))
+    checkpoint_dir_name = str(checkpoint_cfg.get("dir_name", "checkpoints")).strip()
+    checkpoint_file_name = str(
+        checkpoint_cfg.get("file_name", "passed_tasks_checkpoint.json")
+    ).strip()
+    checkpoint_every = max(checkpoint_every, 0)
+
     capabilities_input_tag = str(
         capabilities_tag_override
         or pipeline_cfg["pipeline"].get("capabilities_tag")
         or "placeholder_capabilities_tag"
     )
 
-    resume_tag = pipeline_cfg["pipeline"].get("resume_tag")  # optional
-    if resume_tag and not check_tag(resume_tag):
-        raise ValueError(f"resume_tag must match _YYYYMMDD_HHMMSS, got: {resume_tag}")
-
-    out_tag = tasks_tag_override or resume_tag or create_tag(datetime.now(timezone.utc))
+    is_resume = tasks_tag_override is not None
+    out_tag = tasks_tag_override or create_tag(datetime.now())
     designer_client, verifier_client = init_model_clients(agent_cfg)
 
     try:
@@ -314,10 +286,54 @@ async def run_pipeline(
             f"Found {len(chapter_files)} chapter files under {chapter_root_dir}"
         )
         logger.info(f"Found {len(combinations)} blueprint combinations")
-        logger.info(f"Capability source mode: {capability_source_mode}")
-        logger.info(f"num_tasks per capability/chapter: {num_tasks}")
+        logger.info(f"Configured capability source mode: {capability_source_mode}")
+        logger.info(f"seed tasks per capability/chapter: {seed_num_tasks}")
+        logger.info(f"hardening rounds per seed task: {hardening_rounds}")
+        logger.info(f"maximum passing tasks per capability/chapter: {num_tasks}")
         if blueprint_domain:
             logger.info(f"Blueprint domain (informational): {blueprint_domain}")
+
+        mapping_cfg = pipeline_cfg["pipeline"].get("capability_chapter_mapping_file")
+        capability_chapter_mapping_path = (
+            (ROOT_DIR / str(mapping_cfg)).resolve() if mapping_cfg else None
+        )
+        capability_chapter_mapping = load_capability_chapter_mapping(
+            capability_chapter_mapping_path
+        )
+        if capability_chapter_mapping_path:
+            logger.info(
+                "Using capability-to-chapter mapping file: %s",
+                capability_chapter_mapping_path,
+            )
+
+        (
+            stage2_capabilities,
+            stage2_area_ids,
+            stage2_capability_ids,
+        ) = load_stage2_capability_artifacts(
+            output_base_dir=output_base_dir,
+            experiment_id=experiment_id,
+            capabilities_tag=capabilities_input_tag,
+        )
+        if stage2_capabilities:
+            logger.info(
+                "Loaded %s Stage-2 capabilities across %s area(s) for generation lineage.",
+                len(stage2_capabilities),
+                len(stage2_area_ids),
+            )
+        elif capabilities_input_tag != "placeholder_capabilities_tag":
+            logger.warning(
+                "No Stage-2 capabilities were loaded for capabilities_tag=%s; "
+                "continuing with chapter-derived placeholders.",
+                capabilities_input_tag,
+            )
+
+        effective_capability_source_mode = (
+            "from_stage2" if stage2_capabilities else capability_source_mode
+        )
+        logger.info(
+            "Effective capability source mode: %s", effective_capability_source_mode
+        )
 
         def make_designer_agent() -> DesignerAgent:
             return DesignerAgent(name="Designer", model_client=designer_client)
@@ -325,50 +341,54 @@ async def run_pipeline(
         def make_verifier_agent() -> VerifierAgent:
             return VerifierAgent(name="Verifier", model_client=verifier_client)
 
-        for chapter_idx, chapter_path in enumerate(chapter_files):
-            chapter_relpath = chapter_path.relative_to(chapter_root_dir).as_posix()
-            chapter_id = chapter_path.stem
-            book_name = get_book_name_from_relpath(chapter_relpath)
-            placeholder_capability = build_placeholder_capability(
-                chapter_id=chapter_id,
-                chapter_index=chapter_idx,
-                domain_name=blueprint_domain,
-            )
+        generation_units: List[GenerationUnit] = prepare_generation_units(
+            chapter_files=chapter_files,
+            chapter_root_dir=chapter_root_dir,
+            stage2_capabilities=stage2_capabilities,
+            blueprint_domain=blueprint_domain,
+            capabilities_input_tag=capabilities_input_tag,
+            stage2_area_ids=stage2_area_ids,
+            stage2_capability_ids=stage2_capability_ids,
+            capability_chapter_mapping=capability_chapter_mapping,
+        )
 
-            context_text = chapter_path.read_text(encoding="utf-8")
+        logger.info("Prepared %s generation unit(s).", len(generation_units))
+
+        for unit_idx, unit in enumerate(generation_units):
+            current_capability = unit.capability
+            context_text = unit.context_text
+            chapter_id = unit.chapter_id
+            chapter_relpath = unit.chapter_relpath
+            book_name = unit.book_name
 
             # Stage-3-compatible path: tasks/<tag>/<area_id>/<capability_id>/tasks.json
-            chapter_out_path = (
-                output_base_dir
-                / experiment_id
-                / "tasks"
-                / out_tag
-                / placeholder_capability.area.area_id
-                / placeholder_capability.capability_id
-                / "tasks.json"
+            chapter_out_path = build_task_output_path(
+                output_base_dir=output_base_dir,
+                experiment_id=experiment_id,
+                out_tag=out_tag,
+                capability=current_capability,
             )
             chapter_out_path.parent.mkdir(parents=True, exist_ok=True)
 
-            checkpoint_dir = chapter_out_path.parent / "checkpoints"
-            checkpoint_dir.mkdir(parents=True, exist_ok=True)
-
-            # Make it deterministic so resume works across reruns
-            checkpoint_path = checkpoint_dir / "passed_tasks_checkpoint.json"
-
-            now_ckpt = datetime.now(timezone.utc)
-            checkpoint_metadata = PipelineMetadata(
-                experiment_id=experiment_id,
-                output_base_dir=str(output_base_dir),
-                timestamp=now_ckpt.isoformat().replace("+00:00", "Z"),
-                input_stage_tag=capabilities_input_tag,
-                output_stage_tag=out_tag,
-                resume=bool(resume_tag),
+            checkpoint_path = build_checkpoint_path(
+                chapter_out_path=chapter_out_path,
+                checkpoint_enabled=checkpoint_enabled,
+                checkpoint_dir_name=checkpoint_dir_name,
+                checkpoint_file_name=checkpoint_file_name,
             )
 
-            if resume_tag and chapter_out_path.exists():
+            checkpoint_metadata = build_pipeline_metadata(
+                experiment_id=experiment_id,
+                output_base_dir=output_base_dir,
+                input_stage_tag=capabilities_input_tag,
+                output_stage_tag=out_tag,
+                resume=is_resume,
+            )
+
+            if is_resume and chapter_out_path.exists():
                 logger.info(
-                    f"Skipping (resume) {placeholder_capability.area.area_id}/"
-                    f"{placeholder_capability.capability_id} ({book_name}/{chapter_id}) "
+                    f"Skipping (resume) {current_capability.area.area_id}/"
+                    f"{current_capability.capability_id} ({book_name}/{chapter_id}) "
                     "because tasks.json exists."
                 )
                 continue
@@ -392,7 +412,7 @@ async def run_pipeline(
             )
 
             logger.info(
-                f"Chapter {chapter_idx + 1}/{len(chapter_files)}: {chapter_relpath}"
+                f"Generation unit {unit_idx + 1}/{len(generation_units)}: {chapter_relpath}"
             )
 
             all_tasks: List[Task] = []
@@ -414,13 +434,16 @@ async def run_pipeline(
 
             diff_bpt_combo = create_diff_blueprint_combo(difficulty, blooms_level)
 
-            logger.info(f"Generating tasks for {chapter_id} with tasks (n={num_tasks})")
+            logger.info(
+                f"Generating tasks for {chapter_id} with seed_tasks={seed_num_tasks}, "
+                f"hardening_rounds={hardening_rounds}, max_passing_tasks={num_tasks}"
+            )
 
             tasks: Optional[List[Task]] = await run_task_generation_loop(
                 designer_factory=make_designer_agent,
                 verifier_factory=make_verifier_agent,
-                capability=placeholder_capability,
-                capability_source_mode=capability_source_mode,
+                capability=current_capability,
+                capability_source_mode=effective_capability_source_mode,
                 domain=blueprint_domain,
                 context_text=context_text,
                 chapter_knowledge_text=chapter_knowledge_text,
@@ -429,6 +452,8 @@ async def run_pipeline(
                 blooms_level=blooms_level,
                 blueprint=blueprint,
                 num_tasks=num_tasks,
+                hardening_rounds=hardening_rounds,
+                seed_generation_target=seed_num_tasks,
                 chapter_id=chapter_id,
                 chapter_relpath=chapter_relpath,
                 blueprint_key=diff_bpt_combo,
@@ -436,9 +461,9 @@ async def run_pipeline(
                 verification_log=chapter_verification_logs,
                 previous_questions=chapter_prev_questions,
                 checkpoint_path=checkpoint_path,
-                checkpoint_every=2,
+                checkpoint_every=checkpoint_every,
                 checkpoint_metadata=checkpoint_metadata,
-                resume_from_checkpoint=True,
+                resume_from_checkpoint=checkpoint_enabled and checkpoint_resume,
             )
 
             if not tasks:
@@ -476,7 +501,7 @@ async def run_pipeline(
 
                 kept, discarded, report = deduplicate_tasks_for_chapter(
                     tasks=all_tasks,
-                    chapter_id=chapter_id,
+                    chapter_id=current_capability.capability_id,
                     embedding_model=embedding_model,
                     threshold=threshold,
                     keep_policy=keep_policy,
@@ -485,12 +510,12 @@ async def run_pipeline(
 
                 kept = assign_chapter_level_task_ids(
                     kept_tasks=kept,
-                    chapter_id=chapter_id,
+                    chapter_id=current_capability.capability_id,
                 )
 
-                report_path = chapter_out_path.parent / "dedup_report.json"
-                report_path.write_text(
-                    json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
+                report_path = write_dedup_report(
+                    chapter_out_path=chapter_out_path,
+                    report=report,
                 )
                 logger.info(
                     f"Dedup: kept {len(kept)}/{len(all_tasks)} tasks. Report → {report_path}"
@@ -499,7 +524,7 @@ async def run_pipeline(
                 if save_discarded and discarded:
                     discarded = mark_discarded_metadata(
                         discarded_tasks=discarded,
-                        chapter_id=chapter_id,
+                        chapter_id=current_capability.capability_id,
                         dedup_report=report,
                     )
                     discarded_path = chapter_out_path.parent / "discarded_tasks.json"
@@ -511,38 +536,36 @@ async def run_pipeline(
             else:
                 discarded_tasks_to_save = None
 
-            now = datetime.now(timezone.utc)
-            metadata = PipelineMetadata(
+            metadata = build_pipeline_metadata(
                 experiment_id=experiment_id,
-                output_base_dir=str(output_base_dir),
-                timestamp=now.isoformat().replace("+00:00", "Z"),
+                output_base_dir=output_base_dir,
                 input_stage_tag=capabilities_input_tag,
                 output_stage_tag=out_tag,
-                resume=bool(resume_tag),
+                resume=is_resume,
             )
 
-            stats_path = chapter_out_path.parent / "verification_stats.json"
-            stats_payload = {
-                "chapter_id": chapter_id,
-                "chapter_relpath": chapter_relpath,
-                "book_name": book_name,
-                "num_verifier_calls": len(chapter_verification_logs),
-                "verification_logs": chapter_verification_logs,
-            }
-            stats_path.write_text(
-                json.dumps(stats_payload, indent=2, ensure_ascii=False, default=str),
-                encoding="utf-8",
+            stats_path = write_verification_stats(
+                chapter_out_path=chapter_out_path,
+                chapter_id=chapter_id,
+                chapter_relpath=chapter_relpath,
+                book_name=book_name,
+                capability_id=current_capability.capability_id,
+                area_id=current_capability.area.area_id,
+                verification_logs=chapter_verification_logs,
             )
             logger.info(f"Saved verification stats → {stats_path}")
 
-            save_tasks(all_tasks, metadata, chapter_out_path)
-            logger.info(f"Saved {len(all_tasks)} tasks → {chapter_out_path}")
+            saved_path, discarded_path = save_task_outputs(
+                tasks=all_tasks,
+                discarded_tasks=discarded_tasks_to_save,
+                metadata=metadata,
+                chapter_out_path=chapter_out_path,
+            )
+            logger.info(f"Saved {len(all_tasks)} tasks → {saved_path}")
 
-            if discarded_tasks_to_save:
-                discarded_path = chapter_out_path.parent / "discarded_tasks.json"
-                save_tasks(discarded_tasks_to_save, metadata, discarded_path)
+            if discarded_path is not None:
                 logger.info(
-                    f"Saved {len(discarded_tasks_to_save)} discarded tasks → {discarded_path}"
+                    f"Saved {len(discarded_tasks_to_save or [])} discarded tasks → {discarded_path}"
                 )
     finally:
         await designer_client.close()

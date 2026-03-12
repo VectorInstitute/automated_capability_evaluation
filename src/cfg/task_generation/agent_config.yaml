@@ -12,11 +12,11 @@ agents:
     model_config:
       config_list:
         - api_type: "google"
-          model: "gemini-3-flash-preview"
+          model: "gemini-3.1-pro-preview"
           api_key: "${GOOGLE_API_KEY}"
       temperature: 0
       top_p: 0.95
-      timeout: 120
+      timeout: 720
       cache_seed: 42
 
   verifier:
@@ -28,11 +28,11 @@ agents:
           api_key: "${ANTHROPIC_API_KEY}"
       temperature: 0
       top_p: 0.95
-      timeout: 120
+      timeout: 600
       cache_seed: 42
 
 dedup:
-  enabled: true
+  enabled: false
   embedding_model: "text-embedding-3-small"
   threshold: 0.90
   keep_policy: "first"

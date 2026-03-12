@@ -1,97 +1,30 @@
 """Source file for the verifier agent used in task verification."""
 
-import json
 import logging
-import re
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
-from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.messages import TextMessage
-
+from src.task_generation.json_response_utils import parse_json_like, stringify_payload
 from src.task_generation.prompts import (
+    MCQ_INTEGRITY_OUTPUT_FORMAT,
     SYSTEM_MCQ_INTEGRITY_CHECK_AND_REVISE_PROMPT,
+    SYSTEM_TASK_DIFFICULTY_ASSESSMENT_PROMPT,
     SYSTEM_TASK_VERIFICATION_PROMPT,
     USER_MCQ_INTEGRITY_CHECK_AND_REVISE_PROMPT,
+    USER_TASK_DIFFICULTY_ASSESSMENT_PROMPT,
     USER_TASK_VERIFICATION_PROMPT,
 )
+from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
 logger = logging.getLogger(__name__)
 
 
-def _strip_agent_terminator(text: str) -> str:
-    """Remove trailing agent terminator tokens (e.g., TERMINATE) from model output."""
-    if not text:
-        return ""
-    return re.sub(r"\s*TERMINATE\s*$", "", text, flags=re.IGNORECASE).strip()
-
-
-def _escape_invalid_json_backslashes(s: str) -> str:
-    """
-    Escape backslashes that are invalid in JSON escape sequences.
-
-    Example repaired patterns:
-    - "\\dot" -> "\\\\dot"
-    - "\\frac" -> "\\\\frac"
-
-    Valid JSON escapes (\\", \\\\, \\/, \\b, \\f, \\n, \\r, \\t, \\uXXXX) are preserved.
-    For \\u, preservation only applies when followed by exactly 4 hex digits.
-
-    Args:
-        s: The input string to process.
-
-    Returns
-    -------
-        A new string with invalid JSON backslashes escaped.
-    """  # noqa: D301
-    out: List[str] = []
-    i = 0
-    n = len(s)
-    while i < n:
-        ch = s[i]
-        if ch != "\\":
-            out.append(ch)
-            i += 1
-            continue
-
-        if i + 1 >= n:
-            out.append("\\\\")
-            i += 1
-            continue
-
-        nxt = s[i + 1]
-        if nxt in ['"', "\\", "/", "b", "f", "n", "r", "t"]:
-            out.append("\\")
-            out.append(nxt)
-            i += 2
-            continue
-
-        if nxt == "u":
-            if i + 5 < n and re.fullmatch(r"[0-9a-fA-F]{4}", s[i + 2 : i + 6]):
-                out.append("\\u")
-                out.append(s[i + 2 : i + 6])
-                i += 6
-                continue
-            out.append("\\\\u")
-            i += 2
-            continue
-
-        out.append("\\\\")
-        out.append(nxt)
-        i += 2
-
-    return "".join(out)
-
-
-class VerifierAgent(AssistantAgent):
+class VerifierAgent:
     """Verifier agent for task verification."""
 
     def __init__(self, name: str, model_client: Any, **kwargs: Any) -> None:
-        super().__init__(
-            name=name,
-            model_client=model_client,
-            **kwargs,
-        )
+        self.name = name
+        self.model_client = model_client
 
     async def verify_task(
         self,
@@ -107,18 +40,13 @@ class VerifierAgent(AssistantAgent):
         -------
             A dictionary containing the verification results.
         """
-        candidate_str = (
-            json.dumps(candidate_output, indent=2, ensure_ascii=False)
-            if isinstance(candidate_output, dict)
-            else str(candidate_output)
-        )
+        candidate_str = stringify_payload(candidate_output)
 
         user_prompt = USER_TASK_VERIFICATION_PROMPT.format(
             candidate_output=candidate_str,
         )
         task = SYSTEM_TASK_VERIFICATION_PROMPT + "\n\n" + user_prompt
-        result = await self.run(task=task)
-        text = self._extract_message(result.messages)
+        text = await self._call_text_prompt(task)
         return self._extract_verification_report(text)
 
     async def check_and_revise_mcq_option(
@@ -147,71 +75,48 @@ class VerifierAgent(AssistantAgent):
             candidate_question=candidate_question,
             chapter_excerpts=chapter_excerpts,
             chapter_knowledge_text=chapter_knowledge_text,
-            solution_trace=json.dumps(solution_trace, indent=2, ensure_ascii=False),
-            solution_full=json.dumps(solution_full, indent=2, ensure_ascii=False),
+            solution_trace=stringify_payload(solution_trace),
+            solution_full=stringify_payload(solution_full),
         )
-        task = SYSTEM_MCQ_INTEGRITY_CHECK_AND_REVISE_PROMPT + "\n\n" + task
-        result = await self.run(task=task)
-        text = self._extract_message(result.messages)
+        task = (
+            SYSTEM_MCQ_INTEGRITY_CHECK_AND_REVISE_PROMPT
+            + "\n\n"
+            + task
+            + "\n\n"
+            + MCQ_INTEGRITY_OUTPUT_FORMAT
+        )
+        text = await self._call_text_prompt(task)
         return self._extract_mcq_payload(text), task
 
-    def _extract_message(self, messages: Sequence[Any]) -> str:
+    async def assess_task_difficulty(
+        self,
+        candidate_question: Union[Dict[str, Any], str],
+    ) -> Tuple[Dict[str, Any], str]:
         """
-        Extract text content from messages.
+        Solve and assess candidate question difficulty with structured feedback.
 
         Args:
-            messages: List of message objects.
+            candidate_question: Candidate question payload.
 
         Returns
         -------
-            Extracted text content.
+            A tuple of (difficulty_feedback_json, full_prompt).
         """
-        for m in reversed(messages):
-            if isinstance(m, TextMessage):
-                return m.content
-            if hasattr(m, "content") and isinstance(m.content, str):
-                return m.content
-        return ""
-
-    def _parse_json_like(self, content: str) -> Optional[Any]:  # noqa: PLR0911
-        """Parse JSON from raw/fenced/braced text with invalid-escape repair."""
-        content = _strip_agent_terminator((content or "").strip())
-        if not content:
-            return None
-
-        def _loads_with_repair(candidate: str) -> Optional[Any]:
-            try:
-                return json.loads(candidate)
-            except json.JSONDecodeError as e:  # noqa: F841
-                repaired = _escape_invalid_json_backslashes(candidate)
-                if repaired != candidate:
-                    try:
-                        return json.loads(repaired)
-                    except json.JSONDecodeError:
-                        pass
-                return None
-
-        # If output is fenced markdown, try fenced parsing first.
-        blocks = re.findall(
-            r"```json\s*(.*?)\s*```", content, flags=re.DOTALL | re.IGNORECASE
+        candidate_str = stringify_payload(candidate_question)
+        user_prompt = USER_TASK_DIFFICULTY_ASSESSMENT_PROMPT.format(
+            candidate_question=candidate_str,
         )
-        if blocks:
-            for b in blocks:
-                obj = _loads_with_repair(_strip_agent_terminator(b.strip()))
-                if obj is not None:
-                    return obj
-        else:
-            obj = _loads_with_repair(content)
-            if obj is not None:
-                return obj
+        task = SYSTEM_TASK_DIFFICULTY_ASSESSMENT_PROMPT + "\n\n" + user_prompt
+        text = await self._call_text_prompt(task)
+        return self._extract_difficulty_feedback(text), task
 
-        start, end = content.find("{"), content.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            obj = _loads_with_repair(_strip_agent_terminator(content[start : end + 1]))
-            if obj is not None:
-                return obj
-
-        return None
+    async def _call_text_prompt(self, task: str) -> str:
+        """Call the model in plain-text mode for a fully assembled prompt."""
+        return await async_call_model(
+            self.model_client,
+            user_prompt=task,
+            mode=ModelCallMode.TEXT,
+        )
 
     def _extract_mcq_payload(self, content: str) -> Union[Dict[str, Any], str]:
         """
@@ -219,7 +124,7 @@ class VerifierAgent(AssistantAgent):
 
         No verifier-report fallback here; return {} on parse failure.
         """
-        obj = self._parse_json_like(content)
+        obj = parse_json_like(content)
         if isinstance(obj, dict):
             return obj
         if obj is None:
@@ -233,19 +138,71 @@ class VerifierAgent(AssistantAgent):
 
         Uses fail-report fallback to keep verification loop deterministic.
         """
-        obj = self._parse_json_like(content)
+        obj = parse_json_like(content)
         if isinstance(obj, dict):
             return obj
         return self._fallback_report("json parse failed")
 
+    def _extract_difficulty_feedback(self, content: str) -> Dict[str, Any]:
+        """
+        Extract structured difficulty feedback with strict schema normalization.
+
+        Guarantees a dict that always includes all expected keys.
+        """
+        obj = parse_json_like(content)
+        if not isinstance(obj, dict):
+            return self._fallback_difficulty_feedback("json parse failed")
+
+        difficulty_raw = str(obj.get("difficulty", "")).strip().lower()
+        if difficulty_raw not in {"easy", "medium", "hard"}:
+            difficulty_raw = "medium"
+
+        confidence_raw = obj.get("confidence", 0.0)
+        try:
+            confidence = float(confidence_raw)
+        except (TypeError, ValueError):
+            confidence = 0.0
+        confidence = max(0.0, min(1.0, confidence))
+
+        def _to_list_of_str(x: Any) -> List[str]:
+            if isinstance(x, list):
+                return [str(v).strip() for v in x if str(v).strip()]
+            if x is None:
+                return []
+            s = str(x).strip()
+            return [s] if s else []
+
+        return {
+            "difficulty": difficulty_raw,
+            "solver_answer": str(obj.get("solver_answer", "")).strip(),
+            "solver_rationale": str(obj.get("solver_rationale", "")).strip(),
+            "difficulty_rationale": str(obj.get("difficulty_rationale", "")).strip(),
+            "identified_issues": _to_list_of_str(obj.get("identified_issues")),
+            "confidence": confidence,
+        }
+
     def _fallback_report(self, msg: str) -> Dict[str, Any]:
         """Structured fail report fallback for verification stage only."""
         return {
-            "overall_verdict": "fail",
-            "json_format_valid": "fail",
-            "mcq_integrity": "fail",
-            "clarity_well_posed": "fail",
-            "constraint_compliance": "fail",
+            "overall_verdict": "Fail",
+            "json_format_valid": "No",
+            "mcq_integrity": "No",
+            "constraint_compliance": "No",
             "explanation": f"System Error: {msg}",
-            "question_evaluation": {},
+            "question_evaluation": {
+                "distractors_plausible": "No",
+                "main_issues": [f"parse_error: {msg}"],
+                "fix": "Return a single valid JSON object matching the verification schema.",
+            },
+        }
+
+    def _fallback_difficulty_feedback(self, msg: str) -> Dict[str, Any]:
+        """Structured fallback for difficulty assessment path."""
+        return {
+            "difficulty": "medium",
+            "solver_answer": "",
+            "solver_rationale": "",
+            "difficulty_rationale": f"System Error: {msg}",
+            "identified_issues": [f"parse_error: {msg}"],
+            "confidence": 0.0,
         }

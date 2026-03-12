@@ -1,13 +1,13 @@
 """Source file for the designer agent used in task generation and revision."""
 
-import json
 import logging
-import re
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.messages import TextMessage
-
+from src.schemas.task_gen_io_utils import strip_agent_terminator
+from src.task_generation.json_response_utils import (
+    normalize_reply_to_text,
+    parse_json_like,
+)
 from src.task_generation.prompts import (
     INCLUDE_CLARIFICATION_PROMPT,
     REMOVE_REDUNDANT_INFO_PROMPT,
@@ -16,89 +16,23 @@ from src.task_generation.prompts import (
     SYSTEM_CHAPTER_KNOWLEDGE_SUMMARY_PROMPT,
     SYSTEM_GRAPH_TASK_GENERATION_PROMPT,
     SYSTEM_GRAPH_TASK_GENERATION_PROMPT_UNIQUE,
+    SYSTEM_TASK_HARDENING_PROMPT,
     SYSTEM_TASK_REVISION_PROMPT_JSON_ONLY,
     SYSTEM_TASK_REVISION_PROMPT_MCQ_FIX,
     USER_CHAPTER_KNOWLEDGE_SUMMARY_PROMPT,
     USER_GRAPH_TASK_GENERATION_PROMPT,
     USER_GRAPH_TASK_GENERATION_PROMPT_UNIQUE,
+    USER_TASK_HARDENING_PROMPT,
     USER_TASK_REVISION_PROMPT_JSON_ONLY,
     USER_TASK_REVISION_PROMPT_MCQ_FIX,
 )
+from src.utils.model_client_utils import ModelCallMode, async_call_model
 
 
 logger = logging.getLogger(__name__)
 
 
-def _strip_agent_terminator(text: str) -> str:
-    """Remove trailing agent terminator tokens (e.g., TERMINATE) from model output."""
-    if not text:
-        return ""
-    return re.sub(r"\s*TERMINATE\s*$", "", text, flags=re.IGNORECASE).strip()
-
-
-def _escape_invalid_json_backslashes(s: str) -> str:
-    """
-    Escape backslashes that are invalid in JSON escape sequences.
-
-    Example repaired patterns:
-    - "\\dot" -> "\\\\dot"
-    - "\\frac" -> "\\\\frac"
-
-    Valid JSON escapes (\\", \\\\, \\/, \\b, \\f, \\n, \\r, \\t, \\uXXXX) are preserved.
-    For \\u, preservation only applies when followed by exactly 4 hex digits.
-
-    Args:
-        s: The input string to process.
-
-    Returns
-    -------
-        A new string with invalid JSON backslashes escaped.
-    """  # noqa: D301
-    out: List[str] = []
-    i = 0
-    n = len(s)
-    while i < n:
-        ch = s[i]
-        if ch != "\\":
-            out.append(ch)
-            i += 1
-            continue
-
-        # Trailing backslash: escape it.
-        if i + 1 >= n:
-            out.append("\\\\")
-            i += 1
-            continue
-
-        nxt = s[i + 1]
-
-        # Always-valid one-char JSON escapes.
-        if nxt in ['"', "\\", "/", "b", "f", "n", "r", "t"]:
-            out.append("\\")
-            out.append(nxt)
-            i += 2
-            continue
-
-        # \u must be followed by exactly 4 hex digits to remain valid.
-        if nxt == "u":
-            if i + 5 < n and re.fullmatch(r"[0-9a-fA-F]{4}", s[i + 2 : i + 6]):
-                out.append("\\u")
-                out.append(s[i + 2 : i + 6])
-                i += 6
-                continue
-            out.append("\\\\u")
-            i += 2
-            continue
-
-        # Any other escape starter is invalid in JSON; escape the backslash itself.
-        out.append("\\\\")
-        out.append(nxt)
-        i += 2
-
-    return "".join(out)
-
-
-class DesignerAgent(AssistantAgent):
+class DesignerAgent:
     """Designer agent for task generation and revision."""
 
     def __init__(
@@ -107,11 +41,8 @@ class DesignerAgent(AssistantAgent):
         model_client: Any,
         **kwargs: Any,
     ) -> None:
-        super().__init__(
-            name=name,
-            model_client=model_client,
-            **kwargs,
-        )
+        self.name = name
+        self.model_client = model_client
 
     async def generate_draft(
         self,
@@ -152,8 +83,7 @@ class DesignerAgent(AssistantAgent):
             )
             task = SYSTEM_GRAPH_TASK_GENERATION_PROMPT + "\n\n" + user_prompt
 
-        result = await self.run(task=task)
-        text = self._extract_message(result.messages)
+        text = await self._call_text_prompt(task)
         return self._extract_message_content(text), task
 
     async def summarize_chapter_knowledge(
@@ -177,8 +107,7 @@ class DesignerAgent(AssistantAgent):
                 chapter_excerpts=chapter_excerpts
             )
         )
-        result = await self.run(task=task)
-        text = self._extract_message(result.messages)
+        text = await self._call_text_prompt(task)
         return self._extract_message_content(text), task
 
     async def include_clarification_info(
@@ -197,8 +126,34 @@ class DesignerAgent(AssistantAgent):
         task = INCLUDE_CLARIFICATION_PROMPT.format(
             candidate_question=candidate_question,
         )
-        result = await self.run(task=task)
-        text = self._extract_message(result.messages)
+        text = await self._call_text_prompt(task)
+        return self._extract_message_content(text), task
+
+    async def harden_task(
+        self,
+        chapter_excerpts: str,
+        chapter_knowledge_summary: str,
+        candidate_question_and_solution_graph: str,
+    ) -> Tuple[Union[Dict[str, Any], str], str]:
+        """
+        Harden a generated candidate question by increasing reasoning complexity.
+
+        Args:
+            chapter_excerpts: Relevant excerpts from the chapter.
+            chapter_knowledge_summary: Structured chapter knowledge summary.
+            candidate_question_and_solution_graph: Candidate question JSON as string.
+
+        Returns
+        -------
+            A tuple containing the hardened candidate and the full prompt used.
+        """
+        user_prompt = USER_TASK_HARDENING_PROMPT.format(
+            chapter_excerpts=(chapter_excerpts or "").strip(),
+            chapter_knowledge_summary=(chapter_knowledge_summary or "").strip(),
+            candidate_question_and_solution_graph=candidate_question_and_solution_graph,
+        )
+        task = SYSTEM_TASK_HARDENING_PROMPT + "\n\n" + user_prompt
+        text = await self._call_text_prompt(task)
         return self._extract_message_content(text), task
 
     async def remove_redundant_info(
@@ -217,8 +172,7 @@ class DesignerAgent(AssistantAgent):
         task = REMOVE_REDUNDANT_INFO_PROMPT.format(
             candidate_question=candidate_question,
         )
-        result = await self.run(task=task)
-        text = self._extract_message(result.messages)
+        text = await self._call_text_prompt(task)
         return self._extract_message_content(text), task
 
     async def remove_references(
@@ -237,8 +191,7 @@ class DesignerAgent(AssistantAgent):
         task = REMOVE_SOURCE_INFO_PROMPT.format(
             candidate_question=candidate_question,
         )
-        result = await self.run(task=task)
-        text = self._extract_message(result.messages)
+        text = await self._call_text_prompt(task)
         return self._extract_message_content(text), task
 
     async def check_soundness(
@@ -257,8 +210,7 @@ class DesignerAgent(AssistantAgent):
         task = SOUNDNESS_CHECK_PROMPT.format(
             candidate_question=candidate_question,
         )
-        result = await self.run(task=task)
-        text = self._extract_message(result.messages)
+        text = await self._call_text_prompt(task)
         return self._extract_message_content(text), task
 
     async def fix_mcq_with_trace(
@@ -294,8 +246,7 @@ class DesignerAgent(AssistantAgent):
             previous_questions=previous_questions_str,
         )
         task = SYSTEM_TASK_REVISION_PROMPT_MCQ_FIX + "\n\n" + user_prompt
-        result = await self.run(task=task)
-        text = self._extract_message(result.messages)
+        text = await self._call_text_prompt(task)
         return self._extract_message_content(text)
 
     async def fix_json_format_only(
@@ -309,30 +260,16 @@ class DesignerAgent(AssistantAgent):
             verifier_llm_feedback=verifier_feedback,
         )
         task = SYSTEM_TASK_REVISION_PROMPT_JSON_ONLY + "\n\n" + user_prompt
-        result = await self.run(task=task)
-        text = self._extract_message(result.messages)
+        text = await self._call_text_prompt(task)
         return self._extract_message_content(text)
 
-    def _extract_message(self, messages: Sequence[Any]) -> str:
-        """Extract the last assistant text from an AgentChat result.messages list."""
-        if not messages:
-            return ""
-        for m in reversed(messages):
-            # Most common case
-            if isinstance(m, TextMessage):
-                return (m.content or "").strip()
-
-            # Fallback for other message types
-            content = getattr(m, "content", None)
-            if isinstance(content, str):
-                return content.strip()
-
-            # Some message types may store text differently
-            text = getattr(m, "text", None)
-            if isinstance(text, str):
-                return text.strip()
-
-        return ""
+    async def _call_text_prompt(self, task: str) -> str:
+        """Call the model in plain-text mode for a fully assembled prompt."""
+        return await async_call_model(
+            self.model_client,
+            user_prompt=task,
+            mode=ModelCallMode.TEXT,
+        )
 
     def _extract_message_content(  # noqa: PLR0911
         self, reply: Union[str, Dict[str, Any], List[Any], None]
@@ -353,131 +290,19 @@ class DesignerAgent(AssistantAgent):
         -------
             Parsed JSON object if successful, else raw string.
         """
-        content = self._normalize_reply_to_text(reply)
-        content = _strip_agent_terminator(content)
+        content = normalize_reply_to_text(reply)
+        content = strip_agent_terminator(content)
         if not content:
             return ""
-
-        # A) If output is fenced markdown, parse fenced blocks first.
-        blocks = re.findall(
-            r"```json\s*(.*?)\s*```", content, flags=re.DOTALL | re.IGNORECASE
+        parsed = parse_json_like(
+            content,
+            on_repair=lambda msg: logger.warning("Designer %s", msg),
         )
-        if blocks:
-            for b in blocks:
-                candidate = _strip_agent_terminator(b.strip())
-                try:
-                    parsed_candidate = json.loads(candidate)
-                    if isinstance(parsed_candidate, dict):
-                        return parsed_candidate
-                except json.JSONDecodeError as e:
-                    repaired = _escape_invalid_json_backslashes(candidate)
-                    if repaired != candidate:
-                        try:
-                            parsed_candidate = json.loads(repaired)
-                            if isinstance(parsed_candidate, dict):
-                                logger.warning(
-                                    "Recovered Designer JSON after escape repair (fenced block). "
-                                    "Original error at line %s col %s: %s",
-                                    e.lineno,
-                                    e.colno,
-                                    e.msg,
-                                )
-                                return parsed_candidate
-                        except json.JSONDecodeError:
-                            pass
-        else:
-            # B) Try parsing raw string directly
-            try:
-                parsed_content = json.loads(content)
-                if isinstance(parsed_content, dict):
-                    return parsed_content
-            except json.JSONDecodeError as e:
-                # Retry once after escaping invalid backslashes (for LaTeX formula).
-                repaired = _escape_invalid_json_backslashes(content)
-                if repaired != content:
-                    try:
-                        parsed_content = json.loads(repaired)
-                        if isinstance(parsed_content, dict):
-                            logger.warning(
-                                "Recovered Designer JSON after escape repair (raw content). "
-                                "Original error at line %s col %s: %s",
-                                e.lineno,
-                                e.colno,
-                                e.msg,
-                            )
-                            return parsed_content
-                    except json.JSONDecodeError:
-                        pass
-
-        # C) Heuristic: find outermost braces and attempt to parse
-        start = content.find("{")
-        end = content.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            json_candidate = _strip_agent_terminator(content[start : end + 1])
-            try:
-                parsed_json_candidate = json.loads(json_candidate)
-                if isinstance(parsed_json_candidate, dict):
-                    return parsed_json_candidate
-            except json.JSONDecodeError as e:
-                repaired = _escape_invalid_json_backslashes(json_candidate)
-                if repaired != json_candidate:
-                    try:
-                        parsed_json_candidate = json.loads(repaired)
-                        if isinstance(parsed_json_candidate, dict):
-                            logger.warning(
-                                "Recovered Designer JSON after escape repair (brace slice). "
-                                "Original error at line %s col %s: %s",
-                                e.lineno,
-                                e.colno,
-                                e.msg,
-                            )
-                            return parsed_json_candidate
-                    except json.JSONDecodeError:
-                        pass
+        if isinstance(parsed, dict):
+            return parsed
 
         logger.warning(
             "Failed to parse JSON from Designer output. Returning raw string. Preview=%r",
             (content[:200] + "…") if len(content) > 200 else content,
         )
         return content
-
-    def _normalize_reply_to_text(  # noqa: PLR0911
-        self, reply: Union[str, Dict[str, Any], List[Any], None]
-    ) -> str:
-        """
-        Best-effort normalization of AutoGen replies into a plain text string.
-
-        Args:
-            reply: The raw reply from the agent.
-
-        Returns
-        -------
-            Normalized text string.
-        """
-        if reply is None:
-            return ""
-
-        if isinstance(reply, str):
-            return reply.strip()
-
-        if isinstance(reply, list) and reply:
-            return self._normalize_reply_to_text(reply[-1])
-
-        if isinstance(reply, dict):
-            if "content" in reply:
-                return str(reply["content"]).strip()
-
-            if "message" in reply:
-                return self._normalize_reply_to_text(reply["message"])
-
-            if (
-                "choices" in reply
-                and isinstance(reply["choices"], list)
-                and reply["choices"]
-            ):
-                return self._normalize_reply_to_text(reply["choices"][-1])
-
-        try:
-            return str(reply).strip()
-        except Exception:
-            return ""
