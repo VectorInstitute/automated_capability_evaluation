@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class GenerationUnit:
-    """Resolved unit of generation with persisted capability lineage and chapter context."""
+    """Unit of generation with persisted capability lineage and chapter context."""
 
     capability: Capability
     context_text: str
@@ -209,7 +209,9 @@ def build_context_bundle_from_chapters(
             get_book_name_from_relpath(relpaths[0]),
         )
 
-    sections = [f"[Source Chapter: {relpath}]\n{text}" for relpath, text in zip(relpaths, texts)]
+    sections = [
+        f"[Source Chapter: {relpath}]\n{text}" for relpath, text in zip(relpaths, texts)
+    ]
     context_text = "\n\n".join(sections)
     chapter_id = "__".join(chapter_ids)
     chapter_relpath = "__".join(relpaths)
@@ -229,7 +231,7 @@ def prepare_generation_units(
     stage2_capability_ids: List[str],
     capability_chapter_mapping: Dict[str, List[str]],
 ) -> List[GenerationUnit]:
-    """Prepare generation units from either Stage-2 capabilities or chapter placeholders."""
+    """Create generation units from either Stage-2 capabilities or placeholders."""
     chapter_by_relpath = {
         path.relative_to(chapter_root_dir).as_posix(): path for path in chapter_files
     }

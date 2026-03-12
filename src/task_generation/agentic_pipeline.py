@@ -435,7 +435,7 @@ def _append_choices_to_task_statement(
     task_statement: str,
     choices: Optional[List[Dict[str, str]]],
 ) -> str:
-    """Append a plain-text options block to task_statement for backward compatibility."""
+    """Append a options block to task_statement for backward compatibility."""
     if not task_statement or not choices:
         return task_statement
 
@@ -482,7 +482,9 @@ def _normalize_and_validate_mcq_fields(  # noqa: PLR0911
             )
             return None
         if label in seen_labels:
-            logger.warning("Skipping %s because choice label %s is duplicated.", task_id, label)
+            logger.warning(
+                "Skipping %s because choice label %s is duplicated.", task_id, label
+            )
             return None
         seen_labels.add(label)
         normalized_choices.append({"label": label, "solution": solution})
@@ -493,7 +495,11 @@ def _normalize_and_validate_mcq_fields(  # noqa: PLR0911
         return None
 
     answer_choice = next(
-        (choice for choice in normalized_choices if choice["label"] == normalized_answer),
+        (
+            choice
+            for choice in normalized_choices
+            if choice["label"] == normalized_answer
+        ),
         None,
     )
     if answer_choice is None:
@@ -544,9 +550,7 @@ def _format_feedback(report: Dict[str, Any]) -> str:
             if not isinstance(it, dict):
                 continue
             q = it.get("question_index", "?")
-            distractors_plausible = str(
-                it.get("distractors_plausible", "")
-            ).strip()
+            distractors_plausible = str(it.get("distractors_plausible", "")).strip()
             issues = it.get("main_issues", [])
             fix = it.get("fix", "")
             issue_list = (
@@ -559,9 +563,7 @@ def _format_feedback(report: Dict[str, Any]) -> str:
             if issue_list or fix:
                 parts = []
                 if distractors_plausible:
-                    parts.append(
-                        f"distractors_plausible={distractors_plausible}"
-                    )
+                    parts.append(f"distractors_plausible={distractors_plausible}")
                 if issue_list:
                     parts.append("Issues: " + "; ".join(issue_list))
                 if fix:
@@ -979,9 +981,9 @@ async def run_task_generation_loop(
                 no_source_content, no_source_prompt = await designer.remove_references(
                     candidate_question=no_redundant_content_as_str,
                 )
-                if is_qcore_dict(no_source_content) and not _looks_like_verification_report(
+                if is_qcore_dict(
                     no_source_content
-                ):
+                ) and not _looks_like_verification_report(no_source_content):
                     candidate_state.qcore = no_source_content
                 else:
                     logger.warning(
@@ -991,9 +993,7 @@ async def run_task_generation_loop(
                 logger.debug(
                     f"[{task_batch_id}] No-source content: {no_source_content}"
                 )
-                logger.debug(
-                    f"[{task_batch_id}] No-source prompt: {no_source_prompt}"
-                )
+                logger.debug(f"[{task_batch_id}] No-source prompt: {no_source_prompt}")
                 # --- Step 6: Check Soundness ---
                 logger.info(
                     f"[{task_batch_id}] {candidate_state.candidate_label} Step 6: Checking soundness..."
@@ -1015,9 +1015,7 @@ async def run_task_generation_loop(
                     clean_content = candidate_state.qcore
 
                 logger.debug(f"[{task_batch_id}] Soundness content: {clean_content}")
-                logger.debug(
-                    f"[{task_batch_id}] Soundness prompt: {soundness_prompt}"
-                )
+                logger.debug(f"[{task_batch_id}] Soundness prompt: {soundness_prompt}")
                 # --- Step 7: FINAL VERIFICATION (MCQ INTEGRITY, JSON FORMAT CHECK) ---
                 logger.info(
                     f"[{task_batch_id}] {candidate_state.candidate_label} Step 7: Verifying..."
@@ -1106,7 +1104,7 @@ async def run_task_generation_loop(
                         difficulty=difficulty,
                         blooms_level=blooms_level,
                         blueprint_key=blueprint_key
-                        or f"{difficulty.split('-')[0].strip()}_{blooms_level.split('-')[0].strip()}",
+                        or f"{difficulty.split('-')[0].strip()}_{blooms_level.split('-')[0].strip()}",  # noqa: PLC0207
                         chapter_q_start=task_seq,
                         task_id_start=task_seq,
                     )
@@ -1149,7 +1147,9 @@ async def run_task_generation_loop(
                         _norm_yes_no(verification_report.get("json_format_valid"))
                         == "no"
                     )
-                    mcq_ok = _norm_yes_no(verification_report.get("mcq_integrity")) == "yes"
+                    mcq_ok = (
+                        _norm_yes_no(verification_report.get("mcq_integrity")) == "yes"
+                    )
                     constraint_ok = (
                         _norm_yes_no(verification_report.get("constraint_compliance"))
                         == "yes"
@@ -1161,16 +1161,22 @@ async def run_task_generation_loop(
 
                     if json_only_case:
                         revised_content = await designer.fix_json_format_only(
-                            previous_candidate_output=_ensure_json_string(candidate_state.qcore),
+                            previous_candidate_output=_ensure_json_string(
+                                candidate_state.qcore
+                            ),
                             verifier_feedback=feedback_str,
                         )
                     else:
                         revised_content = await designer.fix_mcq_with_trace(
-                            previous_candidate_output=_ensure_json_string(candidate_state.qcore),
+                            previous_candidate_output=_ensure_json_string(
+                                candidate_state.qcore
+                            ),
                             verifier_feedback=feedback_str,
                             chapter_material=f"{context_text}\n\n[CHAPTER_KNOWLEDGE_SUMMARY]\n{chapter_knowledge_text}",
                             chapter_knowledge_text=chapter_knowledge_text,
-                            solution_trace=_ensure_json_string(candidate_state.trace_part),
+                            solution_trace=_ensure_json_string(
+                                candidate_state.trace_part
+                            ),
                             previous_questions=previous_questions,
                         )
 

@@ -527,7 +527,6 @@ async def run_pipeline(
                         chapter_id=current_capability.capability_id,
                         dedup_report=report,
                     )
-                    discarded_path = chapter_out_path.parent / "discarded_tasks.json"
                     discarded_tasks_to_save = discarded
                 else:
                     discarded_tasks_to_save = None
@@ -555,7 +554,7 @@ async def run_pipeline(
             )
             logger.info(f"Saved verification stats → {stats_path}")
 
-            saved_path, discarded_path = save_task_outputs(
+            saved_path, saved_discarded_path = save_task_outputs(
                 tasks=all_tasks,
                 discarded_tasks=discarded_tasks_to_save,
                 metadata=metadata,
@@ -563,9 +562,9 @@ async def run_pipeline(
             )
             logger.info(f"Saved {len(all_tasks)} tasks → {saved_path}")
 
-            if discarded_path is not None:
+            if saved_discarded_path is not None:
                 logger.info(
-                    f"Saved {len(discarded_tasks_to_save or [])} discarded tasks → {discarded_path}"
+                    f"Saved {len(discarded_tasks_to_save or [])} discarded tasks → {saved_discarded_path}"
                 )
     finally:
         await designer_client.close()

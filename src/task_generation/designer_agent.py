@@ -265,11 +265,12 @@ class DesignerAgent:
 
     async def _call_text_prompt(self, task: str) -> str:
         """Call the model in plain-text mode for a fully assembled prompt."""
-        return await async_call_model(
+        response = await async_call_model(
             self.model_client,
             user_prompt=task,
             mode=ModelCallMode.TEXT,
         )
+        return str(response)
 
     def _extract_message_content(  # noqa: PLR0911
         self, reply: Union[str, Dict[str, Any], List[Any], None]

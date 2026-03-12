@@ -35,7 +35,11 @@ def normalize_reply_to_text(reply: Any) -> str:  # noqa: PLR0911
             return str(reply["content"]).strip()
         if "message" in reply:
             return normalize_reply_to_text(reply["message"])
-        if "choices" in reply and isinstance(reply["choices"], list) and reply["choices"]:
+        if (
+            "choices" in reply
+            and isinstance(reply["choices"], list)
+            and reply["choices"]
+        ):
             return normalize_reply_to_text(reply["choices"][-1])
 
     try:
@@ -72,10 +76,14 @@ def parse_json_like(
                     pass
             return None
 
-    blocks = re.findall(r"```json\s*(.*?)\s*```", content, flags=re.DOTALL | re.IGNORECASE)
+    blocks = re.findall(
+        r"```json\s*(.*?)\s*```", content, flags=re.DOTALL | re.IGNORECASE
+    )
     if blocks:
         for block in blocks:
-            obj = _loads_with_repair(strip_agent_terminator(block.strip()), "fenced block")
+            obj = _loads_with_repair(
+                strip_agent_terminator(block.strip()), "fenced block"
+            )
             if obj is not None:
                 return obj
     else:
