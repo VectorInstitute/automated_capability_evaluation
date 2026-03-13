@@ -24,8 +24,10 @@ from src.task_solver.messages import (
     AgentRevisionRequest,
     AgentSolution,
     FinalSolution,
+    SolutionUnion,
     Task,
     TaskSolutionRequest,
+    ToolAssistedAgentSolution,
 )
 from src.utils.agentic_prompts import (
     TASK_MODERATOR_CONSENSUS_PROMPT,
@@ -80,7 +82,8 @@ class TaskSolverModerator(RoutedAgent):
         self._langfuse_client = langfuse_client
 
         # Track solutions by task_id and round
-        self._solutions_buffer: Dict[int, List[AgentSolution]]
+        # Now properly typed with discriminator fields in solution classes
+        self._solutions_buffer: dict[int, list[SolutionUnion]] = {}
         self._current_round = 0
         self._final_solutions: FinalSolution
         self._tasks: Task  # Store original tasks for consensus checking
@@ -111,9 +114,13 @@ class TaskSolverModerator(RoutedAgent):
             raise
 
     def _check_simple_consensus(
-        self, solutions: List[AgentSolution]
+        self, solutions: list[SolutionUnion]
     ) -> tuple[bool, str, str]:
-        """Check consensus; if all agents have the same final answer."""
+        """Check consensus; if all agents have the same final answer.
+
+        Works with both AgentSolution and ToolAssistedAgentSolution since
+        both have final_answer and numerical_answer fields.
+        """
         if not solutions or len(solutions) < self._num_solvers:
             return False, "", "null"
 
@@ -230,6 +237,74 @@ class TaskSolverModerator(RoutedAgent):
                 error_msg = (
                     f"Error handling solution from agent {message.agent_id}: {str(e)}"
                 )
+                log.error(error_msg)
+                log.error(traceback.format_exc())
+                span.update(metadata={"error": error_msg})
+
+    @message_handler
+    async def handle_tool_assisted_agent_solution(
+        self, message: ToolAssistedAgentSolution, ctx: MessageContext
+    ) -> None:
+        """Handle solution from a tool-assisted agent.
+
+        Tool-assisted solutions include code and code_output fields that need
+        to be preserved in the final solution files.
+        """
+        with self._langfuse_client.start_as_current_span(
+            name=f"moderator_handle_tool_assisted_solution_{message.task_id}_round_{message.round_number}"
+        ) as span:
+            try:
+                task_id = message.task_id
+                round_num = message.round_number
+
+                msg = f"Moderator received tool-assisted solution from agent {message.agent_id} for task {task_id}, {message.capability_name}, {message.area_name} round {round_num}"
+                log.info(msg)
+                log.debug(
+                    "Moderator: Tool-assisted solution has code: %s, has code_output: %s",
+                    bool(message.code),
+                    bool(message.code_output),
+                )
+                if message.code:
+                    log.debug(
+                        "Moderator: Code length in received message: %d characters",
+                        len(message.code),
+                    )
+                span.update(
+                    metadata={
+                        "solution_received": msg,
+                        "task_id": task_id,
+                        "agent_id": message.agent_id,
+                        "round": round_num,
+                        "has_code": bool(message.code),
+                        "code_executed": bool(message.code_output),
+                    }
+                )
+
+                if round_num != self._current_round:
+                    msg = f"Moderator received solution from agent {message.agent_id} for task {task_id}, {message.capability_name}, {message.area_name} round {round_num} but current round is {self._current_round}"
+                    log.error(msg)
+                    span.update(metadata={"error": msg})
+                    raise Exception(msg)
+
+                # Initialize round buffer if needed
+                if self._current_round not in self._solutions_buffer:
+                    self._solutions_buffer[self._current_round] = []
+
+                # Add solution to buffer - store the ToolAssistedAgentSolution directly
+                self._solutions_buffer[self._current_round].append(message)
+
+                msg = f"{len(self._solutions_buffer[self._current_round])}/{self._num_solvers} solutions collected for round {self._current_round}"
+                log.info(msg)
+                span.update(metadata={"solutions_collected": msg})
+
+                if (
+                    len(self._solutions_buffer[self._current_round])
+                    == self._num_solvers
+                ):
+                    await self._check_consensus_and_proceed(task_id, ctx)
+
+            except Exception as e:
+                error_msg = f"Error handling tool-assisted solution from agent {message.agent_id}: {str(e)}"
                 log.error(error_msg)
                 log.error(traceback.format_exc())
                 span.update(metadata={"error": error_msg})
@@ -420,17 +495,7 @@ class TaskSolverModerator(RoutedAgent):
                 "reasoning": final_solution.reasoning,
                 "consensus_reached": final_solution.consensus_reached,
                 "total_rounds": final_solution.total_rounds,
-                "all_solutions": [
-                    {
-                        "agent_id": sol["agent_id"],
-                        "task_id": sol["task_id"],
-                        "thought": sol["thought"],
-                        "final_answer": sol["final_answer"],
-                        "numerical_answer": sol["numerical_answer"],
-                        "round_number": sol["round_number"],
-                    }
-                    for sol in final_solution.all_solutions
-                ],
+                "all_solutions": final_solution.all_solutions,  # Include all fields from to_dict()
             }
 
             with open(output_file, "w") as f:
