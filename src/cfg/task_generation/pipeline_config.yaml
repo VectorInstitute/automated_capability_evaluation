@@ -1,0 +1,43 @@
+pipeline:
+  # Experiment identifier - used to name output folders - required by runner
+  # Keep these aligned with src/cfg/run_cfg.yaml defaults for compatibility
+  # (exp_cfg.exp_id and global_cfg.output_dir) when switching between
+  # `python -m src.task_generation.runner` and `python -m src.run_base_pipeline`.
+  experiment_id: "test_exp"
+  output_base_dir: "base_output"         # folder where outputs are written
+
+  # Chapter corpus root (relative to repo root)
+  # runner expects: <book_chapter_dir>/**.txt
+  book_chapter_dir: "init_book_chapter_text_files"
+
+  # Blueprints file (relative to cfg/)
+  blueprints_file: "blueprints.json"
+
+  # Capability source mode:
+  # - placeholder: synthesize capability metadata from chapter files (current mode)
+  # - from_stage2: load capabilities from Stage 2 outputs and persist their lineage
+  capability_source_mode: "placeholder"
+  # capabilities_tag: null  # required when capability_source_mode=from_stage2
+  # capability_chapter_mapping_file: "src/task_generation/capability_to_chapters.json"
+  # Optional JSON object mapping capability_id or area_id/capability_id to one or more
+  # chapter relpaths under book_chapter_dir. If omitted:
+  # - single discovered chapter => that chapter is used for every capability
+  # - multiple discovered chapters => all chapters are provided as context
+
+  # Loop constraints
+  max_retries: 3
+  num_tasks: 5
+  hardening_rounds: 5
+
+  # Default tasks per combo (can be overridden by each combo's "num_tasks" in blueprints.json)
+  num_tasks_per_combo: 15
+
+  # Checkpoint configuration for incremental save/resume within a chapter run
+  checkpoint:
+    enabled: true
+    resume_from_checkpoint: true
+    every: 2
+    dir_name: "checkpoints"
+    file_name: "passed_tasks_checkpoint.json"
+
+  # Resumability is controlled by the Stage-3 tasks_tag passed into the runner.

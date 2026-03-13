@@ -1,0 +1,40 @@
+# cfg/agentic_config.yaml
+
+defaults:
+  temperature: 0
+  top_p: 0.95
+  timeout: 120
+  cache_seed: 42
+
+agents:
+  designer:
+    model: "gemini_pro"
+    model_config:
+      config_list:
+        - api_type: "google"
+          model: "gemini-3.1-pro-preview"
+          api_key: "${GOOGLE_API_KEY}"
+      temperature: 0
+      top_p: 0.95
+      timeout: 720
+      cache_seed: 42
+
+  verifier:
+    model: "claude"
+    model_config:
+      config_list:
+        - api_type: "claude"
+          model: "claude-opus-4-6"
+          api_key: "${ANTHROPIC_API_KEY}"
+      temperature: 0
+      top_p: 0.95
+      timeout: 600
+      cache_seed: 42
+
+dedup:
+  enabled: false
+  embedding_model: "text-embedding-3-small"
+  threshold: 0.90
+  keep_policy: "first"
+  cache_embeddings: true
+  save_discarded: true
