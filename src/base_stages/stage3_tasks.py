@@ -5,7 +5,6 @@ The correct answer is NOT determined here — that happens in Stage 4.
 """
 
 import logging
-from importlib import import_module
 from pathlib import Path
 from typing import Optional
 
@@ -16,6 +15,7 @@ from src.base_stages.generate_diverse_tasks_pipeline import (
 )
 from src.schemas.io_utils import load_capabilities, save_tasks
 from src.schemas.metadata_schemas import PipelineMetadata
+from src.task_generation.runner import run_from_stage3
 from src.utils import constants
 from src.utils.model_client_utils import get_standard_model_client
 from src.utils.timestamp_utils import iso_timestamp, timestamp_tag
@@ -62,8 +62,6 @@ def run_stage3(
     # If agentic mode, delegate to runner module which will call back into this module.
     if task_gen_mode == "agentic":
         logger.info("Stage 3 mode: agentic")
-        runner_mod = import_module("src.task_generation.runner")
-        run_from_stage3 = runner_mod.run_from_stage3
         return run_from_stage3(
             experiment_id=experiment_id,
             output_base_dir=output_base_dir,
