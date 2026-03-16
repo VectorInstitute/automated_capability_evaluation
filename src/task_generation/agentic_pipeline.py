@@ -1172,10 +1172,7 @@ async def run_task_generation_loop(
 
                     qa_pair = _qa_pair_text(one[0]) if one else ""
                     current_seed_index = i + 1
-                    if (
-                        qa_pair
-                        and current_seed_index not in prompt_memory_seed_indexes
-                    ):
+                    if qa_pair and current_seed_index not in prompt_memory_seed_indexes:
                         prompt_previous_questions.append(qa_pair)
                         prompt_memory_seed_indexes.add(current_seed_index)
 
