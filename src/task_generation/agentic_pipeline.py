@@ -44,6 +44,43 @@ def _qa_pair_text(t: Task) -> str:
     return f"Question: {q}; Answer: {a}" if q else ""
 
 
+def _prompt_memory_seed_index(task: Task) -> Optional[int]:
+    """Extract the seed-generation index used for prompt-memory grouping."""
+    meta = task.generation_metadata or {}
+    raw_seed_index = meta.get("seed_generation_index")
+    if raw_seed_index is None:
+        return None
+    try:
+        return int(raw_seed_index)
+    except (TypeError, ValueError):
+        return None
+
+
+def _rebuild_prompt_previous_questions(tasks: List[Task]) -> List[str]:
+    """Rebuild prompt memory with one representative QA pair per seed generation."""
+    prompt_previous_questions: List[str] = []
+    seen_seed_indexes: set[int] = set()
+
+    for task in tasks:
+        qa = _qa_pair_text(task)
+        if not qa:
+            continue
+
+        seed_index = _prompt_memory_seed_index(task)
+        if seed_index is None:
+            # Fall back to keeping the entry when legacy checkpoints lack seed metadata.
+            prompt_previous_questions.append(qa)
+            continue
+
+        if seed_index in seen_seed_indexes:
+            continue
+
+        seen_seed_indexes.add(seed_index)
+        prompt_previous_questions.append(qa)
+
+    return prompt_previous_questions
+
+
 def _is_passing(report: Dict[str, Any]) -> bool:
     """Determine if the verification report indicates a passing result."""
     overall = report.get("overall_verdict")
@@ -646,6 +683,9 @@ async def run_task_generation_loop(
     logger.info(f"[{task_batch_id}] Step 1: Generating one question at a time...")
 
     passed_tasks: List[Task] = []
+    prompt_previous_questions = previous_questions
+    prompt_previous_questions.clear()
+    prompt_memory_seed_indexes: set[int] = set()
     task_seq = chapter_q_start
     if seed_generation_target is None:
         seed_generation_target = num_tasks
@@ -669,12 +709,14 @@ async def run_task_generation_loop(
         if loaded_tasks:
             passed_tasks = loaded_tasks
 
-            # Rebuild previous_questions for anti-dup to remain consistent
-            previous_questions.clear()
-            for t in passed_tasks:
-                qa = _qa_pair_text(t)
-                if qa:
-                    previous_questions.append(qa)
+            # Rebuild prompt memory with one representative per seed generation.
+            prompt_previous_questions.extend(
+                _rebuild_prompt_previous_questions(passed_tasks)
+            )
+            for task in passed_tasks:
+                seed_index = _prompt_memory_seed_index(task)
+                if seed_index is not None:
+                    prompt_memory_seed_indexes.add(seed_index)
 
             # Advance task_seq so new tasks get new IDs
             task_seq = chapter_q_start + len(passed_tasks)
@@ -699,7 +741,7 @@ async def run_task_generation_loop(
         one_content, one_prompt = await designer.generate_draft(
             chapter_excerpts=context_text,
             chapter_knowledge_text=chapter_knowledge_text,
-            previous_questions=previous_questions,
+            previous_questions=prompt_previous_questions,
         )
         # Normalize generation output into dict
         one_obj: Any = one_content
@@ -714,7 +756,7 @@ async def run_task_generation_loop(
             one_content_retry, one_prompt_retry = await designer.generate_draft(
                 chapter_excerpts=context_text,
                 chapter_knowledge_text=chapter_knowledge_text,
-                previous_questions=previous_questions,
+                previous_questions=prompt_previous_questions,
             )
             one_obj = one_content_retry
             if isinstance(one_obj, str):
@@ -1129,12 +1171,17 @@ async def run_task_generation_loop(
                         )
 
                     qa_pair = _qa_pair_text(one[0]) if one else ""
-                    if qa_pair:
-                        previous_questions.append(qa_pair)
+                    current_seed_index = i + 1
+                    if (
+                        qa_pair
+                        and current_seed_index not in prompt_memory_seed_indexes
+                    ):
+                        prompt_previous_questions.append(qa_pair)
+                        prompt_memory_seed_indexes.add(current_seed_index)
 
                     task_seq += 1
                     logger.info(
-                        f"[{task_batch_id}] {candidate_state.candidate_label} PASSED (prev_questions={len(previous_questions)})"
+                        f"[{task_batch_id}] {candidate_state.candidate_label} PASSED (prompt_prev_questions={len(prompt_previous_questions)})"
                     )
                     break
 
@@ -1177,7 +1224,7 @@ async def run_task_generation_loop(
                             solution_trace=_ensure_json_string(
                                 candidate_state.trace_part
                             ),
-                            previous_questions=previous_questions,
+                            previous_questions=prompt_previous_questions,
                         )
 
                     if is_qcore_dict(
