@@ -1,3 +1,5 @@
+"""Tests for the compute_benchmark_novelty utility."""
+
 import pytest
 
 from src.utils import compute_benchmark_novelty

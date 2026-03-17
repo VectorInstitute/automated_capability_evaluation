@@ -1,6 +1,7 @@
+"""Tests for compute_differential_entropy (kNN-based differential entropy)."""
+
 import numpy as np
 import pytest
-from scipy.special import digamma, gammaln
 
 from src.utils import compute_differential_entropy
 
@@ -10,6 +11,7 @@ def _rng(seed=0):
 
 
 def test_returns_float_and_finite():
+    """Return value is a finite float."""
     rng = _rng(0)
     x = rng.normal(size=(300, 16))
     h = compute_differential_entropy(x, k=4)
@@ -18,6 +20,7 @@ def test_returns_float_and_finite():
 
 
 def test_permutation_invariance():
+    """Entropy is invariant to row permutation."""
     rng = _rng(1)
     x = rng.normal(size=(250, 8))
     h1 = compute_differential_entropy(x, k=4)
@@ -30,9 +33,7 @@ def test_permutation_invariance():
 
 
 def test_translation_invariance():
-    """
-    Differential entropy is translation-invariant; kNN estimators based on distances should be too.
-    """
+    """Entropy is translation-invariant; kNN estimators should be too."""
     rng = _rng(2)
     x = rng.normal(size=(400, 10))
     shift = rng.normal(size=(1, 10)) * 100.0
@@ -47,6 +48,7 @@ def test_translation_invariance():
 def test_scaling_increases_entropy():
     """
     Scaling embeddings by a>1 should increase entropy by about d*log(a).
+
     We don't require exact equality, just the direction and rough magnitude.
     """
     rng = _rng(3)
@@ -65,9 +67,7 @@ def test_scaling_increases_entropy():
 
 
 def test_more_spread_more_entropy():
-    """
-    A distribution with larger variance should have higher differential entropy.
-    """
+    """Larger variance should yield higher differential entropy."""
     rng = _rng(4)
     x_small = rng.normal(size=(800, 12)) * 0.5
     x_large = rng.normal(size=(800, 12)) * 2.0
@@ -80,9 +80,7 @@ def test_more_spread_more_entropy():
 
 
 def test_k_affects_estimate_but_is_finite():
-    """
-    Different k values should produce finite results and usually slightly different estimates.
-    """
+    """Different k values produce finite, usually different estimates."""
     rng = _rng(5)
     x = rng.normal(size=(600, 9))
     h4 = compute_differential_entropy(x, k=4)
@@ -93,6 +91,7 @@ def test_k_affects_estimate_but_is_finite():
 
 
 def test_rejects_non_2d_input():
+    """Reject non-2D input (e.g. 3D array)."""
     rng = _rng(6)
     x = rng.normal(size=(100, 5, 1))
     with pytest.raises((ValueError, AssertionError)):
@@ -100,12 +99,14 @@ def test_rejects_non_2d_input():
 
 
 def test_rejects_empty_input():
+    """Reject empty input array."""
     x = np.empty((0, 10))
     with pytest.raises((ValueError, AssertionError)):
         compute_differential_entropy(x, k=4)
 
 
 def test_rejects_k_too_large():
+    """Reject k larger than n_samples - 1."""
     rng = _rng(7)
     x = rng.normal(size=(10, 3))
     with pytest.raises((ValueError, AssertionError)):
@@ -115,6 +116,7 @@ def test_rejects_k_too_large():
 def test_duplicate_points_does_not_nan():
     """
     Duplicate points can cause zero kNN distances -> log(0).
+
     Depending on your implementation, this might:
       - raise, or
       - return -inf, or

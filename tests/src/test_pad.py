@@ -1,3 +1,5 @@
+"""Tests for the Proxy-A-Distance (PAD) diversity metric utility."""
+
 import numpy as np
 import pytest
 

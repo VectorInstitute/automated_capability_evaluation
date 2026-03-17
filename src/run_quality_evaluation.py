@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, cast
 
 import hydra
 import numpy as np
+from numpy.typing import NDArray
 from omegaconf import DictConfig, OmegaConf
 
 from src.generate_embeddings import EmbeddingGenerator, EmbeddingModelName
@@ -423,7 +424,7 @@ def _load_capabilities_and_generate_embeddings(
     embed_dimensions: int,
     dataloader_config: Optional[Dict[str, Any]] = None,
     embedding_backend: str = "openai",
-) -> tuple[np.ndarray, List[str]]:
+) -> tuple[NDArray[np.float64], List[str]]:
     """
     Load capabilities from directory and generate embeddings.
 
@@ -597,7 +598,7 @@ def _load_benchmark_scores(
 def _compute_benchmark_metrics(
     model_to_accuracy: Dict[str, float],
     model_to_generation_accuracies: Dict[str, List[float]],
-    metrics_to_compute: set,
+    metrics_to_compute: set[str],
 ) -> None:
     """Compute difficulty, separability, and consistency from model accuracies."""
     if "difficulty" in metrics_to_compute:
@@ -622,7 +623,7 @@ def _compute_novelty_metrics(
     cfg: DictConfig,
     benchmark_source_cfg: DictConfig,
     model_to_accuracy: Dict[str, float],
-    metrics_to_compute: set,
+    metrics_to_compute: set[str],
 ) -> None:
     """Load prior accuracies and compute one novelty metric using all priors."""
     if "novelty" not in metrics_to_compute:
@@ -669,7 +670,9 @@ def _compute_novelty_metrics(
     logger.info("Benchmark novelty: %.4f", novelty)
 
 
-def _compute_embedding_based_metrics(cfg: DictConfig, metrics_to_compute: set) -> None:
+def _compute_embedding_based_metrics(
+    cfg: DictConfig, metrics_to_compute: set[str]
+) -> None:
     """Load benchmark and reference embeddings; compute PAD, MMD, KL, MDM, entropy."""
     internal_metrics = {"mdm", "entropy"}
     comparison_metrics = {"pad", "mmd", "kl_divergence"}
@@ -703,7 +706,7 @@ def _compute_embedding_based_metrics(cfg: DictConfig, metrics_to_compute: set) -
         )
 
     reference_embeddings = None
-    reference_embeddings_list: List[np.ndarray] = []
+    reference_embeddings_list: List[NDArray[np.float64]] = []
     reference_names: List[str] = []
 
     if comparison_metrics.intersection(metrics_to_compute):

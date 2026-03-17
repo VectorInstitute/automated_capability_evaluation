@@ -8,6 +8,7 @@ from typing import Iterable, List, Mapping, Union
 
 import kmedoids
 import numpy as np
+from numpy.typing import NDArray
 from scipy.special import digamma, gammaln
 from scipy.stats import spearmanr
 from sklearn.ensemble import RandomForestClassifier
@@ -330,8 +331,8 @@ def compute_benchmark_novelty(
 
 # Source paper: SynQue - https://arxiv.org/abs/2511.03928
 def compute_pad(
-    x_syn_emb: np.ndarray,
-    x_real_emb: np.ndarray,
+    x_syn_emb: NDArray[np.float64],
+    x_real_emb: NDArray[np.float64],
     classifier_name: str = "LogisticRegression",
 ) -> float:
     """
@@ -383,8 +384,8 @@ def compute_pad(
 
 # Source paper: SynQue - https://arxiv.org/abs/2511.03928
 def compute_mmd(
-    x: np.ndarray,
-    y: np.ndarray,
+    x: NDArray[np.float64],
+    y: NDArray[np.float64],
     kernel: str = "polynomial",
     degree: int = 3,
     gamma: float | None = None,
@@ -441,7 +442,7 @@ def compute_mmd(
 
 # Source paper: SynQue - https://arxiv.org/abs/2511.03928
 def compute_mdm(
-    embeddings: np.ndarray,
+    embeddings: NDArray[np.float64],
     n_clusters: int = 5,
     metric: str = "euclidean",
 ) -> float:
@@ -487,12 +488,12 @@ def compute_mdm(
 
 
 def fit_umap(
-    embeddings_list: List[np.ndarray],
+    embeddings_list: List[NDArray[np.float64]],
     n_components: int,
     n_neighbors: int = 15,
     min_dist: float = 0.1,
     metric: str = "cosine",
-) -> List[np.ndarray]:
+) -> List[NDArray[np.float64]]:
     """
     Fit UMAP on the concatenation of all embedding arrays, then split back.
 
@@ -536,7 +537,7 @@ def fit_umap(
 
 
 # Source paper: InfoSyth - https://arxiv.org/abs/2601.00575
-def compute_differential_entropy(embeddings: np.ndarray, k: int = 4) -> float:
+def compute_differential_entropy(embeddings: NDArray[np.float64], k: int = 4) -> float:
     """
     Compute the differential entropy of a set of embeddings using k-nearest neighbors.
 
@@ -580,8 +581,8 @@ def compute_differential_entropy(embeddings: np.ndarray, k: int = 4) -> float:
 
 # Source paper: InfoSyth - https://arxiv.org/abs/2601.00575
 def compute_kl_divergence(
-    p_embeddings: np.ndarray,
-    q_embeddings: np.ndarray,
+    p_embeddings: NDArray[np.float64],
+    q_embeddings: NDArray[np.float64],
     k: int = 4,
     eps: float = 1e-10,
 ) -> float:
