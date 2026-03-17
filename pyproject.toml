@@ -17,6 +17,7 @@ dependencies = [
     "langchain_openai>=0.3.6",
     "langchain>=0.3.19",
     "matplotlib>=3.10.0",
+    "kmedoids>=0.5.0",
     "omegaconf>=2.3.0",
     "openai>=1.102.0",
     "ag2>=0.3.2",
@@ -59,6 +60,7 @@ version = "0.1"
 
 [tool.poetry.dependencies]
 python = ">=3.10, <3.13"
+kmedoids = ">=0.5.0"
 
 [tool.poetry.group.test]
 optional = true
