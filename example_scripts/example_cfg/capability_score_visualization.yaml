@@ -13,11 +13,11 @@ capabilities_cfg:
   # Set to -1 to use all seed capabilities
   num_seed_capabilities: 1
   # Number of initial capabilities to generate using the scientist LLM
-  num_gen_capabilities: 100
+  num_capabilities: 100
   # Buffer for capability generation
-  num_gen_capabilities_buffer: 0.2
-  # Number of capability areas to generate
-  num_capability_areas: 10
+  num_capabilities_buffer: 0.2
+  # Number of areas to generate
+  num_areas: 10
   # Number of initial capabilities to generate per run
   num_gen_capabilities_per_run: 5
   # Number of tasks to generate for each capability

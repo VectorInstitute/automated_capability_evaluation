@@ -6,6 +6,7 @@ import logging
 import traceback
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from autogen_core import (
     EVENT_LOGGER_NAME,
@@ -20,7 +21,7 @@ from omegaconf import DictConfig
 from src.capability_generation.messages import Area
 from src.capability_generation.moderator import CapabilityModerator
 from src.capability_generation.scientist import CapabilityScientist
-from src.utils.model_client_utils import get_model_client
+from src.utils.model_client_utils import get_standard_model_client
 
 
 log = logging.getLogger("agentic_cap_gen.generator")
@@ -30,7 +31,7 @@ logging.getLogger(EVENT_LOGGER_NAME).setLevel(logging.WARNING)
 
 
 async def generate_capabilities_for_area(
-    cfg: DictConfig, area: Area, output_dir: Path, langfuse_client: Langfuse = None
+    cfg: DictConfig, area: Area, output_dir: Path, langfuse_client: Langfuse
 ) -> None:
     """Generate capabilities for a single area."""
     with langfuse_client.start_as_current_span(
@@ -57,7 +58,7 @@ async def generate_capabilities_for_area(
                 runtime,
                 "CapabilityScientistA",
                 lambda: CapabilityScientist(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.scientist_a.model_name,
                         seed=cfg.agents.scientist_a.seed,
                     ),
@@ -70,7 +71,7 @@ async def generate_capabilities_for_area(
                 runtime,
                 "CapabilityScientistB",
                 lambda: CapabilityScientist(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.scientist_b.model_name,
                         seed=cfg.agents.scientist_b.seed,
                     ),
@@ -83,7 +84,7 @@ async def generate_capabilities_for_area(
                 runtime,
                 "CapabilityModerator",
                 lambda: CapabilityModerator(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.moderator.model_name,
                         seed=cfg.agents.moderator.seed,
                     ),
@@ -153,8 +154,8 @@ async def generate_capabilities_for_area(
 async def generate_capabilities(
     cfg: DictConfig,
     areas_tag: str,
-    langfuse_client: Langfuse = None,
-    resume_tag: str = None,
+    langfuse_client: Langfuse,
+    resume_tag: Optional[str] = None,
 ) -> None:
     """Generate capabilities using multi-agent debate system for each area."""
     domain_name = cfg.global_cfg.domain

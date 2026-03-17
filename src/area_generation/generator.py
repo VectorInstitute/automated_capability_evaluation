@@ -18,7 +18,7 @@ from omegaconf import DictConfig
 from src.area_generation.messages import Domain
 from src.area_generation.moderator import AreaModerator
 from src.area_generation.scientist import AreaScientist
-from src.utils.model_client_utils import get_model_client
+from src.utils.model_client_utils import get_standard_model_client
 
 
 log = logging.getLogger("agentic_area_gen.generator")
@@ -27,7 +27,7 @@ logging.getLogger(TRACE_LOGGER_NAME).setLevel(logging.WARNING)
 logging.getLogger(EVENT_LOGGER_NAME).setLevel(logging.WARNING)
 
 
-async def generate_areas(cfg: DictConfig, langfuse_client: Langfuse = None) -> None:
+async def generate_areas(cfg: DictConfig, langfuse_client: Langfuse) -> None:
     """Generate areas using multi-agent debate system."""
     domain_name = cfg.global_cfg.domain
     exp_id = cfg.exp_cfg.exp_id
@@ -86,7 +86,7 @@ async def generate_areas(cfg: DictConfig, langfuse_client: Langfuse = None) -> N
                 runtime,
                 "AreaScientistA",
                 lambda: AreaScientist(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.scientist_a.model_name,
                         seed=cfg.agents.scientist_a.seed,
                     ),
@@ -99,7 +99,7 @@ async def generate_areas(cfg: DictConfig, langfuse_client: Langfuse = None) -> N
                 runtime,
                 "AreaScientistB",
                 lambda: AreaScientist(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.scientist_b.model_name,
                         seed=cfg.agents.scientist_b.seed,
                     ),
@@ -112,7 +112,7 @@ async def generate_areas(cfg: DictConfig, langfuse_client: Langfuse = None) -> N
                 runtime,
                 "AreaModerator",
                 lambda: AreaModerator(
-                    model_client=get_model_client(
+                    model_client=get_standard_model_client(
                         model_name=cfg.agents.moderator.model_name,
                         seed=cfg.agents.moderator.seed,
                     ),

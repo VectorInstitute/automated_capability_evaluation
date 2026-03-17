@@ -63,7 +63,7 @@ def main(cfg: DictConfig) -> None:
                 error_msg = "No areas_tag provided. Please provide pipeline_tags.areas_tag=<tag> to specify which areas to use."
                 log.warning(error_msg)
                 span.update(
-                    level="WARNING",
+                    level="ERROR",
                     status_message="Missing areas_tag",
                     metadata={"areas_tag_missing": error_msg},
                 )

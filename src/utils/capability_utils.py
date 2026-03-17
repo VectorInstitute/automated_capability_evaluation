@@ -6,19 +6,14 @@ It contains utility functions for capabilities.
 
 import json
 import logging
-import os
 import random
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
-from inspect_ai import eval as inspect_eval
 from inspect_ai.scorer import CORRECT
-from langsmith import traceable, tracing_context
 
-from src.model import Model
 from src.utils import constants
 from src.utils.data_utils import read_json_file
-from src.utils.inspect_eval_utils import INSPECT_JUDGE_LLM
 
 
 CAPABILITY_SCORER_MAP = {
@@ -222,114 +217,3 @@ def extract_and_parse_response(
         output.update({"parsed_response": parsed_response_str})
 
     return output
-
-
-def run_inspect_evals(path: str, model: Model, log_dir: str, **kwargs: Any) -> None:
-    """
-    Run the inspect evals command for a given capability and model.
-
-    Args
-    ----
-        path (str): The path to the evaluation file for the capability.
-        model (Model): The model object to evaluate.
-        log_dir (str): The directory to store evaluation logs.
-        kwargs (Any): Additional arguments for the command.
-    """
-    # Create langsmith metadata
-    model_name = model.get_model_name(with_provider=True)
-    ls_metadata: Dict[str, Any] = {
-        "ls_provider": model.model_provider,
-        "ls_model_name": model.get_model_name(with_provider=False),
-        "ls_model_type": "chat",
-        "exp_id": kwargs.pop("run_id", None),
-        "capability_name": path,
-        "log_dir": log_dir,
-    }
-    ls_metadata.update({f"ls_{k}": v for k, v in kwargs.items()})
-
-    @traceable(
-        run_type="llm",
-    )
-    def _run_inspect_evals() -> Dict[str, Any]:
-        """
-        Run the inspect evals command for a given capability and model.
-
-        Local function to enable tracing using langsmith.
-        """
-        logger.info(f"Running inspect evals for {path} capability using {model_name}")
-        eval_log = inspect_eval(
-            tasks=path,
-            model=inspect_model_name,
-            log_dir=log_dir,
-            log_format="json",
-            **kwargs,
-        )[0]
-        # Return usage stats
-        if inspect_model_name in eval_log.stats.model_usage:
-            eval_model_usage = eval_log.stats.model_usage[inspect_model_name]
-            # TODO: How to track usage for judge llm?
-            usage_metadata = {
-                "input_tokens": eval_model_usage.input_tokens,
-                "output_tokens": eval_model_usage.output_tokens,
-                "total_tokens": eval_model_usage.total_tokens,
-                "reasoning_tokens": eval_model_usage.reasoning_tokens,
-                "judge_llm_usage": eval_log.stats.model_usage.get(judge_llm_name, None),
-            }
-        else:
-            usage_metadata = {
-                "input_tokens": 0,
-                "output_tokens": 0,
-                "total_tokens": 0,
-                "reasoning_tokens": 0,
-                "judge_llm_usage": None,
-            }
-        return {
-            "inspect_eval_log": eval_log,
-            "usage_metadata": usage_metadata,
-        }
-
-    judge_llm_name = kwargs.pop("judge_llm_name", INSPECT_JUDGE_LLM)
-    if model.model_provider == "local":
-        # Set OPENAI_BASE_URL to local model URL and replace "local" with "openai"
-        # See: https://inspect.aisi.org.uk/providers.html#vllm-server
-        # TODO: How to ensure this doesn't affect other processes
-        # if running in parallel?
-        os.environ["OPENAI_BASE_URL"] = model.model_url
-        inspect_model_name = model_name.replace("local", "openai")
-    else:
-        inspect_model_name = model_name
-
-    with tracing_context(
-        enabled=True,
-        tags=["run_inspect_evals"],
-        metadata=ls_metadata,
-    ):
-        output = _run_inspect_evals()
-
-    if model.model_provider == "local":
-        # Reset OPENAI_BASE_URL to actual openai URL
-        os.environ["OPENAI_BASE_URL"] = os.getenv(
-            "ORIGINAL_OPENAI_BASE_URL", constants.DEFAULT_OPENAI_BASE_URL
-        )
-
-    eval_log = output["inspect_eval_log"]
-    if eval_log.status == "error":
-        # TODO: Add option to retry with limit
-        raise ValueError(
-            f"Error running inspect evals for {path} capability using {model_name}: {eval_log.error}"
-        )
-
-    # Analyze tokens metadata for evaluation
-    usage_metadata = output["usage_metadata"]
-    tokens_summary = {
-        "total_input_tokens": usage_metadata["input_tokens"],
-        "total_output_tokens": usage_metadata["output_tokens"],
-        "total_tokens": usage_metadata["total_tokens"],
-        "input_tokens_per_task": usage_metadata["input_tokens"] / len(eval_log.samples),
-        "output_tokens_per_task": usage_metadata["output_tokens"]
-        / len(eval_log.samples),
-        "total_tokens_per_task": usage_metadata["total_tokens"] / len(eval_log.samples),
-    }
-    logger.info(
-        f"[{path}] Task evaluation tokens summary:\n{json.dumps(tokens_summary, indent=4)}"
-    )

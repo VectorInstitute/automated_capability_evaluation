@@ -4,7 +4,7 @@ import os
 from enum import Enum
 
 
-BASE_ARTIFACTS_DIR = "/h/fkohankh/automated_capability_evaluation_logs"
+BASE_ARTIFACTS_DIR = "/fs01/projects/aieng/public/ace/artifacts"
 GCP_BASE_ARTIFACTS_DIR = "gs://ace-artifacts"
 BASE_INSPECT_EVALS_DIR = "/h/fkohankh/automated_capability_evaluation_logs"
 
@@ -55,6 +55,9 @@ class VecInfStatus(Enum):
 
 
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
+
+DEFAULT_TEMPERATURE = 0.7
+DEFAULT_MAX_TOKENS = 16384
 
 DEFAULT_CAPABILITY_GENERATION_RETRY_ATTEMPTS = 3
 DEFAULT_TASK_GENERATION_RETRY_ATTEMPTS = 3
