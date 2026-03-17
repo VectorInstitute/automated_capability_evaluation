@@ -30,7 +30,6 @@ For each generation unit:
 8. Optionally deduplicates tasks and writes dedup reports.
 
 Current status:
-Current status:
 - This Stage-3 agentic pipeline is experimental and chapter-driven.
 - This is Stage-3 only and is not a full Stage 1 -> Stage 5 replacement.
 - Exact Stage 1 -> Stage 2 -> Stage 3 area/capability matching is not guaranteed in the current chapter-based flow.
