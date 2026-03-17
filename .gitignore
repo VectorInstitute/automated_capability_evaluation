@@ -143,6 +143,13 @@ logs/
 src/outputs/
 outputs/
 
+# Evaluation outputs/results (large, generated)
+base_output/
+
+# Slurm / batch logs (often checked in accidentally)
+*.out
+*.err
+
 # inspect result logs
 seed_datasets_inspect_logs/
 seed_tasks_results/

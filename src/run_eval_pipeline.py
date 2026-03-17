@@ -25,6 +25,7 @@ from omegaconf import DictConfig
 from src.eval_stages import (
     EvalSetupError,
     run_eval_stage0,
+    run_eval_stage0_static,
     run_eval_stage1,
     run_eval_stage2,
 )
@@ -132,6 +133,21 @@ def main(cfg: DictConfig) -> None:
             logger.info("Eval Stage 2 complete.")
         except ValueError as e:
             logger.error("Stage 2 failed: %s", e)
+
+    elif stage in {"0_static", "static0", "static"}:
+        if not validation_tag:
+            logger.error("validation_tag is required for stage 0_static")
+            logger.error(
+                "Usage: python -m src.run_eval_pipeline stage=0_static "
+                "validation_tag=_SOME_TAG static_benchmark_cfg.benchmark_id=HuggingFaceH4/MATH-500"
+            )
+            return
+
+        try:
+            run_eval_stage0_static(cfg, validation_tag)
+            logger.info("Eval Stage 0_static complete. Datasets created.")
+        except ValueError as e:
+            logger.error("Stage 0_static failed: %s", e)
 
     else:
         logger.error("Invalid stage: %s. Use 'all', 0, 1, or 2", stage)
