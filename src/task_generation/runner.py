@@ -199,6 +199,7 @@ async def run_pipeline(
     output_base_dir_override: Optional[Path] = None,
     tasks_tag_override: Optional[str] = None,
     capabilities_tag_override: Optional[str] = None,
+    resume_override: bool = False,
 ) -> str:
     """Run task generation pipeline and return the Stage-3 tasks tag."""
     configure_logging()
@@ -271,7 +272,7 @@ async def run_pipeline(
         or "placeholder_capabilities_tag"
     )
 
-    is_resume = tasks_tag_override is not None
+    is_resume = resume_override
     out_tag = tasks_tag_override or create_tag(datetime.now())
     designer_client, verifier_client = init_model_clients(agent_cfg)
 
@@ -579,6 +580,7 @@ def run_from_stage3(
     output_base_dir: Path,
     capabilities_tag: str,
     tasks_tag: Optional[str] = None,
+    is_resume: bool = False,
 ) -> str:
     """Run agentic task generation from Stage 3 and return tasks_tag."""
     return asyncio.run(
@@ -587,6 +589,7 @@ def run_from_stage3(
             output_base_dir_override=output_base_dir,
             tasks_tag_override=tasks_tag,
             capabilities_tag_override=capabilities_tag,
+            resume_override=is_resume,
         )
     )
 

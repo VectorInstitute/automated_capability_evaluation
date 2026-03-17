@@ -7,6 +7,15 @@ It generates MCQ tasks from chapter text files using:
 - `VerifierAgent` (format/integrity checks)
 - `run_task_generation_loop` (multi-step generation + retries)
 
+> [!WARNING]
+> Experimental feature: this agentic task-generation pipeline is an interim Stage-3 implementation and is not a full drop-in replacement for the standard Stage 1→5 pipeline.
+
+The default pipeline mode remains `task_generation_cfg.mode: base` in `src/cfg/run_cfg.yaml`.
+
+To run this chapter-based agentic Stage-3 path, explicitly set:
+`task_generation_cfg.mode: agentic`
+
+When `mode=base`, Stage 3 uses the standard capability-based generation flow
 
 ## 1) What This Pipeline Does
 
@@ -21,9 +30,14 @@ For each generation unit:
 8. Optionally deduplicates tasks and writes dedup reports.
 
 Current status:
+Current status:
 - This Stage-3 agentic pipeline is experimental and chapter-driven.
+- This is Stage-3 only and is not a full Stage 1 -> Stage 5 replacement.
 - Exact Stage 1 -> Stage 2 -> Stage 3 area/capability matching is not guaranteed in the current chapter-based flow.
-- When Stage-2 capabilities are unavailable, the pipeline uses placeholder area/capability lineage so outputs remain schema-compatible.
+- Chapter-to-capability mapping is interim and not yet fully standardized upstream.
+- When Stage-2 capabilities are unavailable or unmapped, the pipeline falls back to placeholder area/capability lineage so outputs remain schema-compatible.
+- Task generation currently uses only the first blueprint combination from the configured blueprints file.
+- Stage 4 (Solution Generation) and Stage 5 (Validation) are not yet validated for this experimental chapter-based Stage-3 output and should be treated as incompatible until explicitly adapted.
 - The supported workflow for this experimental path is to run task generation from Stage 3, not to rely on a full Stage 1 -> Stage 5 base-pipeline run.
 
 
@@ -146,7 +160,7 @@ Example `tasks.json` shape:
     "experiment_id": "test_exp",
     "output_base_dir": "base_output",
     "timestamp": "2026-03-11T15:58:33.936893Z",
-    "resume": true,
+    "resume": false,
     "input_stage_tag": "placeholder",
     "output_stage_tag": "_20260309_190626"
   },
@@ -229,10 +243,12 @@ Notes:
 There are two different resume mechanisms:
 
 - Output-tag resume at the runner level:
-  - The runner resumes only when an existing `tasks_tag` is passed in.
-  - Direct `python -m src.task_generation.runner` runs do not read a `pipeline.resume_tag` from config.
-  - Stage-3/base-pipeline runs can resume by passing an existing `tasks_tag`.
-  - When resuming, the runner skips any generation unit that already has `tasks.json`.
+  - The agentic Stage-3 path treats a run as resume only when an existing `tasks_tag` is explicitly provided by Stage 3.
+  - Fresh runs still generate a new `tasks_tag`, but they are not treated as resumed runs.
+  - Direct `python -m src.task_generation.runner` runs do not currently take a resume tag from `pipeline_config.yaml`.
+  - Stage-3/base-pipeline runs resume by reusing the same `tasks_tag`.
+  - At the generation-unit level, the runner skips only units that already have a final `tasks.json`.
+  - If `tasks.json` is missing, the unit is not skipped and the loop continues into checkpoint loading/generation.
 
 - Checkpoint resume inside the agentic loop:
   - If checkpointing is enabled and a checkpoint file exists for the current output tag/unit, accepted tasks and verification logs are restored.
@@ -252,8 +268,9 @@ Where `out_tag` is selected as:
 If your saved checkpoint is under `_20260227_155419` but you run with a different `tasks_tag`, the pipeline will start fresh because it is looking at a different checkpoint path.
 
 Recommended:
-1. Reuse the same `tasks_tag` when resuming through Stage 3, or
-2. Keep the same output tag path if you are resuming from an existing checkpointed run.
+1. Reuse the same `tasks_tag` when resuming through Stage 3.
+2. Expect fully completed units to be skipped only when their `tasks.json` already exists.
+3. Expect partially completed units to resume from `checkpoints/passed_tasks_checkpoint.json` when checkpoint resume is enabled.
 
 ### Checkpoint Save Behavior
 

@@ -67,6 +67,7 @@ def run_stage3(
             output_base_dir=output_base_dir,
             capabilities_tag=capabilities_tag,
             tasks_tag=tasks_tag,
+            is_resume=is_resume,
         )
 
     if task_gen_mode != "base":
