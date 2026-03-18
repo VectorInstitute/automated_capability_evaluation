@@ -245,7 +245,7 @@ async def run_pipeline(
     )
     hardening_rounds = int(pipeline_cfg["pipeline"].get("hardening_rounds", 5))
     hardening_rounds = max(hardening_rounds, 1)
-    num_tasks = seed_num_tasks * hardening_rounds
+    num_tasks = seed_num_tasks * (hardening_rounds + 1)
     capability_source_mode = (
         str(pipeline_cfg["pipeline"].get("capability_source_mode", "placeholder"))
         .strip()

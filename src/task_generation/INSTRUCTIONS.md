@@ -24,10 +24,11 @@ For each generation unit:
 2. Summarizes chapter knowledge once for that unit.
 3. Generates one seed MCQ at a time.
 4. Iteratively hardens that seed across multiple rounds, where each round starts from the previously hardened candidate.
-5. Runs refinement steps (clarify, integrity check, redundancy/source cleanup, soundness).
-6. Verifies pass/fail and retries with targeted repair prompts.
-7. Saves passing tasks to Stage-3 output format.
-8. Optionally deduplicates tasks and writes dedup reports.
+5. Sends both the original seed candidate and the hardened candidates through the same downstream refinement pipeline.
+6. Runs refinement steps (clarify, integrity check, redundancy/source cleanup, soundness).
+7. Verifies pass/fail and retries with targeted repair prompts.
+8. Saves passing tasks to Stage-3 output format, including seed tasks that pass as baseline tasks.
+9. Optionally deduplicates tasks and writes dedup reports.
 
 Current status:
 - This Stage-3 agentic pipeline is experimental and chapter-driven.
@@ -87,6 +88,7 @@ Notes:
 - `capability_source_mode: from_stage2` is supported only when Stage-2 capability artifacts can actually be loaded.
 - If Stage-2 capabilities are missing, the runner falls back to chapter-derived placeholder area/capability lineage.
 - The current runner logs the number of blueprint combinations found, but task generation currently uses only the first blueprint combination.
+- Each seed generation can now produce up to `1 + hardening_rounds` passing tasks: one seed baseline candidate plus the hardened candidates.
 
 ### `agent_config.yaml`
 
@@ -193,6 +195,8 @@ Example `tasks.json` shape:
         "chapter_question_id": "Finance_The_Economics_of_Money_Banking_and_Financial_Markets_007_q_000",
         "solution_graph": { "...": "omitted for brevity" },
         "complete_solution": "Step 1: Determine the market price prior to the announcement ...",
+        "candidate_origin": "seed",
+        "is_seed_task": true,
         "hardening_round_candidate_index": 1,
         "hardening_round_candidate_total": 5,
         "seed_generation_index": 1,
@@ -219,6 +223,8 @@ Example `verification_stats.json` shape:
       "difficulty": "Hard",
       "blooms_level": "Apply",
       "seed_generation_index": 1,
+      "candidate_origin": "seed",
+      "is_seed_task": true,
       "hardening_round_candidate_index": 1,
       "summary": {
         "overall_verdict": "Pass",
@@ -233,7 +239,8 @@ Example `verification_stats.json` shape:
 
 Notes:
 - In the current experimental chapter-based flow, `area_id` and `capability_id` may be placeholder lineage values.
-- `generation_metadata` includes useful traceability fields such as chapter origin, correct answer, hardening-round index, and seed-generation index.
+- `generation_metadata` includes useful traceability fields such as chapter origin, correct answer, seed-vs-hardened origin, hardening-round index, and seed-generation index.
+- Seed baseline tasks now go through the same downstream pipeline steps as hardened candidates and can be saved if they pass verification.
 - If dedup is enabled, you may also see `dedup_report.json` and `discarded_tasks.json` in the same directory.
 
 

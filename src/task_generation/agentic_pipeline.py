@@ -26,6 +26,8 @@ class CandidateState:
     trace_part: Dict[str, Any]
     solution_part: Dict[str, Any]
     candidate_label: str
+    candidate_origin: str
+    hardening_round_candidate_index: int
 
 
 def _qa_pair_text(t: Task) -> str:
@@ -848,29 +850,45 @@ async def run_task_generation_loop(
 
         if not hardened_round_candidates:
             logger.warning(
-                f"[{task_batch_id}] Q{i + 1} Step 1.5: no valid hardened outputs; falling back to the original generated candidate."
+                f"[{task_batch_id}] Q{i + 1} Step 1.5: no valid hardened outputs were produced; only the seed candidate will continue downstream."
             )
-            hardened_round_candidates.append(dict(one_obj))
 
-        logger.info(
-            f"[{task_batch_id}] Q{i + 1} Step 1.5: forwarding {len(hardened_round_candidates)} hardened round candidate(s) into the downstream pipeline."
+        pipeline_candidates: List[Tuple[str, int, Dict[str, Any]]] = [
+            ("seed", 0, dict(one_obj))
+        ]
+        pipeline_candidates.extend(
+            ("hardened", candidate_idx, candidate_obj)
+            for candidate_idx, candidate_obj in enumerate(
+                hardened_round_candidates,
+                start=1,
+            )
         )
 
-        for candidate_idx, candidate_obj in enumerate(
-            hardened_round_candidates, start=1
-        ):
+        logger.info(
+            f"[{task_batch_id}] Q{i + 1}: forwarding {len(pipeline_candidates)} candidate(s) into the downstream pipeline "
+            f"(1 seed + {len(hardened_round_candidates)} hardened)."
+        )
+
+        for candidate_origin, candidate_idx, candidate_obj in pipeline_candidates:
             if len(passed_tasks) >= num_tasks:
                 break
 
             q_obj, trace_part, solution_part = _split_parts(candidate_obj)
+            candidate_label = (
+                f"SeedGeneration {i + 1}/{max_generation_attempts} SeedCandidate"
+                if candidate_origin == "seed"
+                else (
+                    f"SeedGeneration {i + 1}/{max_generation_attempts} HardeningRoundCandidate "
+                    f"{candidate_idx}/{len(hardened_round_candidates)}"
+                )
+            )
             candidate_state = CandidateState(
                 qcore=_wrap_qcore(q_obj),
                 trace_part=trace_part,
                 solution_part=solution_part,
-                candidate_label=(
-                    f"SeedGeneration {i + 1}/{max_generation_attempts} HardeningRoundCandidate "
-                    f"{candidate_idx}/{len(hardened_round_candidates)}"
-                ),
+                candidate_label=candidate_label,
+                candidate_origin=candidate_origin,
+                hardening_round_candidate_index=candidate_idx,
             )
 
             logger.info(
@@ -1086,7 +1104,10 @@ async def run_task_generation_loop(
                             "question_index_in_batch": task_seq,
                             "seed_generation_index": i + 1,
                             "seed_generation_target": max_generation_attempts,
-                            "hardening_round_candidate_index": candidate_idx,
+                            "candidate_origin": candidate_state.candidate_origin,
+                            "is_seed_task": candidate_state.candidate_origin
+                            == "seed",
+                            "hardening_round_candidate_index": candidate_state.hardening_round_candidate_index,
                             "hardening_round_candidate_total": len(
                                 hardened_round_candidates
                             ),
@@ -1124,10 +1145,16 @@ async def run_task_generation_loop(
                             "correct_answer": "",
                         }
                     packed_clean_content["hardening_round_candidate_index"] = (
-                        candidate_idx
+                        candidate_state.hardening_round_candidate_index
                     )
                     packed_clean_content["hardening_round_candidate_total"] = len(
                         hardened_round_candidates
+                    )
+                    packed_clean_content["candidate_origin"] = (
+                        candidate_state.candidate_origin
+                    )
+                    packed_clean_content["is_seed_task"] = (
+                        candidate_state.candidate_origin == "seed"
                     )
                     packed_clean_content["seed_generation_index"] = i + 1
                     packed_clean_content["seed_generation_target"] = (
