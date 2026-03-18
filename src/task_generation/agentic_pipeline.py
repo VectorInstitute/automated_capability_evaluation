@@ -1105,8 +1105,7 @@ async def run_task_generation_loop(
                             "seed_generation_index": i + 1,
                             "seed_generation_target": max_generation_attempts,
                             "candidate_origin": candidate_state.candidate_origin,
-                            "is_seed_task": candidate_state.candidate_origin
-                            == "seed",
+                            "is_seed_task": candidate_state.candidate_origin == "seed",
                             "hardening_round_candidate_index": candidate_state.hardening_round_candidate_index,
                             "hardening_round_candidate_total": len(
                                 hardened_round_candidates
