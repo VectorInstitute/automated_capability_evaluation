@@ -188,6 +188,6 @@ async def generate_areas(cfg: DictConfig, langfuse_client: Langfuse) -> None:
                 },
             )
 
-            if langfuse_client is None:
+            if langfuse_client is not None:
                 langfuse_client.flush()
             raise

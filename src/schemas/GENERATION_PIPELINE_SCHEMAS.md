@@ -562,6 +562,16 @@ This stage creates two files:
 }
 ```
 
+### Current Agentic Status
+
+The current Stage 3 agentic task generation pipeline is experimental.
+
+- It is currently focused on generating problems from chapter text, not on preserving exact Stage 1 -> Stage 2 -> Stage 3 area/capability matching.
+- In this mode, area and capability fields may be placeholder lineage values used to keep outputs compatible with the Stage 3 task schema and directory structure.
+- Because of that, running the full base pipeline from Stage 1 is not the supported path for this experimental agentic task generation flow.
+- Downstream Stage 4 (Solution Generation) and Stage 5 (Validation) should also be treated as incompatible with this experimental chapter-based task-generation flow unless they are explicitly adapted for it.
+- To generate problems with the current chapter-based agentic pipeline, start from Stage 3 and follow the instructions in [`src/task_generation/INSTRUCTIONS.md`](https://github.com/VectorInstitute/automated_capability_evaluation/blob/main/src/task_generation/INSTRUCTIONS.md).
+
 ---
 
 ## Stage 4: Solution Generation

@@ -1,0 +1,29 @@
+{
+  "domain": "Finance",
+  "combinations": [
+    {
+      "difficulty": "Hard - Involves complex reasoning, integration of several sub-topics, or solving non-trivial problems that demand deeper conceptual understanding.",
+      "blooms_level": "Apply - Use knowledge or methods in new but familiar situations. Example verbs: calculate, demonstrate, use, implement.",
+      "blueprint": "Design a challenging application task that requires the learner to select and execute an appropriate method across a multi-step problem where several related sub-concepts must be used together to reach a correct final result (e.g., combining multiple formulas, applying an algorithm with case distinctions, or carrying out a procedure that requires intermediate representations). The learner should demonstrate procedural fluency and strategic method selection: mapping a novel-but-still-familiar scenario into the right sequence of operations, keeping track of intermediate outputs, and checking that constraints or assumptions are satisfied at each stage. Provide enough structure so it is still an “apply” task (the relevant tools are taught), but embed the task in a less direct context—such as noisy or redundant information, a realistic scenario, or parameters that must be derived rather than given explicitly. Difficulty is hard because success depends on integrating multiple steps without guidance, managing potential pitfalls (edge cases, unit/notation consistency, or hidden constraints), and accurately implementing the method end-to-end rather than performing a single routine computation.",
+      "num_tasks": 15
+    },
+    {
+      "difficulty": "Hard - Involves complex reasoning, integration of several sub-topics, or solving non-trivial problems that demand deeper conceptual understanding.",
+      "blooms_level": "Analyze - Break information into parts and examine relationships or patterns. Example verbs: differentiate, compare, examine, infer.",
+      "blueprint": "Design a hard analysis task that presents a rich information set (e.g., a multi-part scenario, a larger table/dataset, a complex diagram, or a multi-step worked solution) and asks the learner to decompose it into meaningful components, uncover relationships, and draw justified inferences. The learner should be required to compare cases, identify underlying structure or patterns (such as dependencies, conditional behaviors, or hidden assumptions), and explain how specific elements interact to produce an outcome, potentially including diagnosing where and why an approach fails. The reasoning should go beyond surface comparison by requiring the learner to trace chains of relationships, reconcile conflicting cues, or determine which features are essential versus incidental. Difficulty is hard because the task demands integrating several sub-topics, handling multiple interacting variables or conditions, and sustaining multi-step analytic reasoning with evidence-based justification, rather than executing a known procedure or answering from a single cue.",
+      "num_tasks": 15
+    },
+    {
+      "difficulty": "Hard - Involves complex reasoning, integration of several sub-topics, or solving non-trivial problems that demand deeper conceptual understanding.",
+      "blooms_level": "Evaluate - Make judgments based on criteria and standards. Example verbs: justify, critique, assess, argue.",
+      "blueprint": "Design a hard evaluation task that asks the learner to make and defend a judgment about the correctness, quality, or appropriateness of a solution, method, model, or claim by applying multiple explicit criteria (e.g., validity of assumptions, logical soundness, efficiency, robustness, ethical constraints, or alignment with definitions). The learner should be required to critique or compare several plausible alternatives, identify subtle flaws or trade-offs, and construct a well-supported argument that cites evidence from the given materials (such as a complex scenario, dataset, or multi-step reasoning trace). The reasoning should involve weighing criteria, prioritizing what matters under the context, and justifying conclusions in a structured way rather than merely pointing out an obvious error. Difficulty is hard because the prompt demands integration of several sub-topics, careful interpretation of nuanced information, and rigorous justification under potentially competing standards, often requiring the learner to anticipate counterarguments or propose specific improvements consistent with the evaluation criteria.",
+      "num_tasks": 15
+    },
+    {
+      "difficulty": "Hard - Involves complex reasoning, integration of several sub-topics, or solving non-trivial problems that demand deeper conceptual understanding.",
+      "blooms_level": "Create - Combine elements to form a new pattern, structure, or product. Example verbs: design, compose, formulate, generate.",
+      "blueprint": "Design a hard creation task that requires the learner to produce a novel, well-structured artifact (e.g., a model/design, proof outline, algorithm, experimental plan, or synthesized explanation) by integrating several sub-topics and satisfying multiple constraints simultaneously. The learner should engage in generative reasoning: selecting and combining appropriate concepts, making design choices, and iteratively checking that the constructed product meets all requirements, with justification for key decisions. Provide a rich but bounded specification (inputs, goals, constraints, and evaluation criteria) so the task is objectively assessable while still demanding non-trivial synthesis and planning. Difficulty is hard because the learner must coordinate multiple interacting ideas, handle trade-offs or edge cases, and create something coherent and correct in a less familiar or more abstract setting, rather than following a known template or completing a routine extension.",
+      "num_tasks": 15
+    }
+  ]
+}
