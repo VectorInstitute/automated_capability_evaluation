@@ -52,6 +52,12 @@ from src.eval_stages.static_benchmarks.proofnet import (
 )
 from src.eval_stages.static_benchmarks.stateval import build_eval_datasets_from_stateval
 from src.eval_stages.static_benchmarks.wemath import build_eval_datasets_from_wemath
+from src.eval_stages.static_benchmarks.finance_tasks import (
+    build_eval_datasets_from_finance_tasks,
+)
+from src.eval_stages.static_benchmarks.xfinbench import (
+    build_eval_datasets_from_xfinbench,
+)
 from src.eval_stages.static_benchmarks.specs import StaticBenchmarkSpec
 from src.schemas.eval_io_utils import save_eval_config, save_eval_dataset
 from src.schemas.eval_schemas import EvalConfig, EvalDataset
@@ -114,6 +120,17 @@ def _build_datasets_from_spec(spec: StaticBenchmarkSpec) -> List[EvalDataset]:
         "stateval",
     }:
         return build_eval_datasets_from_stateval(spec)
+    if bid in {"Zhihan/XFinBench", "XFinBench", "xfinbench"}:
+        return build_eval_datasets_from_xfinbench(spec)
+    if bid in {
+        "finance_tasks",
+        "FinanceTasks",
+        "finance_tasks.json",
+        "local_finance_tasks",
+    } or bid.endswith(".json"):
+        # If a user points benchmark_id to a local JSON path, we ingest it here.
+        # This is intentionally permissive for local workflows.
+        return build_eval_datasets_from_finance_tasks(spec)
     raise ValueError(f"Unknown static benchmark_id: {spec.benchmark_id}")
 
 
@@ -136,6 +153,7 @@ def run_eval_stage0_static(cfg: DictConfig, validation_tag: str) -> None:
         benchmark_id=str(benchmark_id),
         split=str(static_cfg.get("split", "test")),
         limit=static_cfg.get("limit"),
+        offset=static_cfg.get("offset"),
         area_id=str(static_cfg.get("area_id", StaticBenchmarkSpec.area_id)),
         capability_id=static_cfg.get("capability_id"),
         capability_name=static_cfg.get("capability_name"),

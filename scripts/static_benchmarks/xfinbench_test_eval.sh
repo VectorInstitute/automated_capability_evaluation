@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --job-name=bizbench_eval
-#SBATCH --output=logs/bizbench_eval_%A_%a.out
-#SBATCH --error=logs/bizbench_eval_%A_%a.err
-#SBATCH --time=04:00:00
+#SBATCH --job-name=xfinbench_test_eval
+#SBATCH --output=logs/xfinbench_test_eval_%A_%a.out
+#SBATCH --error=logs/xfinbench_test_eval_%A_%a.err
+#SBATCH --time=08:00:00
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --array=0-9
@@ -11,22 +11,25 @@ set -euo pipefail
 
 cd /fs01/projects/DeepLesion/projects/new_ace/automated_capability_evaluation
 
-# Allow running either via sbatch (with SLURM_ARRAY_TASK_ID set)
-# or directly (default to a single chunk 0).
+# Allow running via sbatch (with SLURM_ARRAY_TASK_ID) or directly (defaults to 0).
 : "${SLURM_ARRAY_TASK_ID:=0}"
 
-CHUNK=500
+# 10 chunks over ~2828 filtered test examples → ~300 per chunk
+CHUNK=300
 OFFSET=$((SLURM_ARRAY_TASK_ID * CHUNK))
-VALIDATION_TAG="_BIZBENCH_${SLURM_ARRAY_TASK_ID}_$(date +%Y%m%d_%H%M%S)"
+VALIDATION_TAG="_XFINBENCH_TEST_${SLURM_ARRAY_TASK_ID}_$(date +%Y%m%d_%H%M%S)"
 
-# Stage 0_static: build datasets from kensho/bizbench
+# Stage 0_static: build datasets from Zhihan/XFinBench (test split, CSV-backed HF repo)
 python -m src.run_eval_pipeline \
   stage=0_static \
   validation_tag="$VALIDATION_TAG" \
-  +static_benchmark_cfg.benchmark_id=kensho/bizbench \
+  +static_benchmark_cfg.benchmark_id=Zhihan/XFinBench \
   +static_benchmark_cfg.split=test \
   +static_benchmark_cfg.offset="$OFFSET" \
-  +static_benchmark_cfg.limit="$CHUNK"
+  +static_benchmark_cfg.limit="$CHUNK" \
+  +static_benchmark_cfg.domain=finance \
+  +static_benchmark_cfg.capability_id=xfinbench_test \
+  +static_benchmark_cfg.capability_name="XFinBench Test"
 
 # Stage 1: run subject models on the static datasets
 python -m src.run_eval_pipeline \
@@ -39,7 +42,7 @@ python -m src.run_eval_pipeline \
   stage=2 \
   eval_tag="$VALIDATION_TAG"
 
-echo "Stage 0_static datasets: base_output/test_exp/eval/datasets/$VALIDATION_TAG"
+echo "Stage 0_static datasets (test split): base_output/test_exp/eval/datasets/$VALIDATION_TAG"
 echo "Stage 1 results (Inspect logs): base_output/test_exp/eval/results/$VALIDATION_TAG"
 echo "Stage 2 scores: base_output/test_exp/eval/scores/$VALIDATION_TAG"
 

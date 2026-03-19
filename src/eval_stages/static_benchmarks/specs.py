@@ -26,11 +26,15 @@ class StaticBenchmarkSpec:
         Human-readable capability name; if omitted, adapters may derive it.
     domain
         Domain label for EvalDataset (e.g. "math", "external").
-    """
+    +    offset
+    +        Optional starting index for slicing the underlying dataset. Used
+    +        together with `limit` to support chunked / array-style evaluation.
+    +    """
 
     benchmark_id: str
     split: str = "test"
     limit: Optional[int] = None
+    offset: Optional[int] = None
     area_id: str = "static_benchmarks"
     capability_id: Optional[str] = None
     capability_name: Optional[str] = None

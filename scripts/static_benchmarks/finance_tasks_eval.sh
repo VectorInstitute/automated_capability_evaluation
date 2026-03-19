@@ -1,32 +1,27 @@
 #!/bin/bash
-#SBATCH --job-name=bizbench_eval
-#SBATCH --output=logs/bizbench_eval_%A_%a.out
-#SBATCH --error=logs/bizbench_eval_%A_%a.err
+#SBATCH --job-name=finance_tasks_eval
+#SBATCH --output=logs/finance_tasks_eval_%j.out
+#SBATCH --error=logs/finance_tasks_eval_%j.err
 #SBATCH --time=04:00:00
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
-#SBATCH --array=0-9
 
 set -euo pipefail
 
 cd /fs01/projects/DeepLesion/projects/new_ace/automated_capability_evaluation
 
-# Allow running either via sbatch (with SLURM_ARRAY_TASK_ID set)
-# or directly (default to a single chunk 0).
-: "${SLURM_ARRAY_TASK_ID:=0}"
+VALIDATION_TAG="_FINANCE_TASKS_$(date +%Y%m%d_%H%M%S)"
 
-CHUNK=500
-OFFSET=$((SLURM_ARRAY_TASK_ID * CHUNK))
-VALIDATION_TAG="_BIZBENCH_${SLURM_ARRAY_TASK_ID}_$(date +%Y%m%d_%H%M%S)"
-
-# Stage 0_static: build datasets from kensho/bizbench
+# Stage 0_static: build datasets from local finance_tasks.json
 python -m src.run_eval_pipeline \
   stage=0_static \
   validation_tag="$VALIDATION_TAG" \
-  +static_benchmark_cfg.benchmark_id=kensho/bizbench \
-  +static_benchmark_cfg.split=test \
-  +static_benchmark_cfg.offset="$OFFSET" \
-  +static_benchmark_cfg.limit="$CHUNK"
+  +static_benchmark_cfg.benchmark_id=finance_tasks.json \
+  +static_benchmark_cfg.split=na \
+  +static_benchmark_cfg.domain=finance \
+  +static_benchmark_cfg.capability_id=finance_tasks \
+  +static_benchmark_cfg.capability_name="Finance Tasks"
+  # +static_benchmark_cfg.limit=30 \
 
 # Stage 1: run subject models on the static datasets
 python -m src.run_eval_pipeline \

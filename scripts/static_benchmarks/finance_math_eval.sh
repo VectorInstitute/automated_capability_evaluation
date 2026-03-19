@@ -1,16 +1,23 @@
 #!/bin/bash
 #SBATCH --job-name=finance_math_eval
-#SBATCH --output=logs/finance_math_eval_%j.out
-#SBATCH --error=logs/finance_math_eval_%j.err
+#SBATCH --output=logs/finance_math_eval_%A_%a.out
+#SBATCH --error=logs/finance_math_eval_%A_%a.err
 #SBATCH --time=04:00:00
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
+#SBATCH --array=0-9
 
 set -euo pipefail
 
 cd /fs01/projects/DeepLesion/projects/new_ace/automated_capability_evaluation
 
-VALIDATION_TAG="_FINANCE_MATH_$(date +%Y%m%d_%H%M%S)"
+# Allow running via sbatch (with SLURM_ARRAY_TASK_ID) or directly (defaults to 0).
+: "${SLURM_ARRAY_TASK_ID:=0}"
+
+# FinanceMath validation has 121 non-table tasks after filtering.
+CHUNK=20
+OFFSET=$((SLURM_ARRAY_TASK_ID * CHUNK))
+VALIDATION_TAG="_FINANCE_MATH_${SLURM_ARRAY_TASK_ID}_$(date +%Y%m%d_%H%M%S)"
 
 # Stage 0_static: build datasets from yale-nlp/FinanceMath (validation split only)
 python -m src.run_eval_pipeline \
@@ -18,7 +25,8 @@ python -m src.run_eval_pipeline \
   validation_tag="$VALIDATION_TAG" \
   +static_benchmark_cfg.benchmark_id=yale-nlp/FinanceMath \
   +static_benchmark_cfg.split=validation \
-  +static_benchmark_cfg.limit=30
+  +static_benchmark_cfg.offset="$OFFSET" \
+  +static_benchmark_cfg.limit="$CHUNK"
 
 # Stage 1: run subject models on the static datasets
 python -m src.run_eval_pipeline \

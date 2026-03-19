@@ -15,6 +15,8 @@ sbatch scripts/static_benchmarks/orca_math_eval.sh
 sbatch scripts/static_benchmarks/proofnet_eval.sh
 sbatch scripts/static_benchmarks/harp_eval.sh
 sbatch scripts/static_benchmarks/finance_math_eval.sh
+sbatch scripts/static_benchmarks/finance_tasks_eval.sh
+sbatch scripts/static_benchmarks/xfinbench_eval.sh
 sbatch scripts/static_benchmarks/bizbench_eval.sh
 sbatch scripts/static_benchmarks/omni_math_eval.sh
 sbatch scripts/static_benchmarks/minif2f_eval.sh

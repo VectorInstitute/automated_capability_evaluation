@@ -69,18 +69,37 @@ def _build_input(question: str, context: Any, options: Any) -> str:
     return "\n\n".join(parts).strip()
 
 
-def _iter_bizbench_samples(split: str, limit: int | None) -> Iterable[Dict[str, Any]]:
+def _iter_bizbench_samples(
+    split: str,
+    offset: int | None,
+    limit: int | None,
+) -> Iterable[Dict[str, Any]]:
     ds = load_dataset("kensho/bizbench", split=split)
-    if limit is not None:
-        ds = ds.select(range(min(limit, len(ds))))
-    yield from ds
+    n = len(ds)
+
+    start = 0 if offset is None else max(0, int(offset))
+    if start >= n:
+        return iter(())
+
+    if limit is None:
+        end = n
+    else:
+        end = min(start + int(limit), n)
+
+    if start == 0 and end == n:
+        yield from ds
+        return
+
+    yield from ds.select(range(start, end))
 
 
 def build_eval_datasets_from_bizbench(spec: StaticBenchmarkSpec) -> List[EvalDataset]:
     """Convert BizBench into a single EvalDataset."""
     tasks: List[Dict[str, str]] = []
 
-    for idx, row in enumerate(_iter_bizbench_samples(spec.split, spec.limit)):
+    for local_idx, row in enumerate(
+        _iter_bizbench_samples(spec.split, spec.offset, spec.limit)
+    ):
         question = str(row.get("question", "")).strip()
         raw_answer = row.get("answer")
         answer = _normalize_answer(raw_answer)
@@ -89,7 +108,8 @@ def build_eval_datasets_from_bizbench(spec: StaticBenchmarkSpec) -> List[EvalDat
             continue
 
         inp = _build_input(question, row.get("context"), row.get("options"))
-        task_id = f"bizbench_{idx:05d}"
+        global_idx = (spec.offset or 0) + local_idx
+        task_id = f"bizbench_{global_idx:05d}"
         tasks.append({"id": task_id, "input": inp, "target": answer})
 
     if not tasks:

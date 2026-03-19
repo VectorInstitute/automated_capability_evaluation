@@ -7,6 +7,7 @@ See: https://inspect.aisi.org.uk/
 """
 
 import logging
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
@@ -179,37 +180,74 @@ def _run_inspect_eval(
     subject_llm: str,
     judge_llm: Dict[str, str],
     output_dir: Path,
+    *,
+    max_attempts: int = 3,
 ) -> bool:
-    """Run a fresh Inspect eval for one capability/LLM pair."""
+    """Run an Inspect eval for one capability/LLM pair with auto-retry.
+
+    Why retry: providers occasionally drop connections mid-run (e.g. httpx
+    RemoteProtocolError: server disconnected without sending a response). When
+    that happens, Inspect often leaves a partial log that can be resumed via
+    `inspect_eval_retry`.
+    """
     # Format model names for Inspect (provider/model)
     judge_model = f"{judge_llm['provider']}/{judge_llm['name']}"
 
-    try:
-        # Create Inspect task
-        task = _create_inspect_task(dataset, judge_model)
+    expected_task_ids = {str(task["id"]) for task in dataset.tasks}
 
-        # Run evaluation
-        # Inspect saves logs to the specified directory
-        output_dir.mkdir(parents=True, exist_ok=True)
+    for attempt in range(1, max_attempts + 1):
+        try:
+            # Create Inspect task
+            task = _create_inspect_task(dataset, judge_model)
 
-        inspect_eval(
-            task,
-            model=subject_llm,
-            log_dir=str(output_dir),
-            log_format="json",
-        )
+            # Run evaluation
+            # Inspect saves logs to the specified directory
+            output_dir.mkdir(parents=True, exist_ok=True)
 
-        return True
+            inspect_eval(
+                task,
+                model=subject_llm,
+                log_dir=str(output_dir),
+                log_format="json",
+            )
 
-    except Exception as e:
-        logger.error(
-            "Inspect evaluation failed for %s/%s with %s: %s",
-            dataset.area_id,
-            dataset.capability_id,
-            subject_llm,
-            e,
-        )
-        return False
+            return True
+
+        except Exception as e:
+            logger.warning(
+                "Inspect eval attempt %d/%d failed for %s/%s with %s: %s",
+                attempt,
+                max_attempts,
+                dataset.area_id,
+                dataset.capability_id,
+                subject_llm,
+                e,
+            )
+
+            # Try to resume from a partial log if present.
+            retry_log = _find_retry_log(output_dir, expected_task_ids)
+            if retry_log is not None:
+                logger.info(
+                    "Attempting inspect_eval_retry from partial log: %s",
+                    retry_log.name,
+                )
+                if _run_inspect_retry(retry_log_path=retry_log, output_dir=output_dir):
+                    return True
+
+            if attempt < max_attempts:
+                sleep_s = min(2**attempt, 30)
+                logger.info("Retrying after %ds...", sleep_s)
+                time.sleep(sleep_s)
+                continue
+
+            logger.error(
+                "Inspect evaluation ultimately failed for %s/%s with %s after %d attempts",
+                dataset.area_id,
+                dataset.capability_id,
+                subject_llm,
+                max_attempts,
+            )
+            return False
 
 
 def _run_inspect_retry(
@@ -358,6 +396,7 @@ def run_eval_stage1(
                     subject_llm=subject_model,
                     judge_llm=judge_llm,
                     output_dir=output_dir,
+                    max_attempts=int(cfg.get("eval_cfg", {}).get("max_attempts", 3)),
                 )
 
             if success:
