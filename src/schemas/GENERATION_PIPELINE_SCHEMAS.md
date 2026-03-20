@@ -338,11 +338,11 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 ## Stage 0: Experiment Setup
 
 ### Input
-All inputs come from a configuration YAML file (e.g., `src/cfg/agentic_config.yaml`). Important fields include:
+All inputs come from a configuration YAML file (e.g., `src/cfg/run_cfg.yaml`). Important fields include:
 - **Experiment ID**: String - The experiment identifier (e.g., "r0_10x10")
 - **Domain Name**: String - The domain name (e.g., "personal finance", "mathematics")
 - **Description**: String (optional) - Domain description
-- **Output Base Directory**: String - Base output directory for all pipeline outputs (e.g., `global_cfg.output_dir` in agentic pipeline)
+- **Output Base Directory**: String - Base output directory for all pipeline outputs (e.g., `global_cfg.output_dir`)
 
 **Note:** The `experiment_id` and `output_base_dir` from the config YAML file are consistent across all stages. All stage-specific configurations (e.g., `num_areas`, `num_capabilities_per_area`, `num_tasks_per_capability`) also come from this same config YAML file.
 

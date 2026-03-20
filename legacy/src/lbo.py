@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 import gpytorch
 import torch
 
-from src.capability import Capability
+from legacy.src.capability import Capability
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
