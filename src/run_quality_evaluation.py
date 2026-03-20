@@ -7,10 +7,10 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, cast
 
 import hydra
 import numpy as np
+from langchain_openai import OpenAIEmbeddings
 from numpy.typing import NDArray
 from omegaconf import DictConfig, OmegaConf
 
-from src.generate_embeddings import EmbeddingGenerator, EmbeddingModelName
 from src.utils.diversity_metrics_dataloaders import (
     CapabilityDataloader,
     CSVDataloader,
@@ -475,13 +475,13 @@ def _load_capabilities_and_generate_embeddings(
         embedding_backend,
     )
     if embedding_backend.lower() == "openai":
-        # Use existing OpenAI-based EmbeddingGenerator
-        embedding_generator = EmbeddingGenerator(
-            model_name=EmbeddingModelName(embedding_model_name),
-            embed_dimensions=embed_dimensions,
+        embedding_model = OpenAIEmbeddings(
+            model=embedding_model_name,
+            dimensions=embed_dimensions,
         )
-        embeddings = embedding_generator.generate_embeddings(texts)
-        embeddings_array = np.array([emb.numpy() for emb in embeddings])
+        embeddings_array = np.array(
+            embedding_model.embed_documents(texts), dtype=np.float64
+        )
     elif embedding_backend.lower() == "huggingface":
         # Use HuggingFace encoder models such as gte-Qwen
         try:
