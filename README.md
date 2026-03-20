@@ -20,14 +20,6 @@ run:
 python3 -m poetry install --with test
 ```
 
-#### [Optional] Google Cloud Authentication
-
-The capability evaluation logs (evaluated using [Inspect](https://inspect.aisi.org.uk/)) are stored in a GCP bucket. Use the following command to log in using your GCP account:
-
-```bash
-gcloud auth application-default login
-```
-
 ## Run pipeline
 
 ### Configuration
@@ -40,15 +32,22 @@ gcloud auth application-default login
 - Rate limit vars (default values given):
     - RATE_LIMIT_CALLS=5
     - RATE_LIMIT_PERIOD=60
-- LangSmith tracing vars:
-    - LANGSMITH_TRACING=true
-    - LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
-    - LANGSMITH_API_KEY=<langsmith_api_key>
-    - LANGSMITH_PROJECT="automated_capability_evaluation"
-- GCP env vars:
-    - GOOGLE_CLOUD_PROJECT=<project_id>
+- Langfuse tracing vars (for task solver and agent traces):
+    - LANGFUSE_PUBLIC_KEY=<langfuse_public_key>
+    - LANGFUSE_SECRET_KEY=<langfuse_secret_key>
+    - LANGFUSE_HOST=<langfuse_host> (optional, defaults to Langfuse Cloud)
 
 2. Modify `src/cfg/run_cfg.yaml`, if required.
+
+### Current Pipeline Status
+
+- The active default flow is the schema-based base pipeline in `src/base_stages/` (Stages 0-5).
+- Most of the old agentic generation stages were removed from the active code path because they were outdated (notably legacy agentic area/capability generation modules).
+- Agentic task generation is experimental and currently Stage-3-focused. For usage and caveats, see `src/task_generation/INSTRUCTIONS.md`.
+- We kept the task solver module because it now includes tool-assisted solving support introduced in PR #62:
+  - `src/task_solver/tool_assisted_scientist.py`
+  - `src/tools/` (`ScientificToolKit`, safe Python execution, optional doc retrieval, tool-selection flow)
+  - details and examples: `src/tools/README.md`
 
 ### Base Pipeline
 
