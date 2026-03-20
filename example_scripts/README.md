@@ -3,7 +3,7 @@
 
 Here we describe the steps required for reading and selecting pre-generated capabilities and their tasks, generating capability embeddings, filtering capabilities based on those embeddings, reducing dimensionality, and visualizing capabilities. All of these steps are implemented in the `train_test_embedding_visualization.py` script, which runs the process for both `train` and `test` capabilities. The directory containing the `train` and `test` capabilities and tasks is specified in the `train_test_embedding_visualization_cfg.yaml` file.
 
-You can also find the steps for loading and visualizing LLM scores in `plot_llm_capability_scores.py`. The scores can be plotted using a spider chart or a bar chart via the `plot_capability_scores_spider_and_bar_chart()` function.
+The older LLM score plotting script (`plot_llm_capability_scores.py`) has been archived in `legacy/pre_schema_pipeline/example_scripts/` because it depended on removed legacy modules.
 
 
 Step 1: Read the already generated and saved train capabilities:
