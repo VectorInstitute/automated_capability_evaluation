@@ -1,5 +1,6 @@
 """Script to run the task generation pipeline over a corpus of book chapters."""
 
+import argparse
 import asyncio
 import json
 import logging
@@ -32,6 +33,8 @@ from src.task_generation.output_writer import (
     build_task_output_path,
     save_task_outputs,
     write_dedup_report,
+    write_json_artifact,
+    write_token_stats,
     write_verification_stats,
 )
 from src.task_generation.verifier_agent import VerifierAgent
@@ -128,10 +131,20 @@ def create_diff_blueprint_combo(difficulty: str, blooms: str) -> str:
         Slugified string.
     """
 
+    def _primary_label(x: str) -> str:
+        text = x.strip()
+        if " - " in text:
+            head = text.split(" - ", 1)[0].strip()
+            if head:
+                return head
+        return text
+
     def _clean(x: str) -> str:
         return "".join(ch if ch.isalnum() else "_" for ch in x.strip()).strip("_")
 
-    return f"{_clean(difficulty)}_{_clean(blooms)}"
+    cleaned_difficulty = _clean(_primary_label(difficulty))
+    cleaned_blooms = _clean(_primary_label(blooms))
+    return f"{cleaned_difficulty}_{cleaned_blooms}"
 
 
 def load_runner_configs(config_path: Path) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -193,12 +206,39 @@ def init_model_clients(
     return designer_client, verifier_client
 
 
+def shard_generation_units(
+    generation_units: List[GenerationUnit],
+    *,
+    worker_index: Optional[int],
+    worker_count: Optional[int],
+) -> List[GenerationUnit]:
+    """Select the generation units owned by this worker shard."""
+    if worker_index is None and worker_count is None:
+        return generation_units
+    if worker_index is None or worker_count is None:
+        raise ValueError("worker_index and worker_count must be provided together.")
+    if worker_count < 1:
+        raise ValueError(f"worker_count must be >= 1. Got: {worker_count}")
+    if worker_index < 0 or worker_index >= worker_count:
+        raise ValueError(
+            f"worker_index must be in [0, worker_count). Got worker_index={worker_index}, "
+            f"worker_count={worker_count}"
+        )
+    return [
+        unit
+        for idx, unit in enumerate(generation_units)
+        if idx % worker_count == worker_index
+    ]
+
+
 async def run_pipeline(
     *,
     experiment_id_override: Optional[str] = None,
     output_base_dir_override: Optional[Path] = None,
     tasks_tag_override: Optional[str] = None,
     capabilities_tag_override: Optional[str] = None,
+    worker_index: Optional[int] = None,
+    worker_count: Optional[int] = None,
 ) -> str:
     """Run task generation pipeline and return the Stage-3 tasks tag."""
     configure_logging()
@@ -237,14 +277,11 @@ async def run_pipeline(
         pipeline_cfg["pipeline"].get("num_tasks_per_combo", 5)
     )
     configured_num_tasks = pipeline_cfg["pipeline"].get("num_tasks")
-    seed_num_tasks = int(
-        configured_num_tasks
-        if configured_num_tasks is not None
-        else combinations[0].get("num_tasks", default_num_tasks_per_combo)
+    global_seed_num_tasks_override = (
+        int(configured_num_tasks) if configured_num_tasks is not None else None
     )
     hardening_rounds = int(pipeline_cfg["pipeline"].get("hardening_rounds", 5))
-    hardening_rounds = max(hardening_rounds, 1)
-    num_tasks = seed_num_tasks * hardening_rounds
+    hardening_rounds = max(hardening_rounds, 0)
     capability_source_mode = (
         str(pipeline_cfg["pipeline"].get("capability_source_mode", "placeholder"))
         .strip()
@@ -287,9 +324,7 @@ async def run_pipeline(
         )
         logger.info(f"Found {len(combinations)} blueprint combinations")
         logger.info(f"Configured capability source mode: {capability_source_mode}")
-        logger.info(f"seed tasks per capability/chapter: {seed_num_tasks}")
         logger.info(f"hardening rounds per seed task: {hardening_rounds}")
-        logger.info(f"maximum passing tasks per capability/chapter: {num_tasks}")
         if blueprint_domain:
             logger.info(f"Blueprint domain (informational): {blueprint_domain}")
 
@@ -351,8 +386,23 @@ async def run_pipeline(
             stage2_capability_ids=stage2_capability_ids,
             capability_chapter_mapping=capability_chapter_mapping,
         )
+        total_generation_units = len(generation_units)
+        generation_units = shard_generation_units(
+            generation_units,
+            worker_index=worker_index,
+            worker_count=worker_count,
+        )
 
-        logger.info("Prepared %s generation unit(s).", len(generation_units))
+        if worker_index is not None and worker_count is not None:
+            logger.info(
+                "Prepared %s generation unit(s); worker %s/%s owns %s unit(s).",
+                total_generation_units,
+                worker_index,
+                worker_count,
+                len(generation_units),
+            )
+        else:
+            logger.info("Prepared %s generation unit(s).", len(generation_units))
 
         for unit_idx, unit in enumerate(generation_units):
             current_capability = unit.capability
@@ -370,13 +420,6 @@ async def run_pipeline(
             )
             chapter_out_path.parent.mkdir(parents=True, exist_ok=True)
 
-            checkpoint_path = build_checkpoint_path(
-                chapter_out_path=chapter_out_path,
-                checkpoint_enabled=checkpoint_enabled,
-                checkpoint_dir_name=checkpoint_dir_name,
-                checkpoint_file_name=checkpoint_file_name,
-            )
-
             checkpoint_metadata = build_pipeline_metadata(
                 experiment_id=experiment_id,
                 output_base_dir=output_base_dir,
@@ -393,14 +436,66 @@ async def run_pipeline(
                 )
                 continue
 
-            # ---- chapter knowledge extraction (ONCE per chapter) ----
-            designer = make_designer_agent()
-            (
-                chapter_knowledge_obj,
-                _chapter_knowledge_prompt,
-            ) = await designer.summarize_chapter_knowledge(
-                chapter_excerpts=context_text
+            logger.info(
+                f"Generation unit {unit_idx + 1}/{len(generation_units)}: {chapter_relpath}"
             )
+
+            all_tasks: List[Task] = []
+            chapter_q_counter = 0
+            chapter_verification_logs: List[Dict[str, Any]] = []
+            chapter_token_usage_logs: List[Dict[str, Any]] = []
+            chapter_summary_path = chapter_out_path.parent / "chapter_summary.json"
+
+            # ---- chapter knowledge extraction (ONCE per chapter) ----
+            summary_usage_record: Dict[str, Any]
+            if is_resume and chapter_summary_path.exists():
+                summary_payload = json.loads(
+                    chapter_summary_path.read_text(encoding="utf-8")
+                )
+                chapter_knowledge_obj = summary_payload.get("chapter_knowledge_obj")
+                summary_usage_record = dict(
+                    summary_payload.get("summary_usage_record") or {}
+                )
+            else:
+                designer = make_designer_agent()
+                (
+                    chapter_knowledge_obj,
+                    _chapter_knowledge_prompt,
+                    chapter_summary_usage,
+                ) = await designer.summarize_chapter_knowledge(
+                    chapter_excerpts=context_text,
+                )
+                summary_usage_record = {
+                    "stage": "summarize_chapter_knowledge",
+                    "model_role": "designer",
+                    "chapter_id": chapter_id,
+                    "chapter_relpath": chapter_relpath,
+                    "blueprint_key": None,
+                    "difficulty": "",
+                    "blooms_level": "",
+                    "seed_generation_index": None,
+                    "candidate_label": None,
+                    "candidate_index_within_seed": None,
+                    "attempt_index": None,
+                    "hardening_round_index": None,
+                    "input_tokens": chapter_summary_usage.get("input_tokens"),
+                    "output_tokens": chapter_summary_usage.get("output_tokens"),
+                    "total_tokens": chapter_summary_usage.get("total_tokens"),
+                    "usage_available": bool(
+                        chapter_summary_usage.get("usage_available", False)
+                    ),
+                }
+                write_json_artifact(
+                    chapter_summary_path,
+                    {
+                        "chapter_id": chapter_id,
+                        "chapter_relpath": chapter_relpath,
+                        "book_name": book_name,
+                        "chapter_knowledge_obj": chapter_knowledge_obj,
+                        "summary_usage_record": summary_usage_record,
+                    },
+                )
+            chapter_token_usage_logs.append(summary_usage_record)
             if not isinstance(chapter_knowledge_obj, dict):
                 logger.warning(
                     "Chapter knowledge summary not dict; using raw text block."
@@ -410,73 +505,85 @@ async def run_pipeline(
                 if isinstance(chapter_knowledge_obj, dict)
                 else str(chapter_knowledge_obj)
             )
+            previous_questions_by_combo: Dict[str, List[str]] = {}
 
-            logger.info(
-                f"Generation unit {unit_idx + 1}/{len(generation_units)}: {chapter_relpath}"
-            )
-
-            all_tasks: List[Task] = []
-            chapter_q_counter = 0
-            chapter_verification_logs: List[Dict[str, Any]] = []
-            chapter_prev_questions: List[str] = []
-
-            # Blueprints are currently placeholders; use first combination for now.
-            difficulty = (
-                str(combinations[0].get("difficulty", "")).strip().split("-")[0].strip()
-            )
-            blooms_level = (
-                str(combinations[0].get("blooms_level", ""))
-                .strip()
-                .split("-")[0]
-                .strip()
-            )
-            blueprint = combinations[0].get("blueprint", "")
-
-            diff_bpt_combo = create_diff_blueprint_combo(difficulty, blooms_level)
-
-            logger.info(
-                f"Generating tasks for {chapter_id} with seed_tasks={seed_num_tasks}, "
-                f"hardening_rounds={hardening_rounds}, max_passing_tasks={num_tasks}"
-            )
-
-            tasks: Optional[List[Task]] = await run_task_generation_loop(
-                designer_factory=make_designer_agent,
-                verifier_factory=make_verifier_agent,
-                capability=current_capability,
-                capability_source_mode=effective_capability_source_mode,
-                domain=blueprint_domain,
-                context_text=context_text,
-                chapter_knowledge_text=chapter_knowledge_text,
-                max_retries=max_retries,
-                difficulty=difficulty,
-                blooms_level=blooms_level,
-                blueprint=blueprint,
-                num_tasks=num_tasks,
-                hardening_rounds=hardening_rounds,
-                seed_generation_target=seed_num_tasks,
-                chapter_id=chapter_id,
-                chapter_relpath=chapter_relpath,
-                blueprint_key=diff_bpt_combo,
-                chapter_q_start=chapter_q_counter,
-                verification_log=chapter_verification_logs,
-                previous_questions=chapter_prev_questions,
-                checkpoint_path=checkpoint_path,
-                checkpoint_every=checkpoint_every,
-                checkpoint_metadata=checkpoint_metadata,
-                resume_from_checkpoint=checkpoint_enabled and checkpoint_resume,
-            )
-
-            if not tasks:
-                logger.error(
-                    f"Failed to generate tasks for {chapter_id} | {difficulty} - {blooms_level}"
+            for combination in combinations:
+                difficulty = str(combination.get("difficulty", "")).strip()
+                blooms_level = str(combination.get("blooms_level", "")).strip()
+                diff_bpt_combo = create_diff_blueprint_combo(difficulty, blooms_level)
+                seed_num_tasks = int(
+                    global_seed_num_tasks_override
+                    if global_seed_num_tasks_override is not None
+                    else combination.get("num_tasks", default_num_tasks_per_combo)
                 )
-                continue
+                max_passing_tasks = seed_num_tasks * (hardening_rounds + 1)
+                combo_checkpoint_path = build_checkpoint_path(
+                    chapter_out_path=chapter_out_path,
+                    checkpoint_enabled=checkpoint_enabled,
+                    checkpoint_dir_name=checkpoint_dir_name,
+                    checkpoint_file_name=f"{diff_bpt_combo}_{checkpoint_file_name}",
+                )
+                combo_previous_questions = previous_questions_by_combo.setdefault(
+                    diff_bpt_combo, []
+                )
+                combo_verification_logs: List[Dict[str, Any]] = []
+                combo_token_usage_logs: List[Dict[str, Any]] = []
 
-            chapter_q_counter += len(tasks)
-            all_tasks.extend(tasks)
-            logger.info(
-                f"Accumulated {len(all_tasks)} total tasks so far for {chapter_id}"
-            )
+                logger.info(
+                    "Generating tasks for %s | combo=%s with seed_tasks=%s, "
+                    "hardening_rounds=%s, max_passing_tasks=%s",
+                    chapter_id,
+                    diff_bpt_combo,
+                    seed_num_tasks,
+                    hardening_rounds,
+                    max_passing_tasks,
+                )
+
+                tasks: Optional[List[Task]] = await run_task_generation_loop(
+                    designer_factory=make_designer_agent,
+                    verifier_factory=make_verifier_agent,
+                    capability=current_capability,
+                    capability_source_mode=effective_capability_source_mode,
+                    domain=blueprint_domain,
+                    context_text=context_text,
+                    chapter_knowledge_text=chapter_knowledge_text,
+                    max_retries=max_retries,
+                    difficulty=difficulty,
+                    blooms_level=blooms_level,
+                    num_tasks=max_passing_tasks,
+                    hardening_rounds=hardening_rounds,
+                    seed_generation_target=seed_num_tasks,
+                    chapter_id=chapter_id,
+                    chapter_relpath=chapter_relpath,
+                    blueprint_key=diff_bpt_combo,
+                    chapter_q_start=chapter_q_counter,
+                    verification_log=combo_verification_logs,
+                    token_usage_log=combo_token_usage_logs,
+                    previous_questions=combo_previous_questions,
+                    checkpoint_path=combo_checkpoint_path,
+                    checkpoint_every=checkpoint_every,
+                    checkpoint_metadata=checkpoint_metadata,
+                    resume_from_checkpoint=checkpoint_enabled and checkpoint_resume,
+                )
+                chapter_verification_logs.extend(combo_verification_logs)
+                chapter_token_usage_logs.extend(combo_token_usage_logs)
+
+                if not tasks:
+                    logger.error(
+                        "Failed to generate tasks for %s | %s",
+                        chapter_id,
+                        diff_bpt_combo,
+                    )
+                    continue
+
+                chapter_q_counter += len(tasks)
+                all_tasks.extend(tasks)
+                logger.info(
+                    "Accumulated %s total tasks so far for %s after combo=%s",
+                    len(all_tasks),
+                    chapter_id,
+                    diff_bpt_combo,
+                )
 
             if not all_tasks:
                 logger.error(
@@ -554,6 +661,17 @@ async def run_pipeline(
             )
             logger.info(f"Saved verification stats → {stats_path}")
 
+            token_stats_path = write_token_stats(
+                chapter_out_path=chapter_out_path,
+                chapter_id=chapter_id,
+                chapter_relpath=chapter_relpath,
+                book_name=book_name,
+                capability_id=current_capability.capability_id,
+                area_id=current_capability.area.area_id,
+                token_usage_logs=chapter_token_usage_logs,
+            )
+            logger.info(f"Saved token stats → {token_stats_path}")
+
             saved_path, saved_discarded_path = save_task_outputs(
                 tasks=all_tasks,
                 discarded_tasks=discarded_tasks_to_save,
@@ -579,6 +697,8 @@ def run_from_stage3(
     output_base_dir: Path,
     capabilities_tag: str,
     tasks_tag: Optional[str] = None,
+    worker_index: Optional[int] = None,
+    worker_count: Optional[int] = None,
 ) -> str:
     """Run agentic task generation from Stage 3 and return tasks_tag."""
     return asyncio.run(
@@ -587,13 +707,49 @@ def run_from_stage3(
             output_base_dir_override=output_base_dir,
             tasks_tag_override=tasks_tag,
             capabilities_tag_override=capabilities_tag,
+            worker_index=worker_index,
+            worker_count=worker_count,
         )
     )
 
 
+def parse_args() -> argparse.Namespace:
+    """Parse CLI args for direct runner execution."""
+    parser = argparse.ArgumentParser(description="Run agentic Stage-3 task generation.")
+    parser.add_argument(
+        "--tasks-tag",
+        dest="tasks_tag",
+        help="Existing or desired Stage-3 tasks tag. Provide this to resume or to coordinate parallel workers.",
+    )
+    parser.add_argument(
+        "--capabilities-tag",
+        dest="capabilities_tag",
+        help="Stage-2 capabilities tag to load when running from_stage2 lineage.",
+    )
+    parser.add_argument(
+        "--worker-index",
+        dest="worker_index",
+        type=int,
+        help="Zero-based shard index for chapter-level parallel workers.",
+    )
+    parser.add_argument(
+        "--worker-count",
+        dest="worker_count",
+        type=int,
+        help="Total number of chapter-level parallel workers.",
+    )
+    return parser.parse_args()
+
+
 async def main() -> None:
     """CLI entrypoint."""
-    await run_pipeline()
+    args = parse_args()
+    await run_pipeline(
+        tasks_tag_override=args.tasks_tag,
+        capabilities_tag_override=args.capabilities_tag,
+        worker_index=args.worker_index,
+        worker_count=args.worker_count,
+    )
 
 
 if __name__ == "__main__":

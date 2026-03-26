@@ -169,6 +169,7 @@ def _looks_like_verification_report(x: Any) -> bool:
         "overall_verdict",
         "json_format_valid",
         "mcq_integrity",
+        "blooms_alignment",
         "constraint_compliance",
         "question_evaluation",
     }
@@ -207,7 +208,9 @@ def _ensure_json_string(content: Union[Dict[str, Any], List[Any], str]) -> str:
     return s
 
 
-def _load_checkpoint(path: Path) -> Tuple[List[Task], List[Dict[str, Any]], int]:
+def _load_checkpoint(
+    path: Path,
+) -> Tuple[List[Task], List[Dict[str, Any]], List[Dict[str, Any]], int]:
     """
     Load tasks and verifier logs from a checkpoint JSON.
 
@@ -216,15 +219,17 @@ def _load_checkpoint(path: Path) -> Tuple[List[Task], List[Dict[str, Any]], int]
 
     Returns
     -------
-        Tuple[List[Task], List[Dict[str, Any]], int]: Loaded tasks, verifier logs,
-        and processed seed generation attempts.
+        Tuple[List[Task], List[Dict[str, Any]], List[Dict[str, Any]], int]:
+        Loaded tasks, verifier logs, token usage logs, and processed seed
+        generation attempts.
     """
     if not path.exists():
-        return [], [], 0
+        return [], [], [], 0
 
     data = json.loads(path.read_text(encoding="utf-8"))
     raw_tasks = data.get("tasks", [])
     raw_verification_logs = data.get("verification_logs", [])
+    raw_token_usage_logs = data.get("token_usage_logs", [])
     raw_generation_state = data.get("generation_state", {})
 
     tasks = [Task.from_dict(td) for td in raw_tasks]
@@ -233,15 +238,21 @@ def _load_checkpoint(path: Path) -> Tuple[List[Task], List[Dict[str, Any]], int]
         if isinstance(raw_verification_logs, list)
         else []
     )
+    token_usage_logs = (
+        [log for log in raw_token_usage_logs if isinstance(log, dict)]
+        if isinstance(raw_token_usage_logs, list)
+        else []
+    )
     generation_attempts = 0
     if isinstance(raw_generation_state, dict):
         generation_attempts = int(raw_generation_state.get("generation_attempts", 0))
-    return tasks, verification_logs, max(generation_attempts, 0)
+    return tasks, verification_logs, token_usage_logs, max(generation_attempts, 0)
 
 
 def _save_checkpoint_snapshot(
     passed_tasks: List[Task],
     verification_log: List[Dict[str, Any]],
+    token_usage_log: Optional[List[Dict[str, Any]]],
     checkpoint_path: Optional[Path],
     checkpoint_metadata: Optional[PipelineMetadata],
     generation_attempts: int,
@@ -254,6 +265,7 @@ def _save_checkpoint_snapshot(
         "metadata": checkpoint_metadata.to_dict(),
         "tasks": [task.to_dict() for task in passed_tasks],
         "verification_logs": verification_log,
+        "token_usage_logs": token_usage_log or [],
         "generation_state": {
             "generation_attempts": generation_attempts,
         },
@@ -468,6 +480,51 @@ def _pack_to_schema(
     return tasks
 
 
+def _append_token_usage_record(
+    token_usage_log: Optional[List[Dict[str, Any]]],
+    *,
+    usage: Optional[Dict[str, Any]],
+    stage: str,
+    model_role: str,
+    task_batch_id: str,
+    chapter_id: Optional[str],
+    chapter_relpath: Optional[str],
+    blueprint_key: Optional[str],
+    difficulty: str,
+    blooms_level: str,
+    seed_generation_index: Optional[int] = None,
+    candidate_label: Optional[str] = None,
+    candidate_index_within_seed: Optional[int] = None,
+    attempt_index: Optional[int] = None,
+    hardening_round_index: Optional[int] = None,
+) -> None:
+    """Append a normalized token-usage record for one model call."""
+    if token_usage_log is None:
+        return
+    usage = usage or {}
+    token_usage_log.append(
+        {
+            "task_batch_id": task_batch_id,
+            "stage": stage,
+            "model_role": model_role,
+            "chapter_id": chapter_id,
+            "chapter_relpath": chapter_relpath,
+            "blueprint_key": blueprint_key,
+            "difficulty": difficulty,
+            "blooms_level": blooms_level,
+            "seed_generation_index": seed_generation_index,
+            "candidate_label": candidate_label,
+            "candidate_index_within_seed": candidate_index_within_seed,
+            "attempt_index": attempt_index,
+            "hardening_round_index": hardening_round_index,
+            "input_tokens": usage.get("input_tokens"),
+            "output_tokens": usage.get("output_tokens"),
+            "total_tokens": usage.get("total_tokens"),
+            "usage_available": bool(usage.get("usage_available", False)),
+        }
+    )
+
+
 def _append_choices_to_task_statement(
     task_statement: str,
     choices: Optional[List[Dict[str, str]]],
@@ -566,6 +623,7 @@ def _format_feedback(report: Dict[str, Any]) -> str:
     top_keys = [
         "json_format_valid",
         "mcq_integrity",
+        "blooms_alignment",
         "constraint_compliance",
     ]
     verdict = report.get("overall_verdict") or "Unknown"
@@ -623,7 +681,6 @@ async def run_task_generation_loop(
     domain: str,  # TODO: remove domain from args if not needed in prompts
     context_text: str,
     chapter_knowledge_text: str,
-    blueprint: str,  # TODO: remove blueprint from args if not needed in prompts (or replace with more specific fields)
     previous_questions: List[str],
     capability_source_mode: str = "placeholder",
     max_retries: int = 5,
@@ -637,6 +694,7 @@ async def run_task_generation_loop(
     blueprint_key: Optional[str] = None,
     chapter_q_start: int = 0,
     verification_log: Optional[List[Dict[str, Any]]] = None,
+    token_usage_log: Optional[List[Dict[str, Any]]] = None,
     checkpoint_path: Optional[Path] = None,
     checkpoint_every: int = 10,
     checkpoint_metadata: Optional[PipelineMetadata] = None,
@@ -670,6 +728,7 @@ async def run_task_generation_loop(
         blueprint_key: Optional key representing the blueprint.
         chapter_q_start: Starting index for chapter question numbering.
         verification_log: Optional list to log verification reports.
+        token_usage_log: Optional list to log token usage across model calls.
 
     Returns
     -------
@@ -701,11 +760,17 @@ async def run_task_generation_loop(
         (
             loaded_tasks,
             loaded_verification_logs,
+            loaded_token_usage_logs,
             loaded_generation_attempts,
         ) = _load_checkpoint(checkpoint_path)
         if verification_log is not None:
             verification_log.clear()
             verification_log.extend(loaded_verification_logs)
+        if token_usage_log is not None:
+            current_token_usage_logs = list(token_usage_log)
+            token_usage_log.clear()
+            token_usage_log.extend(loaded_token_usage_logs)
+            token_usage_log.extend(current_token_usage_logs)
         if loaded_tasks:
             passed_tasks = loaded_tasks
 
@@ -738,10 +803,25 @@ async def run_task_generation_loop(
 
         # --- Step 1: INITIAL GENERATION ---
         designer = designer_factory()
-        one_content, one_prompt = await designer.generate_draft(
+        one_content, one_prompt, one_usage = await designer.generate_draft(
             chapter_excerpts=context_text,
             chapter_knowledge_text=chapter_knowledge_text,
+            difficulty=difficulty,
+            blooms_level=blooms_level,
             previous_questions=prompt_previous_questions,
+        )
+        _append_token_usage_record(
+            token_usage_log,
+            usage=one_usage,
+            stage="generate_draft",
+            model_role="designer",
+            task_batch_id=task_batch_id,
+            chapter_id=chapter_id,
+            chapter_relpath=chapter_relpath,
+            blueprint_key=blueprint_key,
+            difficulty=difficulty,
+            blooms_level=blooms_level,
+            seed_generation_index=i + 1,
         )
         # Normalize generation output into dict
         one_obj: Any = one_content
@@ -753,10 +833,29 @@ async def run_task_generation_loop(
 
             # Try one more time with schema reminder prompt if response is non-dict.
             designer = designer_factory()
-            one_content_retry, one_prompt_retry = await designer.generate_draft(
+            (
+                one_content_retry,
+                one_prompt_retry,
+                one_usage_retry,
+            ) = await designer.generate_draft(
                 chapter_excerpts=context_text,
                 chapter_knowledge_text=chapter_knowledge_text,
+                difficulty=difficulty,
+                blooms_level=blooms_level,
                 previous_questions=prompt_previous_questions,
+            )
+            _append_token_usage_record(
+                token_usage_log,
+                usage=one_usage_retry,
+                stage="generate_draft_retry",
+                model_role="designer",
+                task_batch_id=task_batch_id,
+                chapter_id=chapter_id,
+                chapter_relpath=chapter_relpath,
+                blueprint_key=blueprint_key,
+                difficulty=difficulty,
+                blooms_level=blooms_level,
+                seed_generation_index=i + 1,
             )
             one_obj = one_content_retry
             if isinstance(one_obj, str):
@@ -773,6 +872,7 @@ async def run_task_generation_loop(
                     _save_checkpoint_snapshot(
                         passed_tasks,
                         verification_log,
+                        token_usage_log,
                         checkpoint_path,
                         checkpoint_metadata,
                         generation_attempts,
@@ -792,6 +892,7 @@ async def run_task_generation_loop(
                 _save_checkpoint_snapshot(
                     passed_tasks,
                     verification_log,
+                    token_usage_log,
                     checkpoint_path,
                     checkpoint_metadata,
                     generation_attempts,
@@ -821,10 +922,30 @@ async def run_task_generation_loop(
             candidate_for_hardening = _ensure_json_string(candidate_for_hardening_obj)
 
             designer = designer_factory()
-            hardened_content, hardening_prompt = await designer.harden_task(
+            (
+                hardened_content,
+                hardening_prompt,
+                harden_usage,
+            ) = await designer.harden_task(
                 chapter_excerpts=context_text,
                 chapter_knowledge_summary=chapter_knowledge_text,
+                difficulty=difficulty,
+                blooms_level=blooms_level,
                 candidate_question_and_solution_graph=candidate_for_hardening,
+            )
+            _append_token_usage_record(
+                token_usage_log,
+                usage=harden_usage,
+                stage="harden_task",
+                model_role="designer",
+                task_batch_id=task_batch_id,
+                chapter_id=chapter_id,
+                chapter_relpath=chapter_relpath,
+                blueprint_key=blueprint_key,
+                difficulty=difficulty,
+                blooms_level=blooms_level,
+                seed_generation_index=i + 1,
+                hardening_round_index=round_num,
             )
             if (
                 isinstance(hardened_content, dict)
@@ -848,29 +969,48 @@ async def run_task_generation_loop(
 
         if not hardened_round_candidates:
             logger.warning(
-                f"[{task_batch_id}] Q{i + 1} Step 1.5: no valid hardened outputs; falling back to the original generated candidate."
+                f"[{task_batch_id}] Q{i + 1} Step 1.5: no valid hardened outputs; proceeding with the original seed candidate only."
             )
-            hardened_round_candidates.append(dict(one_obj))
+
+        candidate_records: List[Dict[str, Any]] = [
+            {
+                "candidate_obj": dict(one_obj),
+                "candidate_origin": "seed",
+                "is_seed_task": True,
+                "hardening_round_index": 0,
+                "candidate_label": f"SeedGeneration {i + 1}/{max_generation_attempts} SeedCandidate",
+            }
+        ]
+        for h_idx, hardened_obj in enumerate(hardened_round_candidates, start=1):
+            candidate_records.append(
+                {
+                    "candidate_obj": hardened_obj,
+                    "candidate_origin": "hardening",
+                    "is_seed_task": False,
+                    "hardening_round_index": h_idx,
+                    "candidate_label": (
+                        f"SeedGeneration {i + 1}/{max_generation_attempts} HardeningRound "
+                        f"{h_idx}/{len(hardened_round_candidates)}"
+                    ),
+                }
+            )
 
         logger.info(
-            f"[{task_batch_id}] Q{i + 1} Step 1.5: forwarding {len(hardened_round_candidates)} hardened round candidate(s) into the downstream pipeline."
+            f"[{task_batch_id}] Q{i + 1} Step 1.5: forwarding {len(candidate_records)} candidate(s) into the downstream pipeline "
+            f"(seed=1, hardened={len(hardened_round_candidates)})."
         )
 
-        for candidate_idx, candidate_obj in enumerate(
-            hardened_round_candidates, start=1
-        ):
+        for candidate_idx, candidate_record in enumerate(candidate_records, start=1):
             if len(passed_tasks) >= num_tasks:
                 break
 
+            candidate_obj = candidate_record["candidate_obj"]
             q_obj, trace_part, solution_part = _split_parts(candidate_obj)
             candidate_state = CandidateState(
                 qcore=_wrap_qcore(q_obj),
                 trace_part=trace_part,
                 solution_part=solution_part,
-                candidate_label=(
-                    f"SeedGeneration {i + 1}/{max_generation_attempts} HardeningRoundCandidate "
-                    f"{candidate_idx}/{len(hardened_round_candidates)}"
-                ),
+                candidate_label=str(candidate_record["candidate_label"]),
             )
 
             logger.info(
@@ -893,8 +1033,25 @@ async def run_task_generation_loop(
                 (
                     clarified_qcore,
                     clarification_prompt,
+                    clarification_usage,
                 ) = await designer.include_clarification_info(
-                    candidate_question=current_qcore_as_str
+                    candidate_question=current_qcore_as_str,
+                )
+                _append_token_usage_record(
+                    token_usage_log,
+                    usage=clarification_usage,
+                    stage="include_clarification_info",
+                    model_role="designer",
+                    task_batch_id=task_batch_id,
+                    chapter_id=chapter_id,
+                    chapter_relpath=chapter_relpath,
+                    blueprint_key=blueprint_key,
+                    difficulty=difficulty,
+                    blooms_level=blooms_level,
+                    seed_generation_index=i + 1,
+                    candidate_label=candidate_state.candidate_label,
+                    candidate_index_within_seed=candidate_idx,
+                    attempt_index=attempt,
                 )
 
                 if not is_qcore_dict(clarified_qcore):
@@ -910,8 +1067,28 @@ async def run_task_generation_loop(
                         '  "correct_answer": "<one of: A|B|C|D|E>"\n'
                         "}\n"
                     )
-                    clarified_qcore, _ = await designer.include_clarification_info(
-                        candidate_question=retry_prompt
+                    (
+                        clarified_qcore,
+                        _,
+                        clarification_retry_usage,
+                    ) = await designer.include_clarification_info(
+                        candidate_question=retry_prompt,
+                    )
+                    _append_token_usage_record(
+                        token_usage_log,
+                        usage=clarification_retry_usage,
+                        stage="include_clarification_info_retry",
+                        model_role="designer",
+                        task_batch_id=task_batch_id,
+                        chapter_id=chapter_id,
+                        chapter_relpath=chapter_relpath,
+                        blueprint_key=blueprint_key,
+                        difficulty=difficulty,
+                        blooms_level=blooms_level,
+                        seed_generation_index=i + 1,
+                        candidate_label=candidate_state.candidate_label,
+                        candidate_index_within_seed=candidate_idx,
+                        attempt_index=attempt,
                     )
 
                 if is_qcore_dict(clarified_qcore):
@@ -939,12 +1116,30 @@ async def run_task_generation_loop(
                 (
                     mcq_fixed_full,
                     mcq_fixed_full_prompt,
+                    mcq_integrity_usage,
                 ) = await verifier.check_and_revise_mcq_option(
                     candidate_question=integrity_input_str,
                     chapter_excerpts=context_text,
                     chapter_knowledge_text=chapter_knowledge_text,
+                    blooms_level=blooms_level,
                     solution_trace=candidate_state.trace_part,
                     solution_full=candidate_state.solution_part,
+                )
+                _append_token_usage_record(
+                    token_usage_log,
+                    usage=mcq_integrity_usage,
+                    stage="check_and_revise_mcq_option",
+                    model_role="verifier",
+                    task_batch_id=task_batch_id,
+                    chapter_id=chapter_id,
+                    chapter_relpath=chapter_relpath,
+                    blueprint_key=blueprint_key,
+                    difficulty=difficulty,
+                    blooms_level=blooms_level,
+                    seed_generation_index=i + 1,
+                    candidate_label=candidate_state.candidate_label,
+                    candidate_index_within_seed=candidate_idx,
+                    attempt_index=attempt,
                 )
 
                 mcq_fixed_full_str = _ensure_json_string(mcq_fixed_full)
@@ -995,8 +1190,25 @@ async def run_task_generation_loop(
                 (
                     no_redundant_content,
                     no_redundant_prompt,
+                    no_redundant_usage,
                 ) = await designer.remove_redundant_info(
                     candidate_question=mcq_integrity_as_str,
+                )
+                _append_token_usage_record(
+                    token_usage_log,
+                    usage=no_redundant_usage,
+                    stage="remove_redundant_info",
+                    model_role="designer",
+                    task_batch_id=task_batch_id,
+                    chapter_id=chapter_id,
+                    chapter_relpath=chapter_relpath,
+                    blueprint_key=blueprint_key,
+                    difficulty=difficulty,
+                    blooms_level=blooms_level,
+                    seed_generation_index=i + 1,
+                    candidate_label=candidate_state.candidate_label,
+                    candidate_index_within_seed=candidate_idx,
+                    attempt_index=attempt,
                 )
                 if is_qcore_dict(
                     no_redundant_content
@@ -1020,8 +1232,28 @@ async def run_task_generation_loop(
 
                 designer = designer_factory()
                 no_redundant_content_as_str = _ensure_json_string(candidate_state.qcore)
-                no_source_content, no_source_prompt = await designer.remove_references(
+                (
+                    no_source_content,
+                    no_source_prompt,
+                    no_source_usage,
+                ) = await designer.remove_references(
                     candidate_question=no_redundant_content_as_str,
+                )
+                _append_token_usage_record(
+                    token_usage_log,
+                    usage=no_source_usage,
+                    stage="remove_references",
+                    model_role="designer",
+                    task_batch_id=task_batch_id,
+                    chapter_id=chapter_id,
+                    chapter_relpath=chapter_relpath,
+                    blueprint_key=blueprint_key,
+                    difficulty=difficulty,
+                    blooms_level=blooms_level,
+                    seed_generation_index=i + 1,
+                    candidate_label=candidate_state.candidate_label,
+                    candidate_index_within_seed=candidate_idx,
+                    attempt_index=attempt,
                 )
                 if is_qcore_dict(
                     no_source_content
@@ -1043,8 +1275,28 @@ async def run_task_generation_loop(
 
                 designer = designer_factory()
                 no_source_content_as_str = _ensure_json_string(candidate_state.qcore)
-                clean_content, soundness_prompt = await designer.check_soundness(
+                (
+                    clean_content,
+                    soundness_prompt,
+                    soundness_usage,
+                ) = await designer.check_soundness(
                     candidate_question=no_source_content_as_str,
+                )
+                _append_token_usage_record(
+                    token_usage_log,
+                    usage=soundness_usage,
+                    stage="check_soundness",
+                    model_role="designer",
+                    task_batch_id=task_batch_id,
+                    chapter_id=chapter_id,
+                    chapter_relpath=chapter_relpath,
+                    blueprint_key=blueprint_key,
+                    difficulty=difficulty,
+                    blooms_level=blooms_level,
+                    seed_generation_index=i + 1,
+                    candidate_label=candidate_state.candidate_label,
+                    candidate_index_within_seed=candidate_idx,
+                    attempt_index=attempt,
                 )
                 if is_qcore_dict(clean_content) and not _looks_like_verification_report(
                     clean_content
@@ -1064,8 +1316,25 @@ async def run_task_generation_loop(
                 )
 
                 verifier = verifier_factory()
-                verification_report = await verifier.verify_task(
+                verification_report, verification_usage = await verifier.verify_task(
                     candidate_output=clean_content,
+                    blooms_level=blooms_level,
+                )
+                _append_token_usage_record(
+                    token_usage_log,
+                    usage=verification_usage,
+                    stage="verify_task",
+                    model_role="verifier",
+                    task_batch_id=task_batch_id,
+                    chapter_id=chapter_id,
+                    chapter_relpath=chapter_relpath,
+                    blueprint_key=blueprint_key,
+                    difficulty=difficulty,
+                    blooms_level=blooms_level,
+                    seed_generation_index=i + 1,
+                    candidate_label=candidate_state.candidate_label,
+                    candidate_index_within_seed=candidate_idx,
+                    attempt_index=attempt,
                 )
 
                 if is_qcore_dict(clean_content) and not _looks_like_verification_report(
@@ -1086,10 +1355,15 @@ async def run_task_generation_loop(
                             "question_index_in_batch": task_seq,
                             "seed_generation_index": i + 1,
                             "seed_generation_target": max_generation_attempts,
+                            "candidate_origin": candidate_record["candidate_origin"],
+                            "is_seed_task": candidate_record["is_seed_task"],
+                            "hardening_round_index": candidate_record[
+                                "hardening_round_index"
+                            ],
+                            "candidate_index_within_seed": candidate_idx,
+                            "candidate_total_within_seed": len(candidate_records),
                             "hardening_round_candidate_index": candidate_idx,
-                            "hardening_round_candidate_total": len(
-                                hardened_round_candidates
-                            ),
+                            "hardening_round_candidate_total": len(candidate_records),
                             "summary": {
                                 "overall_verdict": verification_report.get(
                                     "overall_verdict"
@@ -1099,6 +1373,9 @@ async def run_task_generation_loop(
                                 ),
                                 "mcq_integrity": verification_report.get(
                                     "mcq_integrity"
+                                ),
+                                "blooms_alignment": verification_report.get(
+                                    "blooms_alignment"
                                 ),
                                 "constraint_compliance": verification_report.get(
                                     "constraint_compliance"
@@ -1127,11 +1404,24 @@ async def run_task_generation_loop(
                         candidate_idx
                     )
                     packed_clean_content["hardening_round_candidate_total"] = len(
-                        hardened_round_candidates
+                        candidate_records
                     )
                     packed_clean_content["seed_generation_index"] = i + 1
                     packed_clean_content["seed_generation_target"] = (
                         max_generation_attempts
+                    )
+                    packed_clean_content["candidate_origin"] = candidate_record[
+                        "candidate_origin"
+                    ]
+                    packed_clean_content["is_seed_task"] = candidate_record[
+                        "is_seed_task"
+                    ]
+                    packed_clean_content["hardening_round_index"] = candidate_record[
+                        "hardening_round_index"
+                    ]
+                    packed_clean_content["candidate_index_within_seed"] = candidate_idx
+                    packed_clean_content["candidate_total_within_seed"] = len(
+                        candidate_records
                     )
 
                     one = _pack_to_schema(
@@ -1162,6 +1452,7 @@ async def run_task_generation_loop(
                         _save_checkpoint_snapshot(
                             passed_tasks,
                             verification_log,
+                            token_usage_log,
                             checkpoint_path,
                             checkpoint_metadata,
                             generation_attempts,
@@ -1204,24 +1495,64 @@ async def run_task_generation_loop(
                     designer = designer_factory()
 
                     if json_only_case:
-                        revised_content = await designer.fix_json_format_only(
+                        (
+                            revised_content,
+                            json_fix_usage,
+                        ) = await designer.fix_json_format_only(
                             previous_candidate_output=_ensure_json_string(
                                 candidate_state.qcore
                             ),
                             verifier_feedback=feedback_str,
                         )
+                        _append_token_usage_record(
+                            token_usage_log,
+                            usage=json_fix_usage,
+                            stage="fix_json_format_only",
+                            model_role="designer",
+                            task_batch_id=task_batch_id,
+                            chapter_id=chapter_id,
+                            chapter_relpath=chapter_relpath,
+                            blueprint_key=blueprint_key,
+                            difficulty=difficulty,
+                            blooms_level=blooms_level,
+                            seed_generation_index=i + 1,
+                            candidate_label=candidate_state.candidate_label,
+                            candidate_index_within_seed=candidate_idx,
+                            attempt_index=attempt,
+                        )
                     else:
-                        revised_content = await designer.fix_mcq_with_trace(
+                        (
+                            revised_content,
+                            repair_usage,
+                        ) = await designer.fix_mcq_with_trace(
                             previous_candidate_output=_ensure_json_string(
                                 candidate_state.qcore
                             ),
                             verifier_feedback=feedback_str,
                             chapter_material=f"{context_text}\n\n[CHAPTER_KNOWLEDGE_SUMMARY]\n{chapter_knowledge_text}",
                             chapter_knowledge_text=chapter_knowledge_text,
+                            difficulty=difficulty,
+                            blooms_level=blooms_level,
                             solution_trace=_ensure_json_string(
                                 candidate_state.trace_part
                             ),
                             previous_questions=prompt_previous_questions,
+                        )
+                        _append_token_usage_record(
+                            token_usage_log,
+                            usage=repair_usage,
+                            stage="fix_mcq_with_trace",
+                            model_role="designer",
+                            task_batch_id=task_batch_id,
+                            chapter_id=chapter_id,
+                            chapter_relpath=chapter_relpath,
+                            blueprint_key=blueprint_key,
+                            difficulty=difficulty,
+                            blooms_level=blooms_level,
+                            seed_generation_index=i + 1,
+                            candidate_label=candidate_state.candidate_label,
+                            candidate_index_within_seed=candidate_idx,
+                            attempt_index=attempt,
                         )
 
                     if is_qcore_dict(
@@ -1247,6 +1578,7 @@ async def run_task_generation_loop(
             _save_checkpoint_snapshot(
                 passed_tasks,
                 verification_log,
+                token_usage_log,
                 checkpoint_path,
                 checkpoint_metadata,
                 generation_attempts,

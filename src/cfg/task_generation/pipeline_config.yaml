@@ -8,7 +8,7 @@ pipeline:
 
   # Chapter corpus root (relative to repo root)
   # runner expects: <book_chapter_dir>/**.txt
-  book_chapter_dir: "init_book_chapter_text_files"
+  book_chapter_dir: "init_finance_book_chapter_text_files"
 
   # Blueprints file (relative to cfg/)
   blueprints_file: "blueprints.json"
@@ -26,11 +26,10 @@ pipeline:
 
   # Loop constraints
   max_retries: 3
-  num_tasks: 50
-  hardening_rounds: 5
+  hardening_rounds: 0
 
   # Default tasks per combo (can be overridden by each combo's "num_tasks" in blueprints.json)
-  num_tasks_per_combo: 15
+  num_tasks_per_combo: 10
 
   # Checkpoint configuration for incremental save/resume within a chapter run
   checkpoint:
