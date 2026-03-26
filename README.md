@@ -20,14 +20,6 @@ run:
 python3 -m poetry install --with test
 ```
 
-#### [Optional] Google Cloud Authentication
-
-The capability evaluation logs (evaluated using [Inspect](https://inspect.aisi.org.uk/)) are stored in a GCP bucket. Use the following command to log in using your GCP account:
-
-```bash
-gcloud auth application-default login
-```
-
 ## Run pipeline
 
 ### Configuration
@@ -40,15 +32,22 @@ gcloud auth application-default login
 - Rate limit vars (default values given):
     - RATE_LIMIT_CALLS=5
     - RATE_LIMIT_PERIOD=60
-- LangSmith tracing vars:
-    - LANGSMITH_TRACING=true
-    - LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
-    - LANGSMITH_API_KEY=<langsmith_api_key>
-    - LANGSMITH_PROJECT="automated_capability_evaluation"
-- GCP env vars:
-    - GOOGLE_CLOUD_PROJECT=<project_id>
+- Langfuse tracing vars (for task solver and agent traces):
+    - LANGFUSE_PUBLIC_KEY=<langfuse_public_key>
+    - LANGFUSE_SECRET_KEY=<langfuse_secret_key>
+    - LANGFUSE_HOST=<langfuse_host> (optional, defaults to Langfuse Cloud)
 
 2. Modify `src/cfg/run_cfg.yaml`, if required.
+
+### Current Pipeline Status
+
+- The active default flow is the schema-based base pipeline in `src/base_stages/` (Stages 0-5).
+- Most of the old agentic generation stages were removed from the active code path because they were outdated (notably legacy agentic area/capability generation modules).
+- Agentic task generation is experimental and currently Stage-3-focused. For usage and caveats, see `src/task_generation/INSTRUCTIONS.md`.
+- We kept the task solver module because it now includes tool-assisted solving support introduced in PR #62:
+  - `src/task_solver/tool_assisted_scientist.py`
+  - `src/tools/` (`ScientificToolKit`, safe Python execution, optional doc retrieval, tool-selection flow)
+  - details and examples: `src/tools/README.md`
 
 ### Base Pipeline
 
@@ -105,127 +104,26 @@ python -m src.run_base_pipeline stage=4 tasks_tag=_YYYYMMDD_HHMMSS solution_tag=
 python -m src.run_base_pipeline stage=5 solution_tag=_YYYYMMDD_HHMMSS validation_tag=_YYYYMMDD_HHMMSS
 ```
 
-### Evaluation of subject LLM on generated capabilities
+### Evaluation Pipeline
 
-Evaluates the subject LLM on the generated capabilities and calculates a score for each.
-
-```bash
-python -m src.run_evaluation
-```
-
-### Capability selection/generation using active learning
-
-Utilize the capability and the corresponding subject LLM score to select or generate a new capability.
+Evaluate subject LLMs on validated tasks and aggregate scores:
 
 ```bash
-python -m src.run_lbo
-```
-### Agentic Generation Scripts
+# Run all evaluation stages (setup -> execution -> aggregation)
+python -m src.run_eval_pipeline validation_tag=_YYYYMMDD_HHMMSS
 
-These scripts implement the multi-agent debate workflow for automated generation of areas, capabilities, tasks, and solutions.
-All configurable parameters are defined in `src/cfg/agentic_config.yaml`.
-
-#### Understanding Pipeline Tags
-
-The pipeline uses **auto-generated tags** to organize outputs from each step. Understanding how tags work is essential for running the pipeline:
-
-- **Tag Format**: Tags are automatically generated timestamps in the format `_YYYYMMDD_HHMMSS` (e.g., `_20251104_143022`)
-- **Auto-Generation**: When you run a step (e.g., Generate Areas), the script automatically creates a tag and includes it in the output path
-- **Finding Tags**: After running a step, check the console output or the output directory to see the generated tag. The tag appears in the file path where outputs are saved
-- **Using Tags**: To run the next step in the pipeline, you need to specify the tag from the previous step's output:
-  - Step 2 (Generate Capabilities) needs `areas_tag` from Step 1
-  - Step 3 (Generate Tasks) needs `capabilities_tag` from Step 2
-  - Step 4 (Generate Solutions) needs `tasks_tag` from Step 3
-
-**Example Workflow**:
-1. Run `python -m src.agentic_area_generator` → outputs to `.../areas/_20251104_143022/areas.json`
-2. Use the tag `_20251104_143022` in the next step:
-   ```bash
-   python -m src.agentic_capability_generator pipeline_tags.areas_tag=_20251104_143022
-   ```
-3. The capability generator outputs to `.../capabilities/_20251104_150315/...`
-4. Use this new tag for the next step, and so on.
-
----
-
-#### 1. Generate Areas
-Generate domain areas using the scientist–moderator debate system:
-```bash
-python -m src.agentic_area_generator
+# Or run individual stages
+python -m src.run_eval_pipeline stage=0 validation_tag=_YYYYMMDD_HHMMSS
+python -m src.run_eval_pipeline stage=1 validation_tag=_YYYYMMDD_HHMMSS
+python -m src.run_eval_pipeline stage=2 eval_tag=_YYYYMMDD_HHMMSS
 ```
 
-This step auto-generates a tag (e.g., `_20251104_143022`) and outputs the results to:
+### Legacy Pipelines
 
-**Output location:**
-```
-~/<output_dir>/<domain>/<exp_id>/areas/<areas_tag>/areas.json
-```
-Where:
-- `<output_dir>` comes from `global_cfg.output_dir`
-- `<domain>` comes from `global_cfg.domain` (spaces replaced with underscores)
-- `<exp_id>` comes from `exp_cfg.exp_id`
-- `<areas_tag>` is the auto-generated tag for this run (use this tag in Step 2)
+Some historical pipelines and scripts were moved to `legacy/` and are not part of the active flow:
 
-#### 2. Generate Capabilities
-Generate capabilities for each area:
-```bash
-# Use the areas_tag from Step 1 (Generate Areas) output
-python -m src.agentic_capability_generator pipeline_tags.areas_tag=_YYYYMMDD_HHMMSS pipeline_tags.resume_capabilities_tag=_YYYYMMDD_HHMMSS
-```
-
-**Options:**
-- `pipeline_tags.areas_tag` specifies which set of areas to use when generating capabilities. This should be the `<areas_tag>` from the output of Step 1 (Generate Areas).
-- `pipeline_tags.resume_capabilities_tag` (optional) resumes a previous capability generation run.
-
-This step auto-generates a new tag for the capabilities output.
-
-**Output location:**
-```
-~/<output_dir>/<domain>/<exp_id>/capabilities/<capabilities_tag>/<area>/capabilities.json
-```
-Where:
-- `<capabilities_tag>` is the auto-generated tag for this run (use this tag in Step 3)
-
-
-#### 3. Generate Tasks
-Generate evaluation tasks for a specific capabilities tag:
-```bash
-# Use the capabilities_tag from Step 2 (Generate Capabilities) output
-python -m src.agentic_task_generator pipeline_tags.capabilities_tag=_YYYYMMDD_HHMMSS pipeline_tags.resume_tasks_tag=_YYYYMMDD_HHMMSS
-```
-
-**Options:**
-- `pipeline_tags.capabilities_tag` specifies which set of capabilities to use when generating tasks. This should be the `<capabilities_tag>` from the output of Step 2 (Generate Capabilities).
-- `pipeline_tags.resume_tasks_tag` (optional) resumes a previous task generation run.
-
-This step auto-generates a new tag for the tasks output.
-
-**Output location:**
-```
-~/<output_dir>/<domain>/<exp_id>/tasks/<tasks_tag>/[<area>]-[<capability>]/tasks.json
-```
-Where:
-- `<tasks_tag>` is the auto-generated tag for this run (use this tag in Step 4)
-
-#### 4. Generate Solutions
-Solve generated tasks using the multi-agent debate system:
-```bash
-# Use the tasks_tag from Step 3 (Generate Tasks) output
-python -m src.agentic_task_solver pipeline_tags.tasks_tag=_YYYYMMDD_HHMMSS pipeline_tags.resume_solutions_tag=_YYYYMMDD_HHMMSS
-```
-
-**Options:**
-- `pipeline_tags.tasks_tag` specifies which set of tasks to solve. This should be the `<tasks_tag>` from the output of Step 3 (Generate Tasks).
-- `pipeline_tags.resume_solutions_tag` (optional) resumes a previous solution generation run.
-
-This step auto-generates a new tag for the solutions output.
-
-**Output location:**
-```
-~/<output_dir>/<domain>/<exp_id>/task_solutions/<solutions_tag>/[<area>]-[<capability>]/<task_id>_solution.json
-```
-Where:
-- `<solutions_tag>` is the auto-generated tag for this run
+- `legacy/pre_schema_pipeline/`: older capability-centric scripts and examples.
+- `legacy/src/`: legacy LBO implementation from the original paper codebase.
 
 ### Wikipedia-Based Analysis Tools
 

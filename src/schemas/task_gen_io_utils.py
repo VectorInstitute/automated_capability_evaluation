@@ -5,7 +5,11 @@ from __future__ import annotations
 import re
 from typing import Any, Sequence
 
-from autogen_agentchat.messages import TextMessage
+
+try:
+    from autogen_agentchat.messages import TextMessage as _TextMessage
+except ModuleNotFoundError:  # pragma: no cover - optional runtime dependency
+    _TextMessage = None
 
 
 def strip_agent_terminator(text: str) -> str:
@@ -83,7 +87,7 @@ def extract_last_message_text(
         return ""
 
     for message in reversed(messages):
-        if isinstance(message, TextMessage):
+        if _TextMessage is not None and isinstance(message, _TextMessage):
             text_content = message.content or ""
             return text_content.strip() if strip_content else text_content
 

@@ -1,41 +1,62 @@
-"""Base (non-agentic) pipeline stages and utilities.
+"""Base (non-agentic) pipeline stage entrypoints.
 
-This module contains all base pipeline stages and the utilities they use:
-
-Stages:
-- stage0_setup: Experiment and domain setup
-- stage1_areas: Area generation
-- stage2_capabilities: Capability generation and filtering
-- stage3_tasks: Task generation
-- stage4_solutions: Solution generation
-- stage5_validation: Task validation
-
-Utilities:
-- generate_areas: Area generation using LLM
-- generate_capabilities: Capability generation using LLM
-- generate_diverse_tasks_pipeline: Orchestrates subtopic→combination→blueprint→task
-  pipeline
-- generate_tasks_from_blueprints: Task (question + options) generation from blueprints
-- solve_tasks: Task solving to determine correct answers
-- validate_tasks: Task validation
-
-Supporting modules:
-- task_constants: Bloom's taxonomy, difficulty levels
-- task_dataclasses: SubTopic, Combination, Blueprint, etc.
-- extract_subtopics: Sub-topic extraction
-- find_combinations: Valid combination finding
-- generate_blueprints: Blueprint generation
-
-Prompts:
-- Prompts are in src/utils/base_generation_prompts.py
+Imports are intentionally lazy to avoid importing optional Stage-3 agentic
+dependencies during unrelated module imports (for example doctest collection).
 """
 
-from src.base_stages.stage0_setup import run_stage0
-from src.base_stages.stage1_areas import run_stage1
-from src.base_stages.stage2_capabilities import run_stage2
-from src.base_stages.stage3_tasks import run_stage3
-from src.base_stages.stage4_solutions import run_stage4
-from src.base_stages.stage5_validation import run_stage5
+from typing import Optional
+
+from omegaconf import DictConfig
+
+
+def run_stage0(cfg: DictConfig) -> None:
+    """Run Stage 0 (setup)."""
+    from src.base_stages.stage0_setup import run_stage0 as _run_stage0
+
+    return _run_stage0(cfg)
+
+
+def run_stage1(cfg: DictConfig) -> str:
+    """Run Stage 1 (areas)."""
+    from src.base_stages.stage1_areas import run_stage1 as _run_stage1
+
+    return _run_stage1(cfg)
+
+
+def run_stage2(
+    cfg: DictConfig, areas_tag: str, capabilities_tag: Optional[str] = None
+) -> str:
+    """Run Stage 2 (capabilities)."""
+    from src.base_stages.stage2_capabilities import run_stage2 as _run_stage2
+
+    return _run_stage2(cfg, areas_tag, capabilities_tag)
+
+
+def run_stage3(
+    cfg: DictConfig, capabilities_tag: str, tasks_tag: Optional[str] = None
+) -> str:
+    """Run Stage 3 (tasks)."""
+    from src.base_stages.stage3_tasks import run_stage3 as _run_stage3
+
+    return _run_stage3(cfg, capabilities_tag, tasks_tag)
+
+
+def run_stage4(
+    cfg: DictConfig, tasks_tag: str, solution_tag: Optional[str] = None
+) -> str:
+    """Run Stage 4 (solutions)."""
+    from src.base_stages.stage4_solutions import run_stage4 as _run_stage4
+
+    return _run_stage4(cfg, tasks_tag, solution_tag)
+
+
+def run_stage5(
+    cfg: DictConfig, solution_tag: str, validation_tag: Optional[str] = None
+) -> str:
+    """Run Stage 5 (validation)."""
+    from src.base_stages.stage5_validation import run_stage5 as _run_stage5
+
+    return _run_stage5(cfg, solution_tag, validation_tag)
 
 
 __all__ = [

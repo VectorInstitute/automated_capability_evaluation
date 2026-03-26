@@ -13,7 +13,7 @@ from src.schemas.domain_schemas import Domain
 from src.schemas.experiment_schemas import Experiment
 from src.schemas.io_utils import save_domain, save_experiment
 from src.schemas.metadata_schemas import PipelineMetadata
-from src.utils.data_utils import check_cfg
+from src.utils.config_utils import check_cfg
 from src.utils.timestamp_utils import iso_timestamp
 
 

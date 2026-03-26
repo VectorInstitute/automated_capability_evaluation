@@ -8,7 +8,7 @@ import random
 from collections import defaultdict
 from typing import List, Tuple
 
-from src.capability import Capability
+from legacy.src.capability import Capability
 
 
 def get_lbo_train_set(

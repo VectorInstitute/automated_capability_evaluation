@@ -17,6 +17,15 @@ To use this path, explicitly set:
 
 `task_generation_cfg.mode: agentic`
 
+> [!WARNING]
+> Experimental feature: this agentic task-generation pipeline is an interim Stage-3 implementation and is not a full drop-in replacement for the standard Stage 1→5 pipeline.
+
+The default pipeline mode remains `task_generation_cfg.mode: base` in `src/cfg/run_cfg.yaml`.
+
+To run this chapter-based agentic Stage-3 path, explicitly set:
+`task_generation_cfg.mode: agentic`
+
+When `mode=base`, Stage 3 uses the standard capability-based generation flow
 
 ## 1) What This Pipeline Does
 
@@ -354,6 +363,10 @@ Important resume rule:
 
 6. **Assuming each worker runs all its chapters simultaneously**
 - Reality: each worker processes its assigned generation units sequentially
+
+6. **Expecting full Stage-1-to-Stage-3 lineage in the experimental chapter-based flow**
+- Symptom: area/capability ids look placeholder-like or do not match an earlier full base-pipeline run exactly.
+- Mitigation: treat the current agentic pipeline as Stage-3-first and chapter-driven; use Stage-2 capability artifacts only when they are available and intentionally mapped.
 
 
 ## 13) Practical Checklist

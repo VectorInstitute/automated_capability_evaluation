@@ -26,6 +26,8 @@ class CandidateState:
     trace_part: Dict[str, Any]
     solution_part: Dict[str, Any]
     candidate_label: str
+    candidate_origin: str
+    hardening_round_candidate_index: int
 
 
 def _qa_pair_text(t: Task) -> str:
@@ -1006,6 +1008,14 @@ async def run_task_generation_loop(
 
             candidate_obj = candidate_record["candidate_obj"]
             q_obj, trace_part, solution_part = _split_parts(candidate_obj)
+            candidate_label = (
+                f"SeedGeneration {i + 1}/{max_generation_attempts} SeedCandidate"
+                if candidate_origin == "seed"
+                else (
+                    f"SeedGeneration {i + 1}/{max_generation_attempts} HardeningRoundCandidate "
+                    f"{candidate_idx}/{len(hardened_round_candidates)}"
+                )
+            )
             candidate_state = CandidateState(
                 qcore=_wrap_qcore(q_obj),
                 trace_part=trace_part,
@@ -1401,10 +1411,16 @@ async def run_task_generation_loop(
                             "correct_answer": "",
                         }
                     packed_clean_content["hardening_round_candidate_index"] = (
-                        candidate_idx
+                        candidate_state.hardening_round_candidate_index
                     )
                     packed_clean_content["hardening_round_candidate_total"] = len(
                         candidate_records
+                    )
+                    packed_clean_content["candidate_origin"] = (
+                        candidate_state.candidate_origin
+                    )
+                    packed_clean_content["is_seed_task"] = (
+                        candidate_state.candidate_origin == "seed"
                     )
                     packed_clean_content["seed_generation_index"] = i + 1
                     packed_clean_content["seed_generation_target"] = (

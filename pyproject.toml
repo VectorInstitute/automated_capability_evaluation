@@ -17,6 +17,7 @@ dependencies = [
     "langchain_openai>=0.3.6",
     "langchain>=0.3.19",
     "matplotlib>=3.10.0",
+    "kmedoids>=0.5.0",
     "omegaconf>=2.3.0",
     "openai>=1.102.0",
     "ag2>=0.3.2",
@@ -38,6 +39,16 @@ dependencies = [
     "pytest-env (>=1.1.5,<2.0.0)",
     "langfuse>=2.0.0",
     "openlit>=1.35.0",
+    "numpy (>=1.26,<2.0)",
+    "scipy (>=1.11,<1.15)",
+    "sympy (>=1.12,<2.0)",
+    "numpy-financial (>=1.0.0,<2.0.0)",
+    "py-vollib (>=1.0.1,<2.0.0)",
+    "pyportfolioopt (>=1.6.0,<2.0.0)",
+    "empyrical (>=0.5.5,<0.6.0)",
+    "arch (>=6.0,<7.0)",
+    "statsmodels (>=0.14,<0.15)",
+    "python-dotenv (>=1.2.2,<2.0.0)",
 ]
 
 [project.urls]
@@ -49,6 +60,7 @@ version = "0.1"
 
 [tool.poetry.dependencies]
 python = ">=3.10, <3.13"
+kmedoids = ">=0.5.0"
 
 [tool.poetry.group.test]
 optional = true
@@ -64,6 +76,7 @@ mypy = "^1.15.0"
 ruff = ">=0.11.4,<0.12.0"
 nbqa = { version = "^1.7.0", extras = ["toolchain"] }
 pip-audit = "^2.7.1"
+pytest-asyncio = "^1.3.0"
 
 [tool.poetry.group.docs]
 optional = true
@@ -179,6 +192,8 @@ filterwarnings = [
 ]
 # Exclude legacy tests (imports are broken after code was moved)
 norecursedirs = ["legacy"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage]
     [tool.coverage.run]
