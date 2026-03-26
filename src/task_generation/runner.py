@@ -308,7 +308,7 @@ async def run_pipeline(
         or "placeholder_capabilities_tag"
     )
 
-    is_resume = resume_override
+    is_resume = tasks_tag_override is not None
     out_tag = tasks_tag_override or create_tag(datetime.now())
     designer_client, verifier_client = init_model_clients(agent_cfg)
 

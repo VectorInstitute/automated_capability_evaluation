@@ -1008,19 +1008,13 @@ async def run_task_generation_loop(
 
             candidate_obj = candidate_record["candidate_obj"]
             q_obj, trace_part, solution_part = _split_parts(candidate_obj)
-            candidate_label = (
-                f"SeedGeneration {i + 1}/{max_generation_attempts} SeedCandidate"
-                if candidate_origin == "seed"
-                else (
-                    f"SeedGeneration {i + 1}/{max_generation_attempts} HardeningRoundCandidate "
-                    f"{candidate_idx}/{len(hardened_round_candidates)}"
-                )
-            )
             candidate_state = CandidateState(
                 qcore=_wrap_qcore(q_obj),
                 trace_part=trace_part,
                 solution_part=solution_part,
                 candidate_label=str(candidate_record["candidate_label"]),
+                candidate_origin=str(candidate_record["candidate_origin"]),
+                hardening_round_candidate_index=candidate_idx,
             )
 
             logger.info(
