@@ -1,0 +1,179 @@
+{
+  "generated": "2026-03-26",
+  "dataset": "XFinBench (250 problems)",
+  "task_types": ["calcu (163)", "bool (74)", "mcq (13)"],
+  "versions": {
+    "V1": "Self-Contrast (Base)",
+    "V2": "Single Agent",
+    "V3": "Tools Integrated",
+    "V4": "Tool Perspective",
+    "V5": "Single Agent + Tools"
+  },
+  "results": [
+    {
+      "version": "V1", "model": "gemini-3.1-pro-preview",
+      "accuracy": 76.8, "correct": 192, "total": 250,
+      "by_type": {"calcu": {"correct": 120, "total": 163, "accuracy": 73.6}, "bool": {"correct": 69, "total": 74, "accuracy": 93.2}, "mcq": {"correct": 3, "total": 13, "accuracy": 23.1}}
+    },
+    {
+      "version": "V1", "model": "gemini-3-flash-preview",
+      "accuracy": 76.0, "correct": 190, "total": 250,
+      "by_type": {"calcu": {"correct": 114, "total": 163, "accuracy": 69.9}, "bool": {"correct": 68, "total": 74, "accuracy": 91.9}, "mcq": {"correct": 8, "total": 13, "accuracy": 61.5}}
+    },
+    {
+      "version": "V1", "model": "claude-opus-4-5-20251101",
+      "accuracy": 75.2, "correct": 188, "total": 250,
+      "by_type": {"calcu": {"correct": 115, "total": 163, "accuracy": 70.6}, "bool": {"correct": 64, "total": 74, "accuracy": 86.5}, "mcq": {"correct": 9, "total": 13, "accuracy": 69.2}}
+    },
+    {
+      "version": "V1", "model": "gpt-5-mini",
+      "accuracy": 71.6, "correct": 179, "total": 250,
+      "by_type": {"calcu": {"correct": 110, "total": 163, "accuracy": 67.5}, "bool": {"correct": 60, "total": 74, "accuracy": 81.1}, "mcq": {"correct": 9, "total": 13, "accuracy": 69.2}}
+    },
+    {
+      "version": "V1", "model": "gpt-5.2",
+      "accuracy": 70.4, "correct": 176, "total": 250,
+      "by_type": {"calcu": {"correct": 105, "total": 163, "accuracy": 64.4}, "bool": {"correct": 62, "total": 74, "accuracy": 83.8}, "mcq": {"correct": 9, "total": 13, "accuracy": 69.2}}
+    },
+    {
+      "version": "V2", "model": "gemini-3.1-pro-preview",
+      "accuracy": 77.2, "correct": 193, "total": 250,
+      "by_type": {"calcu": {"correct": 119, "total": 163, "accuracy": 73.0}, "bool": {"correct": 70, "total": 74, "accuracy": 94.6}, "mcq": {"correct": 4, "total": 13, "accuracy": 30.8}}
+    },
+    {
+      "version": "V2", "model": "gemini-3-flash-preview",
+      "accuracy": 75.6, "correct": 189, "total": 250,
+      "by_type": {"calcu": {"correct": 117, "total": 163, "accuracy": 71.8}, "bool": {"correct": 68, "total": 74, "accuracy": 91.9}, "mcq": {"correct": 4, "total": 13, "accuracy": 30.8}}
+    },
+    {
+      "version": "V2", "model": "claude-opus-4-5-20251101",
+      "accuracy": 73.2, "correct": 183, "total": 250,
+      "by_type": {"calcu": {"correct": 111, "total": 163, "accuracy": 68.1}, "bool": {"correct": 64, "total": 74, "accuracy": 86.5}, "mcq": {"correct": 8, "total": 13, "accuracy": 61.5}}
+    },
+    {
+      "version": "V2", "model": "gpt-5-mini",
+      "accuracy": 68.4, "correct": 171, "total": 250,
+      "by_type": {"calcu": {"correct": 103, "total": 163, "accuracy": 63.2}, "bool": {"correct": 65, "total": 74, "accuracy": 87.8}, "mcq": {"correct": 3, "total": 13, "accuracy": 23.1}}
+    },
+    {
+      "version": "V2", "model": "gpt-5.2",
+      "accuracy": 66.8, "correct": 167, "total": 250,
+      "by_type": {"calcu": {"correct": 99, "total": 163, "accuracy": 60.7}, "bool": {"correct": 61, "total": 74, "accuracy": 82.4}, "mcq": {"correct": 7, "total": 13, "accuracy": 53.8}}
+    },
+    {
+      "version": "V3", "model": "gemini-3.1-pro-preview",
+      "accuracy": 77.2, "correct": 193, "total": 250,
+      "by_type": {"calcu": {"correct": 119, "total": 163, "accuracy": 73.0}, "bool": {"correct": 70, "total": 74, "accuracy": 94.6}, "mcq": {"correct": 4, "total": 13, "accuracy": 30.8}}
+    },
+    {
+      "version": "V3", "model": "gemini-3-flash-preview",
+      "accuracy": 76.0, "correct": 190, "total": 250,
+      "by_type": {"calcu": {"correct": 116, "total": 163, "accuracy": 71.2}, "bool": {"correct": 69, "total": 74, "accuracy": 93.2}, "mcq": {"correct": 5, "total": 13, "accuracy": 38.5}}
+    },
+    {
+      "version": "V3", "model": "claude-opus-4-5-20251101",
+      "accuracy": 74.4, "correct": 186, "total": 250,
+      "by_type": {"calcu": {"correct": 115, "total": 163, "accuracy": 70.6}, "bool": {"correct": 65, "total": 74, "accuracy": 87.8}, "mcq": {"correct": 6, "total": 13, "accuracy": 46.2}}
+    },
+    {
+      "version": "V3", "model": "gpt-5-mini",
+      "accuracy": 72.8, "correct": 182, "total": 250,
+      "by_type": {"calcu": {"correct": 110, "total": 163, "accuracy": 67.5}, "bool": {"correct": 66, "total": 74, "accuracy": 89.2}, "mcq": {"correct": 6, "total": 13, "accuracy": 46.2}}
+    },
+    {
+      "version": "V3", "model": "gpt-5.2",
+      "accuracy": 66.8, "correct": 167, "total": 250,
+      "by_type": {"calcu": {"correct": 102, "total": 163, "accuracy": 62.6}, "bool": {"correct": 60, "total": 74, "accuracy": 81.1}, "mcq": {"correct": 5, "total": 13, "accuracy": 38.5}}
+    },
+    {
+      "version": "V4", "model": "gemini-3.1-pro-preview",
+      "accuracy": 77.2, "correct": 193, "total": 250,
+      "by_type": {"calcu": {"correct": 119, "total": 163, "accuracy": 73.0}, "bool": {"correct": 70, "total": 74, "accuracy": 94.6}, "mcq": {"correct": 4, "total": 13, "accuracy": 30.8}}
+    },
+    {
+      "version": "V4", "model": "gemini-3-flash-preview",
+      "accuracy": 77.2, "correct": 193, "total": 250,
+      "by_type": {"calcu": {"correct": 120, "total": 163, "accuracy": 73.6}, "bool": {"correct": 68, "total": 74, "accuracy": 91.9}, "mcq": {"correct": 5, "total": 13, "accuracy": 38.5}}
+    },
+    {
+      "version": "V4", "model": "claude-opus-4-5-20251101",
+      "accuracy": 73.6, "correct": 184, "total": 250,
+      "by_type": {"calcu": {"correct": 109, "total": 163, "accuracy": 66.9}, "bool": {"correct": 66, "total": 74, "accuracy": 89.2}, "mcq": {"correct": 9, "total": 13, "accuracy": 69.2}}
+    },
+    {
+      "version": "V4", "model": "gpt-5-mini",
+      "accuracy": 68.8, "correct": 172, "total": 250,
+      "by_type": {"calcu": {"correct": 106, "total": 163, "accuracy": 65.0}, "bool": {"correct": 59, "total": 74, "accuracy": 79.7}, "mcq": {"correct": 7, "total": 13, "accuracy": 53.8}}
+    },
+    {
+      "version": "V4", "model": "gpt-5.2",
+      "accuracy": 57.2, "correct": 143, "total": 250,
+      "by_type": {"calcu": {"correct": 75, "total": 163, "accuracy": 46.0}, "bool": {"correct": 60, "total": 74, "accuracy": 81.1}, "mcq": {"correct": 8, "total": 13, "accuracy": 61.5}}
+    },
+    {
+      "version": "V1", "model": "Qwen3-32B",
+      "accuracy": 58.4, "correct": 146, "total": 250,
+      "by_type": {"calcu": {"correct": 85, "total": 163, "accuracy": 52.1}, "bool": {"correct": 55, "total": 74, "accuracy": 74.3}, "mcq": {"correct": 6, "total": 13, "accuracy": 46.2}}
+    },
+    {
+      "version": "V2", "model": "Qwen3-32B",
+      "accuracy": 49.2, "correct": 123, "total": 250,
+      "by_type": {"calcu": {"correct": 61, "total": 163, "accuracy": 37.4}, "bool": {"correct": 56, "total": 74, "accuracy": 75.7}, "mcq": {"correct": 6, "total": 13, "accuracy": 46.2}}
+    },
+    {
+      "version": "V3", "model": "Qwen3-32B",
+      "accuracy": 60.8, "correct": 152, "total": 250,
+      "by_type": {"calcu": {"correct": 86, "total": 163, "accuracy": 52.8}, "bool": {"correct": 57, "total": 74, "accuracy": 77.0}, "mcq": {"correct": 9, "total": 13, "accuracy": 69.2}}
+    },
+    {
+      "version": "V4", "model": "Qwen3-32B",
+      "accuracy": 53.2, "correct": 133, "total": 250,
+      "by_type": {"calcu": {"correct": 73, "total": 163, "accuracy": 44.8}, "bool": {"correct": 52, "total": 74, "accuracy": 70.3}, "mcq": {"correct": 8, "total": 13, "accuracy": 61.5}}
+    },
+    {
+      "version": "V1", "model": "Qwen2.5-72B-Instruct",
+      "accuracy": 53.2, "correct": 133, "total": 250,
+      "by_type": {"calcu": {"correct": 77, "total": 163, "accuracy": 47.2}, "bool": {"correct": 49, "total": 74, "accuracy": 66.2}, "mcq": {"correct": 7, "total": 13, "accuracy": 53.8}}
+    },
+    {
+      "version": "V2", "model": "Qwen2.5-72B-Instruct",
+      "accuracy": 46.8, "correct": 117, "total": 250,
+      "by_type": {"calcu": {"correct": 51, "total": 163, "accuracy": 31.3}, "bool": {"correct": 57, "total": 74, "accuracy": 77.0}, "mcq": {"correct": 9, "total": 13, "accuracy": 69.2}}
+    },
+    {
+      "version": "V3", "model": "Qwen2.5-72B-Instruct",
+      "accuracy": 44.8, "correct": 112, "total": 250,
+      "by_type": {"calcu": {"correct": 57, "total": 163, "accuracy": 35.0}, "bool": {"correct": 49, "total": 74, "accuracy": 66.2}, "mcq": {"correct": 6, "total": 13, "accuracy": 46.2}}
+    },
+    {
+      "version": "V4", "model": "Qwen2.5-72B-Instruct",
+      "accuracy": 41.6, "correct": 104, "total": 250,
+      "by_type": {"calcu": {"correct": 44, "total": 163, "accuracy": 27.0}, "bool": {"correct": 54, "total": 74, "accuracy": 73.0}, "mcq": {"correct": 6, "total": 13, "accuracy": 46.2}}
+    },
+    {
+      "version": "V5", "model": "gemini-3.1-pro-preview",
+      "accuracy": 76.8, "correct": 192, "total": 250,
+      "by_type": {"calcu": {"correct": 117, "total": 163, "accuracy": 71.8}, "bool": {"correct": 71, "total": 74, "accuracy": 95.9}, "mcq": {"correct": 4, "total": 13, "accuracy": 30.8}}
+    },
+    {
+      "version": "V5", "model": "gemini-3-flash-preview",
+      "accuracy": 75.6, "correct": 189, "total": 250,
+      "by_type": {"calcu": {"correct": 111, "total": 163, "accuracy": 68.1}, "bool": {"correct": 71, "total": 74, "accuracy": 95.9}, "mcq": {"correct": 7, "total": 13, "accuracy": 53.8}}
+    },
+    {
+      "version": "V5", "model": "gpt-5-mini",
+      "accuracy": 74.4, "correct": 186, "total": 250,
+      "by_type": {"calcu": {"correct": 115, "total": 163, "accuracy": 70.6}, "bool": {"correct": 64, "total": 74, "accuracy": 86.5}, "mcq": {"correct": 7, "total": 13, "accuracy": 53.8}}
+    },
+    {
+      "version": "V5", "model": "claude-opus-4-5-20251101",
+      "accuracy": 73.6, "correct": 184, "total": 250,
+      "by_type": {"calcu": {"correct": 117, "total": 163, "accuracy": 71.8}, "bool": {"correct": 63, "total": 74, "accuracy": 85.1}, "mcq": {"correct": 4, "total": 13, "accuracy": 30.8}}
+    },
+    {
+      "version": "V5", "model": "gpt-5.2",
+      "accuracy": 66.4, "correct": 166, "total": 250,
+      "by_type": {"calcu": {"correct": 104, "total": 163, "accuracy": 63.8}, "bool": {"correct": 58, "total": 74, "accuracy": 78.4}, "mcq": {"correct": 4, "total": 13, "accuracy": 30.8}}
+    }
+  ]
+}

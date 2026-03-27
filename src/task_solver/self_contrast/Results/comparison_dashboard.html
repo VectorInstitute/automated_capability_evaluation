@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Self-Contrast Evaluation — V1–V5 Comparison</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #22253a; --border: #2a2d3a;
+    --text: #e1e4ed; --muted: #8b8fa3;
+    --blue: #4f8ff7; --green: #34d399; --orange: #fb923c;
+    --red: #f87171; --purple: #a78bfa; --cyan: #22d3ee;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 2rem; max-width: 1400px; margin: 0 auto; }
+  h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: .25rem; }
+  .subtitle { color: var(--muted); font-size: .9rem; margin-bottom: 2rem; }
+  .section-title { font-size: 1.35rem; font-weight: 700; margin: 2.5rem 0 1.25rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+  .grid { display: grid; gap: 1.5rem; margin-bottom: 1.5rem; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+  .card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: .5rem; }
+  .card .desc { font-size: .85rem; color: var(--muted); margin-bottom: 1rem; line-height: 1.5; }
+  .card .desc strong { color: var(--text); }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th { text-align: left; padding: .6rem .5rem; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 500; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: .55rem .5rem; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .best { color: var(--green); font-weight: 700; }
+  .worst { color: var(--red); }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: .78rem; font-weight: 600; }
+  .badge-v1 { background: rgba(79,143,247,.15); color: var(--blue); }
+  .badge-v2 { background: rgba(167,139,250,.15); color: var(--purple); }
+  .badge-v3 { background: rgba(52,211,153,.15); color: var(--green); }
+  .badge-v4 { background: rgba(251,146,60,.15); color: var(--orange); }
+  .badge-v5 { background: rgba(34,211,238,.15); color: var(--cyan); }
+  .chart-container { position: relative; height: 260px; }
+  .chart-lg { height: 340px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; margin-bottom: .5rem; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; text-align: center; }
+  .stat-card .label { color: var(--muted); font-size: .78rem; margin-bottom: .3rem; }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; }
+  .model-label { font-size: .75rem; color: var(--muted); }
+
+  .version-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .75rem; }
+  .version-header .badge { font-size: .9rem; padding: 4px 14px; }
+  .version-header h2 { margin: 0; }
+  .version-card { border-left: 3px solid; }
+  .version-card.v1 { border-left-color: var(--blue); }
+  .version-card.v2 { border-left-color: var(--purple); }
+  .version-card.v3 { border-left-color: var(--green); }
+  .version-card.v4 { border-left-color: var(--orange); }
+  .version-card.v5 { border-left-color: var(--cyan); }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .72rem; font-weight: 500; margin-left: 6px; }
+  .pill-tools { background: rgba(52,211,153,.12); color: var(--green); }
+  .pill-no-tools { background: rgba(139,143,163,.12); color: var(--muted); }
+  .pill-multi { background: rgba(79,143,247,.12); color: var(--blue); }
+  .pill-single { background: rgba(167,139,250,.12); color: var(--purple); }
+
+  .delta { font-size: .75rem; margin-left: 4px; }
+  .delta.pos { color: var(--green); }
+  .delta.neg { color: var(--red); }
+
+  .grid-5 { grid-template-columns: repeat(5, 1fr); }
+  @media (max-width: 1000px) { .grid-2 { grid-template-columns: 1fr; } .grid-4, .grid-5 { grid-template-columns: 1fr 1fr; } .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+
+<h1>Self-Contrast Evaluation Dashboard</h1>
+<p class="subtitle">XFinBench — 250 problems (163 calcu, 74 bool, 13 mcq) &middot; 5 versions; V1–V4: 7 models, V5: 5 cloud models (no Qwen runs yet)</p>
+
+<!-- ===== VERSION DESCRIPTIONS ===== -->
+<div class="grid grid-5" id="versionCards"></div>
+
+<!-- ===== CROSS-VERSION COMPARISON ===== -->
+<div class="section-title">Cross-Version Comparison</div>
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Overall Accuracy — All Versions &times; Models</h2>
+    <div class="chart-container chart-lg"><canvas id="chartOverall"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>Version Rankings (mean accuracy per version)</h2>
+    <div class="chart-container chart-lg"><canvas id="chartVersionRank"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== V1 SECTION ===== -->
+<div class="section-title"><span class="badge badge-v1">V1</span> Base Self-Contrast</div>
+<div class="stat-grid" id="statsV1"></div>
+<div class="grid grid-2">
+  <div class="card version-card v1">
+    <h2>V1 — Accuracy by Model</h2>
+    <div class="chart-container"><canvas id="chartV1"></canvas></div>
+  </div>
+  <div class="card version-card v1">
+    <h2>V1 — Task Type Breakdown</h2>
+    <div class="chart-container"><canvas id="chartV1type"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== V2 SECTION ===== -->
+<div class="section-title"><span class="badge badge-v2">V2</span> Single Agent</div>
+<div class="stat-grid" id="statsV2"></div>
+<div class="grid grid-2">
+  <div class="card version-card v2">
+    <h2>V2 — Accuracy by Model</h2>
+    <div class="chart-container"><canvas id="chartV2"></canvas></div>
+  </div>
+  <div class="card version-card v2">
+    <h2>V2 — Task Type Breakdown</h2>
+    <div class="chart-container"><canvas id="chartV2type"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== V3 SECTION ===== -->
+<div class="section-title"><span class="badge badge-v3">V3</span> Tools Integrated</div>
+<div class="stat-grid" id="statsV3"></div>
+<div class="grid grid-2">
+  <div class="card version-card v3">
+    <h2>V3 — Accuracy by Model</h2>
+    <div class="chart-container"><canvas id="chartV3"></canvas></div>
+  </div>
+  <div class="card version-card v3">
+    <h2>V3 — Task Type Breakdown</h2>
+    <div class="chart-container"><canvas id="chartV3type"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== V4 SECTION ===== -->
+<div class="section-title"><span class="badge badge-v4">V4</span> Tool Perspective</div>
+<div class="stat-grid" id="statsV4"></div>
+<div class="grid grid-2">
+  <div class="card version-card v4">
+    <h2>V4 — Accuracy by Model</h2>
+    <div class="chart-container"><canvas id="chartV4"></canvas></div>
+  </div>
+  <div class="card version-card v4">
+    <h2>V4 — Task Type Breakdown</h2>
+    <div class="chart-container"><canvas id="chartV4type"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== V5 SECTION ===== -->
+<div class="section-title"><span class="badge badge-v5">V5</span> Single Agent + Tools</div>
+<div class="stat-grid" id="statsV5"></div>
+<div class="grid grid-2">
+  <div class="card version-card v5">
+    <h2>V5 — Accuracy by Model</h2>
+    <div class="chart-container"><canvas id="chartV5"></canvas></div>
+  </div>
+  <div class="card version-card v5">
+    <h2>V5 — Task Type Breakdown</h2>
+    <div class="chart-container"><canvas id="chartV5type"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== FULL TABLE ===== -->
+<div class="section-title">Full Results Table</div>
+<div class="card">
+  <table id="fullTable">
+    <thead>
+      <tr>
+        <th>Version</th>
+        <th>Model</th>
+        <th class="num">Correct</th>
+        <th class="num">Accuracy</th>
+        <th class="num">Calcu</th>
+        <th class="num">Bool</th>
+        <th class="num">MCQ</th>
+        <th class="num">vs V2</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+const DATA = [
+  {v:"V1",m:"gemini-3.1-pro-preview",acc:76.8,c:192,calcu:73.6,bool:93.2,mcq:23.1},
+  {v:"V1",m:"gemini-3-flash-preview",acc:76.0,c:190,calcu:69.9,bool:91.9,mcq:61.5},
+  {v:"V1",m:"claude-opus-4-5-20251101",acc:75.2,c:188,calcu:70.6,bool:86.5,mcq:69.2},
+  {v:"V1",m:"gpt-5-mini",acc:71.6,c:179,calcu:67.5,bool:81.1,mcq:69.2},
+  {v:"V1",m:"gpt-5.2",acc:70.4,c:176,calcu:64.4,bool:83.8,mcq:69.2},
+  {v:"V1",m:"Qwen3-32B",acc:58.4,c:146,calcu:52.1,bool:74.3,mcq:46.2},
+  {v:"V1",m:"Qwen2.5-72B-Instruct",acc:53.2,c:133,calcu:47.2,bool:66.2,mcq:53.8},
+  {v:"V2",m:"gemini-3.1-pro-preview",acc:77.2,c:193,calcu:73.0,bool:94.6,mcq:30.8},
+  {v:"V2",m:"gemini-3-flash-preview",acc:75.6,c:189,calcu:71.8,bool:91.9,mcq:30.8},
+  {v:"V2",m:"claude-opus-4-5-20251101",acc:73.2,c:183,calcu:68.1,bool:86.5,mcq:61.5},
+  {v:"V2",m:"gpt-5-mini",acc:68.4,c:171,calcu:63.2,bool:87.8,mcq:23.1},
+  {v:"V2",m:"gpt-5.2",acc:66.8,c:167,calcu:60.7,bool:82.4,mcq:53.8},
+  {v:"V2",m:"Qwen3-32B",acc:49.2,c:123,calcu:37.4,bool:75.7,mcq:46.2},
+  {v:"V2",m:"Qwen2.5-72B-Instruct",acc:46.8,c:117,calcu:31.3,bool:77.0,mcq:69.2},
+  {v:"V3",m:"gemini-3.1-pro-preview",acc:77.2,c:193,calcu:73.0,bool:94.6,mcq:30.8},
+  {v:"V3",m:"gemini-3-flash-preview",acc:76.0,c:190,calcu:71.2,bool:93.2,mcq:38.5},
+  {v:"V3",m:"claude-opus-4-5-20251101",acc:74.4,c:186,calcu:70.6,bool:87.8,mcq:46.2},
+  {v:"V3",m:"gpt-5-mini",acc:72.8,c:182,calcu:67.5,bool:89.2,mcq:46.2},
+  {v:"V3",m:"gpt-5.2",acc:66.8,c:167,calcu:62.6,bool:81.1,mcq:38.5},
+  {v:"V3",m:"Qwen3-32B",acc:60.8,c:152,calcu:52.8,bool:77.0,mcq:69.2},
+  {v:"V3",m:"Qwen2.5-72B-Instruct",acc:44.8,c:112,calcu:35.0,bool:66.2,mcq:46.2},
+  {v:"V4",m:"gemini-3.1-pro-preview",acc:77.2,c:193,calcu:73.0,bool:94.6,mcq:30.8},
+  {v:"V4",m:"gemini-3-flash-preview",acc:77.2,c:193,calcu:73.6,bool:91.9,mcq:38.5},
+  {v:"V4",m:"claude-opus-4-5-20251101",acc:73.6,c:184,calcu:66.9,bool:89.2,mcq:69.2},
+  {v:"V4",m:"gpt-5-mini",acc:68.8,c:172,calcu:65.0,bool:79.7,mcq:53.8},
+  {v:"V4",m:"gpt-5.2",acc:57.2,c:143,calcu:46.0,bool:81.1,mcq:61.5},
+  {v:"V4",m:"Qwen3-32B",acc:53.2,c:133,calcu:44.8,bool:70.3,mcq:61.5},
+  {v:"V4",m:"Qwen2.5-72B-Instruct",acc:41.6,c:104,calcu:27.0,bool:73.0,mcq:46.2},
+  {v:"V5",m:"gemini-3.1-pro-preview",acc:76.8,c:192,calcu:71.8,bool:95.9,mcq:30.8},
+  {v:"V5",m:"gemini-3-flash-preview",acc:75.6,c:189,calcu:68.1,bool:95.9,mcq:53.8},
+  {v:"V5",m:"gpt-5-mini",acc:74.4,c:186,calcu:70.6,bool:86.5,mcq:53.8},
+  {v:"V5",m:"claude-opus-4-5-20251101",acc:73.6,c:184,calcu:71.8,bool:85.1,mcq:30.8},
+  {v:"V5",m:"gpt-5.2",acc:66.4,c:166,calcu:63.8,bool:78.4,mcq:30.8},
+];
+
+const VERSIONS = ["V1","V2","V3","V4","V5"];
+const MODELS = ["gemini-3.1-pro-preview","gemini-3-flash-preview","claude-opus-4-5-20251101","gpt-5-mini","gpt-5.2","Qwen3-32B","Qwen2.5-72B-Instruct"];
+const SHORT = {"gemini-3.1-pro-preview":"Gemini 3.1 Pro","gemini-3-flash-preview":"Gemini 3 Flash","claude-opus-4-5-20251101":"Claude Opus 4.5","gpt-5-mini":"GPT-5-mini","gpt-5.2":"GPT-5.2","Qwen3-32B":"Qwen3-32B","Qwen2.5-72B-Instruct":"Qwen2.5-72B"};
+const VCOL = {V1:"#4f8ff7",V2:"#a78bfa",V3:"#34d399",V4:"#fb923c",V5:"#22d3ee"};
+const VBADGE = {V1:"badge-v1",V2:"badge-v2",V3:"badge-v3",V4:"badge-v4",V5:"badge-v5"};
+const MCOL = ["#4f8ff7","#a78bfa","#34d399","#fb923c","#f87171","#22d3ee","#f472b6"];
+const VINFO = {
+  V1: {
+    name: "Base Self-Contrast",
+    desc: "Three diverse perspectives (Top-Down, Bottom-Up, Analogical) independently solve each problem. A contrastive phase identifies discrepancies, then an adjudicator reconciles them into a final answer. Uses Python execution only for computation-heavy problems via a built-in heuristic.",
+    pills: '<span class="pill pill-multi">3 perspectives</span><span class="pill pill-no-tools">no explicit tools</span>'
+  },
+  V2: {
+    name: "Single Agent",
+    desc: "A single LLM agent solves each problem directly without multiple perspectives or contrastive reconciliation. Serves as the baseline to measure the value added by the multi-perspective Self-Contrast approach.",
+    pills: '<span class="pill pill-single">1 agent</span><span class="pill pill-no-tools">no tools</span>'
+  },
+  V3: {
+    name: "Tools Integrated",
+    desc: "All three perspectives are equipped with a full scientific Python toolkit (NumPy, SciPy, SymPy, pandas, etc.). Each perspective can generate and execute code to compute answers. The contrastive and adjudication phases remain the same as V1.",
+    pills: '<span class="pill pill-multi">3 perspectives</span><span class="pill pill-tools">full toolkit</span>'
+  },
+  V4: {
+    name: "Tool Perspective",
+    desc: "Adds a 4th dedicated &ldquo;Tool-Augmented&rdquo; perspective alongside the original three. This specialist perspective always uses code execution, while the other three remain tool-free. Increases diversity of reasoning strategies in the contrastive phase.",
+    pills: '<span class="pill pill-multi">4 perspectives</span><span class="pill pill-tools">1 tool specialist</span>'
+  },
+  V5: {
+    name: "Single Agent + Tools",
+    desc: "A single LLM agent with full scientific toolkit access. Generates Python code, executes it, then produces a final answer using the computation output. Baseline for measuring the value of multi-perspective reasoning when tools are available.",
+    pills: '<span class="pill pill-single">1 agent</span><span class="pill pill-tools">full toolkit</span>'
+  },
+};
+
+Chart.defaults.color = "#8b8fa3";
+Chart.defaults.borderColor = "#2a2d3a";
+Chart.defaults.font.family = "'Inter',system-ui,sans-serif";
+
+// ===== Version description cards =====
+document.getElementById("versionCards").innerHTML = VERSIONS.map(v => {
+  const info = VINFO[v];
+  const rows = DATA.filter(d=>d.v===v);
+  const avg = (rows.reduce((s,d)=>s+d.acc,0)/rows.length).toFixed(1);
+  return `<div class="card version-card ${v.toLowerCase()}">
+    <div class="version-header"><span class="badge ${VBADGE[v]}">${v}</span><h2>${info.name}</h2></div>
+    <p class="desc">${info.desc}</p>
+    <div style="margin-top:auto">${info.pills}</div>
+    <div style="margin-top:.75rem;text-align:center">
+      <div class="label" style="color:var(--muted);font-size:.75rem">Avg Accuracy</div>
+      <div style="font-size:1.4rem;font-weight:700">${avg}%</div>
+    </div>
+  </div>`;
+}).join("");
+
+// ===== Cross-version: overall grouped bar =====
+new Chart(document.getElementById("chartOverall"), {
+  type: "bar",
+  data: {
+    labels: MODELS.map(m=>SHORT[m]),
+    datasets: VERSIONS.map(v=>({
+      label: v + ": " + VINFO[v].name,
+      backgroundColor: VCOL[v],
+      data: MODELS.map(m => {
+        const row = DATA.find(d=>d.v===v&&d.m===m);
+        return row != null ? row.acc : null;
+      }),
+      borderRadius: 4, barPercentage: .85, categoryPercentage: .75,
+      spanGaps: false,
+    }))
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{position:"top",labels:{usePointStyle:true,pointStyle:"circle",padding:14,font:{size:11}}}},
+    scales:{y:{beginAtZero:false,min:40,max:82,ticks:{callback:v=>v+"%"}}}
+  }
+});
+
+// ===== Cross-version: version ranking bar =====
+const vAvgs = VERSIONS.map(v => {
+  const rows = DATA.filter(d=>d.v===v);
+  return {v, avg: +(rows.reduce((s,d)=>s+d.acc,0)/rows.length).toFixed(1)};
+}).sort((a,b)=>b.avg-a.avg);
+new Chart(document.getElementById("chartVersionRank"), {
+  type: "bar",
+  data: {
+    labels: vAvgs.map(r=>r.v+": "+VINFO[r.v].name),
+    datasets: [{
+      data: vAvgs.map(r=>r.avg),
+      backgroundColor: vAvgs.map(r=>VCOL[r.v]),
+      borderRadius: 6, barPercentage: .55,
+    }]
+  },
+  options: {
+    indexAxis:"y", responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.raw+"%"}}},
+    scales:{x:{min:50,max:78,ticks:{callback:v=>v+"%"}}}
+  }
+});
+
+// ===== Per-version sections =====
+function renderVersionSection(v, col) {
+  const rows = DATA.filter(d=>d.v===v).sort((a,b)=>b.acc-a.acc);
+  const avg = (rows.reduce((s,d)=>s+d.acc,0)/rows.length).toFixed(1);
+  const best = rows[0];
+
+  // Stat cards
+  const statsEl = document.getElementById("stats"+v);
+  statsEl.innerHTML = rows.map((r,i) => {
+    const v2 = DATA.find(d=>d.v==="V2"&&d.m===r.m);
+    const delta = v2 ? (r.acc - v2.acc).toFixed(1) : "";
+    const dcls = delta > 0 ? "pos" : delta < 0 ? "neg" : "";
+    const dstr = v==="V2" ? "" : (delta > 0 ? "+" : "") + delta + "%";
+    return `<div class="stat-card">
+      <div class="label">${SHORT[r.m]}</div>
+      <div class="value">${r.acc}%</div>
+      <div class="model-label">${r.c}/250 correct ${dstr ? `<span class="delta ${dcls}">${dstr} vs V2</span>` : ""}</div>
+    </div>`;
+  }).join("");
+
+  // Accuracy bar chart
+  new Chart(document.getElementById("chart"+v), {
+    type: "bar",
+    data: {
+      labels: rows.map(r=>SHORT[r.m]),
+      datasets: [{
+        data: rows.map(r=>r.acc),
+        backgroundColor: rows.map((_,i) => MCOL[MODELS.indexOf(rows[i].m)]),
+        borderRadius: 5, barPercentage: .6,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.raw+"%"}}},
+      scales:{y:{beginAtZero:false,min:40,max:82,ticks:{callback:v=>v+"%"}}}
+    }
+  });
+
+  // Task type grouped bar
+  new Chart(document.getElementById("chart"+v+"type"), {
+    type: "bar",
+    data: {
+      labels: rows.map(r=>SHORT[r.m]),
+      datasets: [
+        {label:"Calcu", backgroundColor:"#4f8ff7", data: rows.map(r=>r.calcu), borderRadius:3, barPercentage:.85, categoryPercentage:.7},
+        {label:"Bool",  backgroundColor:"#34d399", data: rows.map(r=>r.bool),  borderRadius:3, barPercentage:.85, categoryPercentage:.7},
+        {label:"MCQ",   backgroundColor:"#fb923c", data: rows.map(r=>r.mcq),   borderRadius:3, barPercentage:.85, categoryPercentage:.7},
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:"top",labels:{usePointStyle:true,pointStyle:"circle",padding:12,font:{size:11}}}},
+      scales:{y:{min:0,max:100,ticks:{callback:v=>v+"%"}}}
+    }
+  });
+}
+
+VERSIONS.forEach(v => renderVersionSection(v, VCOL[v]));
+
+// ===== Full table grouped by version =====
+const tbody = document.querySelector("#fullTable tbody");
+VERSIONS.forEach(v => {
+  const rows = DATA.filter(d=>d.v===v).sort((a,b)=>b.acc-a.acc);
+  const vMax = Math.max(...rows.map(r=>r.acc));
+  const vMin = Math.min(...rows.map(r=>r.acc));
+  rows.forEach((d,i) => {
+    const cls = d.acc===vMax?"best":d.acc===vMin?"worst":"";
+    const v2 = DATA.find(x=>x.v==="V2"&&x.m===d.m);
+    const delta = v2 ? (d.acc - v2.acc).toFixed(1) : "—";
+    const dcls = delta > 0 ? "pos" : delta < 0 ? "neg" : "";
+    const dstr = v==="V2" ? "—" : (delta > 0 ? "+" : "") + delta + "%";
+    tbody.innerHTML += `<tr${i===0?' style="border-top:2px solid var(--border)"':''}>
+      <td>${i===0?`<span class="badge ${VBADGE[v]}">${v}: ${VINFO[v].name}</span>`:""}</td>
+      <td>${SHORT[d.m]}</td>
+      <td class="num">${d.c}/250</td>
+      <td class="num ${cls}">${d.acc}%</td>
+      <td class="num">${d.calcu}%</td>
+      <td class="num">${d.bool}%</td>
+      <td class="num">${d.mcq}%</td>
+      <td class="num"><span class="delta ${dcls}">${dstr}</span></td>
+    </tr>`;
+  });
+});
+</script>
+</body>
+</html>
