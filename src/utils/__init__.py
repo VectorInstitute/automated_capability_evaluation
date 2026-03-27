@@ -5,4 +5,7 @@ It initializes the utils module, making it easier to import and use the utilitie
 provided by this module in other parts of the project.
 """
 
-from .data_utils import load_data
+try:
+    from .data_utils import load_data
+except Exception:
+    load_data = None
