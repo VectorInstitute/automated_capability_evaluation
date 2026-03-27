@@ -23,6 +23,7 @@ class NoopClient:
     """Client double that should never be called."""
 
     def call(self, *_args, **_kwargs):  # noqa: ANN002, ANN003
+        """Fail immediately if the model client is invoked."""
         raise AssertionError("Unexpected model call in test.")
 
 
@@ -41,6 +42,7 @@ class ConsensusClient:
         force_json: bool = False,
         temperature: float | None = None,
     ) -> str:
+        """Return a stable response for each expected solver prompt."""
         del force_json, temperature
         with self._lock:
             self.calls.append(system_prompt)
@@ -48,7 +50,9 @@ class ConsensusClient:
         if system_prompt == PERSPECTIVE_SYSTEM_PROMPT:
             return '{ "answer": "1.0", "rationale": "The statement is true." }'
         if system_prompt == CONTRAST_SYSTEM_PROMPT:
-            raise AssertionError("Contrast should have been skipped by local consensus.")
+            raise AssertionError(
+                "Contrast should have been skipped by local consensus."
+            )
         raise AssertionError(f"Unexpected system prompt: {system_prompt}")
 
 
@@ -67,6 +71,7 @@ class MissingCodeThenCodeClient:
         force_json: bool = False,
         temperature: float | None = None,
     ) -> str:
+        """Omit code once, then return a valid fenced Python snippet."""
         del force_json, temperature
         if system_prompt == PERSPECTIVE_CODE_SYSTEM_PROMPT:
             with self._lock:
@@ -84,7 +89,6 @@ class MissingCodeThenCodeClient:
 @pytest.mark.asyncio
 async def test_solver_skips_contrast_when_perspectives_already_agree():
     """Local consensus should bypass the expensive contrast call."""
-
     solver = SelfContrastSolver(
         ConsensusClient(),
         list(BASE_PERSPECTIVES),
@@ -108,7 +112,6 @@ async def test_solver_skips_contrast_when_perspectives_already_agree():
 @pytest.mark.asyncio
 async def test_solver_retries_when_tool_response_lacks_code_block():
     """Tool-enabled solving should retry when the model forgets the code fence."""
-
     client = MissingCodeThenCodeClient()
     solver = SelfContrastSolver(
         client,
@@ -131,7 +134,6 @@ async def test_solver_retries_when_tool_response_lacks_code_block():
 
 def test_solver_merges_decimal_and_percentage_versions_of_same_answer():
     """A decimal rate and percentage form should vote together, not conflict."""
-
     solver = SelfContrastSolver(NoopClient(), list(BASE_PERSPECTIVES), tool_mode="none")
     responses = [
         PerspectiveResponse(

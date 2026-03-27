@@ -282,9 +282,7 @@ Provide your answer in the following JSON format:
 IMPORTANT: Return only valid JSON. Do not include markdown formatting \
 like ```json ... ```."""
 
-# ---------------------------------------------------------------------------
-# Single-agent + tools (V5)
-# ---------------------------------------------------------------------------
+# V5 prompts.
 
 SINGLE_AGENT_TOOLS_CODE_SYSTEM_PROMPT = (
     "You are a financial analyst with access to a scientific Python toolkit. "

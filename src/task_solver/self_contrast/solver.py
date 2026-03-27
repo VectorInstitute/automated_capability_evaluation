@@ -11,7 +11,16 @@ import itertools
 import logging
 import re
 import threading
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    ParamSpec,
+    TypeVar,
+)
 
 from src.task_solver.self_contrast.model_client import LLMClient
 from src.task_solver.self_contrast.perspectives import PerspectiveResponse
@@ -36,6 +45,8 @@ from src.task_solver.self_contrast.prompts import (
 )
 from src.tools.definitions import PYTHON_SCIENTIFIC_TOOL
 from src.tools.executor import PythonExecutor
+
+
 try:
     from src.utils.json_utils import parse_llm_json_response
 except Exception:
@@ -46,6 +57,9 @@ if TYPE_CHECKING:
 
 
 log = logging.getLogger(__name__)
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 LIBRARY_NAME_ALIASES = {
     "arch": "arch",
@@ -149,7 +163,12 @@ class SelfContrastSolver:
             "openai_compatible",
         )
 
-    async def _to_thread(self, func, *args, **kwargs):
+    async def _to_thread(
+        self,
+        func: Callable[P, R],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> R:
         """Offload *func* to a thread for cloud APIs; call directly for local."""
         if self._use_threads:
             return await asyncio.to_thread(func, *args, **kwargs)
@@ -171,16 +190,22 @@ class SelfContrastSolver:
         problem_text = self._build_problem_text(problem)
         tool_context = await self._prepare_tool_context(problem_text, task_type)
 
-        log.info("[%s] Phase 1: solving %d perspectives (sequential=%s)",
-                 pid, len(self.perspectives),
-                 not self._should_parallelize_perspective_calls())
+        log.info(
+            "[%s] Phase 1: solving %d perspectives (sequential=%s)",
+            pid,
+            len(self.perspectives),
+            not self._should_parallelize_perspective_calls(),
+        )
         perspective_outputs = await self._run_perspective_round(
             problem_text,
             task_type,
             tool_context=tool_context,
         )
-        log.info("[%s] Phase 1 done. Answers: %s", pid,
-                 [r.answer for r in perspective_outputs])
+        log.info(
+            "[%s] Phase 1 done. Answers: %s",
+            pid,
+            [r.answer for r in perspective_outputs],
+        )
 
         majority = self._select_majority_answer(perspective_outputs, task_type)
 
@@ -276,7 +301,9 @@ class SelfContrastSolver:
                 perspective,
                 tool_context=tool_context,
             )
-            log.info("  [%s] code received (has_code=%s)", label, python_code is not None)
+            log.info(
+                "  [%s] code received (has_code=%s)", label, python_code is not None
+            )
             retry_count = 0
             while python_code:
                 execution = await self._execute_code(python_code)
@@ -373,36 +400,33 @@ class SelfContrastSolver:
                     libraries_description=libraries_description,
                     format_rule=format_rule,
                 )
+        elif self._use_legacy_local_base_prompts():
+            system_prompt = (
+                "You are a financial analyst. Provide only Python code to "
+                "compute the answer."
+            )
+            prompt = (
+                f"Perspective: {perspective['label']}.\n"
+                f"Guidance: {perspective['guidance']}\n\n"
+                "Problem:\n"
+                f"{problem_text}\n\n"
+                "Instructions:\n"
+                "- Write a single Python code block that computes the final "
+                "numeric answer.\n"
+                "- Use only the Python standard library (math is allowed).\n"
+                "- Print the final numeric answer.\n"
+                "- Output ONLY the Python code block, nothing else."
+            )
         else:
-            if self._use_legacy_local_base_prompts():
-                system_prompt = (
-                    "You are a financial analyst. Provide only Python code to "
-                    "compute the answer."
-                )
-                prompt = (
-                    f"Perspective: {perspective['label']}.\n"
-                    f"Guidance: {perspective['guidance']}\n\n"
-                    "Problem:\n"
-                    f"{problem_text}\n\n"
-                    "Instructions:\n"
-                    "- Write a single Python code block that computes the final "
-                    "numeric answer.\n"
-                    "- Use only the Python standard library (math is allowed).\n"
-                    "- Print the final numeric answer.\n"
-                    "- Output ONLY the Python code block, nothing else."
-                )
-            else:
-                prompt = PERSPECTIVE_CODE_REQUEST.format(
-                    label=perspective["label"],
-                    guidance=perspective["guidance"],
-                    problem_text=problem_text,
-                    format_rule=format_rule,
-                )
+            prompt = PERSPECTIVE_CODE_REQUEST.format(
+                label=perspective["label"],
+                guidance=perspective["guidance"],
+                problem_text=problem_text,
+                format_rule=format_rule,
+            )
 
         prompt = self._apply_prompt_repetition(prompt)
-        response = await self._to_thread(
-            self.client.call, system_prompt, prompt
-        )
+        response = await self._to_thread(self.client.call, system_prompt, prompt)
         code = self._extract_python_code(response)
         if code:
             return code
@@ -571,7 +595,9 @@ class SelfContrastSolver:
 
         module_refs = self._format_selected_modules(selected_modules or [])
         if module_refs:
-            lines.append(f"Suggested modules for this problem: {', '.join(module_refs)}")
+            lines.append(
+                f"Suggested modules for this problem: {', '.join(module_refs)}"
+            )
 
         lines.append("Available libraries:")
         for library_name in self._tool_library_order(selected_modules):
@@ -661,7 +687,9 @@ class SelfContrastSolver:
             details.append("  Use cases: " + "; ".join(use_cases))
         return details
 
-    def _format_selected_modules(self, selected_modules: List[Dict[str, str]]) -> List[str]:
+    def _format_selected_modules(
+        self, selected_modules: List[Dict[str, str]]
+    ) -> List[str]:
         formatted: List[str] = []
         for item in selected_modules:
             library = item.get("library")
@@ -692,7 +720,9 @@ class SelfContrastSolver:
         return selected_modules
 
     def _normalize_library_name(self, library_name: Any) -> Optional[str]:
-        normalized = str(library_name).strip().lower().replace("-", "_").replace(" ", "_")
+        normalized = (
+            str(library_name).strip().lower().replace("-", "_").replace(" ", "_")
+        )
         if not normalized:
             return None
         canonical = LIBRARY_NAME_ALIASES.get(normalized, normalized)
@@ -1081,7 +1111,7 @@ class SelfContrastSolver:
             entry["numeric"] for entry in group if entry.get("numeric") is not None
         ]
         if not numeric_values:
-            return group[0]["display"]
+            return str(group[0]["display"])
         mean_value = sum(numeric_values) / len(numeric_values)
         if mean_value == 0:
             mean_value = 0.0

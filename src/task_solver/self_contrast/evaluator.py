@@ -257,7 +257,6 @@ def print_summary(
     if adj_rate > 0:
         print(f"\nAdjudication Rate: {adj_rate * 100:.1f}%")
 
-
     if execution_time:
         print(f"Execution Time: {execution_time}")
     print("=" * 80)

@@ -148,9 +148,15 @@ class SingleAgentToolsSolver:
             result = self.executor.execute(code)
             if result.success:
                 tool_output = result.output.strip()
-                log.info("  code executed OK (output=%s)", tool_output[:80] if tool_output else "empty")
+                log.info(
+                    "  code executed OK (output=%s)",
+                    tool_output[:80] if tool_output else "empty",
+                )
             else:
-                log.warning("  code execution failed: %s", result.error[:120] if result.error else "unknown")
+                log.warning(
+                    "  code execution failed: %s",
+                    result.error[:120] if result.error else "unknown",
+                )
                 for attempt in range(self.max_code_retries):
                     retry_prompt = (
                         f"The following code failed:\n```python\n{code}\n```\n\n"
@@ -168,9 +174,17 @@ class SingleAgentToolsSolver:
                         result = self.executor.execute(code)
                         if result.success:
                             tool_output = result.output.strip()
-                            log.info("  retry %d OK (output=%s)", attempt + 1, tool_output[:80] if tool_output else "empty")
+                            log.info(
+                                "  retry %d OK (output=%s)",
+                                attempt + 1,
+                                tool_output[:80] if tool_output else "empty",
+                            )
                             break
-                        log.warning("  retry %d failed: %s", attempt + 1, result.error[:120] if result.error else "unknown")
+                        log.warning(
+                            "  retry %d failed: %s",
+                            attempt + 1,
+                            result.error[:120] if result.error else "unknown",
+                        )
 
         # --- Step 3: Final answer ---
         choices_section = f"Choices:\n{choices}\n" if choices else ""
@@ -261,7 +275,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", type=str, default="gpt-4o", help="Model name.")
     parser.add_argument("--dataset-dir", type=str, default=None)
     parser.add_argument(
-        "--batch-file", type=str, default="evaluation_batch.json",
+        "--batch-file",
+        type=str,
+        default="evaluation_batch.json",
         help="Batch file name inside dataset-dir.",
     )
     parser.add_argument("--output", type=str, help="Output JSON file name.")

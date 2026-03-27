@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 
 import requests
 
@@ -227,7 +227,7 @@ class LLMClient:
 
     @staticmethod
     def _extract_openai(data: Dict[str, Any]) -> str:
-        return data["choices"][0]["message"]["content"].strip()
+        return str(data["choices"][0]["message"]["content"]).strip()
 
     # --- Anthropic (Claude) ---
 
@@ -263,7 +263,7 @@ class LLMClient:
 
     @staticmethod
     def _extract_anthropic(data: Dict[str, Any]) -> str:
-        return data["content"][0]["text"].strip()
+        return str(data["content"][0]["text"]).strip()
 
     # ------------------------------------------------------------------
     # Google Gemini
@@ -305,7 +305,7 @@ class LLMClient:
 
     @staticmethod
     def _extract_google(data: Dict[str, Any]) -> str:
-        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        return str(data["candidates"][0]["content"]["parts"][0]["text"]).strip()
 
     # ------------------------------------------------------------------
     # Shared HTTP helper
@@ -317,7 +317,7 @@ class LLMClient:
         payload: Dict[str, Any],
         headers: Dict[str, str],
         *,
-        extractor: Any,
+        extractor: Callable[[Dict[str, Any]], str],
     ) -> str:
         t0 = time.monotonic()
         log.info(
@@ -345,7 +345,11 @@ class LLMClient:
                     resp.text[:500],
                 )
             resp.raise_for_status()
-            return extractor(resp.json())
+            response_data = resp.json()
+            if not isinstance(response_data, dict):
+                log.error("Unexpected non-dict response payload: %r", response_data)
+                return ""
+            return extractor(cast(Dict[str, Any], response_data))
         except Exception as exc:
             elapsed = time.monotonic() - t0
             log.error(
