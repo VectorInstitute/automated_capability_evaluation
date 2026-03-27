@@ -338,11 +338,11 @@ All pipeline outputs include a `metadata` object (represented by the `PipelineMe
 ## Stage 0: Experiment Setup
 
 ### Input
-All inputs come from a configuration YAML file (e.g., `src/cfg/agentic_config.yaml`). Important fields include:
+All inputs come from a configuration YAML file (e.g., `src/cfg/run_cfg.yaml`). Important fields include:
 - **Experiment ID**: String - The experiment identifier (e.g., "r0_10x10")
 - **Domain Name**: String - The domain name (e.g., "personal finance", "mathematics")
 - **Description**: String (optional) - Domain description
-- **Output Base Directory**: String - Base output directory for all pipeline outputs (e.g., `global_cfg.output_dir` in agentic pipeline)
+- **Output Base Directory**: String - Base output directory for all pipeline outputs (e.g., `global_cfg.output_dir`)
 
 **Note:** The `experiment_id` and `output_base_dir` from the config YAML file are consistent across all stages. All stage-specific configurations (e.g., `num_areas`, `num_capabilities_per_area`, `num_tasks_per_capability`) also come from this same config YAML file.
 
@@ -561,6 +561,16 @@ This stage creates two files:
   ]
 }
 ```
+
+### Current Agentic Status
+
+The current Stage 3 agentic task generation pipeline is experimental.
+
+- It is currently focused on generating problems from chapter text, not on preserving exact Stage 1 -> Stage 2 -> Stage 3 area/capability matching.
+- In this mode, area and capability fields may be placeholder lineage values used to keep outputs compatible with the Stage 3 task schema and directory structure.
+- Because of that, running the full base pipeline from Stage 1 is not the supported path for this experimental agentic task generation flow.
+- Downstream Stage 4 (Solution Generation) and Stage 5 (Validation) should also be treated as incompatible with this experimental chapter-based task-generation flow unless they are explicitly adapted for it.
+- To generate problems with the current chapter-based agentic pipeline, start from Stage 3 and follow the instructions in [`src/task_generation/INSTRUCTIONS.md`](https://github.com/VectorInstitute/automated_capability_evaluation/blob/main/src/task_generation/INSTRUCTIONS.md).
 
 ---
 

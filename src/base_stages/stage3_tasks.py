@@ -15,6 +15,7 @@ from src.base_stages.generate_diverse_tasks_pipeline import (
 )
 from src.schemas.io_utils import load_capabilities, save_tasks
 from src.schemas.metadata_schemas import PipelineMetadata
+from src.task_generation.runner import run_from_stage3
 from src.utils import constants
 from src.utils.model_client_utils import get_standard_model_client
 from src.utils.timestamp_utils import iso_timestamp, timestamp_tag
@@ -49,6 +50,7 @@ def run_stage3(
     """
     experiment_id = cfg.exp_cfg.exp_id
     output_base_dir = Path(cfg.global_cfg.output_dir)
+    task_gen_mode = str(cfg.task_generation_cfg.get("mode", "base")).strip().lower()
 
     # Determine tasks tag (resume or new)
     is_resume = tasks_tag is not None
@@ -57,6 +59,22 @@ def run_stage3(
     else:
         tasks_tag = timestamp_tag()
         logger.info(f"Starting new Stage 3 with tasks_tag: {tasks_tag}")
+    # If agentic mode, delegate to runner module which will call back into this module.
+    if task_gen_mode == "agentic":
+        logger.info("Stage 3 mode: agentic")
+        return run_from_stage3(
+            experiment_id=experiment_id,
+            output_base_dir=output_base_dir,
+            capabilities_tag=capabilities_tag,
+            tasks_tag=tasks_tag,
+            is_resume=is_resume,
+        )
+
+    if task_gen_mode != "base":
+        raise ValueError(
+            f"Invalid task_generation_cfg.mode={task_gen_mode}. "
+            "Expected one of: base, agentic"
+        )
 
     # Initialize scientist LLM client using task_generation config
     scientist_llm_gen_cfg = dict(cfg.scientist_llm.generation_cfg.task_generation)

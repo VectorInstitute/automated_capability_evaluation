@@ -12,7 +12,7 @@ from typing import Dict, List
 import hydra
 from omegaconf import DictConfig
 
-from src.model import Model
+from wikipedia.model import Model
 from wikipedia.prompts import (
     SYSTEM_PROMPT_MATH_CAPABILITIES,
     get_generated_to_wikipedia_prompt,
