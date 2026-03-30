@@ -6,8 +6,11 @@ import re
 from typing import Any, Sequence
 
 
+_TextMessage: type[Any] | None
 try:
-    from autogen_agentchat.messages import TextMessage as _TextMessage
+    from autogen_agentchat.messages import TextMessage as _ImportedTextMessage
+
+    _TextMessage = _ImportedTextMessage
 except ModuleNotFoundError:  # pragma: no cover - optional runtime dependency
     _TextMessage = None
 

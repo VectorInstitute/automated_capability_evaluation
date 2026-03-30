@@ -1,7 +1,7 @@
 """Source file for the verifier agent used in task verification."""
 
 import logging
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, cast
 
 from src.task_generation.json_response_utils import parse_json_like, stringify_payload
 from src.task_generation.prompts import (
@@ -13,7 +13,11 @@ from src.task_generation.prompts import (
     USER_TASK_DIFFICULTY_ASSESSMENT_PROMPT,
     USER_TASK_VERIFICATION_PROMPT,
 )
-from src.utils.model_client_utils import ModelCallMode, async_call_model
+from src.utils.model_client_utils import (
+    ModelCallMode,
+    TextWithUsage,
+    async_call_model,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -29,7 +33,8 @@ class VerifierAgent:
     async def verify_task(
         self,
         candidate_output: Union[Dict[str, Any], str],
-    ) -> Dict[str, Any]:
+        blooms_level: str,
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
         Verify the candidate task output against the provided blueprint and context.
 
@@ -44,19 +49,23 @@ class VerifierAgent:
 
         user_prompt = USER_TASK_VERIFICATION_PROMPT.format(
             candidate_output=candidate_str,
+            blooms_level=(blooms_level or "").strip(),
         )
         task = SYSTEM_TASK_VERIFICATION_PROMPT + "\n\n" + user_prompt
-        text = await self._call_text_prompt(task)
-        return self._extract_verification_report(text)
+        result = await self._call_text_prompt(task)
+        return self._extract_verification_report(str(result["content"])), dict(
+            result["usage"]
+        )
 
     async def check_and_revise_mcq_option(
         self,
         candidate_question: str,
         chapter_excerpts: str,
         chapter_knowledge_text: str,
+        blooms_level: str,
         solution_trace: Dict[str, Any],
         solution_full: Dict[str, Any],
-    ) -> Tuple[Union[Dict[str, Any], str], str]:
+    ) -> Tuple[Union[Dict[str, Any], str], str, Dict[str, Any]]:
         """
         Check the correctness of a candidate question.
 
@@ -75,6 +84,7 @@ class VerifierAgent:
             candidate_question=candidate_question,
             chapter_excerpts=chapter_excerpts,
             chapter_knowledge_text=chapter_knowledge_text,
+            blooms_level=(blooms_level or "").strip(),
             solution_trace=stringify_payload(solution_trace),
             solution_full=stringify_payload(solution_full),
         )
@@ -85,13 +95,18 @@ class VerifierAgent:
             + "\n\n"
             + MCQ_INTEGRITY_OUTPUT_FORMAT
         )
-        text = await self._call_text_prompt(task)
-        return self._extract_mcq_payload(text), task
+        result = await self._call_text_prompt(task)
+        return (
+            self._extract_mcq_payload(str(result["content"])),
+            task,
+            dict(result["usage"]),
+        )
 
     async def assess_task_difficulty(
         self,
         candidate_question: Union[Dict[str, Any], str],
-    ) -> Tuple[Dict[str, Any], str]:
+        blooms_level: str,
+    ) -> Tuple[Dict[str, Any], str, Dict[str, Any]]:
         """
         Solve and assess candidate question difficulty with structured feedback.
 
@@ -105,19 +120,26 @@ class VerifierAgent:
         candidate_str = stringify_payload(candidate_question)
         user_prompt = USER_TASK_DIFFICULTY_ASSESSMENT_PROMPT.format(
             candidate_question=candidate_str,
+            blooms_level=(blooms_level or "").strip(),
         )
         task = SYSTEM_TASK_DIFFICULTY_ASSESSMENT_PROMPT + "\n\n" + user_prompt
-        text = await self._call_text_prompt(task)
-        return self._extract_difficulty_feedback(text), task
+        result = await self._call_text_prompt(task)
+        return (
+            self._extract_difficulty_feedback(str(result["content"])),
+            task,
+            dict(result["usage"]),
+        )
 
-    async def _call_text_prompt(self, task: str) -> str:
+    async def _call_text_prompt(self, task: str) -> TextWithUsage:
         """Call the model in plain-text mode for a fully assembled prompt."""
         response = await async_call_model(
             self.model_client,
             user_prompt=task,
             mode=ModelCallMode.TEXT,
+            return_usage=True,
         )
-        return str(response)
+        assert isinstance(response, dict)
+        return cast(TextWithUsage, response)
 
     def _extract_mcq_payload(self, content: str) -> Union[Dict[str, Any], str]:
         """
@@ -188,6 +210,7 @@ class VerifierAgent:
             "overall_verdict": "Fail",
             "json_format_valid": "No",
             "mcq_integrity": "No",
+            "blooms_alignment": "No",
             "constraint_compliance": "No",
             "explanation": f"System Error: {msg}",
             "question_evaluation": {

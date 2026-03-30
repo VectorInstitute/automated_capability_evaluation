@@ -116,6 +116,105 @@ def write_verification_stats(
     return stats_path
 
 
+def write_token_stats(
+    *,
+    chapter_out_path: Path,
+    chapter_id: str,
+    chapter_relpath: str,
+    book_name: str,
+    capability_id: str,
+    area_id: str,
+    token_usage_logs: List[Dict[str, Any]],
+) -> Path:
+    """Write token accounting stats and return the saved path."""
+    stats_path = chapter_out_path.parent / "token_stats.json"
+
+    total_input_tokens = 0
+    total_output_tokens = 0
+    total_tokens = 0
+    usage_available_calls = 0
+    usage_missing_calls = 0
+    by_stage: Dict[str, Dict[str, int]] = {}
+    by_model_role: Dict[str, Dict[str, int]] = {}
+
+    for entry in token_usage_logs:
+        input_tokens = entry.get("input_tokens")
+        output_tokens = entry.get("output_tokens")
+        record_total = entry.get("total_tokens")
+        usage_available = bool(entry.get("usage_available", False))
+
+        if usage_available:
+            safe_input = int(input_tokens or 0)
+            safe_output = int(output_tokens or 0)
+            safe_total = int(record_total or (safe_input + safe_output))
+            usage_available_calls += 1
+            total_input_tokens += safe_input
+            total_output_tokens += safe_output
+            total_tokens += safe_total
+        else:
+            safe_input = 0
+            safe_output = 0
+            safe_total = 0
+            usage_missing_calls += 1
+
+        stage = str(entry.get("stage") or "unknown")
+        stage_bucket = by_stage.setdefault(
+            stage,
+            {
+                "calls": 0,
+                "usage_available_calls": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+            },
+        )
+        stage_bucket["calls"] += 1
+        if usage_available:
+            stage_bucket["usage_available_calls"] += 1
+            stage_bucket["input_tokens"] += safe_input
+            stage_bucket["output_tokens"] += safe_output
+            stage_bucket["total_tokens"] += safe_total
+
+        model_role = str(entry.get("model_role") or "unknown")
+        role_bucket = by_model_role.setdefault(
+            model_role,
+            {
+                "calls": 0,
+                "usage_available_calls": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+            },
+        )
+        role_bucket["calls"] += 1
+        if usage_available:
+            role_bucket["usage_available_calls"] += 1
+            role_bucket["input_tokens"] += safe_input
+            role_bucket["output_tokens"] += safe_output
+            role_bucket["total_tokens"] += safe_total
+
+    payload = {
+        "chapter_id": chapter_id,
+        "chapter_relpath": chapter_relpath,
+        "book_name": book_name,
+        "capability_id": capability_id,
+        "area_id": area_id,
+        "num_model_calls": len(token_usage_logs),
+        "token_usage_summary": {
+            "usage_available_calls": usage_available_calls,
+            "usage_missing_calls": usage_missing_calls,
+            "total_input_tokens": total_input_tokens,
+            "total_output_tokens": total_output_tokens,
+            "total_tokens": total_tokens,
+            "by_stage": by_stage,
+            "by_model_role": by_model_role,
+        },
+        "token_usage_logs": token_usage_logs,
+    }
+    write_json_artifact(stats_path, payload)
+    return stats_path
+
+
 def save_task_outputs(
     *,
     tasks: List[Task],
