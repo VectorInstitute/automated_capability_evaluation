@@ -107,19 +107,10 @@ def build_eval_datasets_from_finance_math(
         raw_answer = row.get("ground_truth")
         answer = _normalize_answer(raw_answer)
 
-        # Skip table-based questions entirely.
-        # The dataset uses `tables` as a list; we only keep rows where it's empty.
-        if isinstance(tables, list) and len(tables) > 0:
-            continue
-        if tables not in (None, [], ""):
-            # Defensive: if tables is any non-empty structure/string, skip.
-            if str(tables).strip():
-                continue
-
         if not question or not answer:
             continue
 
-        inp = question
+        inp = _build_input(question, tables)
         global_idx = (spec.offset or 0) + local_idx
         task_id = f"finance_math_{global_idx:05d}"
         tasks.append({"id": task_id, "input": inp, "target": answer})

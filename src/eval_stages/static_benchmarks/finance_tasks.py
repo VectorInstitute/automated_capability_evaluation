@@ -24,6 +24,11 @@ from src.eval_stages.prompts import DEFAULT_EVAL_PROMPT_TEMPLATE
 from src.eval_stages.static_benchmarks.specs import StaticBenchmarkSpec
 from src.schemas.eval_schemas import EvalDataset
 
+EXCLUDED_BLOOM_LEVEL = (
+    "Create - Combine elements to form a new pattern, structure, or product. "
+    "Example verbs: design, compose, formulate, generate."
+)
+
 
 def _sanitize_text(text: str) -> str:
     """Sanitize text so it is safe to JSON-encode and send to APIs."""
@@ -87,8 +92,21 @@ def build_eval_datasets_from_finance_tasks(spec: StaticBenchmarkSpec) -> List[Ev
     limit: Optional[int] = spec.limit
     offset: int = max(0, int(spec.offset or 0))
 
+    # OmegaConf CLI overrides can pass boolean-like values as strings.
+    exclude_create = spec.exclude_bloom_create
+    if isinstance(exclude_create, str):
+        exclude_create = exclude_create.strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "y",
+            "on",
+        }
+
     for idx, row in enumerate(raw_tasks[offset:]):
         if not isinstance(row, dict):
+            continue
+        if exclude_create and str(row.get("bloom_level", "")).strip() == EXCLUDED_BLOOM_LEVEL:
             continue
 
         task_id = str(row.get("task_id", "")).strip()

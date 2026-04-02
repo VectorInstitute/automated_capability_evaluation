@@ -131,10 +131,8 @@ def build_eval_datasets_from_xfinbench(spec: StaticBenchmarkSpec) -> List[EvalDa
         raw_gt = row.get("ground_truth")
         target = _normalize_target(task_type, raw_gt)
 
-        # Skip image-based questions (figure present) and table-heavy prompts.
+        # Skip image-based questions (figure present).
         if figure is not None:
-            continue
-        if "\\begin{table" in question or "\\begin{tabular" in question:
             continue
 
         if not question or not target:

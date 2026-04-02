@@ -1,13 +1,16 @@
 """Eval Stage 2: Score Aggregation.
 
-This stage computes final capability scores from raw Inspect results.
-No LLM calls, just aggregation of results from Stage 1.
+This stage computes final capability scores from Stage 1 outputs.
+No LLM calls, just aggregation of results from either:
+- Inspect JSON logs (`stage=1`)
+- Direct flat JSONL outputs (`stage=1_local`)
 
 See: https://inspect.aisi.org.uk/
 """
 
 import logging
 import math
+import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -44,6 +47,11 @@ def _find_result_dirs(results_dir: Path, subject_llm: str) -> List[Path]:
 def _find_inspect_logs(result_dir: Path) -> List[Path]:
     """Find Inspect JSON log files for a capability result directory."""
     return sorted(result_dir.glob("*.json"))
+
+
+def _find_flat_files(result_dir: Path) -> List[Path]:
+    """Find flat jsonl files for a capability result directory."""
+    return sorted(result_dir.glob("flat_*.jsonl"))
 
 
 def _compute_stats(scores: List[float]) -> Dict[str, Any]:
@@ -160,6 +168,72 @@ def _parse_inspect_logs(
     return stats
 
 
+def _parse_flat_jsonl(
+    result_dir: Path,
+    expected_task_ids: Set[str],
+) -> Dict[str, Any]:
+    """Parse direct flat jsonl output and return aggregate stats."""
+    flat_files = _find_flat_files(result_dir)
+    if not flat_files:
+        logger.warning("No flat JSONL files found in %s", result_dir)
+        return {"mean": 0.0, "std_err": 0.0, "num_tasks": 0, "exact_match": False}
+
+    flat_scores: List[Tuple[Path, List[float], Set[str]]] = []
+    for flat_file in flat_files:
+        try:
+            scores: List[float] = []
+            scored_ids: Set[str] = set()
+            with open(flat_file, "r", encoding="utf-8") as f:
+                # Skip summary line if present.
+                try:
+                    next(f)
+                except StopIteration:
+                    flat_scores.append((flat_file, [], set()))
+                    continue
+                for line in f:
+                    if not line.strip():
+                        continue
+                    row = json.loads(line)
+                    task_id = str(row.get("id", ""))
+                    if not task_id:
+                        continue
+                    score_value = _score_value_to_float(row.get("grade"))
+                    if score_value is None:
+                        continue
+                    scored_ids.add(task_id)
+                    if task_id in expected_task_ids:
+                        scores.append(score_value)
+            flat_scores.append((flat_file, scores, scored_ids))
+        except Exception as e:
+            logger.warning("Failed to parse flat file %s: %s", flat_file, e)
+            continue
+
+    if not flat_scores:
+        return {"mean": 0.0, "std_err": 0.0, "num_tasks": 0, "exact_match": False}
+
+    selected_file, selected_scores, selected_ids = max(
+        flat_scores,
+        key=lambda x: (
+            x[2] == expected_task_ids,
+            len(x[1]),
+            x[0].stat().st_mtime,
+            x[0].name,
+        ),
+    )
+
+    if len(flat_scores) > 1:
+        logger.info(
+            "Multiple flat files found in %s; selected %s with %d scored samples",
+            result_dir,
+            selected_file.name,
+            len(selected_scores),
+        )
+
+    stats = _compute_stats(selected_scores)
+    stats["exact_match"] = selected_ids == expected_task_ids
+    return stats
+
+
 def run_eval_stage2(
     cfg: DictConfig,
     eval_tag: str,
@@ -230,8 +304,12 @@ def run_eval_stage2(
 
             expected_task_ids = {str(task["id"]) for task in cap_dataset.tasks}
 
-            # Parse Inspect logs
-            parsed = _parse_inspect_logs(result_dir, expected_task_ids)
+            # Prefer Inspect logs when present; otherwise fall back to direct
+            # flat jsonl outputs from stage=1_local.
+            if _find_inspect_logs(result_dir):
+                parsed = _parse_inspect_logs(result_dir, expected_task_ids)
+            else:
+                parsed = _parse_flat_jsonl(result_dir, expected_task_ids)
 
             if parsed["num_tasks"] < cap_dataset.num_tasks:
                 logger.warning(

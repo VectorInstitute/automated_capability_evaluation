@@ -143,13 +143,16 @@ logs/
 src/outputs/
 outputs/
 
-# Evaluation outputs/results (large, generated)
-base_output/
-
-# Slurm / batch logs (often checked in accidentally)
-*.out
-*.err
-
 # inspect result logs
 seed_datasets_inspect_logs/
 seed_tasks_results/
+
+# Generated experiment/evaluation artifacts
+base_output/
+base_output_tmp/
+
+# Local benchmark/task JSON exports
+finance_tasks.json
+seed_tasks.json
+task_4.json
+tasks_2.json

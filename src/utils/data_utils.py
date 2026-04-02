@@ -14,8 +14,22 @@ from datasets import (
     Dataset,
     load_dataset,  # noqa: D100
 )
-from google.cloud import storage
+try:
+    # Optional dependency: only required when using `gs://...` paths.
+    from google.cloud import storage  # type: ignore
+except Exception:  # noqa: BLE001
+    storage = None
 from omegaconf import DictConfig
+
+
+def _require_gcs_storage() -> Any:
+    """Return google.cloud.storage or raise a helpful ImportError."""
+    if storage is None:
+        raise ImportError(
+            "google-cloud-storage is required for `gs://...` paths. "
+            "Install it with: pip install google-cloud-storage"
+        )
+    return storage
 
 
 def load_data(
@@ -62,7 +76,7 @@ def read_json_file(file_path: str) -> Any:
     """
     if file_path.startswith("gs://"):
         # Read from GCP bucket
-        client = storage.Client()
+        client = _require_gcs_storage().Client()
         bucket_name, blob_name = file_path[5:].split("/", 1)
         bucket = client.bucket(bucket_name)
         blob = bucket.blob(blob_name)
@@ -90,7 +104,7 @@ def write_json_file(file_path: str, data: Dict[Any, Any]) -> None:
     """
     if file_path.startswith("gs://"):
         # Write to GCP bucket
-        client = storage.Client()
+        client = _require_gcs_storage().Client()
         bucket_name, blob_name = file_path[5:].split("/", 1)
         bucket = client.bucket(bucket_name)
         blob = bucket.blob(blob_name)
@@ -119,7 +133,7 @@ def list_dir(path: str) -> list[str]:
     """
     if path.startswith("gs://"):
         # List contents from GCP bucket
-        client = storage.Client()
+        client = _require_gcs_storage().Client()
         bucket_name, prefix = path[5:].split("/", 1)
         bucket = client.bucket(bucket_name)
         blobs = bucket.list_blobs(prefix=prefix)
@@ -148,7 +162,7 @@ def copy_file(src: str, dest: str) -> None:
     """
     if src.startswith("gs://") and dest.startswith("gs://"):
         # Copy file within GCP buckets
-        client = storage.Client()
+        client = _require_gcs_storage().Client()
         src_bucket_name, src_blob_name = src[5:].split("/", 1)
         dest_bucket_name, dest_blob_name = dest[5:].split("/", 1)
 
@@ -161,7 +175,7 @@ def copy_file(src: str, dest: str) -> None:
         dest_blob.rewrite(src_blob)
     elif src.startswith("gs://"):
         # Copy file from GCP bucket to local
-        client = storage.Client()
+        client = _require_gcs_storage().Client()
         bucket_name, blob_name = src[5:].split("/", 1)
         bucket = client.bucket(bucket_name)
         blob = bucket.blob(blob_name)
@@ -170,7 +184,7 @@ def copy_file(src: str, dest: str) -> None:
         blob.download_to_filename(dest)
     elif dest.startswith("gs://"):
         # Copy file from local to GCP bucket
-        client = storage.Client()
+        client = _require_gcs_storage().Client()
         bucket_name, blob_name = dest[5:].split("/", 1)
         bucket = client.bucket(bucket_name)
         blob = bucket.blob(blob_name)
@@ -199,7 +213,7 @@ def path_exists(path: str) -> bool:
     """
     if path.startswith("gs://"):
         # Check existence in GCP bucket
-        client = storage.Client()
+        client = _require_gcs_storage().Client()
         bucket_name, blob_name = path[5:].split("/", 1)
         bucket = client.bucket(bucket_name)
         blob = bucket.blob(blob_name)

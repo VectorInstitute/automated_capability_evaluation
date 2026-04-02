@@ -78,15 +78,98 @@ task_generation_cfg:
 eval_cfg:
   # LLMs to evaluate (required)
   subject_llms:
-    - name: gpt-4o
+    # - name: claude-haiku-4-5-20251001
+    #   provider: anthropic
+    # - name: claude-opus-4-6
+    #   provider: anthropic
+    # - name: gemini-2.5-flash-lite
+    #   provider: google
+    # - name: gemini-3.1-pro-preview
+    #   provider: google
+    # - name: gpt-4.1-mini
+    #   provider: openai
+    # - name: gpt-4.1
+    #   provider: openai
+    # - name: gpt-5.4
+    #   provider: openai
+
+    # - name: Qwen2.5-3B-Instruct
+    #   provider: openai
+    #   base_url: http://bn064:8458/v1
+
+    # - name: Qwen2.5-7B-Instruct
+    #   provider: openai
+    #   base_url: http://bn064:60530/v1
+
+    # - name: Qwen2.5-32B-Instruct
+    #   provider: openai
+    #   base_url: http://bn065:63335/v1
+
+    # - name: Meta-Llama-3.1-8B-Instruct
+    #   provider: openai
+    #   base_url: http://bn064:58891/v1
+
+
+    # - name: Qwen3-8B
+    #   provider: openai
+    #   base_url: http://bn067:45029/v1
+    - name: gpt-oss-120b
       provider: openai
-    - name: claude-3-sonnet
-      provider: anthropic
+      base_url: http://bn064:36884/v1
+    # - name: Qwen3-14B
+    #   provider: openai
+    #   base_url: http://bn075:50127/v1
+    # - name: Qwen3-32B
+    #   provider: openai
+    #   base_url: http://bn069:36543/v1
+
+    # - name: gemini-3-flash-preview
+    #   provider: google
+    # - name: gemini-3-pro-preview
+    #   provider: google
+    # - name: gpt-5-mini
+    #   provider: openai
+    # - name: gpt-5.2
+    #   provider: openai
+    # - name: claude-sonnet-4-6
+    #   provider: anthropic
+    # - name: claude-opus-4-6
+    #   provider: anthropic
+    # - name: gpt-4o
+    #   provider: openai
+    # - name: gpt-4.1-mini
+    #   provider: openai
+    # - name: gemini-2.5-flash
+    #   provider: google
+    # - name: claude-haiku-4-5-20251001
+    #   provider: anthropic
+    # - name: gemini-2.5-flash-lite
+    #   provider: google
+    # - name: gpt-3.5-turbo-0125
+    #   provider: openai
 
   # Judge LLM for scoring (required)
   judge_llm:
+    # name: Qwen2.5-7B-Instruct
+    # provider: hf_local
+    # model_path: /model-weights/Qwen2.5-7B-Instruct
+    # inference_backend: vllm
+    # trust_remote_code: true
+    # gpu_memory_utilization: 0.9
+    # tensor_parallel_size: 1
+    # batch_size: 64
+    # generation_cfg:
+    #   max_tokens: 8
+    #   temperature: 0.0
+
     name: gpt-4o-mini
     provider: openai
+    base_url: https://api.openai.com/v1
+    # For API judges, we interpret batch_size as "max concurrent async requests".
+    batch_size: 24
+    generation_cfg:
+      max_tokens: 8
+      temperature: 0.0
 
 # =============================================================================
 # HYDRA

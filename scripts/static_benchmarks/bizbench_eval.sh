@@ -2,22 +2,25 @@
 #SBATCH --job-name=bizbench_eval
 #SBATCH --output=logs/bizbench_eval_%A_%a.out
 #SBATCH --error=logs/bizbench_eval_%A_%a.err
-#SBATCH --time=04:00:00
+#SBATCH --time=08:00:00
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
-#SBATCH --array=0-9
+#SBATCH --array=0-50
 
 set -euo pipefail
 
-cd /fs01/projects/DeepLesion/projects/new_ace/automated_capability_evaluation
+cd /projects/DeepLesion/projects/new_ace/automated_capability_evaluation
+
+# shellcheck disable=SC1091
+source "scripts/static_benchmarks/env_slurm_inspect.sh"
 
 # Allow running either via sbatch (with SLURM_ARRAY_TASK_ID set)
 # or directly (default to a single chunk 0).
 : "${SLURM_ARRAY_TASK_ID:=0}"
 
-CHUNK=500
+CHUNK=100
 OFFSET=$((SLURM_ARRAY_TASK_ID * CHUNK))
-VALIDATION_TAG="_BIZBENCH_${SLURM_ARRAY_TASK_ID}_$(date +%Y%m%d_%H%M%S)"
+VALIDATION_TAG="_BIZBENCH_Commercial_${SLURM_ARRAY_TASK_ID}_SundayNight"
 
 # Stage 0_static: build datasets from kensho/bizbench
 python -m src.run_eval_pipeline \

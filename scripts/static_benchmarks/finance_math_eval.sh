@@ -5,19 +5,22 @@
 #SBATCH --time=04:00:00
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
-#SBATCH --array=0-9
+#SBATCH --array=0-60
 
 set -euo pipefail
 
-cd /fs01/projects/DeepLesion/projects/new_ace/automated_capability_evaluation
+cd /projects/DeepLesion/projects/new_ace/automated_capability_evaluation
+
+# shellcheck disable=SC1091
+source "scripts/static_benchmarks/env_slurm_inspect.sh"
 
 # Allow running via sbatch (with SLURM_ARRAY_TASK_ID) or directly (defaults to 0).
 : "${SLURM_ARRAY_TASK_ID:=0}"
 
 # FinanceMath validation has 121 non-table tasks after filtering.
-CHUNK=20
+CHUNK=50
 OFFSET=$((SLURM_ARRAY_TASK_ID * CHUNK))
-VALIDATION_TAG="_FINANCE_MATH_${SLURM_ARRAY_TASK_ID}_$(date +%Y%m%d_%H%M%S)"
+VALIDATION_TAG="_FINANCE_MATH_${SLURM_ARRAY_TASK_ID}_SundayNight"
 
 # Stage 0_static: build datasets from yale-nlp/FinanceMath (validation split only)
 python -m src.run_eval_pipeline \

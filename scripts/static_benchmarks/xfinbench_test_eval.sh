@@ -9,7 +9,10 @@
 
 set -euo pipefail
 
-cd /fs01/projects/DeepLesion/projects/new_ace/automated_capability_evaluation
+cd /projects/DeepLesion/projects/new_ace/automated_capability_evaluation
+
+# shellcheck disable=SC1091
+source "scripts/static_benchmarks/env_slurm_inspect.sh"
 
 # Allow running via sbatch (with SLURM_ARRAY_TASK_ID) or directly (defaults to 0).
 : "${SLURM_ARRAY_TASK_ID:=0}"
@@ -17,7 +20,7 @@ cd /fs01/projects/DeepLesion/projects/new_ace/automated_capability_evaluation
 # 10 chunks over ~2828 filtered test examples → ~300 per chunk
 CHUNK=300
 OFFSET=$((SLURM_ARRAY_TASK_ID * CHUNK))
-VALIDATION_TAG="_XFINBENCH_TEST_${SLURM_ARRAY_TASK_ID}_$(date +%Y%m%d_%H%M%S)"
+VALIDATION_TAG="_XFINBENCH_TEST_${SLURM_ARRAY_TASK_ID}_SundayNight"
 
 # Stage 0_static: build datasets from Zhihan/XFinBench (test split, CSV-backed HF repo)
 python -m src.run_eval_pipeline \

@@ -8,6 +8,7 @@ Stage 2: Score Aggregation (no LLM calls)
 from src.eval_stages.stage0_setup_and_dataset import EvalSetupError, run_eval_stage0
 from src.eval_stages.stage0_static_benchmarks import run_eval_stage0_static
 from src.eval_stages.stage1_eval_execution import run_eval_stage1
+from src.eval_stages.stage1_local_eval_execution import run_eval_stage1_local
 from src.eval_stages.stage2_score_aggregation import run_eval_stage2
 
 
@@ -15,6 +16,7 @@ __all__ = [
     "run_eval_stage0",
     "run_eval_stage0_static",
     "run_eval_stage1",
+    "run_eval_stage1_local",
     "run_eval_stage2",
     "EvalSetupError",
 ]

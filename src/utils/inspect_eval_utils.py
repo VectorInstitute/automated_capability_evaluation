@@ -19,7 +19,7 @@ INSPECT_JUDGE_LLM = "openai/gpt-4o-mini"
 INSPECT_JUDGE_LLM_GEN_CONFIG: Dict[str, Any] = {}
 
 LLM_JUDGE_PROMPT = """
-Look at the submission and the target string for a given task and judge whether they are equivalent or not. The submission should include all aspects present in the target. Respond with only "Yes" or "No" (without quotes). Do not include a rationale.
+Look at the submission and the target string for a given task and judge whether they are equivalent or not. If they are semantically equivalent, respond with "Yes". Respond with only "Yes" or "No" (without quotes). Do not include a rationale.
 
 Submission: {submission}
 Target: {target}
@@ -30,7 +30,7 @@ Target: {target}
 # https://github.com/UKGovernmentBEIS/inspect_ai/blob/main/src/inspect_ai/_util/pattern.py#L3
 def parse_submission(submission: str) -> str:
     """
-    Parse the submission string to extract the answer based on the "ANSWER" keyword.
+    Parse the submission string to extract the final answer.
 
     This function is used in the capability class score method.
 
@@ -43,9 +43,76 @@ def parse_submission(submission: str) -> str:
         str: The extracted answer from the submission, or an empty string
             if no match is found.
     """
-    answer_pattern = r"ANSWER\s*:\s*([^\n]+)"
-    match = re.search(answer_pattern, submission)
-    return match.group(1) if match else ""
+    if not submission:
+        return ""
+
+    def _maybe_extract_option_letter(text: str) -> str | None:
+        """
+        Normalize common answer formats (e.g., "ANSWER: B", "Option B", "\\boxed{ANSWER: B}")
+        into a single letter like "B".
+        """
+        if not text:
+            return None
+        s = text.strip()
+        # Normalize common LaTeX wrappers like "\text{ANSWER: B}" -> "ANSWER: B".
+        s = re.sub(r"\\text\s*\{([^}]*)\}", r"\1", s, flags=re.IGNORECASE)
+        s = s.replace("{", "").replace("}", "")
+        # Handle cases like "ANSWER: B" (possibly with trailing punctuation).
+        m = re.search(
+            r"(?im)(?:final\s+answer|correct\s+option|answer)\s*[:\-]?\s*([A-Z])\b",
+            s,
+        )
+        if m:
+            return m.group(1).upper()
+        m = re.fullmatch(
+            r"(?im)\s*(?:(?:final\s+answer|correct\s+option|answer))\s*[:\-]?\s*([A-Z])\s*[\s.]*",
+            s,
+        )
+        if m:
+            return m.group(1).upper()
+        m = re.fullmatch(
+            r"(?im)\s*(?:(?:option|choice))\s*[:\-]?\s*([A-Z])\s*[\s.)]*",
+            s,
+        )
+        if m:
+            return m.group(1).upper()
+        # Sometimes the boxed content is already just "B".
+        m = re.fullmatch(r"(?im)\s*([A-Z])\s*", s)
+        if m:
+            return m.group(1).upper()
+        return None
+
+    patterns = [
+        r"(?im)^\s*(?:final\s+answer|answer)\s*:\s*(.+?)\s*$",
+        r"(?im)^\s*(?:the\s+correct\s+option|correct\s+option)\s+is\s*[:\-]?\s*(.+?)\s*$",
+        r"(?im)^\s*(?:option|choice)\s*[:\-]?\s*([A-Z])\s*$",
+        r"\\boxed\{([^}]+)\}",
+    ]
+
+    for pattern in patterns:
+        matches = re.findall(pattern, submission)
+        if matches:
+            extracted = matches[-1].strip()
+            if extracted:
+                normalized_letter = _maybe_extract_option_letter(extracted)
+                if normalized_letter is not None:
+                    return normalized_letter
+                return extracted
+
+    lines = [line.strip() for line in submission.splitlines() if line.strip()]
+    if not lines:
+        return ""
+
+    for line in reversed(lines[-5:]):
+        option_match = re.fullmatch(
+            r"(?:option|choice)?\s*[:\-]?\s*([A-Z])(?:[.)])?",
+            line,
+            flags=re.IGNORECASE,
+        )
+        if option_match:
+            return option_match.group(1).upper()
+
+    return ""
 
 
 async def evaluate_with_llm_judge(

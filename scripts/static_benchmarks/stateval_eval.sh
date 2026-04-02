@@ -10,6 +10,9 @@ set -euo pipefail
 
 cd /fs01/projects/DeepLesion/projects/new_ace/automated_capability_evaluation
 
+# shellcheck disable=SC1091
+source "scripts/static_benchmarks/env_slurm_inspect.sh"
+
 VALIDATION_TAG="_STATEVAL_$(date +%Y%m%d_%H%M%S)"
 
 python -m src.run_eval_pipeline \

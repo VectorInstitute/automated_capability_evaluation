@@ -2,7 +2,8 @@
 
 This module orchestrates the evaluation pipeline:
 - Stage 0: Setup and Dataset Preparation
-- Stage 1: Evaluation Execution (runs subject LLMs, creates eval_tag)
+- Stage 1: Evaluation Execution (Inspect-based)
+- Stage 1_local: Evaluation Execution without Inspect
 - Stage 2: Score Aggregation
 
 Usage:
@@ -27,6 +28,7 @@ from src.eval_stages import (
     run_eval_stage0,
     run_eval_stage0_static,
     run_eval_stage1,
+    run_eval_stage1_local,
     run_eval_stage2,
 )
 
@@ -119,6 +121,21 @@ def main(cfg: DictConfig) -> None:
         except ValueError as e:
             logger.error("Stage 1 failed: %s", e)
 
+    elif stage in {"1_local", "local1", "stage1_local"}:
+        if not validation_tag:
+            logger.error("validation_tag is required for stage 1_local")
+            logger.error(
+                "Usage: python -m src.run_eval_pipeline stage=1_local "
+                "validation_tag=_YYYYMMDD_HHMMSS"
+            )
+            return
+
+        try:
+            eval_tag = run_eval_stage1_local(cfg, validation_tag, eval_tag)
+            logger.info("Eval Stage 1_local complete. eval_tag=%s", eval_tag)
+        except ValueError as e:
+            logger.error("Stage 1_local failed: %s", e)
+
     elif stage == 2:
         if not eval_tag:
             logger.error("eval_tag is required for stage 2")
@@ -150,7 +167,10 @@ def main(cfg: DictConfig) -> None:
             logger.error("Stage 0_static failed: %s", e)
 
     else:
-        logger.error("Invalid stage: %s. Use 'all', 0, 1, or 2", stage)
+        logger.error(
+            "Invalid stage: %s. Use 'all', 0, 1, '1_local', 2, or '0_static'",
+            stage,
+        )
 
 
 if __name__ == "__main__":

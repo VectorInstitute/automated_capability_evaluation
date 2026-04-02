@@ -63,6 +63,8 @@ class EmbeddingGenerator:
     def generate_embeddings(
         self,
         texts: list[str],
+        max_tokens_per_request: int = 250_000,
+        max_batch_size: int = 128,
     ) -> List[torch.Tensor]:
         """
         Generate and optionally reduce embeddings for a list of texts.
@@ -76,8 +78,61 @@ class EmbeddingGenerator:
             List[torch.Tensor]: A list of embeddings, where each embedding
                                 is a torch.Tensor.
         """
-        output_float_list = self.embedding_model.embed_documents(texts)
-        return [torch.tensor(vec) for vec in output_float_list]
+        if not texts:
+            return []
+
+        # The OpenAI embeddings endpoint limits the TOTAL tokens per request
+        # (sum across all input documents). Previously we embedded `texts`
+        # in one shot, which can exceed the limit.
+        try:
+            import tiktoken  # type: ignore
+
+            try:
+                tokenizer = tiktoken.encoding_for_model(self.embedding_model_name.value)
+            except Exception:  # noqa: BLE001
+                tokenizer = tiktoken.get_encoding("cl100k_base")
+
+            def _token_len(s: str) -> int:
+                # NOTE: this is an estimate; still far safer than sending
+                # an unbounded list.
+                return len(tokenizer.encode(s))
+
+        except Exception:  # noqa: BLE001
+            # Fallback heuristic if tiktoken isn't available.
+            # Typical English token ~ 4 chars, but we keep a lower bound of 1.
+            def _token_len(s: str) -> int:
+                return max(1, len(s) // 4)
+
+        # Build batches under the token budget.
+        batches: list[list[str]] = []
+        current_batch: list[str] = []
+        current_tokens = 0
+
+        for t in texts:
+            t_tokens = _token_len(t)
+            if (
+                current_batch
+                and (
+                    current_tokens + t_tokens > max_tokens_per_request
+                    or len(current_batch) >= max_batch_size
+                )
+            ):
+                batches.append(current_batch)
+                current_batch = [t]
+                current_tokens = t_tokens
+            else:
+                current_batch.append(t)
+                current_tokens += t_tokens
+
+        if current_batch:
+            batches.append(current_batch)
+
+        output_embeddings: List[torch.Tensor] = []
+        for batch in batches:
+            output_float_list = self.embedding_model.embed_documents(batch)
+            output_embeddings.extend([torch.tensor(vec) for vec in output_float_list])
+
+        return output_embeddings
 
 
 def filter_embeddings(

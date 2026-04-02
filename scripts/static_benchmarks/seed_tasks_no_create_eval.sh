@@ -1,27 +1,30 @@
 #!/bin/bash
-#SBATCH --job-name=math500_eval
-#SBATCH --output=logs/math500_eval_%j.out
-#SBATCH --error=logs/math500_eval_%j.err
-#SBATCH --time=02:00:00
+#SBATCH --job-name=seed_tasks_no_create_eval
+#SBATCH --output=logs/seed_tasks_no_create_eval_%j.out
+#SBATCH --error=logs/seed_tasks_no_create_eval_%j.err
+#SBATCH --time=04:00:00
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 
 set -euo pipefail
 
-cd /fs01/projects/DeepLesion/projects/new_ace/automated_capability_evaluation
+cd /projects/DeepLesion/projects/new_ace/automated_capability_evaluation
 
 # shellcheck disable=SC1091
 source "scripts/static_benchmarks/env_slurm_inspect.sh"
 
-VALIDATION_TAG="_MATH500_$(date +%Y%m%d_%H%M%S)"
+VALIDATION_TAG="_SEED_TASKS_NO_CREATE_$(date_TuesdayNight)"
 
-# Stage 0_static: build datasets from HF MATH-500
+# Stage 0_static: build datasets from local seed_tasks.json (exclude Create bloom level)
 python -m src.run_eval_pipeline \
   stage=0_static \
   validation_tag="$VALIDATION_TAG" \
-  +static_benchmark_cfg.benchmark_id=HuggingFaceH4/MATH-500 \
-  +static_benchmark_cfg.split=test \
-  +static_benchmark_cfg.limit=30
+  +static_benchmark_cfg.benchmark_id=seed_tasks.json \
+  +static_benchmark_cfg.split=na \
+  +static_benchmark_cfg.domain=finance \
+  +static_benchmark_cfg.capability_id=seed_tasks_no_create \
+  +static_benchmark_cfg.capability_name=SeedTasksNoCreate \
+  +static_benchmark_cfg.exclude_bloom_create=true
 
 # Stage 1: run subject models on the static datasets
 python -m src.run_eval_pipeline \
@@ -62,3 +65,4 @@ if [ -d "$RESULTS_DIR" ]; then
     done
   done
 fi
+

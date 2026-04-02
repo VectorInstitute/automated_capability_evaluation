@@ -40,3 +40,8 @@ class StaticBenchmarkSpec:
     capability_name: Optional[str] = None
     domain: str = "external"
 
+    # Controls the filtering behavior for local "finance tasks" JSON adapters
+    # (e.g. finance_tasks.json / seed_tasks.json).
+    # When true, removes Bloom level "Create - Combine elements..." tasks.
+    exclude_bloom_create: bool = True
+

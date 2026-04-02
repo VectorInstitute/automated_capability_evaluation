@@ -7,18 +7,21 @@ See: https://inspect.aisi.org.uk/
 """
 
 import logging
+import os
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Union
 
 from inspect_ai import Task
 from inspect_ai import eval as inspect_eval
 from inspect_ai import eval_retry as inspect_eval_retry
 from inspect_ai.dataset import MemoryDataset, Sample
 from inspect_ai.log import read_eval_log
+from inspect_ai.model import Model as InspectModel
+from inspect_ai.model import get_model
 from inspect_ai.scorer import model_graded_fact
 from inspect_ai.solver import generate
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from src.schemas.eval_io_utils import (
     load_eval_config,
@@ -27,10 +30,30 @@ from src.schemas.eval_io_utils import (
 )
 from src.schemas.eval_schemas import EvalDataset
 from src.schemas.metadata_schemas import PipelineMetadata
+from src.utils.constants import DEFAULT_OPENAI_BASE_URL
 from src.utils.timestamp_utils import iso_timestamp, timestamp_tag
 
 
 logger = logging.getLogger(__name__)
+
+
+def _inspect_judge_model(judge_llm: Dict[str, Any]) -> Union[str, InspectModel]:
+    """Resolve judge for Inspect so it can use a different API base than the subject."""
+    provider = str(judge_llm.get("provider", "openai"))
+    name = str(judge_llm["name"])
+    uri = f"{provider}/{name}"
+    if provider == "openai":
+        base_url = judge_llm.get("base_url") or os.environ.get(
+            "OPENAI_JUDGE_BASE_URL"
+        ) or DEFAULT_OPENAI_BASE_URL
+        api_key = os.environ.get("OPENAI_API_KEY")
+        logger.info(
+            "Inspect judge model: %s (base_url=%s)",
+            uri,
+            base_url,
+        )
+        return get_model(uri, base_url=base_url, api_key=api_key)
+    return uri
 
 
 def _find_datasets(datasets_dir: Path) -> List[Path]:
@@ -151,7 +174,7 @@ def _find_retry_log(
 
 def _create_inspect_task(
     dataset: EvalDataset,
-    judge_model: str,
+    judge_model: Union[str, InspectModel],
 ) -> "Task":
     """Build an Inspect task for one capability dataset."""
     # Create Inspect samples from our dataset
@@ -178,10 +201,12 @@ def _create_inspect_task(
 def _run_inspect_eval(
     dataset: EvalDataset,
     subject_llm: str,
-    judge_llm: Dict[str, str],
+    judge_llm: Dict[str, Any],
+    subject_llm_config: Optional[Dict[str, Any]],
     output_dir: Path,
     *,
     max_attempts: int = 3,
+    max_tasks: Optional[int] = None,
 ) -> bool:
     """Run an Inspect eval for one capability/LLM pair with auto-retry.
 
@@ -190,8 +215,19 @@ def _run_inspect_eval(
     that happens, Inspect often leaves a partial log that can be resumed via
     `inspect_eval_retry`.
     """
-    # Format model names for Inspect (provider/model)
-    judge_model = f"{judge_llm['provider']}/{judge_llm['name']}"
+    judge_model = _inspect_judge_model(judge_llm)
+
+    subject_base_url: Optional[str] = None
+    if subject_llm_config:
+        subject_base_url = subject_llm_config.get("base_url") or os.environ.get(
+            "OPENAI_SUBJECT_BASE_URL"
+        )
+    if subject_base_url:
+        logger.info(
+            "Inspect subject model: %s (model_base_url=%s)",
+            subject_llm,
+            subject_base_url,
+        )
 
     expected_task_ids = {str(task["id"]) for task in dataset.tasks}
 
@@ -204,12 +240,16 @@ def _run_inspect_eval(
             # Inspect saves logs to the specified directory
             output_dir.mkdir(parents=True, exist_ok=True)
 
-            inspect_eval(
-                task,
-                model=subject_llm,
-                log_dir=str(output_dir),
-                log_format="json",
-            )
+            inspect_kwargs: Dict[str, Any] = {
+                "tasks": task,
+                "model": subject_llm,
+                "log_dir": str(output_dir),
+                "log_format": "json",
+                "max_tasks": max_tasks,
+            }
+            if subject_base_url:
+                inspect_kwargs["model_base_url"] = subject_base_url
+            inspect_eval(**inspect_kwargs)
 
             return True
 
@@ -330,6 +370,12 @@ def run_eval_stage1(
     # Run evaluations
     subject_llms = eval_config.subject_llms
     judge_llm = eval_config.judge_llm
+    # Concurrency for Inspect eval. Higher is faster for remote endpoints.
+    inspect_max_tasks = None
+    try:
+        inspect_max_tasks = int(cfg.get("eval_cfg", {}).get("inspect_max_tasks"))
+    except Exception:
+        inspect_max_tasks = None
 
     num_completed_this_run = 0
     num_skipped_completed = 0
@@ -391,12 +437,24 @@ def run_eval_stage1(
                     subject_model,
                 )
 
+                judge_plain = (
+                    OmegaConf.to_container(judge_llm, resolve=True)
+                    if OmegaConf.is_config(judge_llm)
+                    else dict(judge_llm)
+                )
+                subject_plain = (
+                    OmegaConf.to_container(llm_config, resolve=True)
+                    if OmegaConf.is_config(llm_config)
+                    else dict(llm_config)
+                )
                 success = _run_inspect_eval(
                     dataset=dataset,
                     subject_llm=subject_model,
-                    judge_llm=judge_llm,
+                    judge_llm=judge_plain,
+                    subject_llm_config=subject_plain,
                     output_dir=output_dir,
                     max_attempts=int(cfg.get("eval_cfg", {}).get("max_attempts", 3)),
+                    max_tasks=inspect_max_tasks,
                 )
 
             if success:

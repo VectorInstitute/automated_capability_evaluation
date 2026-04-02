@@ -10,6 +10,9 @@ set -euo pipefail
 
 cd /fs01/projects/DeepLesion/projects/new_ace/automated_capability_evaluation
 
+# shellcheck disable=SC1091
+source "scripts/static_benchmarks/env_slurm_inspect.sh"
+
 VALIDATION_TAG="_MINIF2F_$(date +%Y%m%d_%H%M%S)"
 
 # Stage 0_static: build datasets from Tonic/MiniF2F (train split only)
