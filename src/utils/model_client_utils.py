@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, Mapping, Optional, Sequence
+from typing import Any, Dict, Mapping, Optional, Sequence, TypedDict
 
 import anthropic
 import openai
@@ -98,6 +98,42 @@ class ModelCallMode:
     STRUCTURED = "structured"
 
 
+class TokenUsage(TypedDict):
+    """Normalized token usage for one model call."""
+
+    input_tokens: Optional[int]
+    output_tokens: Optional[int]
+    total_tokens: Optional[int]
+    usage_available: bool
+
+
+class TextWithUsage(TypedDict):
+    """Text response paired with normalized token usage."""
+
+    content: str
+    usage: TokenUsage
+
+
+def _normalize_usage(response: Any) -> TokenUsage:
+    """Extract token usage from an AutoGen CreateResult-like response."""
+    usage = getattr(response, "usage", None)
+    prompt_tokens = getattr(usage, "prompt_tokens", None)
+    completion_tokens = getattr(usage, "completion_tokens", None)
+
+    input_tokens = int(prompt_tokens) if prompt_tokens is not None else None
+    output_tokens = int(completion_tokens) if completion_tokens is not None else None
+    total_tokens: Optional[int] = None
+    if input_tokens is not None and output_tokens is not None:
+        total_tokens = input_tokens + output_tokens
+
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+        "usage_available": input_tokens is not None and output_tokens is not None,
+    }
+
+
 async def async_call_model(
     model_client: ChatCompletionClient,
     *,
@@ -107,6 +143,7 @@ async def async_call_model(
     mode: str = ModelCallMode.TEXT,
     max_attempts: int = 3,
     extra_kwargs: Optional[Mapping[str, Any]] = None,
+    return_usage: bool = False,
 ) -> Any:
     """Perform a standard async model call with output modes and retry logic.
 
@@ -222,13 +259,24 @@ async def async_call_model(
             break
 
         if mode == ModelCallMode.TEXT:
+            if return_usage:
+                return {
+                    "content": content_str,
+                    "usage": _normalize_usage(response),
+                }
             return content_str
 
         if mode == ModelCallMode.JSON_PARSE:
             import json
 
             try:
-                return json.loads(content_str)
+                parsed = json.loads(content_str)
+                if return_usage:
+                    return {
+                        "content": parsed,
+                        "usage": _normalize_usage(response),
+                    }
+                return parsed
             except Exception as exc:  # pragma: no cover - JSON edge cases
                 last_error = ModelCallError(
                     f"Failed to parse JSON from model response: {exc}"
@@ -244,6 +292,11 @@ async def async_call_model(
                 break
 
         # STRUCTURED mode: return provider object as-is to the caller.
+        if return_usage:
+            return {
+                "content": response,
+                "usage": _normalize_usage(response),
+            }
         return response
 
     # If we get here, all attempts failed.

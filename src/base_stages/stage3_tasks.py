@@ -51,6 +51,8 @@ def run_stage3(
     experiment_id = cfg.exp_cfg.exp_id
     output_base_dir = Path(cfg.global_cfg.output_dir)
     task_gen_mode = str(cfg.task_generation_cfg.get("mode", "base")).strip().lower()
+    worker_index = cfg.task_generation_cfg.get("worker_index", None)
+    worker_count = cfg.task_generation_cfg.get("worker_count", None)
 
     # Determine tasks tag (resume or new)
     is_resume = tasks_tag is not None
@@ -62,12 +64,19 @@ def run_stage3(
     # If agentic mode, delegate to runner module which will call back into this module.
     if task_gen_mode == "agentic":
         logger.info("Stage 3 mode: agentic")
+        if worker_index is not None or worker_count is not None:
+            logger.info(
+                "Agentic Stage 3 sharding enabled: worker_index=%s, worker_count=%s",
+                worker_index,
+                worker_count,
+            )
         return run_from_stage3(
             experiment_id=experiment_id,
             output_base_dir=output_base_dir,
             capabilities_tag=capabilities_tag,
             tasks_tag=tasks_tag,
-            is_resume=is_resume,
+            worker_index=int(worker_index) if worker_index is not None else None,
+            worker_count=int(worker_count) if worker_count is not None else None,
         )
 
     if task_gen_mode != "base":
