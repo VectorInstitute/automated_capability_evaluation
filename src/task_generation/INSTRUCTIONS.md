@@ -265,6 +265,131 @@ Typical files:
 - `discarded_tasks.json`: dedup-discarded tasks if enabled
 - `checkpoints/<combo>_passed_tasks_checkpoint.json`: combo-specific checkpoint files
 
+Example: one chapter output directory may look like this:
+
+```text
+base_output/test_exp/tasks/_20260331_145849/
+└── area_ch_foundations_of_machine_learning_006_2d1a90fa/
+    └── cap_ch_foundations_of_machine_learning_006_2d1a90fa/
+        ├── tasks.json
+        ├── verification_stats.json
+        ├── token_stats.json
+        ├── chapter_summary.json
+        └── checkpoints/
+            ├── Hard_Analyze_passed_tasks_checkpoint.json
+            ├── Hard_Apply_passed_tasks_checkpoint.json
+            ├── Hard_Create_passed_tasks_checkpoint.json
+            └── Hard_Evaluate_passed_tasks_checkpoint.json
+```
+
+If deduplication is enabled, you may also see:
+- `dedup_report.json`
+- `discarded_tasks.json`
+- `embedding_cache.json` at the area-level directory
+
+Interpretation:
+- `area_id` and `capability_id` identify the chapter generation unit
+- `tasks.json` is the final chapter-level task set after generation and optional deduplication
+- `checkpoints/` stores per-combination resume state for that chapter
+
+Example: `tasks.json` structure
+
+```json
+{
+  "metadata": {
+    "chapter_id": "Kernel_methods_in_machine_learning",
+    "capability_id": "cap_ch_kernel_methods_in_machine_learning_f28c75f8",
+    "area_id": "area_ch_kernel_methods_in_machine_learning_f28c75f8"
+  },
+  "tasks": [
+    {
+      "task_id": "task_000",
+      "task_statement": "Consider a binary classification task ... For a test string x = BABA, what is the exact value of the raw decision function f(x)?\n\nOptions:\nA. -15/256\nB. -1/8\nC. -1/32\nD. 15/256\nE. None of the above",
+      "task_type": "multiple_choice",
+      "solution_type": "multiple_choice",
+      "difficulty": "Hard - Involves complex reasoning, integration of several sub-topics, or solving non-trivial problems that demand deeper conceptual understanding.",
+      "bloom_level": "Apply - Use knowledge or methods in new but familiar situations. Example verbs: calculate, demonstrate, use, implement.",
+      "choices": [
+        { "label": "A", "solution": "-15/256" },
+        { "label": "B", "solution": "-1/8" },
+        { "label": "C", "solution": "-1/32" },
+        { "label": "D", "solution": "15/256" },
+        { "label": "E", "solution": "None of the above" }
+      ],
+      "capability_id": "cap_ch_kernel_methods_in_machine_learning_f28c75f8",
+      "area_id": "area_ch_kernel_methods_in_machine_learning_f28c75f8",
+      "generation_metadata": {
+        "chapter_id": "Kernel_methods_in_machine_learning",
+        "chapter_relpath": "Kernel_methods_in_machine_learning/Kernel_methods_in_machine_learning.txt",
+        "capability_source_mode": "placeholder",
+        "blueprint_key": "Hard_Apply",
+        "correct_answer": "A",
+        "chapter_question_id": "Kernel_methods_in_machine_learning_q_000",
+        "solution_graph": {
+          "nodes": [
+            { "id": "V1", "content": "Identify the feature space dimensions ..." }
+          ],
+          "edges": [
+            { "from": "V1", "to": "V2", "operation": "..." }
+          ]
+        },
+        "complete_solution": "Step-by-step solution text ..."
+      }
+    }
+  ]
+}
+```
+
+Notes on the task example:
+- `task_statement` already includes the answer choices appended to the question text
+- `choices` preserves the option list in structured form
+- `generation_metadata` keeps provenance, the hidden correct answer, and the reasoning trace used to generate the item
+
+Example: `verification_stats.json` structure
+
+```json
+{
+  "chapter_id": "Kernel_methods_in_machine_learning",
+  "chapter_relpath": "Kernel_methods_in_machine_learning/Kernel_methods_in_machine_learning.txt",
+  "book_name": "Kernel_methods_in_machine_learning",
+  "capability_id": "cap_ch_kernel_methods_in_machine_learning_f28c75f8",
+  "area_id": "area_ch_kernel_methods_in_machine_learning_f28c75f8",
+  "num_verifier_calls": 15,
+  "verification_logs": [
+    {
+      "task_batch_id": "batch_60b997",
+      "attempt_index": 0,
+      "attempt_human": "1/4",
+      "chapter_id": "Kernel_methods_in_machine_learning",
+      "chapter_relpath": "Kernel_methods_in_machine_learning/Kernel_methods_in_machine_learning.txt",
+      "blueprint_key": "Hard_Apply",
+      "difficulty": "Hard - Involves complex reasoning, integration of several sub-topics, or solving non-trivial problems that demand deeper conceptual understanding.",
+      "blooms_level": "Apply - Use knowledge or methods in new but familiar situations. Example verbs: calculate, demonstrate, use, implement.",
+      "question_index_in_batch": 0,
+      "seed_generation_index": 1,
+      "seed_generation_target": 3,
+      "candidate_origin": "seed",
+      "is_seed_task": true,
+      "hardening_round_index": 0,
+      "candidate_index_within_seed": 1,
+      "candidate_total_within_seed": 1,
+      "summary": {
+        "overall_verdict": "Pass",
+        "json_format_valid": "Yes",
+        "mcq_integrity": "Yes",
+        "blooms_alignment": "Yes",
+        "constraint_compliance": "Yes"
+      }
+    }
+  ]
+}
+```
+
+Notes on the verification example:
+- one log entry corresponds to one verification attempt on one candidate
+- the summary block records the final yes/no checks used to decide pass or fail
+- if a candidate fails and is retried, multiple verification entries can appear for the same seed generation
+
 Notes:
 - Stage-3 output format remains:
   `tasks/<tasks_tag>/<area_id>/<capability_id>/tasks.json`

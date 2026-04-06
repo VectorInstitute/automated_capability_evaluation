@@ -28,11 +28,11 @@ agents:
           api_key: "${ANTHROPIC_API_KEY}"
       temperature: 0
       top_p: 0.95
-      timeout: 900
+      timeout: 1500
       cache_seed: 42
 
 dedup:
-  enabled: false
+  enabled: true
   embedding_model: "text-embedding-3-small"
   threshold: 0.90
   keep_policy: "first"
