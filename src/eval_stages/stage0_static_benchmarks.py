@@ -22,9 +22,6 @@ from typing import Any, Dict, List
 
 from omegaconf import DictConfig, OmegaConf
 
-from src.eval_stages.static_benchmarks.mathvista import (
-    build_eval_datasets_from_mathvista,
-)
 from src.eval_stages.static_benchmarks.finance_math import (
     build_eval_datasets_from_finance_math,
 )
@@ -60,8 +57,6 @@ def _build_datasets_from_spec(spec: StaticBenchmarkSpec) -> List[EvalDataset]:
     produce multiple capabilities if desired.
     """
     bid = spec.benchmark_id.strip()
-    if bid in {"AI4Math/MathVista", "MathVista", "mathvista"}:
-        return build_eval_datasets_from_mathvista(spec)
     if bid in {"yale-nlp/FinanceMath", "FinanceMath", "finance_math"}:
         return build_eval_datasets_from_finance_math(spec)
     if bid in {"kensho/bizbench", "BizBench", "bizbench"}:

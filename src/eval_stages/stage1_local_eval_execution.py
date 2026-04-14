@@ -1,9 +1,9 @@
 """Eval Stage 1_local: direct evaluation without Inspect.
 
 This stage runs subject models directly, including local HuggingFace models
-loaded from disk via `provider: hf_local`. Local HF models can run through
-`transformers` or `vllm`, then each response is judged and written to the final
-`flat_<capability>.jsonl` output expected by downstream workflows.
+loaded from disk via `provider: hf_local` using vLLM. Each response is judged
+and written to the final `flat_<capability>.jsonl` output expected by downstream
+workflows.
 """
 
 from __future__ import annotations
@@ -140,11 +140,11 @@ def _is_hf_local_provider(provider: str) -> bool:
 
 
 def _uses_vllm_backend(model_config: Dict[str, Any]) -> bool:
-    """Return True when a local HF model should run via vLLM."""
-    backend = str(model_config.get("inference_backend", "transformers")).lower()
-    return _is_hf_local_provider(str(model_config.get("provider", ""))) and (
-        backend == "vllm"
-    )
+    """Return True when a local HF model should run via vLLM.
+
+    All local HF models use vLLM exclusively.
+    """
+    return _is_hf_local_provider(str(model_config.get("provider", "")))
 
 
 def _build_messages(sys_prompt: str, user_prompt: str) -> List[Dict[str, str]]:
@@ -168,49 +168,6 @@ def _render_text_prompt(tokenizer: Any, *, sys_prompt: str, user_prompt: str) ->
     if sys_prompt.strip():
         return f"{sys_prompt.strip()}\n\n{user_prompt}".strip()
     return user_prompt
-
-
-def _load_hf_local_model(
-    model_config: Dict[str, Any],
-) -> Tuple[Any, Any]:
-    """Load a local HuggingFace causal LM and tokenizer."""
-    try:
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-    except Exception as exc:  # noqa: BLE001
-        raise RuntimeError(
-            "transformers is required for provider=hf_local in stage=1_local"
-        ) from exc
-
-    model_path = model_config.get("model_path")
-    if not model_path:
-        raise ValueError(
-            "provider=hf_local requires `model_path` in subject_llms config"
-        )
-
-    trust_remote_code = bool(model_config.get("trust_remote_code", True))
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_path,
-        trust_remote_code=trust_remote_code,
-    )
-
-    if tokenizer.pad_token is None and tokenizer.eos_token is not None:
-        tokenizer.pad_token = tokenizer.eos_token
-
-    if torch.cuda.is_available():
-        torch_dtype = torch.bfloat16
-        device_map = model_config.get("device_map", "auto")
-    else:
-        torch_dtype = torch.float32
-        device_map = model_config.get("device_map", None)
-
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path,
-        trust_remote_code=trust_remote_code,
-        torch_dtype=torch_dtype,
-        device_map=device_map,
-    )
-    model.eval()
-    return tokenizer, model
 
 
 def _load_vllm_model(model_config: Dict[str, Any]) -> Any:
@@ -426,56 +383,6 @@ def _map_numeric_answer_to_option_letter(
     return best_letter
 
 
-def _generate_batch_with_hf_local(
-    tokenizer: Any,
-    model: Any,
-    *,
-    prompts: List[str],
-    generation_config: Dict[str, Any],
-) -> List[str]:
-    """Generate a batch of responses with a local HF causal LM."""
-    if not prompts:
-        return []
-
-    max_new_tokens = int(generation_config.get("max_tokens", 512))
-    temperature = float(generation_config.get("temperature", 0.0) or 0.0)
-    top_p = float(generation_config.get("top_p", 1.0) or 1.0)
-    repetition_penalty = float(generation_config.get("repetition_penalty", 1.0) or 1.0)
-    do_sample = temperature > 0
-
-    encoded = tokenizer(prompts, return_tensors="pt", padding=True)
-    input_ids = encoded["input_ids"]
-    attention_mask = encoded.get("attention_mask", torch.ones_like(input_ids))
-
-    model_device = next(model.parameters()).device
-    input_ids = input_ids.to(model_device)
-    attention_mask = attention_mask.to(model_device)
-
-    generate_kwargs = {
-        "input_ids": input_ids,
-        "attention_mask": attention_mask,
-        "max_new_tokens": max_new_tokens,
-        "do_sample": do_sample,
-        "pad_token_id": tokenizer.pad_token_id,
-        "eos_token_id": tokenizer.eos_token_id,
-        "repetition_penalty": repetition_penalty,
-    }
-    if do_sample:
-        generate_kwargs["temperature"] = temperature
-        generate_kwargs["top_p"] = top_p
-
-    with torch.inference_mode():
-        generated = model.generate(**generate_kwargs)
-
-    prompt_token_count = input_ids.shape[-1]
-    generated_texts: List[str] = []
-    for row_tokens in generated:
-        generated_tokens = row_tokens[prompt_token_count:]
-        output_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
-        generated_texts.append(output_text.strip())
-    return generated_texts
-
-
 def _generate_batch_with_vllm(
     llm: Any,
     *,
@@ -587,12 +494,8 @@ def _log_running_performance(
 def _judge_batch(
     rows: List[Dict[str, Any]],
     *,
+    judge_model: Model,
     judge_generation_cfg: Dict[str, Any],
-    judge_model: Optional[Model] = None,
-    judge_tokenizer: Any = None,
-    judge_hf_model: Any = None,
-    judge_vllm_model: Any = None,
-    judge_vllm_tokenizer: Any = None,
     max_concurrent_requests: int = 8,
 ) -> List[Dict[str, Any]]:
     """Judge a batch of rows, using exact-match shortcuts when possible."""
@@ -602,15 +505,12 @@ def _judge_batch(
     scored_rows: List[Optional[Dict[str, Any]]] = [None] * len(rows)
     unresolved_indices: List[int] = []
     unresolved_prompts: List[str] = []
-    unresolved_task_ids: List[str] = []
 
     for index, row in enumerate(rows):
         raw_output = str(row["model_output"])
         parsed_submission = parse_submission(raw_output) or raw_output
         judge_submission = _last_sentence(raw_output) or parsed_submission
         target = str(row["ground_truth"])
-        # If this is an MCQ with a letter target, allow mapping a numeric final answer
-        # back to an option letter based on the question's options.
         mapped_letter = _map_numeric_answer_to_option_letter(
             submission=parsed_submission,
             question=str(row.get("question", "")),
@@ -622,70 +522,35 @@ def _judge_batch(
             scored_rows[index] = {**row, "grade": "C"}
             continue
         unresolved_indices.append(index)
-        unresolved_task_ids.append(str(row.get("id", "")))
-        # Give the judge only the model's final fragment to reduce noise.
         judge_prompt = _build_judge_prompt(judge_submission, target)
         unresolved_prompts.append(judge_prompt)
 
     if unresolved_prompts:
-        if judge_vllm_model is not None:
-            prompts = [
-                _render_text_prompt(
-                    judge_vllm_tokenizer,
-                    sys_prompt="You are a careful, non-pedantic grading assistant.",
-                    user_prompt=prompt,
-                )
-                for prompt in unresolved_prompts
-            ]
-            judge_outputs = _generate_batch_with_vllm(
-                judge_vllm_model,
-                prompts=prompts,
-                generation_config=judge_generation_cfg,
-            )
-        elif judge_hf_model is not None:
-            prompts = [
-                _render_text_prompt(
-                    judge_tokenizer,
-                    sys_prompt="You are a careful, non-pedantic grading assistant.",
-                    user_prompt=prompt,
-                )
-                for prompt in unresolved_prompts
-            ]
-            judge_outputs = _generate_batch_with_hf_local(
-                judge_tokenizer,
-                judge_hf_model,
-                prompts=prompts,
-                generation_config=judge_generation_cfg,
-            )
-        else:
-            if judge_model is None:
-                raise ValueError("judge_model is required when no local judge backend is set")
-            async def _run_async_judge(prompts: List[str]) -> List[str]:
-                sem = asyncio.Semaphore(max(1, int(max_concurrent_requests)))
+        async def _run_async_judge(prompts: List[str]) -> List[str]:
+            sem = asyncio.Semaphore(max(1, int(max_concurrent_requests)))
 
-                async def _one(p: str) -> str:
-                    async with sem:
-                        txt, _ = await judge_model.async_generate(
-                            sys_prompt="You are a careful, non-pedantic grading assistant.",
-                            user_prompt=p,
-                            generation_config=judge_generation_cfg,
-                        )
-                        return txt or ""
-
-                return list(await asyncio.gather(*(_one(p) for p in prompts)))
-
-            try:
-                judge_outputs = asyncio.run(_run_async_judge(unresolved_prompts))
-            except Exception:
-                # Fallback to synchronous calls if async event loop issues occur.
-                judge_outputs = []
-                for prompt in unresolved_prompts:
-                    judge_text, _ = judge_model.generate(
+            async def _one(p: str) -> str:
+                async with sem:
+                    txt, _ = await judge_model.async_generate(
                         sys_prompt="You are a careful, non-pedantic grading assistant.",
-                        user_prompt=prompt,
+                        user_prompt=p,
                         generation_config=judge_generation_cfg,
                     )
-                    judge_outputs.append(judge_text or "")
+                    return txt or ""
+
+            return list(await asyncio.gather(*(_one(p) for p in prompts)))
+
+        try:
+            judge_outputs = asyncio.run(_run_async_judge(unresolved_prompts))
+        except Exception:
+            judge_outputs = []
+            for prompt in unresolved_prompts:
+                judge_text, _ = judge_model.generate(
+                    sys_prompt="You are a careful, non-pedantic grading assistant.",
+                    user_prompt=prompt,
+                    generation_config=judge_generation_cfg,
+                )
+                judge_outputs.append(judge_text or "")
 
         for index, grade in zip(
             unresolved_indices,
@@ -754,24 +619,10 @@ def run_eval_stage1_local(
         judge_generation_cfg["max_tokens"] = 16
     if "temperature" not in judge_generation_cfg:
         judge_generation_cfg["temperature"] = 0
-    judge_provider = str(judge_llm_cfg.get("provider", "openai"))
     judge_batch_size = int(judge_llm_cfg.get("batch_size", 32))
-    judge_using_vllm = _uses_vllm_backend(judge_llm_cfg)
-    judge_model: Optional[Model] = None
-    judge_tokenizer: Any = None
-    judge_hf_model: Any = None
-    # IMPORTANT: if judge is vLLM, we load it lazily per combination to avoid
-    # having subject-vLLM and judge-vLLM resident at the same time.
-    judge_vllm_model: Any = None
-    judge_vllm_tokenizer: Any = None
-    if _is_hf_local_provider(judge_provider) and not judge_using_vllm:
-        logger.info("Loading local HF judge %s", judge_llm_cfg["name"])
-        judge_tokenizer, judge_hf_model = _load_hf_local_model(judge_llm_cfg)
-    elif not judge_using_vllm:
-        judge_model = _build_model(judge_llm_cfg)
+    judge_model = _build_model(judge_llm_cfg)
 
     model_instances: Dict[Tuple[str, str], Model] = {}
-    hf_model_instances: Dict[Tuple[str, str], Tuple[Any, Any]] = {}
     vllm_model_instances: Dict[Tuple[str, str], Any] = {}
 
     num_completed_this_run = 0
@@ -858,12 +709,6 @@ def run_eval_stage1_local(
                     logger.info("  Loading vLLM engine for %s", llm_name)
                     vllm_model_instances[model_key] = _load_vllm_model(dict(llm_config))
                 vllm_model = vllm_model_instances[model_key]
-            elif _is_hf_local_provider(llm_provider):
-                if model_key not in hf_model_instances:
-                    hf_model_instances[model_key] = _load_hf_local_model(
-                        dict(llm_config)
-                    )
-                tokenizer, hf_model = hf_model_instances[model_key]
             else:
                 if model_key not in model_instances:
                     model_instances[model_key] = _build_model(dict(llm_config))
@@ -882,26 +727,15 @@ def run_eval_stage1_local(
                 if using_vllm and hasattr(vllm_model, "get_tokenizer"):
                     subject_tokenizer = vllm_model.get_tokenizer()
 
-                # If BOTH subject and judge are vLLM, avoid dual-engine residency:
-                # - If they point to the same model_path, reuse the subject engine for judging.
-                # - Otherwise, generate everything first, free subject engine, then start judge.
-                judge_needs_serialization = bool(judge_using_vllm and using_vllm)
-                can_reuse_subject_as_judge = False
-                if judge_needs_serialization:
-                    subj_path = str(dict(llm_config).get("model_path", ""))
-                    judge_path = str(judge_llm_cfg.get("model_path", ""))
-                    can_reuse_subject_as_judge = bool(subj_path and judge_path and subj_path == judge_path)
-
-                if judge_needs_serialization and not can_reuse_subject_as_judge:
-                    # Phase A: generate all pending outputs (no judging yet)
-                    all_generated: List[Dict[str, Any]] = []
-                    with tqdm(
-                        total=len(pending_tasks),
-                        desc=f"Generate {llm_name}/{dataset.capability_id}",
-                        dynamic_ncols=True,
-                    ) as gen_bar:
-                        for task_batch in _batched(pending_tasks, batch_size):
-                            failed_task_id = task_batch[0].get("id")
+                with tqdm(
+                    total=total_tasks,
+                    initial=len(row_by_id),
+                    desc=f"Eval {llm_name}/{dataset.capability_id}",
+                    dynamic_ncols=True,
+                ) as eval_bar:
+                    for task_batch in _batched(pending_tasks, batch_size):
+                        failed_task_id = task_batch[0].get("id")
+                        if using_vllm:
                             prompts = [
                                 _render_text_prompt(
                                     subject_tokenizer,
@@ -915,163 +749,49 @@ def run_eval_stage1_local(
                                 prompts=prompts,
                                 generation_config=subject_generation_cfg,
                             )
-                            for task, generated_text in zip(task_batch, generated_texts, strict=True):
-                                all_generated.append(
-                                    {
-                                        "id": task["id"],
-                                        "question": task["input"],
-                                        "ground_truth": task["target"],
-                                        "model_output": generated_text,
-                                    }
+                        else:
+                            generated_texts = []
+                            for task in task_batch:
+                                failed_task_id = task.get("id")
+                                prompt = _format_prompt(dataset, task)
+                                generated_text, _ = subject_model.generate(
+                                    sys_prompt="",
+                                    user_prompt=prompt,
+                                    generation_config=subject_generation_cfg,
                                 )
-                            gen_bar.update(len(task_batch))
+                                generated_texts.append(generated_text or "")
 
-                    # Tear down subject vLLM before starting judge vLLM
-                    subject_engine = vllm_model_instances.pop(model_key, None)
-                    if subject_engine is not None:
-                        _teardown_vllm_engine(subject_engine, llm_name)
-                    _wait_for_vllm_startup_memory(
-                        float(judge_llm_cfg.get("gpu_memory_utilization", 0.9))
-                    )
+                        generated_rows = [
+                            {
+                                "id": task["id"],
+                                "question": task["input"],
+                                "ground_truth": task["target"],
+                                "model_output": generated_text,
+                            }
+                            for task, generated_text in zip(
+                                task_batch, generated_texts, strict=True
+                            )
+                        ]
 
-                    # Phase B: start judge vLLM and judge in batches
-                    logger.info("  Loading vLLM judge (after subject generation teardown)")
-                    judge_vllm_model = _load_vllm_model(judge_llm_cfg)
-                    judge_vllm_tokenizer = (
-                        judge_vllm_model.get_tokenizer()
-                        if hasattr(judge_vllm_model, "get_tokenizer")
-                        else None
-                    )
-                    with tqdm(
-                        total=len(all_generated),
-                        desc=f"Judge {llm_name}/{dataset.capability_id}",
-                        dynamic_ncols=True,
-                    ) as judge_bar:
-                        for judge_batch in _batched(all_generated, judge_batch_size):
-                            failed_task_id = judge_batch[0].get("id")
+                        for jb in _batched(generated_rows, judge_batch_size):
+                            failed_task_id = jb[0].get("id")
                             scored_batch = _judge_batch(
-                                judge_batch,
-                                judge_generation_cfg=judge_generation_cfg,
+                                jb,
                                 judge_model=judge_model,
-                                judge_tokenizer=judge_tokenizer,
-                                judge_hf_model=judge_hf_model,
-                                judge_vllm_model=judge_vllm_model,
-                                judge_vllm_tokenizer=judge_vllm_tokenizer,
+                                judge_generation_cfg=judge_generation_cfg,
                                 max_concurrent_requests=judge_batch_size,
                             )
                             for scored_row in scored_batch:
                                 row_by_id[str(scored_row["id"])] = scored_row
-                            _write_flat_results(flat_path, _ordered_rows(dataset.tasks, row_by_id))
-                            _log_running_performance(
-                                llm_name=llm_name,
-                                capability_id=dataset.capability_id,
-                                row_by_id=row_by_id,
-                                total_tasks=total_tasks,
-                            )
-                            judge_bar.update(len(judge_batch))
 
-                    # Tear down judge vLLM too
-                    _teardown_vllm_engine(judge_vllm_model, str(judge_llm_cfg.get("name", "judge")))
-                    judge_vllm_model = None
-                    judge_vllm_tokenizer = None
-                else:
-                    # Default fast path: generate + judge streaming (can reuse subject engine as judge if same model)
-                    if judge_using_vllm and using_vllm and can_reuse_subject_as_judge:
-                        judge_vllm_model = vllm_model
-                        judge_vllm_tokenizer = subject_tokenizer
-                    elif judge_using_vllm and judge_vllm_model is None:
-                        logger.info("  Loading vLLM judge %s", judge_llm_cfg["name"])
-                        judge_vllm_model = _load_vllm_model(judge_llm_cfg)
-                        judge_vllm_tokenizer = (
-                            judge_vllm_model.get_tokenizer()
-                            if hasattr(judge_vllm_model, "get_tokenizer")
-                            else None
+                        _write_flat_results(flat_path, _ordered_rows(dataset.tasks, row_by_id))
+                        _log_running_performance(
+                            llm_name=llm_name,
+                            capability_id=dataset.capability_id,
+                            row_by_id=row_by_id,
+                            total_tasks=total_tasks,
                         )
-
-                    with tqdm(
-                        total=total_tasks,
-                        initial=len(row_by_id),
-                        desc=f"Eval {llm_name}/{dataset.capability_id}",
-                        dynamic_ncols=True,
-                    ) as eval_bar:
-                        for task_batch in _batched(pending_tasks, batch_size):
-                            failed_task_id = task_batch[0].get("id")
-                            if using_vllm:
-                                prompts = [
-                                    _render_text_prompt(
-                                        subject_tokenizer,
-                                        sys_prompt="",
-                                        user_prompt=_format_prompt(dataset, task),
-                                    )
-                                    for task in task_batch
-                                ]
-                                generated_texts = _generate_batch_with_vllm(
-                                    vllm_model,
-                                    prompts=prompts,
-                                    generation_config=subject_generation_cfg,
-                                )
-                            elif _is_hf_local_provider(llm_provider):
-                                prompts = [
-                                    _render_text_prompt(
-                                        tokenizer,
-                                        sys_prompt="",
-                                        user_prompt=_format_prompt(dataset, task),
-                                    )
-                                    for task in task_batch
-                                ]
-                                generated_texts = _generate_batch_with_hf_local(
-                                    tokenizer,
-                                    hf_model,
-                                    prompts=prompts,
-                                    generation_config=subject_generation_cfg,
-                                )
-                            else:
-                                generated_texts = []
-                                for task in task_batch:
-                                    failed_task_id = task.get("id")
-                                    prompt = _format_prompt(dataset, task)
-                                    generated_text, _ = subject_model.generate(
-                                        sys_prompt="",
-                                        user_prompt=prompt,
-                                        generation_config=subject_generation_cfg,
-                                    )
-                                    generated_texts.append(generated_text or "")
-
-                            generated_rows = [
-                                {
-                                    "id": task["id"],
-                                    "question": task["input"],
-                                    "ground_truth": task["target"],
-                                    "model_output": generated_text,
-                                }
-                                for task, generated_text in zip(
-                                    task_batch, generated_texts, strict=True
-                                )
-                            ]
-
-                            for jb in _batched(generated_rows, judge_batch_size):
-                                failed_task_id = jb[0].get("id")
-                                scored_batch = _judge_batch(
-                                    jb,
-                                    judge_generation_cfg=judge_generation_cfg,
-                                    judge_model=judge_model,
-                                    judge_tokenizer=judge_tokenizer,
-                                    judge_hf_model=judge_hf_model,
-                                    judge_vllm_model=judge_vllm_model,
-                                    judge_vllm_tokenizer=judge_vllm_tokenizer,
-                                    max_concurrent_requests=judge_batch_size,
-                                )
-                                for scored_row in scored_batch:
-                                    row_by_id[str(scored_row["id"])] = scored_row
-
-                            _write_flat_results(flat_path, _ordered_rows(dataset.tasks, row_by_id))
-                            _log_running_performance(
-                                llm_name=llm_name,
-                                capability_id=dataset.capability_id,
-                                row_by_id=row_by_id,
-                                total_tasks=total_tasks,
-                            )
-                            eval_bar.update(len(task_batch))
+                        eval_bar.update(len(task_batch))
             except Exception as exc:  # noqa: BLE001
                 logger.error(
                     "  Direct evaluation failed for %s/%s task %s with %s/%s: %s",
