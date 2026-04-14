@@ -13,6 +13,7 @@ import logging
 import os
 import gc
 import asyncio
+import time
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
@@ -36,25 +37,6 @@ def _find_datasets(datasets_dir: Path) -> List[Path]:
     if not datasets_dir.exists():
         return []
     return sorted(datasets_dir.rglob("dataset.json"))
-
-
-def _score_value_to_float(value: object) -> Optional[float]:
-    """Convert letter/number score to float when possible."""
-    if isinstance(value, (int, float)):
-        return float(value)
-
-    if isinstance(value, str):
-        upper = value.strip().upper()
-        if upper == "C":
-            return 1.0
-        if upper == "I":
-            return 0.0
-        try:
-            return float(value)
-        except ValueError:
-            return None
-
-    return None
 
 
 def _flat_result_path(output_dir: Path, capability_id: str) -> Path:
@@ -283,6 +265,75 @@ def _load_vllm_model(model_config: Dict[str, Any]) -> Any:
     return LLM(**llm_kwargs)
 
 
+def _wait_for_vllm_startup_memory(
+    gpu_memory_utilization: float, timeout_seconds: float = 90.0
+) -> None:
+    """Wait until enough free GPU memory is available for vLLM startup."""
+    if not torch.cuda.is_available():
+        return
+
+    # Clamp to sensible bounds in case config has bad values.
+    target_util = min(max(float(gpu_memory_utilization), 0.0), 1.0)
+    deadline = time.monotonic() + timeout_seconds
+    required_gib = None
+    latest_free_gib = None
+    total_gib = None
+
+    while time.monotonic() < deadline:
+        free_bytes, total_bytes = torch.cuda.mem_get_info()
+        latest_free_gib = free_bytes / (1024**3)
+        total_gib = total_bytes / (1024**3)
+        required_gib = target_util * total_gib
+        if latest_free_gib >= required_gib:
+            return
+        time.sleep(2.0)
+
+    if required_gib is not None and latest_free_gib is not None and total_gib is not None:
+        logger.warning(
+            (
+                "Proceeding with vLLM load before target free GPU memory recovered "
+                "(free=%.2f GiB, total=%.2f GiB, required=%.2f GiB, utilization=%.2f)."
+            ),
+            latest_free_gib,
+            total_gib,
+            required_gib,
+            target_util,
+        )
+
+
+def _teardown_vllm_engine(vllm_engine: Any, model_name: str) -> None:
+    """Shut down a vLLM ``LLM`` instance and free its GPU memory.
+
+    The ``LLM`` object holds ``llm_engine`` (an ``LLMEngine``), which in turn
+    holds ``engine_core`` (a ``SyncMPClient`` / ``MPClient``).  The EngineCore
+    runs in a **separate process** that owns the actual GPU tensors, so we must
+    call ``engine_core.shutdown()`` to terminate that process — ``del`` alone
+    is not enough.
+    """
+    # 1. Graceful shutdown via the engine_core subprocess manager.
+    try:
+        llm_engine = getattr(vllm_engine, "llm_engine", None)
+        if llm_engine is not None:
+            engine_core = getattr(llm_engine, "engine_core", None)
+            if engine_core is not None and hasattr(engine_core, "shutdown"):
+                logger.info("  Calling engine_core.shutdown() for %s", model_name)
+                engine_core.shutdown()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("engine_core.shutdown() failed for %s: %s", model_name, exc)
+
+    # 2. Delete Python references so the GC can collect any remaining C++ handles.
+    try:
+        del vllm_engine
+    except Exception:  # noqa: BLE001
+        pass
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    # 3. Give the EngineCore subprocess time to exit and release GPU memory.
+    time.sleep(5.0)
+
+
 def _normalize_text(text: str) -> str:
     return " ".join(text.strip().split())
 
@@ -373,55 +424,6 @@ def _map_numeric_answer_to_option_letter(
             best_letter = letter
             break
     return best_letter
-
-
-def _generate_with_hf_local(
-    tokenizer: Any,
-    model: Any,
-    *,
-    sys_prompt: str,
-    user_prompt: str,
-    generation_config: Dict[str, Any],
-) -> str:
-    """Generate a response with a local HF causal LM."""
-    max_new_tokens = int(generation_config.get("max_tokens", 512))
-    temperature = float(generation_config.get("temperature", 0.0) or 0.0)
-    top_p = float(generation_config.get("top_p", 1.0) or 1.0)
-    repetition_penalty = float(generation_config.get("repetition_penalty", 1.0) or 1.0)
-    do_sample = temperature > 0
-
-    prompt = _render_text_prompt(
-        tokenizer,
-        sys_prompt=sys_prompt,
-        user_prompt=user_prompt,
-    )
-    encoded = tokenizer(prompt, return_tensors="pt")
-    input_ids = encoded["input_ids"]
-    attention_mask = encoded.get("attention_mask", torch.ones_like(input_ids))
-
-    model_device = next(model.parameters()).device
-    input_ids = input_ids.to(model_device)
-    attention_mask = attention_mask.to(model_device)
-
-    generate_kwargs = {
-        "input_ids": input_ids,
-        "attention_mask": attention_mask,
-        "max_new_tokens": max_new_tokens,
-        "do_sample": do_sample,
-        "pad_token_id": tokenizer.pad_token_id,
-        "eos_token_id": tokenizer.eos_token_id,
-        "repetition_penalty": repetition_penalty,
-    }
-    if do_sample:
-        generate_kwargs["temperature"] = temperature
-        generate_kwargs["top_p"] = top_p
-
-    with torch.inference_mode():
-        generated = model.generate(**generate_kwargs)
-
-    generated_tokens = generated[0][input_ids.shape[-1] :]
-    output_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
-    return output_text.strip()
 
 
 def _generate_batch_with_hf_local(
@@ -558,6 +560,30 @@ def _ordered_rows(
     ]
 
 
+def _log_running_performance(
+    *,
+    llm_name: str,
+    capability_id: str,
+    row_by_id: Dict[str, Dict[str, Any]],
+    total_tasks: int,
+) -> None:
+    """Log running completion and accuracy for current model/capability."""
+    done = len(row_by_id)
+    if done == 0:
+        acc = 0.0
+    else:
+        correct = sum(1 for row in row_by_id.values() if row.get("grade") == "C")
+        acc = correct / done
+    logger.info(
+        "  Progress %s/%s: %d/%d scored | running_accuracy=%.4f",
+        llm_name,
+        capability_id,
+        done,
+        total_tasks,
+        acc,
+    )
+
+
 def _judge_batch(
     rows: List[Dict[str, Any]],
     *,
@@ -600,13 +626,6 @@ def _judge_batch(
         # Give the judge only the model's final fragment to reduce noise.
         judge_prompt = _build_judge_prompt(judge_submission, target)
         unresolved_prompts.append(judge_prompt)
-        logger.info(
-            "Judge input | task_id=%s\nSubmission used for judge:\n%s\nTarget:\n%s\nFull judge prompt:\n%s",
-            str(row.get("id", "")),
-            judge_submission,
-            target,
-            judge_prompt,
-        )
 
     if unresolved_prompts:
         if judge_vllm_model is not None:
@@ -674,36 +693,7 @@ def _judge_batch(
             strict=True,
         ):
             scored_rows[index] = {**rows[index], "grade": grade}
-        for task_id, judge_output in zip(unresolved_task_ids, judge_outputs, strict=True):
-            logger.info(
-                "Judge output | task_id=%s | raw_output=%s",
-                task_id,
-                (judge_output or "").strip(),
-            )
-
     return [row for row in scored_rows if row is not None]
-
-
-def _judge_submission(
-    submission: str,
-    target: str,
-    judge_model: Model,
-    judge_generation_cfg: Dict[str, Any],
-) -> str:
-    """Return C/I grade for a subject submission."""
-    parsed_submission = parse_submission(submission) or submission
-    if _normalize_text(parsed_submission).lower() == _normalize_text(target).lower():
-        return "C"
-
-    prompt = LLM_JUDGE_PROMPT.format(submission=parsed_submission, target=target)
-    judge_text, _ = judge_model.generate(
-        sys_prompt="You are a strict grading assistant.",
-        user_prompt=prompt,
-        generation_config=judge_generation_cfg,
-    )
-    if judge_text and judge_text.strip().lower().startswith("yes"):
-        return "C"
-    return "I"
 
 
 def run_eval_stage1_local(
@@ -853,6 +843,18 @@ def run_eval_stage1_local(
 
             if using_vllm:
                 if model_key not in vllm_model_instances:
+                    for old_key in list(vllm_model_instances):
+                        if old_key != model_key:
+                            logger.info(
+                                "  Tearing down previous vLLM engine %s before loading %s",
+                                old_key[1], llm_name,
+                            )
+                            old_engine = vllm_model_instances.pop(old_key, None)
+                            if old_engine is not None:
+                                _teardown_vllm_engine(old_engine, old_key[1])
+                    _wait_for_vllm_startup_memory(
+                        float(llm_config.get("gpu_memory_utilization", 0.9))
+                    )
                     logger.info("  Loading vLLM engine for %s", llm_name)
                     vllm_model_instances[model_key] = _load_vllm_model(dict(llm_config))
                 vllm_model = vllm_model_instances[model_key]
@@ -925,14 +927,12 @@ def run_eval_stage1_local(
                             gen_bar.update(len(task_batch))
 
                     # Tear down subject vLLM before starting judge vLLM
-                    try:
-                        del vllm_model_instances[model_key]
-                    except Exception:  # noqa: BLE001
-                        pass
-                    del vllm_model
-                    gc.collect()
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
+                    subject_engine = vllm_model_instances.pop(model_key, None)
+                    if subject_engine is not None:
+                        _teardown_vllm_engine(subject_engine, llm_name)
+                    _wait_for_vllm_startup_memory(
+                        float(judge_llm_cfg.get("gpu_memory_utilization", 0.9))
+                    )
 
                     # Phase B: start judge vLLM and judge in batches
                     logger.info("  Loading vLLM judge (after subject generation teardown)")
@@ -962,15 +962,18 @@ def run_eval_stage1_local(
                             for scored_row in scored_batch:
                                 row_by_id[str(scored_row["id"])] = scored_row
                             _write_flat_results(flat_path, _ordered_rows(dataset.tasks, row_by_id))
+                            _log_running_performance(
+                                llm_name=llm_name,
+                                capability_id=dataset.capability_id,
+                                row_by_id=row_by_id,
+                                total_tasks=total_tasks,
+                            )
                             judge_bar.update(len(judge_batch))
 
                     # Tear down judge vLLM too
-                    del judge_vllm_model
+                    _teardown_vllm_engine(judge_vllm_model, str(judge_llm_cfg.get("name", "judge")))
                     judge_vllm_model = None
                     judge_vllm_tokenizer = None
-                    gc.collect()
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
                 else:
                     # Default fast path: generate + judge streaming (can reuse subject engine as judge if same model)
                     if judge_using_vllm and using_vllm and can_reuse_subject_as_judge:
@@ -1062,6 +1065,12 @@ def run_eval_stage1_local(
                                     row_by_id[str(scored_row["id"])] = scored_row
 
                             _write_flat_results(flat_path, _ordered_rows(dataset.tasks, row_by_id))
+                            _log_running_performance(
+                                llm_name=llm_name,
+                                capability_id=dataset.capability_id,
+                                row_by_id=row_by_id,
+                                total_tasks=total_tasks,
+                            )
                             eval_bar.update(len(task_batch))
             except Exception as exc:  # noqa: BLE001
                 logger.error(

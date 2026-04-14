@@ -22,24 +22,8 @@ from typing import Any, Dict, List
 
 from omegaconf import DictConfig, OmegaConf
 
-from src.eval_stages.static_benchmarks.hardmath import (
-    build_eval_datasets_from_hardmath,
-)
-from src.eval_stages.static_benchmarks.math500 import build_eval_datasets_from_math500
 from src.eval_stages.static_benchmarks.mathvista import (
     build_eval_datasets_from_mathvista,
-)
-from src.eval_stages.static_benchmarks.orca_math import (
-    build_eval_datasets_from_orca_math,
-)
-from src.eval_stages.static_benchmarks.minif2f import (
-    build_eval_datasets_from_minif2f,
-)
-from src.eval_stages.static_benchmarks.omni_math import (
-    build_eval_datasets_from_omni_math,
-)
-from src.eval_stages.static_benchmarks.harp import (
-    build_eval_datasets_from_harp,
 )
 from src.eval_stages.static_benchmarks.finance_math import (
     build_eval_datasets_from_finance_math,
@@ -47,11 +31,6 @@ from src.eval_stages.static_benchmarks.finance_math import (
 from src.eval_stages.static_benchmarks.bizbench import (
     build_eval_datasets_from_bizbench,
 )
-from src.eval_stages.static_benchmarks.proofnet import (
-    build_eval_datasets_from_proofnet,
-)
-from src.eval_stages.static_benchmarks.stateval import build_eval_datasets_from_stateval
-from src.eval_stages.static_benchmarks.wemath import build_eval_datasets_from_wemath
 from src.eval_stages.static_benchmarks.finance_tasks import (
     build_eval_datasets_from_finance_tasks,
 )
@@ -81,45 +60,12 @@ def _build_datasets_from_spec(spec: StaticBenchmarkSpec) -> List[EvalDataset]:
     produce multiple capabilities if desired.
     """
     bid = spec.benchmark_id.strip()
-    if bid in {"HuggingFaceH4/MATH-500", "math500", "MATH-500"}:
-        return build_eval_datasets_from_math500(spec)
-    if bid in {"HARDMath", "hardmath", "HARDMATH"}:
-        return build_eval_datasets_from_hardmath(spec)
-    if bid in {"We-Math/We-Math", "We-Math", "wemath", "WE-MATH"}:
-        return build_eval_datasets_from_wemath(spec)
     if bid in {"AI4Math/MathVista", "MathVista", "mathvista"}:
         return build_eval_datasets_from_mathvista(spec)
-    if bid in {
-        "microsoft/orca-math-word-problems-200k",
-        "orca-math-word-problems-200k",
-        "orca_math",
-        "OrcaMath",
-    }:
-        return build_eval_datasets_from_orca_math(spec)
-    if bid in {
-        "hoskinson-center/proofnet",
-        "proofnet",
-        "ProofNet",
-    }:
-        return build_eval_datasets_from_proofnet(spec)
-    if bid in {"Tonic/MiniF2F", "MiniF2F", "minif2f"}:
-        return build_eval_datasets_from_minif2f(spec)
-    if bid in {"KbsdJames/Omni-MATH", "Omni-MATH", "omni_math"}:
-        return build_eval_datasets_from_omni_math(spec)
-    if bid in {"aadityasingh/HARP", "HARP", "harp"}:
-        return build_eval_datasets_from_harp(spec)
     if bid in {"yale-nlp/FinanceMath", "FinanceMath", "finance_math"}:
         return build_eval_datasets_from_finance_math(spec)
     if bid in {"kensho/bizbench", "BizBench", "bizbench"}:
         return build_eval_datasets_from_bizbench(spec)
-    if bid in {
-        "0v01111/StatEval-Foundational-knowledge",
-        "StatEval-Foundational-knowledge",
-        "stateval_foundational",
-        "StatEval",
-        "stateval",
-    }:
-        return build_eval_datasets_from_stateval(spec)
     if bid in {"Zhihan/XFinBench", "XFinBench", "xfinbench"}:
         return build_eval_datasets_from_xfinbench(spec)
     if bid in {
