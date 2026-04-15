@@ -105,7 +105,7 @@ def _format_prompt(dataset: EvalDataset, task: Dict[str, str]) -> str:
     is_mcq = bool(re.search(r"(?im)^\s*options\s*:\s*$", str(task.get("input", ""))))
     if is_mcq:
         answer_instruction = (
-            "\n\nReason briefly and do not repeat yourself. Stop immediately after the final "
+            "\n\nReason briefly. Stop immediately after the final "
             "answer line.\n\nThis is a multiple-choice question. On the last line, return ONLY "
             "the option letter in machine-readable form as `ANSWER: <LETTER>` "
             "(e.g., `ANSWER: B`). Do NOT return a number, currency amount, or explanation "
@@ -113,7 +113,7 @@ def _format_prompt(dataset: EvalDataset, task: Dict[str, str]) -> str:
         )
     else:
         answer_instruction = (
-            "\n\nReason briefly and do not repeat yourself. Stop immediately after the final "
+            "\n\nReason briefly. Stop immediately after the final "
             "answer line.\n\nReturn your final answer in a machine-readable form on the last "
             "line as `ANSWER: <final answer>`."
         )
