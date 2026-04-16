@@ -100,6 +100,7 @@ def run_eval_stage0_static(cfg: DictConfig, validation_tag: str) -> None:
         capability_name=static_cfg.get("capability_name"),
         domain=str(static_cfg.get("domain", StaticBenchmarkSpec.domain)),
         exclude_bloom_create=static_cfg.get("exclude_bloom_create", True),
+        finknow_only=static_cfg.get("finknow_only", True),
     )
 
     logger.info(

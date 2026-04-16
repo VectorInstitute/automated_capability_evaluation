@@ -45,3 +45,7 @@ class StaticBenchmarkSpec:
     # When true, removes Bloom level "Create - Combine elements..." tasks.
     exclude_bloom_create: bool = True
 
+    # Controls whether BizBench ingestion should keep only the FinKnow subset.
+    # When true, filters rows where the dataset's `task` field indicates FinKnow.
+    finknow_only: bool = True
+

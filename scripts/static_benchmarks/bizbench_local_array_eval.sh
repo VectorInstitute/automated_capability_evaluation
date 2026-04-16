@@ -2,10 +2,10 @@
 #SBATCH --job-name=gemma_bizbench_local_array
 #SBATCH --output=/projects/DeepLesion/projects/new_ace/automated_capability_evaluation/logs/bizbench_local_array_%A_%a.out
 #SBATCH --error=/projects/DeepLesion/projects/new_ace/automated_capability_evaluation/logs/bizbench_local_array_%A_%a.err
-#SBATCH --time=08:00:00
+#SBATCH --time=06:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --gres=gpu:a100:1
+#SBATCH --gres=gpu:a40:1
 #SBATCH --array=0-7%8
 
 set -euo pipefail
@@ -23,7 +23,7 @@ source "scripts/static_benchmarks/env_slurm_inspect.sh"
 
 NUM_SHARDS=8
 
-# Count only rows that survive adapter filtering.
+# Count only FinKnow rows that survive adapter filtering.
 TOTAL=$(
 python - <<'PY'
 from datasets import load_dataset
@@ -32,6 +32,7 @@ ds = load_dataset("kensho/bizbench", split="test")
 
 def is_valid(row):
     question = str(row.get("question", "")).strip()
+    task = str(row.get("task", "") or "").lower()
     answer = row.get("answer")
     if answer is None:
         answer_text = ""
@@ -44,7 +45,8 @@ def is_valid(row):
             answer_text = str(answer).strip()
     else:
         answer_text = str(answer).strip()
-    return bool(question and answer_text)
+    # Adapter default is `finknow_only=true`, so we shard based on the same subset.
+    return bool("finknow" in task and question and answer_text)
 
 print(sum(1 for row in ds if is_valid(row)))
 PY

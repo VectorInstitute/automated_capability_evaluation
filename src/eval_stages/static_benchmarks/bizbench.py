@@ -73,24 +73,39 @@ def _iter_bizbench_samples(
     split: str,
     offset: int | None,
     limit: int | None,
+    *,
+    finknow_only: bool,
 ) -> Iterable[Dict[str, Any]]:
     ds = load_dataset("kensho/bizbench", split=split)
     n = len(ds)
 
     start = 0 if offset is None else max(0, int(offset))
-    if start >= n:
-        return iter(())
+    end = None if limit is None else start + int(limit)
 
-    if limit is None:
-        end = n
-    else:
-        end = min(start + int(limit), n)
+    # Apply filtering first, then slice by (offset, limit) over the filtered stream.
+    # This keeps the sharding logic consistent with the adapter's filtering.
+    kept_rank = 0
+    for dataset_idx, row in enumerate(ds):
+        if finknow_only:
+            task_val = str(row.get("task", "") or "")
+            if "finknow" not in task_val.lower():
+                continue
 
-    if start == 0 and end == n:
-        yield from ds
-        return
+        question = str(row.get("question", "")).strip()
+        answer_norm = _normalize_answer(row.get("answer"))
+        if not question or not answer_norm:
+            continue
 
-    yield from ds.select(range(start, end))
+        if kept_rank < start:
+            kept_rank += 1
+            continue
+        if end is not None and kept_rank >= end:
+            break
+
+        row = dict(row)
+        row["_global_idx"] = dataset_idx
+        yield row
+        kept_rank += 1
 
 
 def build_eval_datasets_from_bizbench(spec: StaticBenchmarkSpec) -> List[EvalDataset]:
@@ -98,7 +113,12 @@ def build_eval_datasets_from_bizbench(spec: StaticBenchmarkSpec) -> List[EvalDat
     tasks: List[Dict[str, str]] = []
 
     for local_idx, row in enumerate(
-        _iter_bizbench_samples(spec.split, spec.offset, spec.limit)
+        _iter_bizbench_samples(
+            spec.split,
+            spec.offset,
+            spec.limit,
+            finknow_only=spec.finknow_only,
+        )
     ):
         question = str(row.get("question", "")).strip()
         raw_answer = row.get("answer")
@@ -108,7 +128,7 @@ def build_eval_datasets_from_bizbench(spec: StaticBenchmarkSpec) -> List[EvalDat
             continue
 
         inp = _build_input(question, row.get("context"), row.get("options"))
-        global_idx = (spec.offset or 0) + local_idx
+        global_idx = int(row.get("_global_idx", local_idx))
         task_id = f"bizbench_{global_idx:05d}"
         tasks.append({"id": task_id, "input": inp, "target": answer})
 
