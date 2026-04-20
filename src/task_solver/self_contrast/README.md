@@ -717,7 +717,6 @@ Open `Results/comparison_dashboard.html` in a browser for charts and detailed br
 src/task_solver/self_contrast/
 ├── README.md                     # This file
 ├── __init__.py                   # Package exports
-├── _json_utils.py                # Local fallback for JSON parsing
 │
 │   # Core modules
 ├── model_client.py               # LLMClient: multi-provider HTTP client

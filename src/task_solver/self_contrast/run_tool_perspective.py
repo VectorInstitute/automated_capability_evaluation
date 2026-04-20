@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
+from src.task_solver.self_contrast._runner_utils import resolve_batch_file
 from src.task_solver.self_contrast.evaluator import (
     evaluate_batch,
     evaluate_result,
@@ -52,18 +53,6 @@ log = logging.getLogger("self_contrast.v4")
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_DATASET_DIR = SCRIPT_DIR / "dataset" / "XFinBench"
 DEFAULT_RESULTS_DIR = SCRIPT_DIR / "Results"
-
-
-def _resolve_batch_file(batch_file: str, dataset_dir: Path) -> Path:
-    candidate = Path(batch_file)
-    if candidate.exists():
-        return candidate
-    candidate = dataset_dir / batch_file
-    if candidate.exists():
-        return candidate
-    raise FileNotFoundError(
-        f"Batch file not found: {batch_file} (searched {dataset_dir})"
-    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -126,7 +115,7 @@ async def run(args: argparse.Namespace) -> None:
     results_dir = Path(args.results_dir) if args.results_dir else DEFAULT_RESULTS_DIR
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    batch_path = _resolve_batch_file(args.batch_file, dataset_dir)
+    batch_path = resolve_batch_file(args.batch_file, dataset_dir)
     with open(batch_path, "r", encoding="utf-8") as f:
         problems: List[Dict[str, Any]] = json.load(f)
 
