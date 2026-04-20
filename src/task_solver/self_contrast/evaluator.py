@@ -62,6 +62,10 @@ def extract_number(text: str) -> Optional[float]:
     return None
 
 
+def _has_percent(text: Any) -> bool:
+    return text is not None and "%" in str(text)
+
+
 def evaluate_result(result: Dict[str, Any]) -> bool:
     """Evaluate whether *prediction* matches *ground_truth*.
 
@@ -98,6 +102,21 @@ def _evaluate_calcu(prediction: str, ground_truth: str) -> bool:
     gt_val = extract_number(ground_truth)
     if pred_val is None or gt_val is None:
         return normalize_text(prediction) == normalize_text(ground_truth)
+    if _numeric_match(pred_val, gt_val):
+        return True
+    # Treat "5%" / "0.05" / "5" as equivalent: if exactly one side is written as
+    # a percent, try comparing after a 100x scaling.
+    pred_pct = _has_percent(prediction)
+    gt_pct = _has_percent(ground_truth)
+    if pred_pct != gt_pct:
+        if pred_pct and _numeric_match(pred_val / 100.0, gt_val):
+            return True
+        if gt_pct and _numeric_match(pred_val, gt_val / 100.0):
+            return True
+    return False
+
+
+def _numeric_match(pred_val: float, gt_val: float) -> bool:
     if pred_val == gt_val:
         return True
     abs_diff = abs(pred_val - gt_val)
@@ -272,7 +291,7 @@ def save_results(
     """Persist metrics and per-problem results as JSON."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    output_data: Dict[str, Any] = {"metrics": metrics, "results": results}
+    output_data: Dict[str, Any] = {"metrics": dict(metrics), "results": results}
     if extra_metadata:
         output_data["metrics"].update(extra_metadata)
 

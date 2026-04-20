@@ -42,6 +42,15 @@ def extract_json_from_markdown(content: str) -> str:
 
 def fix_common_json_errors(content: str) -> str:
     """Fix common JSON syntax errors."""
+    # If the content is already valid JSON, return it untouched so we don't
+    # accidentally corrupt string values that contain colon-quote patterns
+    # (e.g. `"ratio: \"3:1\""`).
+    try:
+        json.loads(content)
+        return content
+    except (json.JSONDecodeError, ValueError):
+        pass
+
     content = re.sub(r':\s*=\s*"', ':"', content)
     content = re.sub(r'(\w+):\s*"', r'"\1":"', content)
 

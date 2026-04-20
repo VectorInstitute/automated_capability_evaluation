@@ -172,7 +172,7 @@ class LLMClient:
         if self.provider == "anthropic":
             return self._call_anthropic(messages, temperature)
         if self.provider == "google":
-            return self._call_google(messages, temperature)
+            return self._call_google(messages, temperature, force_json=force_json)
         return self._call_openai_compatible(
             messages, temperature, force_json=force_json
         )
@@ -273,6 +273,8 @@ class LLMClient:
         self,
         messages: List[Dict[str, str]],
         temperature: float,
+        *,
+        force_json: bool = False,
     ) -> str:
         if not self.api_key:
             log.error("GOOGLE_API_KEY is required for Gemini API.")
@@ -291,16 +293,25 @@ class LLMClient:
             role = "model" if msg["role"] == "assistant" else "user"
             contents.append({"role": role, "parts": [{"text": msg["content"]}]})
 
+        generation_config: Dict[str, Any] = {"temperature": temperature}
+        if force_json:
+            generation_config["response_mime_type"] = "application/json"
+
         payload: Dict[str, Any] = {
             "contents": contents,
-            "generationConfig": {"temperature": temperature},
+            "generationConfig": generation_config,
         }
         if system_text:
             payload["systemInstruction"] = {"parts": [{"text": system_text}]}
 
         base = self.base_url or "https://generativelanguage.googleapis.com/v1beta"
-        endpoint = f"{base}/models/{self.model_name}:generateContent?key={self.api_key}"
-        headers = {"content-type": "application/json"}
+        endpoint = f"{base}/models/{self.model_name}:generateContent"
+        # Send the API key in a header rather than a query parameter so it is
+        # not captured by access logs or recorded alongside the request URL.
+        headers = {
+            "content-type": "application/json",
+            "x-goog-api-key": self.api_key,
+        }
         return self._post(endpoint, payload, headers, extractor=self._extract_google)
 
     @staticmethod

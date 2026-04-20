@@ -45,12 +45,8 @@ from src.task_solver.self_contrast.prompts import (
 )
 from src.tools.definitions import PYTHON_SCIENTIFIC_TOOL
 from src.tools.executor import PythonExecutor
+from src.utils.json_utils import parse_llm_json_response
 
-
-try:
-    from src.utils.json_utils import parse_llm_json_response
-except Exception:
-    from src.task_solver.self_contrast._json_utils import parse_llm_json_response
 
 if TYPE_CHECKING:
     from src.tools.docs import ScientificDocRetriever
@@ -76,7 +72,6 @@ LIBRARY_NAME_ALIASES = {
     "py_vollib": "py_vollib",
     "pyportfolioopt": "pypfopt",
     "pypfopt": "pypfopt",
-    "qf_lib": None,
     "scipy": "scipy",
     "statsmodels": "statsmodels",
     "sympy": "sympy",
@@ -147,6 +142,9 @@ class SelfContrastSolver:
     ) -> None:
         self.client = client
         self.perspectives = perspectives
+        # NOTE: even when tool_mode == "none", the built-in _calcu_heuristic
+        # may still route computational problems through the executor, so we
+        # construct a default PythonExecutor eagerly when one isn't provided.
         self.executor = executor or PythonExecutor()
         self.tool_mode = tool_mode
         self.prompt_repeat = max(1, min(3, prompt_repeat))
@@ -210,7 +208,6 @@ class SelfContrastSolver:
         majority = self._select_majority_answer(perspective_outputs, task_type)
 
         if self._has_local_consensus(perspective_outputs, task_type):
-            majority = self._select_majority_answer(perspective_outputs, task_type)
             log.info("[%s] Local consensus reached, skipping contrast.", pid)
             if majority is None:
                 majority = self._select_any_answer(perspective_outputs, task_type)
@@ -1207,15 +1204,7 @@ class SelfContrastSolver:
     def _apply_prompt_repetition(self, prompt: str) -> str:
         if self.prompt_repeat <= 1:
             return prompt
-        if self.prompt_repeat == 2:
-            return prompt + "\n\n" + prompt
-        return (
-            prompt
-            + "\n\nLet me repeat that:\n\n"
-            + prompt
-            + "\n\nLet me repeat that one more time:\n\n"
-            + prompt
-        )
+        return "\n\n".join([prompt] * self.prompt_repeat)
 
     def _format_responses(
         self, responses: List[PerspectiveResponse], labels: List[str]

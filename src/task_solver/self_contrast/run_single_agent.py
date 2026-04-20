@@ -21,12 +21,15 @@ import argparse
 import asyncio
 import json
 import logging
-import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
+from src.task_solver.self_contrast._runner_utils import (
+    parse_single_agent_response,
+    resolve_batch_file,
+)
 from src.task_solver.self_contrast.evaluator import (
     evaluate_batch,
     evaluate_result,
@@ -70,6 +73,10 @@ class SingleAgentSolver:
     def __init__(self, client: LLMClient, *, force_json: bool = True) -> None:
         self.client = client
         self.force_json = force_json
+        self._use_threads = getattr(client, "provider", "") not in (
+            "ollama",
+            "openai_compatible",
+        )
 
     async def solve_problem(self, problem: Dict[str, Any]) -> Dict[str, Any]:
         """Solve a single problem with one LLM call."""
@@ -86,11 +93,11 @@ class SingleAgentSolver:
             answer_format=answer_format,
         )
 
-        response = self.client.call(
+        response = await self._call_llm(
             SINGLE_AGENT_SYSTEM_PROMPT, user_prompt, force_json=self.force_json
         )
 
-        prediction, reasoning = self._parse_response(response, task_type)
+        prediction, reasoning = parse_single_agent_response(response, task_type)
 
         return {
             "id": problem.get("id"),
@@ -101,46 +108,12 @@ class SingleAgentSolver:
             "raw_response": response,
         }
 
-    @staticmethod
-    def _parse_response(content: str, task_type: str) -> tuple[Optional[str], str]:
-        prediction = None
-        reasoning = "No reasoning provided"
-
-        json_match = re.search(r"\{.*\}", content, re.DOTALL)
-        if json_match:
-            try:
-                json_str = json_match.group(0)
-                json_str = re.sub(r'"\s*\n\s*"', '", "', json_str)
-                parsed = json.loads(json_str)
-                prediction = parsed.get("answer")
-                reasoning = parsed.get("reasoning", reasoning)
-            except Exception:
-                pass
-
-        if prediction is None:
-            ans_match = re.search(
-                r'"answer":\s*["\']?(.*?)["\']?[\s,}]', content, re.IGNORECASE
+    async def _call_llm(self, system: str, user: str, *, force_json: bool) -> str:
+        if self._use_threads:
+            return await asyncio.to_thread(
+                self.client.call, system, user, force_json=force_json
             )
-            if ans_match:
-                prediction = ans_match.group(1).strip()
-
-        if prediction is None and not json_match:
-            prediction = content.strip()
-            reasoning = "Raw model response"
-
-        return prediction, reasoning
-
-
-def _resolve_batch_file(batch_file: str, dataset_dir: Path) -> Path:
-    candidate = Path(batch_file)
-    if candidate.exists():
-        return candidate
-    candidate = dataset_dir / batch_file
-    if candidate.exists():
-        return candidate
-    raise FileNotFoundError(
-        f"Batch file not found: {batch_file} (searched {dataset_dir})"
-    )
+        return self.client.call(system, user, force_json=force_json)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -185,7 +158,7 @@ async def run(args: argparse.Namespace) -> None:
     results_dir = Path(args.results_dir) if args.results_dir else DEFAULT_RESULTS_DIR
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    batch_path = _resolve_batch_file(args.batch_file, dataset_dir)
+    batch_path = resolve_batch_file(args.batch_file, dataset_dir)
     with open(batch_path, "r", encoding="utf-8") as f:
         problems: List[Dict[str, Any]] = json.load(f)
 
